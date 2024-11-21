@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра: Поймай шары</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #1e3c72, #2a5298);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #FFFFFF;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+        }
+        .ball {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ff7f50, #ff4500);
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .ball:hover {
+            transform: scale(1.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+        }
+        #timer, #level {
+            position: absolute;
+            top: 10px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.5);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
+        #timer {
+            left: 10px;
+        }
+        #level {
+            right: 10px;
+        }
+        #gameOverMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="timer">10</div>
+        <div id="level">Уровень: 1</div>
+        <div id="gameOverMessage">Время вышло!<br>Попробуйте снова.</div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('gameContainer');
+        const timerDisplay = document.getElementById('timer');
+        const levelDisplay = document.getElementById('level');
+        const gameOverMessage = document.getElementById('gameOverMessage');
+
+        let level = 1;
+        let timeLeft = 10;
+        let balls = [];
+        let interval;
+        let countdown;
+
+        function startLevel() {
+            gameOverMessage.style.display = 'none';
+            levelDisplay.innerText = `Уровень: ${level}`;
+            timeLeft = 10;
+            timerDisplay.innerText = timeLeft;
+            clearInterval(interval);
+            clearInterval(countdown);
+
+            balls.forEach(ball => ball.remove());
+            balls = [];
+
+            for (let i = 0; i < level; i++) {
+                createBall();
+            }
+
+            interval = setInterval(moveBalls, 20);
+            countdown = setInterval(updateTimer, 1000);
+        }
+
+        function createBall() {
+            const ball = document.createElement('div');
+            ball.classList.add('ball');
+            ball.style.top = `${Math.random() * (gameContainer.clientHeight - 50)}px`;
+            ball.style.left = `${Math.random() * (gameContainer.clientWidth - 50)}px`;
+            ball.addEventListener('click', () => {
+                ball.remove();
+                balls = balls.filter(b => b !== ball);
+                if (balls.length === 0) {
+                    clearInterval(interval);
+                    clearInterval(countdown);
+                    level++;
+                    startLevel();
+                }
+            });
+            balls.push(ball);
+            gameContainer.appendChild(ball);
+        }
+
+        function moveBalls() {
+            balls.forEach(ball => {
+                const x = parseInt(ball.style.left);
+                const y = parseInt(ball.style.top);
+                const dx = (Math.random() * 4 - 2) * 2;
+                const dy = (Math.random() * 4 - 2) * 2;
+                let newX = x + dx;
+                let newY = y + dy;
+
+                if (newX < 0 || newX > gameContainer.clientWidth - 50) newX = x - dx;
+                if (newY < 0 || newY > gameContainer.clientHeight - 50) newY = y - dy;
+
+                ball.style.left = `${newX}px`;
+                ball.style.top = `${newY}px`;
+            });
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerDisplay.innerText = timeLeft;
+            if (timeLeft === 0) {
+                clearInterval(interval);
+                clearInterval(countdown);
+                gameOverMessage.style.display = 'block';
+                level = 1;
+                setTimeout(startLevel, 2000);
+            }
+        }
+
+        startLevel();
+    </script>
+</body>
+</html>
