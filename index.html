@@ -65,47 +65,60 @@
             font-weight: bold;
             transition: all 0.3s ease;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            position: relative;
         }
         .links a:hover {
             background: rgba(255, 255, 255, 0.4);
             transform: scale(1.05);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
         }
-        .links a[data-description]:hover::after {
-            content: attr(data-description);
-            position: absolute;
-            top: 120%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 200px;
-            background: rgba(0, 0, 0, 0.8);
+        .details-button {
+            display: inline-block;
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.2);
             color: #fff;
-            padding: 10px;
+            padding: 10px 20px;
             border-radius: 8px;
-            text-align: left;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            white-space: normal;
-            z-index: 10;
+            cursor: pointer;
+            transition: 0.3s ease;
         }
-        footer {
-            margin-top: 40px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.7);
+        .details-button:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+        /* Модальное окно */
+        .modal {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
             width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+            transition: all 0.5s ease;
         }
-        footer p {
-            margin: 0;
+        .modal.visible {
+            bottom: 0;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .modal p {
             font-size: 1.1rem;
+            line-height: 1.5;
         }
-        footer a {
-            color: #4facfe;
-            text-decoration: none;
-            font-weight: bold;
+        .close-button {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s ease;
         }
-        footer a:hover {
-            text-decoration: underline;
+        .close-button:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
@@ -117,34 +130,49 @@
         <div class="category">
             <h2>Игры</h2>
             <div class="links">
-                <a href="1.html" data-description="Файловый менеджер для создания папок и текстовых файлов, с возможностью выгрузки файлов.">Initi Файловый менеджер</a>
-                <a href="2.html" data-description="Игра по мотивам ZX Spectrum с сохранением результатов.">AntyBatty Игра</a>
+                <div>
+                    <a href="1.html">Initi Файловый менеджер</a>
+                    <div class="details-button" onclick="showModal('fileManager')">Подробнее</div>
+                </div>
+                <div>
+                    <a href="2.html">AntyBatty Игра</a>
+                    <div class="details-button" onclick="showModal('game')">Подробнее</div>
+                </div>
             </div>
         </div>
-        <div class="category">
-            <h2>Программы</h2>
-            <div class="links">
-                <a href="3.html" data-description="Бланк заказа такси для небольшого города.">Бланк заказа такси</a>
-                <a href="https://t.me/Taxi4You" target="_blank" data-description="Группа Telegram для приема заказов службами такси.">Приём заказов такси</a>
-            </div>
-        </div>
-        <div class="category">
-            <h2>Боты</h2>
-            <div class="links">
-                <a href="https://t.me/WeatherFish_bot" target="_blank" data-description="Погода для рыбалки с анализом времени и функцией регистрации.">Погода для рыбалки</a>
-                <a href="https://t.me/EasyTravelCar_bot" target="_blank" data-description="Бот для поиска попутчиков и предложений поездок.">Поиск попутчиков</a>
-                <a href="https://t.me/FriendsEverywhere_bot" target="_blank" data-description="Поиск друзей по интересам или проектам.">Поиск друзей по интересам</a>
-                <a href="https://t.me/WorkDady_bot" target="_blank" data-description="Бот для поиска работы или сотрудников по всему миру.">Работа (поиск и предложения)</a>
-            </div>
-        </div>
-        <div class="category">
-            <h2>Связь со мной</h2>
-            <p>Если у вас есть вопросы и предложения, свяжитесь со мной:</p>
-            <p><a href="https://t.me/dElonMusk" target="_blank">@d'ElonMusk в Telegram</a></p>
-        </div>
+    </div>
+    <!-- Модальное окно -->
+    <div id="modal" class="modal">
+        <h3 id="modal-title"></h3>
+        <p id="modal-description"></p>
+        <div class="close-button" onclick="hideModal()">Закрыть</div>
     </div>
     <footer>
         <p>© 2024 Все права защищены. Автор: d'ElonMusk</p>
     </footer>
+    <script>
+        const descriptions = {
+            fileManager: {
+                title: "Initi Файловый менеджер",
+                description: "Файловый менеджер для создания папок и текстовых файлов с возможностью выгрузки и загрузки файловой системы."
+            },
+            game: {
+                title: "AntyBatty Игра",
+                description: "Игра по мотивам старых игр на ZX Spectrum, с возможностью сохранения результата."
+            }
+        };
+
+        function showModal(key) {
+            const modal = document.getElementById('modal');
+            document.getElementById('modal-title').innerText = descriptions[key].title;
+            document.getElementById('modal-description').innerText = descriptions[key].description;
+            modal.classList.add('visible');
+        }
+
+        function hideModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('visible');
+        }
+    </script>
 </body>
 </html>
