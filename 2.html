@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catch the Blocks Game</title>
+<style>
+    canvas {
+        background: #001f3f; /* Тёмно-синий фон */
+        display: block;
+        margin: 0 auto;
+        border: 2px solid #333;
+    }
+    button, #nameInput {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        font-size: 20px;
+        cursor: pointer;
+    }
+    #nameInput {
+        width: 200px;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<button id="startButton">Начать игру</button>
+<input type="text" id="nameInput" placeholder="Введите имя" style="display: none;">
+<button id="saveButton" style="display: none;">Сохранить результат</button>
+<button id="restartButton" style="display: none;">Начать заново</button>
+<canvas id="gameCanvas" width="320" height="480"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const startButton = document.getElementById("startButton");
+const saveButton = document.getElementById("saveButton");
+const restartButton = document.getElementById("restartButton");
+const nameInput = document.getElementById("nameInput");
+
+let platformWidth = 80, platformHeight = 10, platformX = (canvas.width - platformWidth) / 2;
+let blockWidth = 20, blockHeight = 20;
+let blocks = [];
+let speed = 2;
+let rightPressed = false, leftPressed = false;
+let gameStarted = false;
+let gameOver = false;
+let score = 0;
+
+// Обновление платформы
+function drawPlatform() {
+    ctx.beginPath();
+    ctx.rect(platformX, canvas.height - platformHeight - 10, platformWidth, platformHeight);
+    ctx.fillStyle = "#0095DD";
+    ctx.fill();
+    ctx.closePath();
+}
+
+// Отрисовка блоков
+function drawBlocks() {
+    blocks.forEach(block => {
+        ctx.beginPath();
+        ctx.rect(block.x, block.y, blockWidth, blockHeight);
+        ctx.fillStyle = "#ff5733";
+        ctx.fill();
+        ctx.closePath();
+    });
+}
+
+// Обновление блоков
+function updateBlocks() {
+    blocks.forEach(block => {
+        block.y += speed;
+    });
+
+    blocks = blocks.filter(block => {
+        if (block.y + blockHeight > canvas.height - platformHeight - 10 &&
+            block.x > platformX && block.x < platformX + platformWidth) {
+            score++; // Увеличиваем счёт за поимку блока
+            return false;
+        } else if (block.y + blockHeight > canvas.height) {
+            gameOver = true;
+            return false;
+        }
+        return true;
+    });
+}
+
+// Добавление нового блока
+function spawnBlock() {
+    const x = Math.random() * (canvas.width - blockWidth);
+    blocks.push({ x: x, y: 0 });
+}
+
+// Обновление платформы
+function updatePlatform() {
+    if (rightPressed && platformX < canvas.width - platformWidth) {
+        platformX += 5;
+    } else if (leftPressed && platformX > 0) {
+        platformX -= 5;
+    }
+}
+
+// Основной цикл игры
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPlatform();
+    drawBlocks();
+    updateBlocks();
+    updatePlatform();
+
+    // Отображение очков
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "#FFD700"; // Жёлтый текст
+    ctx.fillText(`Очки: ${score}`, 10, 30);
+
+    if (gameOver) {
+        ctx.font = "30px Arial";
+        ctx.fillStyle = "#FF0000"; // Красный текст
+        ctx.fillText("Игра окончена", 60, canvas.height / 2 - 20);
+        startButton.style.display = "none";
+        nameInput.style.display = "block";
+        saveButton.style.display = "block";
+        restartButton.style.display = "block";
+        return;
+    }
+
+    requestAnimationFrame(draw);
+}
+
+// Сброс игры
+function resetGame() {
+    platformX = (canvas.width - platformWidth) / 2;
+    blocks = [];
+    speed = 2;
+    gameOver = false;
+    gameStarted = true;
+    score = 0;
+    nameInput.style.display = "none";
+    saveButton.style.display = "none";
+    restartButton.style.display = "none";
+    startButton.style.display = "block";
+    draw();
+}
+
+
+function wrapText(context, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = context.measureText(testLine);
+        const testWidth = metrics.width;
+
+        if (testWidth > maxWidth && n > 0) {
+            context.fillText(line, x, y);
+            line = words[n] + ' ';
+            y += lineHeight;
+        } else {
+            line = testLine;
+        }
+    }
+    context.fillText(line, x, y);
+}
+
+
+// Сохранение результата
+function saveResult() {
+    const name = nameInput.value || "Игрок"; // Имя игрока
+    const date = new Date().toLocaleString(); // Дата и время
+    const resultText = `${name} набрал ${score} очков. Дата: ${date}`;
+    
+    // Очистка и подготовка фона
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#001f3f"; // Тёмно-синий фон
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Настройка шрифта и цвета текста
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "#FFD700"; // Жёлтый текст
+
+    // Отрисовка текста с переносом строк
+    wrapText(ctx, resultText, 10, 50, canvas.width - 20, 30);
+
+    // Сохранение как JPEG
+    const link = document.createElement("a");
+    link.download = "game_result.jpg";
+    link.href = canvas.toDataURL("image/jpeg");
+    link.click();
+}
+
+
+// Управление через касания
+document.addEventListener("touchstart", (e) => {
+    const touchX = e.touches[0].clientX;
+    if (touchX > window.innerWidth / 2) {
+        rightPressed = true;
+    } else {
+        leftPressed = true;
+    }
+});
+document.addEventListener("touchend", () => {
+    rightPressed = false;
+    leftPressed = false;
+});
+
+// Кнопки
+startButton.addEventListener("click", () => {
+    resetGame();
+    setInterval(spawnBlock, 1000); // Спавн блоков каждую секунду
+});
+
+restartButton.addEventListener("click", resetGame);
+saveButton.addEventListener("click", saveResult);
+
+</script>
+</body>
+</html>
