@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File System Editor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+    }
+    #sidebar {
+      width: 300px;
+      background: #f4f4f4;
+      padding: 10px;
+      border-right: 1px solid #ccc;
+    }
+    #editor {
+      flex-grow: 1;
+      padding: 10px;
+    }
+    .folder, .file {
+      cursor: pointer;
+      margin: 5px 0;
+    }
+    .file {
+      padding-left: 20px;
+    }
+    .folder-contents {
+      padding-left: 20px;
+    }
+    button {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <button onclick="createFolder()">Create Folder</button>
+    <button onclick="createFile()">Create File</button>
+    <button onclick="saveSystem()">Save System</button>
+    <button onclick="loadSystem()">Load System</button>
+    <div id="file-system"></div>
+    <input type="file" id="file-input" style="display: none;" onchange="handleFileLoad(event)">
+  </div>
+  <div id="editor">
+    <textarea id="file-content" rows="20" cols="50" style="width: 100%;"></textarea>
+  </div>
+
+  <script>
+    // Инициализация файловой системы
+    let fileSystem = {};
+    let currentFile = null;
+    let currentFolder = fileSystem; // Указатель на текущую папку
+
+    // Рендер файловой системы
+    function renderFileSystem() {
+      const container = document.getElementById('file-system');
+      container.innerHTML = '';
+      renderFolder(fileSystem, container, []);
+    }
+
+    function renderFolder(folder, container, path) {
+      Object.keys(folder).forEach(name => {
+        const fullPath = [...path, name];
+        if (typeof folder[name] === 'object') {
+          const folderDiv = document.createElement('div');
+          folderDiv.className = 'folder';
+          folderDiv.textContent = `📁 ${name}`;
+          folderDiv.onclick = (e) => {
+            e.stopPropagation();
+            const subContainer = document.createElement('div');
+            subContainer.className = 'folder-contents';
+            renderFolder(folder[name], subContainer, fullPath);
+            folderDiv.appendChild(subContainer);
+            folderDiv.onclick = null;
+          };
+          const createInsideButton = document.createElement('button');
+          createInsideButton.textContent = '+';
+          createInsideButton.title = "Add to folder";
+          createInsideButton.onclick = (e) => {
+            e.stopPropagation();
+            currentFolder = folder[name];
+            handleCreateInside(fullPath);
+          };
+          folderDiv.appendChild(createInsideButton);
+          container.appendChild(folderDiv);
+        } else {
+          const fileDiv = document.createElement('div');
+          fileDiv.className = 'file';
+          fileDiv.textContent = `📄 ${name}`;
+          fileDiv.onclick = () => {
+            currentFile = fullPath;
+            document.getElementById('file-content').value = folder[name];
+          };
+          container.appendChild(fileDiv);
+        }
+      });
+    }
+
+    function handleCreateInside(path) {
+      const action = prompt('Enter "folder" to create folder or "file" to create file:');
+      if (action === 'folder') {
+        createFolder(path);
+      } else if (action === 'file') {
+        createFile(path);
+      }
+    }
+
+    // Функция для получения папки по пути
+    function getFolderByPath(path) {
+      let folder = fileSystem;
+      for (const part of path) {
+        folder = folder[part];
+      }
+      return folder;
+    }
+
+    // Создание новой папки
+    function createFolder(path = []) {
+      const name = prompt('Enter folder name:');
+      if (!name) return;
+      const folder = path.length > 0 ? getFolderByPath(path) : fileSystem;
+      if (!folder[name]) {
+        folder[name] = {};
+        renderFileSystem();
+      } else {
+        alert('Folder already exists!');
+      }
+    }
+
+    // Создание нового файла
+    function createFile(path = []) {
+      const name = prompt('Enter file name:');
+      if (!name) return;
+      const folder = path.length > 0 ? getFolderByPath(path) : fileSystem;
+      if (!folder[name]) {
+        folder[name] = '';
+        renderFileSystem();
+      } else {
+        alert('File already exists!');
+      }
+    }
+
+    // Обновление содержимого файла
+    document.getElementById('file-content').addEventListener('input', (e) => {
+      if (currentFile) {
+        let file = fileSystem;
+        for (let i = 0; i < currentFile.length - 1; i++) {
+          file = file[currentFile[i]];
+        }
+        file[currentFile[currentFile.length - 1]] = e.target.value;
+      }
+    });
+
+    // Сохранение файловой системы в JSON-файл
+    function saveSystem() {
+      const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'fileSystem.json';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    // Загрузка JSON-файла файловой системы
+    function loadSystem() {
+      document.getElementById('file-input').click();
+    }
+
+    function handleFileLoad(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          fileSystem = JSON.parse(e.target.result);
+          renderFileSystem();
+          alert('File system loaded successfully!');
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    // Начальный рендер
+    renderFileSystem();
+  </script>
+</body>
+</html>
