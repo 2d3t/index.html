@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бланк заказа такси</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        header {
+            background-color: #2d87f0;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .form-container {
+            background-color: #fff;
+            padding: 30px;
+            margin: 20px auto;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .form-container label {
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .form-container input,
+        .form-container textarea,
+        .form-container select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        .form-container button {
+            background-color: #2d87f0;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .form-container button:hover {
+            background-color: #1a64b2;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #2d87f0;
+            color: white;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Бланк заказа такси</h2>
+    </header>
+
+    <div class="form-container">
+        <form id="taxiOrderForm">
+            <label for="name">Ваше имя:</label>
+            <input type="text" id="name" placeholder="Введите ваше имя" required>
+
+            <label for="phone">Номер телефона:</label>
+            <input type="tel" id="phone" placeholder="Введите номер телефона" required>
+
+            <label for="pickup">Место отправления:</label>
+            <input type="text" id="pickup" placeholder="Где вас забрать?" required>
+
+            <label for="destination">Место назначения:</label>
+            <input type="text" id="destination" placeholder="Куда поедете?" required>
+
+            <label for="time">Предпочтительное время:</label>
+            <input type="time" id="time" required>
+
+            <label for="message">Дополнительные пожелания:</label>
+            <textarea id="message" rows="4" placeholder="Напишите пожелания для водителя (по желанию)..."></textarea>
+
+            <button type="button" onclick="sendTaxiOrder()">Отправить заказ</button>
+        </form>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Taxi Service | Все права защищены</p>
+    </footer>
+
+    <script>
+        const botToken = '8029915136:AAELwu_XlhomwcXMhkXlCDBIoYODJgEJ9R8'; // Токен вашего бота
+        const chatId = '-1002360413691'; // ID вашей группы
+
+        async function sendTaxiOrder() {
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const pickup = document.getElementById('pickup').value;
+            const destination = document.getElementById('destination').value;
+            const time = document.getElementById('time').value;
+            const message = document.getElementById('message').value;
+
+            if (!name || !phone || !pickup || !destination || !time) {
+                alert("Пожалуйста, заполните все обязательные поля.");
+                return;
+            }
+
+            const orderMessage = `
+            Новый заказ такси:
+            Имя: ${name}
+            Телефон: ${phone}
+            Место отправления: ${pickup}
+            Место назначения: ${destination}
+            Время: ${time}
+            Дополнительные пожелания: ${message || 'Нет'}
+            `;
+
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const data = {
+                chat_id: chatId,
+                text: orderMessage
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.ok) {
+                    alert("Ваш заказ отправлен!");
+                    document.getElementById('taxiOrderForm').reset(); // Очистить форму после отправки
+                } else {
+                    alert("Ошибка при отправке: " + result.description);
+                }
+            } catch (error) {
+                alert("Произошла ошибка при отправке: " + error.message);
+            }
+        }
+    </script>
+
+</body>
+</html>
