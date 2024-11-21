@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klik-Calculator</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #3b82f6, #9333ea);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
+        }
+        #calculator {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 320px;
+            text-align: center;
+        }
+        #display {
+            width: calc(100% - 20px);
+            height: 50px;
+            font-size: 24px;
+            margin: 10px auto;
+            padding: 5px 10px;
+            text-align: right;
+            border: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        button {
+            width: 60px;
+            height: 60px;
+            font-size: 20px;
+            margin: 8px;
+            cursor: pointer;
+            border: none;
+            border-radius: 15px;
+            background: linear-gradient(145deg, #4c51bf, #5a67d8);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            color: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        #history {
+            width: calc(100% - 20px);
+            height: 120px;
+            margin: 10px auto;
+            padding: 10px;
+            font-size: 14px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            overflow-y: auto;
+            border-radius: 10px;
+        }
+        .history-input {
+            width: calc(100% - 20px);
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        .action-button {
+            width: calc(100% - 20px);
+            height: 50px;
+            font-size: 18px;
+            margin: 10px auto;
+            background: linear-gradient(145deg, #10b981, #34d399);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="calculator">
+    <h1 style="margin-bottom: 10px; font-size: 28px;">Klik-Calculator</h1>
+    <input type="text" id="display" disabled>
+    <div>
+        <button onclick="appendToDisplay('7')">7</button>
+        <button onclick="appendToDisplay('8')">8</button>
+        <button onclick="appendToDisplay('9')">9</button>
+        <button onclick="setOperation('/')">/</button>
+    </div>
+    <div>
+        <button onclick="appendToDisplay('4')">4</button>
+        <button onclick="appendToDisplay('5')">5</button>
+        <button onclick="appendToDisplay('6')">6</button>
+        <button onclick="setOperation('*')">*</button>
+    </div>
+    <div>
+        <button onclick="appendToDisplay('1')">1</button>
+        <button onclick="appendToDisplay('2')">2</button>
+        <button onclick="appendToDisplay('3')">3</button>
+        <button onclick="setOperation('-')">-</button>
+    </div>
+    <div>
+        <button onclick="appendToDisplay('0')">0</button>
+        <button onclick="calculateResult()">=</button>
+        <button onclick="clearDisplay()">C</button>
+        <button onclick="setOperation('+')">+</button>
+    </div>
+    <button class="action-button" onclick="undo()">Undo</button>
+    <button class="action-button" onclick="saveHistory()">Сохранить историю</button>
+    <div id="history"></div>
+    <input type="text" class="history-input" id="historyInput" placeholder="Добавить заметку..." onkeydown="addHistoryNoteOnEnter(event)">
+</div>
+
+<script>
+    let currentInput = '';
+    let previousInput = '';
+    let operation = '';
+    let history = [];
+
+    function appendToDisplay(value) {
+        currentInput += value;
+        document.getElementById('display').value = currentInput;
+    }
+
+    function setOperation(op) {
+        if (currentInput === '') return;
+        if (previousInput !== '') {
+            calculateResult();
+        }
+        operation = op;
+        previousInput = currentInput;
+        currentInput = '';
+    }
+
+    function calculateResult() {
+        let result;
+        const prev = parseFloat(previousInput);
+        const current = parseFloat(currentInput);
+        if (isNaN(prev) || isNaN(current)) return;
+
+        switch (operation) {
+            case '+':
+                result = prev + current;
+                break;
+            case '-':
+                result = prev - current;
+                break;
+            case '*':
+                result = prev * current;
+                break;
+            case '/':
+                result = prev / current;
+                break;
+            default:
+                return;
+        }
+
+        currentInput = result.toString();
+        document.getElementById('display').value = currentInput;
+        const historyEntry = `${previousInput} ${operation} ${current} = ${result}`;
+        history.push(historyEntry);
+        updateHistoryDisplay();
+        previousInput = '';
+    }
+
+    function clearDisplay() {
+        currentInput = '';
+        previousInput = '';
+        operation = '';
+        document.getElementById('display').value = '';
+    }
+
+    function undo() {
+        if (currentInput) {
+            currentInput = currentInput.slice(0, -1);
+            document.getElementById('display').value = currentInput;
+        }
+    }
+
+    function updateHistoryDisplay() {
+        const historyDiv = document.getElementById('history');
+        historyDiv.innerHTML = '';
+        history.forEach(entry => {
+            const entryDiv = document.createElement('div');
+            entryDiv.textContent = entry;
+            historyDiv.appendChild(entryDiv);
+        });
+    }
+
+    function addHistoryNoteOnEnter(event) {
+        if (event.key === 'Enter') {
+            const note = event.target.value;
+            if (note) {
+                history.push(note);
+                updateHistoryDisplay();
+                event.target.value = '';
+            }
+        }
+    }
+
+    function saveHistory() {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 400;
+        canvas.height = 200 + history.length * 20;
+        ctx.fillStyle = '#FFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#000';
+        ctx.fillText('История операций:', 10, 30);
+        history.forEach((entry, index) => {
+            ctx.fillText(entry, 10, 50 + index * 20);
+        });
+
+        canvas.toBlob(function(blob) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'history.jpeg';
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>
