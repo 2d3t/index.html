@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klik-Labirint</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background-color: #1e1e1e;
+    }
+
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #282c34;
+    }
+
+    #player {
+      position: absolute;
+      bottom: 20px;
+      width: 80px;
+      height: 20px;
+      background-color: #ff4d4d;
+      border-radius: 10px;
+    }
+
+    #timer {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #ffffff;
+      font-size: 24px;
+    }
+    
+    .lab-block {
+      position: absolute;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="player"></div>
+  </div>
+  <div id="timer">Time: 30s</div>
+
+  <script>
+    let game = document.getElementById("game");
+    let player = document.getElementById("player");
+    let timerDisplay = document.getElementById("timer");
+    let gameWidth = game.offsetWidth;
+    let playerSpeed = 20;
+    let labSpeed = 2;
+    let timeRemaining = 30;
+    let isGameOver = false;
+
+    // Инициализация позиции игрока
+    let playerX = (gameWidth - player.offsetWidth) / 2;
+    player.style.left = `${playerX}px`;
+
+    // Обновление таймера
+    function updateTimer() {
+      timerDisplay.innerText = `Time: ${timeRemaining}s`;
+      if (timeRemaining <= 0) {
+        isGameOver = true;
+        alert("Раунд пройден! Скорость увеличена.");
+        restartGame();
+      }
+    }
+
+    // Функция рестарта
+    function restartGame() {
+      timeRemaining = 30;
+      labSpeed *= 2;
+      updateTimer();
+      isGameOver = false;
+    }
+
+    // Функция управления движением
+    window.addEventListener("touchmove", function(event) {
+      if (!isGameOver) {
+        let touchX = event.touches[0].clientX;
+        playerX = touchX - player.offsetWidth / 2;
+        playerX = Math.max(0, Math.min(playerX, gameWidth - player.offsetWidth));
+        player.style.left = `${playerX}px`;
+      }
+    });
+
+    // Анимация лабиринта
+    function createLab() {
+      let block = document.createElement("div");
+      block.className = "lab-block";
+      block.style.width = `${Math.random() * 100 + 50}px`;
+      block.style.top = "-20px";
+      block.style.left = `${Math.random() * (gameWidth - 100)}px`;
+      block.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+      game.appendChild(block);
+      moveLab(block);
+    }
+
+    function moveLab(block) {
+      let labInterval = setInterval(() => {
+        if (isGameOver) clearInterval(labInterval);
+        let top = parseFloat(block.style.top);
+        block.style.top = `${top + labSpeed}px`;
+
+        // Проверка на столкновение
+        if (
+          top >= game.offsetHeight - player.offsetHeight - block.offsetHeight &&
+          playerX < block.offsetLeft + block.offsetWidth &&
+          playerX + player.offsetWidth > block.offsetLeft
+        ) {
+          alert("Игра окончена! Начать заново?");
+          clearInterval(labInterval);
+          location.reload();
+        }
+
+        if (top > game.offsetHeight) {
+          block.remove();
+        }
+      }, 20);
+    }
+
+    // Основной игровой цикл
+    setInterval(() => {
+      if (!isGameOver) {
+        timeRemaining--;
+        updateTimer();
+      }
+    }, 1000);
+
+    setInterval(() => {
+      if (!isGameOver) {
+        createLab();
+      }
+    }, 1500);
+  </script>
+</body>
+</html>
