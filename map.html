@@ -1,10 +1,11 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Интерактивная карта мира "Знакомство со странами мира"</title>
+    <title>Interactive World Map</title>
     <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
@@ -13,31 +14,17 @@
         #chartdiv {
             width: 100%;
             height: 600px;
-            background-color: #f4f4f9; /* Светлый фон */
         }
-
-        #info {
-            margin: 10px 0;
-            font-family: 'Arial', sans-serif;
-            font-size: 20px;
-            color: #333;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        /* Эффект для информации */
-        #info {
-            padding: 10px;
-            border-radius: 5px;
-            background: rgba(0, 123, 255, 0.5);
-            color: white;
+        .info {
+            margin: 10px;
+            font-size: 16px;
+            color: #555;
         }
     </style>
 </head>
 <body>
-    <h1 style="text-align:center;">Интерактивная карта мира "Знакомство со странами Мира</h1>
-    <p style="text-align:center;">Нажмите на страну, чтобы узнать её название. Второе нажатие откроет YouTube.</p>
-    <div id="info">Выберите страну.</div>
+    <h1>Интерактивная карта мира</h1>
+    <p class="info">Перемещайте и увеличивайте карту двумя пальцами. Один клик показывает её название, два клика чтобы найти путешествия по ней на YouTube.</p>
     <div id="chartdiv"></div>
 
     <script>
@@ -48,8 +35,8 @@
 
             let chart = root.container.children.push(
                 am5map.MapChart.new(root, {
-                    panX: "none",
-                    panY: "none",
+                    panX: "rotateX",
+                    panY: "rotateY",
                     projection: am5map.geoMercator(),
                 })
             );
@@ -61,41 +48,36 @@
                 })
             );
 
-            // Стили для стран с плавным цветом
+            // Стили для стран
             polygonSeries.set("fill", am5.color(0xcccccc));
             polygonSeries.set("stroke", am5.color(0x000000));
 
             polygonSeries.mapPolygons.template.setAll({
                 interactive: true,
                 tooltipText: "{name}",
-                hoverable: true,
-                cursorOverStyle: "pointer",
+                toggleKey: "none",
             });
 
-            polygonSeries.mapPolygons.template.states.create("hover", {
-                fill: am5.color(0x007bff), // Яркий цвет при наведении
-                scale: 1.1,  // Увеличение при наведении
-            });
-
-            // Переменная для хранения кликов
+            // Хранение кликов по странам
             let clickedCountries = {};
 
             // Обработчик кликов
             polygonSeries.mapPolygons.template.events.on("click", function (ev) {
                 let countryName = ev.target.dataItem.dataContext.name;
 
+                // Проверяем, был ли клик по этой стране ранее
                 if (clickedCountries[countryName]) {
-                    // Второй клик - переход на YouTube
                     let youtubeUrl = `https://www.youtube.com/results?search_query=путешествие+по+${encodeURIComponent(countryName)}`;
                     window.open(youtubeUrl, "_blank");
                 } else {
-                    // Первый клик - отображение имени страны
-                    document.getElementById("info").innerText = `Вы выбрали: ${countryName}`;
+                    document.querySelector(".info").textContent = `Вы выбрали: ${countryName}. Нажмите ещё раз для поиска путешествий.`;
                     clickedCountries[countryName] = true;
 
-                    // Сброс клика через 5 секунд
+                    // Сбрасываем состояние через 5 секунд
                     setTimeout(() => {
                         delete clickedCountries[countryName];
+                        document.querySelector(".info").textContent =
+                            "Перемещайте и увеличивайте карту двумя пальцами. Нажмите на страну, чтобы узнать её название, затем нажмите ещё раз, чтобы найти путешествия по ней на YouTube.";
                     }, 5000);
                 }
             });
