@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive World Map</title>
+    <title>Interactive Rotating Globe</title>
     <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
-    
-    <!-- Добавление скрипта Publytics для аналитики -->
-    <script defer data-domain="2d3t.github.io/5uqKDT" src="https://api.publytics.net/js/script.manual.min.js"></script>
-    
     <style>
         #chartdiv {
             width: 100%;
@@ -22,11 +18,89 @@
             font-size: 16px;
             color: #555;
         }
-    </style>
+
+    /* Блок с кнопками */
+    .share-buttons {
+        margin: 20px 0;
+        text-align: center;
+    }
+
+    /* Текст в блоке */
+    .share-buttons p {
+        font-size: 16px;
+        color: #777;
+    }
+
+    /* Общий стиль кнопок */
+    .share-button {
+        display: inline-block;
+        text-decoration: none;
+        color: #333;  /* Тёмно-серый цвет текста */
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 16px;
+        border-radius: 5px;
+        background-color: #f0f0f0;  /* Светло-серый фон */
+        transition: background-color 0.3s ease, color 0.3s ease;
+        text-align: center;
+        cursor: pointer;
+        border: 1px solid #ccc;  /* Лёгкая рамка */
+    }
+
+    /* Иконки перед текстом */
+    .share-button i {
+        margin-right: 8px;
+    }
+
+    /* Цвета кнопок */
+    .share-button.facebook {
+        background-color: #3b5998;  /* Цвет Facebook */
+        color: white;
+        border-color: #3b5998;
+    }
+    .share-button.twitter {
+        background-color: #1da1f2;  /* Цвет X (Twitter) */
+        color: white;
+        border-color: #1da1f2;
+    }
+    .share-button.vk {
+        background-color: #4c75a3;  /* Цвет ВКонтакте */
+        color: white;
+        border-color: #4c75a3;
+    }
+    .share-button.telegram {
+        background-color: #0088cc;  /* Цвет Telegram */
+        color: white;
+        border-color: #0088cc;
+    }
+
+    /* Эффект при наведении */
+    .share-button:hover {
+        background-color: #ddd;  /* Тёмный фон при наведении */
+        color: #000;  /* Тёмный текст при наведении */
+        border-color: #bbb;  /* Более тёмная граница */
+    }
+
+    /* Тёмная тема для кнопок */
+    body {
+        background-color: #1a1a1a;  /* Тёмный фон страницы */
+        color: #f0f0f0;  /* Светлый текст */
+    }
+
+    .share-button:hover {
+        background-color: #555;  /* Тёмный фон при наведении */
+        color: #fff;
+    }
+</style>
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
 </head>
 <body>
-    <h1>Интерактивная карта "Знакомство со странами мира"</h1>
-    <p class="info">Нажмите на страну, чтобы узнать её название, затем нажмите ещё раз, чтобы найти путешествия по ней на YouTube.</p>
+    <h1>Путешествуем по планете Земля</h1>
+
+    <p class="info">Нажмите на страну, чтобы узнать её название, затем нажмите ещё раз, чтобы найти путешествия по ней на YouTube. Коснитесь другого места, чтобы продолжить вращение.</p>
     <div id="chartdiv"></div>
 
     <script>
@@ -39,9 +113,16 @@
                 am5map.MapChart.new(root, {
                     panX: "rotateX",
                     panY: "rotateY",
-                    projection: am5map.geoMercator(),
+                    projection: am5map.geoOrthographic(),
+                    homeGeoPoint: { latitude: 0, longitude: 0 }
                 })
             );
+
+            // Фон карты
+            chart.seriesContainer.set("background", am5.Rectangle.new(root, {
+                fill: am5.color(0x87CEEB),
+                fillOpacity: 1
+            }));
 
             // Добавление геоданных
             let polygonSeries = chart.series.push(
@@ -57,7 +138,16 @@
             polygonSeries.mapPolygons.template.setAll({
                 interactive: true,
                 tooltipText: "{name}",
-                toggleKey: "none",
+                toggleKey: "none"
+            });
+
+            // Анимация вращения
+            let rotationAnimation = chart.animate({
+                key: "rotationX",
+                to: 360,
+                loops: Infinity,
+                duration: 30000,
+                easing: am5.ease.linear
             });
 
             // Хранение кликов по странам
@@ -67,30 +157,59 @@
             polygonSeries.mapPolygons.template.events.on("click", function (ev) {
                 let countryName = ev.target.dataItem.dataContext.name;
 
-                // Проверяем, был ли клик по этой стране ранее
+                // Остановка вращения при клике на страну
+                if (rotationAnimation) {
+                    rotationAnimation.stop();
+                }
+
                 if (clickedCountries[countryName]) {
                     let youtubeUrl = `https://www.youtube.com/results?search_query=путешествие+по+${encodeURIComponent(countryName)}`;
                     window.open(youtubeUrl, "_blank");
                 } else {
-                    document.querySelector(".info").textContent = `Вы выбрали: ${countryName}. Нажмите ещё раз для поиска путешествий.`;
+                    document.querySelector(".info").innerHTML = `Вы выбрали: <strong>${countryName}</strong>. Нажмите ещё раз для поиска путешествий. <a href="https://www.youtube.com/results?search_query=путешествие+по+${encodeURIComponent(countryName)}" target="_blank">Найти путешествия по ${countryName} на YouTube</a>`;
                     clickedCountries[countryName] = true;
 
-                    // Сбрасываем состояние через 5 секунд
                     setTimeout(() => {
                         delete clickedCountries[countryName];
-                        document.querySelector(".info").textContent =
-                            "Перемещайте и увеличивайте карту двумя пальцами. Нажмите на страну, чтобы узнать её название, затем нажмите ещё раз, чтобы найти путешествия по ней на YouTube.";
+                        document.querySelector(".info").innerHTML =
+                            "Нажмите на страну, чтобы узнать её название, затем нажмите ещё раз, чтобы найти путешествия по ней на YouTube.";
                     }, 5000);
+                }
+            });
+
+            // Событие возобновления вращения
+            chart.seriesContainer.events.on("click", function () {
+                if (!rotationAnimation || rotationAnimation.stopped) {
+                    rotationAnimation = chart.animate({
+                        key: "rotationX",
+                        to: 360,
+                        loops: Infinity,
+                        duration: 30000,
+                        easing: am5.ease.linear
+                    });
                 }
             });
 
             // Анимация при загрузке
             chart.appear(1000, 100);
         });
-
-        // Инициализация Publytics для отслеживания просмотра страницы
-        window.publytics = window.publytics || function() { (window.publytics.q = window.publytics.q || []).push(arguments) };
-        publytics('pageview');
     </script>
+
+<div class="share-buttons">
+    <p>Поделитесь этой страницей:</p>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=https://example.com" target="_blank" class="share-button facebook">
+        <i class="fab fa-facebook-f"></i> Facebook
+    </a>
+    <a href="https://twitter.com/intent/tweet?url=https://example.com&text=Посмотрите эту удивительную карту!" target="_blank" class="share-button twitter">
+        <i class="fab fa-twitter"></i> Twitter (X)
+    </a>
+    <a href="https://vk.com/share.php?url=https://example.com" target="_blank" class="share-button vk">
+        <i class="fab fa-vk"></i> ВКонтакте
+    </a>
+    <a href="https://t.me/share/url?url=https://example.com&text=Посмотрите эту удивительную карту!" target="_blank" class="share-button telegram">
+        <i class="fab fa-telegram-plane"></i> Telegram
+    </a>
+</div>
+
 </body>
 </html>
