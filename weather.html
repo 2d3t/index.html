@@ -1,1 +1,126 @@
-.
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Погода, Луна и Солнце</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        input, button {
+            font-size: 1.2em;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        input {
+            width: 250px;
+        }
+        button {
+            background-color: #1e90ff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4682b4;
+        }
+        #output {
+            margin-top: 30px;
+            font-size: 1.2em;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Погода, Луна и Солнце</h1>
+    <label for="city">Введите название города:</label>
+    <input type="text" id="city" placeholder="Например, Минск">
+    <button onclick="getWeatherAndAstronomyData()">Получить данные</button>
+    <div id="output"></div>
+
+    <script>
+        const API_KEY_WEATHER = "9a0a62cea34b400fa475d372d0615fd0"; // OpenWeatherMap API
+        const TIMEZONE_API_KEY = "11D6IT1CXCYQ"; // TimeZoneDB API
+        const NASA_API_KEY = "C386tRyBhl6l19W0gS9sqSqq0kCK5cg6LoEy45NW"; // NASA API
+        const NEW_MOON_DATE = new Date("2024-01-11T00:00:00Z"); // Дата ближайшего новолуния
+
+        async function getWeatherAndAstronomyData() {
+            const city = document.getElementById('city').value;
+            const output = document.getElementById('output');
+            output.innerHTML = "Загрузка данных...";
+
+            try {
+                // Получение данных о погоде
+                const weatherResponse = await fetch(`http://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY_WEATHER}&units=metric&lang=ru`);
+                if (!weatherResponse.ok) throw new Error("Ошибка при запросе данных о погоде");
+                const weatherData = await weatherResponse.json();
+
+                const { temp } = weatherData.main;
+                const description = weatherData.weather[0].description;
+                const pressure = weatherData.main.pressure;
+                const humidity = weatherData.main.humidity;
+                const windSpeed = weatherData.wind.speed;
+
+                // Получение информации о временной зоне
+                const lat = weatherData.coord.lat;
+                const lon = weatherData.coord.lon;
+                const timezoneResponse = await fetch(`https://api.timezonedb.com/v2.1/get-time-zone?key=${TIMEZONE_API_KEY}&format=json&by=position&lat=${lat}&lng=${lon}`);
+                if (!timezoneResponse.ok) throw new Error("Ошибка при запросе временной зоны");
+                const timezoneData = await timezoneResponse.json();
+                const localTime = new Date().toLocaleTimeString('ru-RU', {
+                    timeZone: timezoneData.zoneName,
+                });
+
+                // Фаза Луны
+                const moonPhase = getMoonPhase();
+
+                // Солнечная активность
+                const solarResponse = await fetch(`https://api.nasa.gov/DONKI/FLR?startDate=${new Date().toISOString().slice(0, 10)}&endDate=${new Date().toISOString().slice(0, 10)}&api_key=${NASA_API_KEY}`);
+                const solarData = await solarResponse.json();
+                const solarActivity = solarData.length > 0 ? 
+                    solarData.map(event => `Класс: ${event.classType}, Начало: ${new Date(event.beginTime).toLocaleTimeString()}`).join("<br>") : 
+                    "Солнечная активность класса M и X отсутствует.";
+
+                // Отображение данных
+                output.innerHTML = `
+                    <h2>Результаты для города ${city}</h2>
+                    <p>Местное время: ${localTime}</p>
+                    <p>Температура: ${temp}°C</p>
+                    <p>Облачность: ${description}</p>
+                    <p>Давление: ${pressure} гПа</p>
+                    <p>Влажность: ${humidity}%</p>
+                    <p>Ветер: ${windSpeed} м/с</p>
+                    <p>Фаза Луны: ${moonPhase}</p>
+                    <p><b>Солнечная активность:</b><br>${solarActivity}</p>
+                `;
+            } catch (error) {
+                output.innerHTML = `Ошибка: ${error.message}`;
+            }
+        }
+
+        function getMoonPhase() {
+            const currentDate = new Date();
+            const deltaDays = Math.floor((currentDate - NEW_MOON_DATE) / (1000 * 60 * 60 * 24));
+            const phase = deltaDays % 29.5;
+            if (phase < 1) return "Новолуние";
+            else if (phase < 7.4) return "Растущая Луна";
+            else if (phase < 14.8) return "Полнолуние";
+            else if (phase < 22.1) return "Убывающая Луна";
+            else return "Последняя четверть";
+        }
+    </script>
+</body>
+</html>
