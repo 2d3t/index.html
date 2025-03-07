@@ -3,125 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор смеси воды и гипса</title>
+    <title>Калькулятор смеси гипса и воды</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            margin: 20px;
-            padding: 20px;
-            background: linear-gradient(to right, #1a1a2e, #16213e);
-            color: #e94560;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 50px;
+            background-color: #f0f0f0;
+            color: #333;
         }
-        h2, h3 {
-            text-align: center;
+        h1 {
+            color: #4CAF50;
         }
-        input[type="number"], select {
-            width: 100%;
+        input, button {
             padding: 10px;
-            margin: 10px 0;
-            border: none;
+            margin: 5px;
+            font-size: 16px;
+            border: 1px solid #ccc;
             border-radius: 5px;
-            background-color: #0f3460;
-            color: #e94560;
+            width: 200px;
         }
         button {
-            padding: 10px 15px;
-            background-color: #e94560;
+            cursor: pointer;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            width: 100%;
-            margin: 10px 0; /* Увеличенный отступ между кнопками */
         }
         button:hover {
-            background-color: #d63384;
+            background-color: #45a049;
         }
-        #result, #recommendations {
+        #result {
             margin-top: 20px;
-            font-weight: bold;
-            background-color: #16213e;
-            padding: 10px;
-            border: 1px solid #e94560;
+            padding: 15px;
+            background: white;
             border-radius: 5px;
-        }
-        #recommendations {
-            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            white-space: pre-wrap; /* Для отображения текста столбиком */
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
-<h2>Калькулятор смеси воды и гипса</h2>
-<label for="totalVolume">Введите конечный объем смеси (мл):</label>
-<input type="number" id="totalVolume" placeholder="Объем в мл" required>
-
-<label for="ratio">Выберите пропорцию:</label>
-<select id="ratio">
-    <option value="1.5">1 часть воды : 1.5 части гипса</option>
-    <option value="1.6">1 часть воды : 1.6 части гипса</option>
-</select>
-
-<label>
-    <input type="checkbox" id="addReserve" checked>
-    Добавить запас на налипание (10%)
-</label>
-
+<h1>Калькулятор смеси гипса и воды</h1>
+<p>Введите массу смеси (г):</p>
+<input type="number" id="mixtureWeight" placeholder="Масса смеси (г)" />
+<p>Введите название формы:</p>
+<input type="text" id="formName" placeholder="Название формы" />
 <button onclick="calculate()">Рассчитать</button>
-<button onclick="toggleRecommendations()">Показать/Скрыть рекомендации</button>
-<button onclick="saveCalculation()">Сохранить расчет как изображение</button>
+<button onclick="downloadImage()">Сохранить как JPEG</button>
 
-<div id="result"></div>
-<div id="recommendations">
-    <h3>Рекомендации по работе с гипсом:</h3>
-    <p>Изначально, чтобы не превратить кухню в строительную площадку...</p>
-    <!-- Остальные рекомендации -->
-</div>
+<h2>Результаты:</h2>
+<p id="result"></p>
+<canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-    function calculate() {
-        const totalVolume = parseFloat(document.getElementById("totalVolume").value);
-        const ratio = parseFloat(document.getElementById("ratio").value);
-        const addReserve = document.getElementById("addReserve").checked;
+    let lastResult = '';
 
-        let adjustedVolume = totalVolume;
-        if (addReserve) {
-            adjustedVolume *= 1.10; // Увеличиваем объем на 10%
+    function calculate() {
+        const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
+        const formName = document.getElementById('formName').value || 'Форма';
+        if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
+            document.getElementById('result').innerText = 'Введите корректное значение массы смеси.';
+            return;
         }
 
-        // Увеличиваем объем на 35%
-        adjustedVolume *= 1.35;
+        const waterRatio = 100 / 130; // 100 г воды на 130 г смеси
+        const gypsumRatio = 150 / 130; // 150 г гипса на 130 г смеси
 
-        const totalParts = 1 + ratio; // 1 часть воды + ratio части гипса
-        const waterVolume = (1 / totalParts) * adjustedVolume; // объем воды
-        const gypsumVolume = (ratio / totalParts) * adjustedVolume; // объем гипса
+        const waterWeight = waterRatio * mixtureWeight;
+        const gypsumWeight = gypsumRatio * mixtureWeight;
 
-        document.getElementById("result").innerText = 
-            `Для ${totalVolume} мл смеси с запасом вам нужно:\n` +
-            `- Вода: ${waterVolume.toFixed(2)} мл\n` +
-            `- Гипс: ${gypsumVolume.toFixed(2)} мл`;
+        lastResult = `Для ${mixtureWeight.toFixed(2)} г смеси нужно:\n` +
+                     `${waterWeight.toFixed(2)} г воды\n` +
+                     `${gypsumWeight.toFixed(2)} г гипса\n` +
+                     `Форма: ${formName}`;
+
+        document.getElementById('result').innerText = lastResult;
     }
 
-    function toggleRecommendations() {
-        const recommendationsDiv = document.getElementById("recommendations");
-        recommendationsDiv.style.display = recommendationsDiv.style.display === "none" ? "block" : "none";
-    }
+    function downloadImage() {
+        if (!lastResult) {
+            alert('Сначала выполните расчет!');
+            return;
+        }
 
-    function saveCalculation() {
-        const resultDiv = document.getElementById("result");
-        html2canvas(resultDiv, { useCORS: true }).then(canvas => {
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL('image/jpeg');
-            link.download = 'расчет_смеси.jpg';
-            link.click();
-        }).catch(err => {
-            console.error('Ошибка при сохранении изображения:', err);
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 300;
+        canvas.height = 200;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#333333';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        const lines = lastResult.split('\n');
+        lines.forEach((line, index) => {
+            ctx.fillText(line, 10, 10 + (index * 30));
         });
+
+        const link = document.createElement('a');
+        link.download = 'result.jpeg';
+        link.href = canvas.toDataURL("image/jpeg");
+        link.click();
     }
 </script>
 
