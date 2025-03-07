@@ -49,6 +49,11 @@
     <option value="1.6">1 часть воды : 1.6 части гипса</option>
 </select>
 
+<label>
+    <input type="checkbox" id="addReserve" checked>
+    Добавить запас на налипание (10%)
+</label>
+
 <button onclick="calculate()">Рассчитать</button>
 
 <div id="result"></div>
@@ -57,18 +62,19 @@
     function calculate() {
         const totalVolume = parseFloat(document.getElementById("totalVolume").value);
         const ratio = parseFloat(document.getElementById("ratio").value);
-        
-        if (isNaN(totalVolume) || totalVolume <= 0) {
-            document.getElementById("result").innerText = "Введите корректный объем.";
-            return;
+        const addReserve = document.getElementById("addReserve").checked;
+
+        let adjustedVolume = totalVolume;
+        if (addReserve) {
+            adjustedVolume *= 1.10; // Увеличиваем объем на 10%
         }
 
         const totalParts = 1 + ratio; // 1 часть воды + ratio части гипса
-        const waterVolume = (1 / totalParts) * totalVolume; // объем воды
-        const gypsumVolume = (ratio / totalParts) * totalVolume; // объем гипса
+        const waterVolume = (1 / totalParts) * adjustedVolume; // объем воды
+        const gypsumVolume = (ratio / totalParts) * adjustedVolume; // объем гипса
 
         document.getElementById("result").innerText = 
-            `Для ${totalVolume} мл смеси вам нужно:\n` +
+            `Для ${totalVolume} мл смеси с запасом вам нужно:\n` +
             `- Вода: ${waterVolume.toFixed(2)} мл\n` +
             `- Гипс: ${gypsumVolume.toFixed(2)} мл`;
     }
