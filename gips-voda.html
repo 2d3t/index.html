@@ -53,6 +53,7 @@
             display: none;
         }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -73,7 +74,7 @@
 
 <button onclick="calculate()">Рассчитать</button>
 <button onclick="toggleRecommendations()">Показать/Скрыть рекомендации</button>
-<button onclick="saveCalculation()">Сохранить расчет</button>
+<button onclick="saveCalculation()">Сохранить расчет как изображение</button>
 
 <div id="result"></div>
 <div id="recommendations">
@@ -112,12 +113,13 @@
     }
 
     function saveCalculation() {
-        const resultText = document.getElementById("result").innerText;
-        const blob = new Blob([resultText], { type: 'text/plain' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = 'расчет_смеси.txt';
-        link.click();
+        const resultDiv = document.getElementById("result");
+        html2canvas(resultDiv).then(canvas => {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/jpeg');
+            link.download = 'расчет_смеси.jpg';
+            link.click();
+        });
     }
 </script>
 
