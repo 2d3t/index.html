@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест на реакцию</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; margin: 0; }
+        #game { position: relative; width: 100vw; height: 80vh; background: #f0f0f0; overflow: hidden; }
+        .square { position: absolute; width: 50px; height: 50px; background: red; }
+        #scoreboard { font-size: 24px; margin: 10px; }
+        #result { display: none; }
+        #saveBtn { margin-top: 10px; padding: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <h1>Игра на реакцию</h1>
+    <div id="scoreboard">Очки: <span id="score">0</span> | Промахи: <span id="misses">0</span> | Уровень: <span id="level">1</span></div>
+    <div id="game"></div>
+
+    <div id="result">
+        <h2>Игра окончена!</h2>
+        <p>Вы дошли до уровня <span id="finalLevel"></span></p>
+        <p>Заработано очков: <span id="finalScore"></span></p>
+        <input type="text" id="playerName" placeholder="Введите имя">
+        <button id="saveBtn">Сохранить результат</button>
+    </div>
+
+    <script>
+        let score = 0, misses = 0, level = 1, gameActive = true;
+        let gameTime = 10, interval = 1000; 
+
+        const gameField = document.getElementById("game");
+        const scoreSpan = document.getElementById("score");
+        const missesSpan = document.getElementById("misses");
+        const levelSpan = document.getElementById("level");
+        const resultDiv = document.getElementById("result");
+        const finalLevel = document.getElementById("finalLevel");
+        const finalScore = document.getElementById("finalScore");
+        const saveBtn = document.getElementById("saveBtn");
+
+        function spawnSquare() {
+            if (!gameActive) return;
+            
+            const square = document.createElement("div");
+            square.classList.add("square");
+
+            let maxX = window.innerWidth - 50;
+            let maxY = window.innerHeight * 0.8 - 50;
+            
+            square.style.left = Math.random() * maxX + "px";
+            square.style.top = Math.random() * maxY + "px";
+
+            square.onclick = () => {
+                score++;
+                scoreSpan.textContent = score;
+                square.remove();
+            };
+
+            gameField.appendChild(square);
+
+            setTimeout(() => {
+                if (gameField.contains(square)) {
+                    misses++;
+                    missesSpan.textContent = misses;
+                    square.remove();
+                }
+            }, interval);
+        }
+
+        function startGame() {
+            let timer = setInterval(spawnSquare, interval);
+            setTimeout(() => {
+                clearInterval(timer);
+                if (gameActive) nextLevel();
+            }, gameTime * 1000);
+        }
+
+        function nextLevel() {
+            level++;
+            interval /= 2;
+            levelSpan.textContent = level;
+            if (misses >= 3) return endGame();
+            startGame();
+        }
+
+        function endGame() {
+            gameActive = false;
+            resultDiv.style.display = "block";
+            finalLevel.textContent = level;
+            finalScore.textContent = score;
+        }
+
+        function saveResult() {
+            let name = document.getElementById("playerName").value || "Игрок";
+            let canvas = document.createElement("canvas");
+            canvas.width = 300;
+            canvas.height = 200;
+            let ctx = canvas.getContext("2d");
+
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "black";
+            ctx.font = "20px Arial";
+            ctx.fillText(`Имя: ${name}`, 20, 50);
+            ctx.fillText(`Уровень: ${level}`, 20, 80);
+            ctx.fillText(`Очки: ${score}`, 20, 110);
+
+            let link = document.createElement("a");
+            link.download = `${name}_результат.jpg`;
+            link.href = canvas.toDataURL("image/jpeg");
+            link.click();
+        }
+
+        saveBtn.onclick = saveResult;
+        startGame();
+    </script>
+
+</body>
+</html>
