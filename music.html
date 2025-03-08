@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пианино</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .piano {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .key {
+            width: 50px;
+            height: 150px;
+            border: 1px solid black;
+            display: inline-block;
+            background: white;
+            margin: 2px;
+            text-align: center;
+            line-height: 150px;
+            font-size: 20px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.1s;
+        }
+        .key:active, .playing {
+            background: lightgray;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Пианино</h1>
+    <div class="piano">
+        <div class="key" data-note="do">До</div>
+        <div class="key" data-note="re">Ре</div>
+        <div class="key" data-note="mi">Ми</div>
+        <div class="key" data-note="fa">Фа</div>
+        <div class="key" data-note="sol">Соль</div>
+        <div class="key" data-note="la">Ля</div>
+        <div class="key" data-note="si">Си</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="playRecording()">▶️ Проиграть</button>
+        <button onclick="clearRecording()">🗑 Очистить</button>
+    </div>
+
+    <script>
+        let recording = [];
+        const notes = {
+            do: "do.mp3",
+            re: "re.mp3",
+            mi: "mi.mp3",
+            fa: "fa.mp3",
+            sol: "sol.mp3",
+            la: "la.mp3",
+            si: "si.mp3"
+        };
+
+        document.querySelectorAll(".key").forEach(key => {
+            key.addEventListener("click", function() {
+                let note = this.getAttribute("data-note");
+                playSound(note);
+                recording.push(note);
+            });
+        });
+
+        function playSound(note) {
+            if (notes[note]) {
+                let audio = new Audio(notes[note]);
+                audio.play();
+            }
+        }
+
+        function playRecording() {
+            let delay = 0;
+            recording.forEach((note, index) => {
+                setTimeout(() => {
+                    let key = document.querySelector(`.key[data-note="${note}"]`);
+                    key.classList.add("playing");
+                    playSound(note);
+                    setTimeout(() => key.classList.remove("playing"), 200);
+                }, delay);
+                delay += 500;
+            });
+        }
+
+        function clearRecording() {
+            recording = [];
+        }
+    </script>
+
+</body>
+</html>
