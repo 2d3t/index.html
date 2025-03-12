@@ -62,8 +62,7 @@
             background: #222;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            margin-top: 20px
-            
+            margin-top: 20px;
         }
         .calendar h2 {
             text-align: left; /* Заголовок слева */
@@ -153,7 +152,6 @@
         "2-4": "День единения народов Беларуси и России",
         "17-9": "День народного единства",
         "5-1": "День работников социальной защиты",
-        "1-1": "День банковских и финансовых работников",
         "19-1": "День спасателя",
         "22-1": "День дипломатического работника",
         "21-2": "День работников землеустроительной и картографо-геодезической службы",
@@ -192,14 +190,42 @@
         return holiday ? holiday : "Нет праздника сегодня";
     }
 
+    function getNextHoliday(date) {
+        const month = date.getMonth() + 1; // месяцы с 0
+        const day = date.getDate();
+        let nextHoliday = null;
+        let nextDate = new Date(date.getFullYear(), month - 1, day + 1);
+        let nextHolidayDate = "";
+
+        while (!nextHoliday) {
+            const nextDay = nextDate.getDate();
+            const nextMonth = nextDate.getMonth() + 1;
+            const holiday = holidays[`${nextDay}-${nextMonth}`];
+
+            if (holiday) {
+                nextHoliday = holiday;
+                nextHolidayDate = nextDate.toLocaleDateString();
+                break;
+            }
+
+            nextDate.setDate(nextDate.getDate() + 1);
+            if (nextDate.getFullYear() > date.getFullYear()) {
+                break; // Если следующий год, выходим из цикла
+            }
+        }
+        return nextHoliday ? `${nextHoliday} (${nextHolidayDate})` : "Нет ближайшего праздника";
+    }
+
     function displayCalendar() {
         const today = new Date();
         const dayOfWeek = today.toLocaleString('ru-RU', { weekday: 'long' });
         const holidayMessage = getCurrentHoliday(today);
+        const nextHolidayMessage = getNextHoliday(today);
         
         document.getElementById('calendar').innerHTML = `
             <p>${today.toLocaleDateString()} (${dayOfWeek})</p>
             <p>${holidayMessage}</p>
+            <p>Ближайший праздник: ${nextHolidayMessage}</p>
         `;
     }
 
