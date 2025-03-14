@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Rotating Globe</title>
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="manifest" href="index.html/manifest.json">
+  <meta name="theme-color" content="#000000"> <!-- Цвет браузера -->
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        #chartdiv {
+            width: 100%;
+            height: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        .info {
+            text-align: center;
+            margin: 20px;
+            font-size: 16px;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #555;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #777;
+        }
+        .share-buttons {
+            text-align: center;
+            margin: 20px;
+        }
+        .share-buttons p {
+            font-size: 16px;
+        }
+        .share-button {
+            display: inline-block;
+            text-decoration: none;
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            background-color: #3b5998;
+            transition: background-color 0.3s ease;
+        }
+        .share-button:hover {
+            background-color: #555;
+        }
+        .share-button.twitter {
+            background-color: #1da1f2;
+        }
+        .share-button.vk {
+            background-color: #4c75a3;
+        }
+        .share-button.telegram {
+            background-color: #0088cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Музыкальный Глобус</h1>
+    <p class="info">Кликните на страну, чтобы узнать её название. Нажмите снова, чтобы открыть свежую музыку из этой страны на YouTube. Используйте кнопку ниже для управления вращением.</p>
+    <div id="chartdiv"></div>
+    <div class="controls">
+        <button id="toggleRotation" class="button">Остановить вращение</button>
+        </div>
+    <div class="share-buttons">
+        <p>Поделитесь картой:</p>
+        <a href="https://www.facebook.com/sharer/sharer.php?u=https://2d3t.github.io/index.html/map.html" class="share-button facebook" target="_blank">
+            <i class="fab fa-facebook-f"></i> Facebook
+        </a>
+        <a href="https://twitter.com/intent/tweet?url=https://2d3t.github.io/index.html/map.html" class="share-button twitter" target="_blank">
+            <i class="fab fa-twitter"></i> Twitter (X)
+        </a>
+        <a href="https://vk.com/share.php?url=https://2d3t.github.io/index.html/map.html" class="share-button vk" target="_blank">
+            <i class="fab fa-vk"></i> ВКонтакте
+        </a>
+        <a href="https://t.me/share/url?url=https://2d3t.github.io/index.html/map.html" class="share-button telegram" target="_blank">
+            <i class="fab fa-telegram-plane"></i> Telegram
+        </a>
+    </div>
+
+    <script>
+        am5.ready(function () {
+            let root = am5.Root.new("chartdiv");
+            root.setThemes([am5themes_Animated.new(root)]);
+
+            let chart = root.container.children.push(
+                am5map.MapChart.new(root, {
+                    panX: "rotateX",
+                    panY: "rotateY",
+                    projection: am5map.geoOrthographic(),
+                    homeGeoPoint: { latitude: 0, longitude: 0 }
+                })
+            );
+
+            chart.seriesContainer.set("background", am5.Rectangle.new(root, {
+                fill: am5.color(0x87CEEB),
+                fillOpacity: 1
+            }));
+
+            let polygonSeries = chart.series.push(
+                am5map.MapPolygonSeries.new(root, {
+                    geoJSON: am5geodata_worldLow
+                })
+            );
+
+            polygonSeries.set("fill", am5.color(0xcccccc));
+            polygonSeries.set("stroke", am5.color(0x000000));
+            polygonSeries.mapPolygons.template.setAll({
+                interactive: true,
+                tooltipText: "{name}",
+                toggleKey: "none"
+            });
+
+            let rotationAnimation = chart.animate({
+                key: "rotationX",
+                to: 360,
+                loops: Infinity,
+                duration: 30000,
+                easing: am5.ease.linear
+            });
+
+            let clickedCountries = {};
+
+            polygonSeries.mapPolygons.template.events.on("click", function (ev) {
+                let countryName = ev.target.dataItem.dataContext.name;
+
+                if (clickedCountries[countryName]) {
+                    window.open(`https://www.youtube.com/results?search_query=fresh music+from+${encodeURIComponent(countryName)}`, "_blank");
+                } else {
+                    document.querySelector(".info").innerHTML = `Вы выбрали: <strong>${countryName}</strong>. Нажмите ещё раз, чтобы слушать свежую музыку из этой страны на YouTube.`;
+                    clickedCountries[countryName] = true;
+
+                    setTimeout(() => {
+                        delete clickedCountries[countryName];
+                        document.querySelector(".info").innerHTML =
+                            "Кликните на страну, чтобы узнать её название. Нажмите снова, чтобы слушать новую музыку из этой страны на YouTube.";
+                    }, 5000);
+                }
+            });
+
+            document.getElementById("toggleRotation").addEventListener("click", function () {
+                if (rotationAnimation && !rotationAnimation.stopped) {
+                    rotationAnimation.stop();
+                    this.innerText = "Возобновить вращение";
+                } else {
+                    rotationAnimation = chart.animate({
+                        key: "rotationX",
+                        to: 360,
+                        loops: Infinity,
+                        duration: 30000,
+                        easing: am5.ease.linear
+                    });
+                    this.innerText = "Остановить вращение";
+                }
+            });
+        });
+    </script>
+
+<center><a href='https://www.free-counters.org/'>https://www.free-Counters.org</a> <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=2f743762864763112c7120f08e9697713b83db63'></script>
+<script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1267337/t/0"></script>
+</center>
+</body>
+</html>
