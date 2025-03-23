@@ -73,15 +73,11 @@
                 const img = new Image();
                 img.src = e.target.result;
                 img.onload = function () {
-                    let maxWidth = window.innerWidth * 0.9; // 90% от ширины экрана
-                    let scale = maxWidth / (img.width * 2); // Масштабируем по ширине экрана
-                    let newWidth = img.width * 2 * scale;
-                    let newHeight = img.height * scale;
-
-                    canvas.width = newWidth;
-                    canvas.height = newHeight;
-                    ctx.drawImage(img, 0, 0, img.width * scale, newHeight);
-                    ctx.drawImage(img, img.width * scale, 0, img.width * scale, newHeight);
+                    // Используем оригинальное разрешение изображения
+                    canvas.width = img.width * 2;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    ctx.drawImage(img, img.width, 0);
                 };
             };
             reader.readAsDataURL(file);
@@ -90,7 +86,7 @@
         downloadBtn.addEventListener("click", () => {
             const link = document.createElement("a");
             link.download = "badboys_clone.png";
-            link.href = canvas.toDataURL();
+            link.href = canvas.toDataURL("image/png"); // Сохраняем в максимальном качестве PNG
             link.click();
         });
     </script>
