@@ -50,6 +50,13 @@
         .next-track-button:hover {
             background-color: #e60000;
         }
+        progress {
+            width: 90%;
+            max-width: 600px;
+            height: 20px;
+            margin-top: 10px;
+            background-color: #444;
+        }
         .footer {
             position: absolute;
             bottom: 10px;
@@ -69,6 +76,8 @@
     <div class="controls">
         <button class="next-track-button" onclick="playRandomTrack()">Следующий трек</button>
     </div>
+    
+    <progress id="buffer-progress" value="0" max="100"></progress>
 
     <div class="footer">
         <p>© 2025 Paralel Reality Radio</p>
@@ -78,6 +87,7 @@
     const audioPlayer = document.getElementById('audio-player');
     const musicIcon = document.getElementById('music-icon');
     const trackNameDisplay = document.getElementById('track-name');
+    const bufferProgress = document.getElementById('buffer-progress');
 
     // Папка с музыкой
     const musicFolder = "radio music/";
@@ -125,6 +135,15 @@
         // Меняем цвет значка
         musicIcon.style.backgroundColor = getRandomColor();
     }
+
+    // Обновление индикатора буфера
+    audioPlayer.addEventListener('progress', () => {
+        if (audioPlayer.buffered.length > 0) {
+            const bufferedEnd = audioPlayer.buffered.end(audioPlayer.buffered.length - 1);
+            const duration = audioPlayer.duration;
+            bufferProgress.value = (bufferedEnd / duration) * 100;
+        }
+    });
 
     // Воспроизведение следующего случайного трека после завершения текущего
     audioPlayer.onended = playRandomTrack;
