@@ -30,10 +30,15 @@
             margin: 20px 0;
             transition: background-color 0.5s;
         }
+        #track-name {
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
         audio {
             margin: 20px 0;
             width: 90%;
             max-width: 600px;
+            pointer-events: none; /* Отключаем взаимодействие */
         }
         .footer {
             position: absolute;
@@ -45,6 +50,7 @@
 <body>
     <h1>Paralel Reality Radio</h1>
     <div class="icon" id="music-icon"></div>
+    <p id="track-name">Загрузка...</p>
     
     <audio id="audio-player" controls autoplay>
         Ваш браузер не поддерживает элемент audio.
@@ -55,54 +61,66 @@
     </div>
 
     <script>
-        const audioPlayer = document.getElementById('audio-player');
-        const musicIcon = document.getElementById('music-icon');
+    const audioPlayer = document.getElementById('audio-player');
+    const musicIcon = document.getElementById('music-icon');
+    const trackNameDisplay = document.getElementById('track-name');
 
-        // Папка с музыкой (проверь, где находятся файлы!)
-        const musicFolder = "./radio music/"; // Или "./radio%20music/" если есть пробел
+    // Папка с музыкой
+    const musicFolder = "radio music/";
 
-        // Список треков (убедись, что они действительно лежат в radio music)
-        const tracks = [
-            "Timeless Dance.m4a",
-            "Time Dance.m4a",
-            "Nightwave.m4a",
-            "Silent Freedom.m4a",
-            "Night Run.m4a",
-            "Walking to the Light.mp3",
-            "Frozen Echoes.m4a",
-            "Between.m4a",
-            "Silent Echoes.m4a"
-        ];
+    // Список треков
+    const tracks = [
+        "Timeless Dance.m4a",
+        "Time Dance.m4a",
+        "Nightwave.m4a",
+        "Silent Freedom.m4a",
+        "Night Run.m4a",
+        "Walking to the Light.mp3",
+        "Frozen Echoes.m4a",
+        "Between.m4a",
+        "Silent Echoes.m4a"
+    ];
 
-        // Функция выбора случайного цвета
-        function getRandomColor() {
-            const letters = '0123456789ABCDEF';
-            let color = '#';
-            for (let i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
-            }
-            return color;
+    // Функция выбора случайного цвета
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
         }
+        return color;
+    }
 
-        // Функция выбора случайного трека
-        function playRandomTrack() {
-            const randomIndex = Math.floor(Math.random() * tracks.length);
-            const selectedTrack = musicFolder + tracks[randomIndex]; 
-            
-            console.log("Проигрывается трек:", selectedTrack); // Проверка пути
+    // Функция удаления расширения файла
+    function removeExtension(filename) {
+        return filename.replace(/\.[^/.]+$/, ""); // Удаляет последнее расширение файла
+    }
 
-            audioPlayer.src = selectedTrack;
-            audioPlayer.play();
+    // Функция выбора случайного трека
+    function playRandomTrack() {
+        const randomIndex = Math.floor(Math.random() * tracks.length);
+        const selectedTrack = tracks[randomIndex];
 
-            // Меняем цвет значка
-            musicIcon.style.backgroundColor = getRandomColor();
-        }
+        // Устанавливаем путь и проигрываем
+        audioPlayer.src = musicFolder + selectedTrack;
+        audioPlayer.play();
 
-        // Воспроизведение следующего случайного трека после завершения текущего
-        audioPlayer.onended = playRandomTrack;
+        // Отображаем название без расширения
+        trackNameDisplay.textContent = "Сейчас играет: " + removeExtension(selectedTrack);
 
-        // Автозапуск при загрузке страницы
-        window.onload = playRandomTrack;
-    </script>
+        // Меняем цвет значка
+        musicIcon.style.backgroundColor = getRandomColor();
+    }
+
+    // Воспроизведение следующего случайного трека после завершения текущего
+    audioPlayer.onended = playRandomTrack;
+
+    // Отключаем скачивание и взаимодействие с плеером
+    audioPlayer.addEventListener("contextmenu", (event) => event.preventDefault());
+
+    // Автозапуск при загрузке страницы
+    window.onload = playRandomTrack;
+</script>
+
 </body>
 </html>
