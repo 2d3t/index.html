@@ -17,6 +17,7 @@
             justify-content: center;
             height: 100vh;
             text-align: center;
+            position: relative; /* Для позиционирования кнопки */
         }
         h1 {
             font-size: 2.5em;
@@ -37,7 +38,7 @@
         .controls {
             margin: 20px 0;
         }
-        .next-track-button {
+        .next-track-button, .pause-button {
             padding: 10px 20px;
             background-color: #ff0000;
             border: none;
@@ -46,9 +47,26 @@
             font-size: 1em;
             border-radius: 5px;
             transition: background-color 0.3s;
+            margin: 5px;
         }
-        .next-track-button:hover {
+        .next-track-button:hover, .pause-button:hover {
             background-color: #e60000;
+        }
+        .projects-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background-color: rgba(255, 255, 255, 0.2); /* Полупрозрачный фон */
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .projects-button:hover {
+            background-color: rgba(255, 255, 255, 0.4);
         }
         progress {
             width: 90%;
@@ -75,7 +93,10 @@
     
     <div class="controls">
         <button class="next-track-button" onclick="playRandomTrack()">Следующий трек</button>
+        <button class="pause-button" onclick="togglePause()">Пауза</button>
     </div>
+    
+    <button class="projects-button" onclick="goToProjects()">Другие проекты от Eugene Klik</button>
     
     <progress id="buffer-progress" value="0" max="100"></progress>
 
@@ -89,10 +110,8 @@
     const trackNameDisplay = document.getElementById('track-name');
     const bufferProgress = document.getElementById('buffer-progress');
 
-    // Папка с музыкой
     const musicFolder = "radio music/";
 
-    // Список треков
     const tracks = [
         "Timeless Dance.m4a",
         "Time Dance.m4a",
@@ -105,7 +124,6 @@
         "Silent Echoes.m4a"
     ];
 
-    // Функция выбора случайного цвета
     function getRandomColor() {
         const letters = '0123456789ABCDEF';
         let color = '#';
@@ -115,31 +133,35 @@
         return color;
     }
 
-    // Функция удаления расширения файла
     function removeExtension(filename) {
-        return filename.replace(/\.[^/.]+$/, ""); // Удаляет последнее расширение файла
+        return filename.replace(/\.[^/.]+$/, "");
     }
 
-    // Функция выбора случайного трека
     function playRandomTrack() {
-        // Обнуляем индикатор загрузки
         bufferProgress.value = 0;
 
         const randomIndex = Math.floor(Math.random() * tracks.length);
         const selectedTrack = tracks[randomIndex];
 
-        // Устанавливаем путь и проигрываем
         audioPlayer.src = musicFolder + selectedTrack;
         audioPlayer.play();
 
-        // Отображаем название без расширения
         trackNameDisplay.textContent = "Сейчас играет: Eugene Klik - " + removeExtension(selectedTrack);
-
-        // Меняем цвет значка
         musicIcon.style.backgroundColor = getRandomColor();
     }
 
-    // Обновление индикатора буфера
+    function togglePause() {
+        if (audioPlayer.paused) {
+            audioPlayer.play();
+        } else {
+            audioPlayer.pause();
+        }
+    }
+
+    function goToProjects() {
+        window.location.href = "https://2d3t.github.io/index.html/";
+    }
+
     audioPlayer.addEventListener('progress', () => {
         if (audioPlayer.buffered.length > 0) {
             const bufferedEnd = audioPlayer.buffered.end(audioPlayer.buffered.length - 1);
@@ -150,12 +172,10 @@
         }
     });
 
-    // Воспроизведение следующего случайного трека после завершения текущего
     audioPlayer.onended = playRandomTrack;
 
-    // Автозапуск при загрузке страницы
     window.onload = playRandomTrack;
-</script>
+    </script>
 
 </body>
 </html>
