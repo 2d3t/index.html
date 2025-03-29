@@ -68,7 +68,6 @@
         <input type="file" id="imageInput" accept="image/*" multiple onchange="loadImages()">
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
-        <button onclick="saveCalendar()">Сохранить как PDF</button>
     </div>
 
     <div id="calendarContainer" class="calendar-container">
@@ -77,8 +76,6 @@
         <div id="calendar" class="calendar"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.0.0/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
@@ -136,17 +133,6 @@
                 const dayClass = (firstDay + day) % 7 === 0 || (firstDay + day) % 7 === 6 ? 'day weekend' : 'day';
                 calendar.innerHTML += `<div class="${dayClass}">${day}</div>`;
             }
-        }
-
-        async function saveCalendar() {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF();
-            const container = document.getElementById('calendarContainer');
-
-            const canvas = await html2canvas(container);
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, 0);
-            pdf.save('calendar.pdf');
         }
 
         window.onload = function() {
