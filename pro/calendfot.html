@@ -64,7 +64,6 @@
     <script>
         let imageUrl = '';
 
-        // Инициализация селектора годов
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
             const currentYear = new Date().getFullYear();
@@ -102,10 +101,7 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const firstDay = date.getDay() === 0 ? 6 : date.getDay() - 1; // Пн=0, Вск=6
 
-            // Установка текста месяца и года
             monthYear.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
-
-            // Подписи дней недели
             const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
             weekDays.forEach(day => {
                 const dayDiv = document.createElement('div');
@@ -114,12 +110,10 @@
                 calendar.appendChild(dayDiv);
             });
 
-            // Добавление пустых ячеек до первого дня месяца
             for (let i = 0; i < firstDay; i++) {
                 calendar.innerHTML += '<div class="day"></div>';
             }
 
-            // Добавление дней месяца
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayClass = (firstDay + day) % 7 === 0 || (firstDay + day) % 7 === 6 ? 'day weekend' : 'day';
                 calendar.innerHTML += `<div class="${dayClass}">${day}</div>`;
@@ -127,17 +121,17 @@
         }
 
         function saveCalendar() {
-            html2canvas(document.getElementById('calendar')).then(canvas => {
+            const calendarElement = document.getElementById('calendar');
+            html2canvas(calendarElement, { useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.href = canvas.toDataURL('image/jpeg', 1.0); // Сохранить как JPEG
-                link.download = 'calendar.jpeg'; // Установить название файла
+                link.href = canvas.toDataURL('image/jpeg', 1.0);
+                link.download = 'calendar.jpeg';
                 document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link); // Удаление ссылки после клика
+                document.body.removeChild(link);
             });
         }
 
-        // Инициализация страницы
         window.onload = function() {
             initYearSelector();
             const monthSelector = document.getElementById('monthSelector');
@@ -147,10 +141,10 @@
                 option.textContent = new Date(0, i).toLocaleString('ru-RU', { month: 'long' });
                 monthSelector.appendChild(option);
             }
-            monthSelector.value = new Date().getMonth(); // Установить текущий месяц
-            generateCalendar(); // Сгенерировать календарь
+            monthSelector.value = new Date().getMonth();
+            generateCalendar();
         };
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.0.0/html2canvas.min.js"></script>
 </body>
 </html>
