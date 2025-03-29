@@ -34,7 +34,7 @@
     <h1>Календарь</h1>
     <div id="calendar"></div>
     <input type="file" id="imageInput" accept="image/*">
-    <button id="screenshotBtn">Сделать скриншот</button>
+    <button id="combineBtn">Объединить и скачать</button>
     <canvas id="canvas" style="display: none;"></canvas>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
@@ -49,6 +49,7 @@
             const lastDate = new Date(year, month + 1, 0).getDate();
 
             // Добавление пустых ячеек для дней перед первым числом месяца
+            calendar.innerHTML = ''; // Очистка перед новой генерацией
             for (let i = 0; i < firstDay; i++) {
                 const emptyDiv = document.createElement('div');
                 calendar.appendChild(emptyDiv);
@@ -64,32 +65,41 @@
         }
 
         // Загрузка изображения
+        let loadedImage = null;
         document.getElementById('imageInput').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = function() {
-                        const calendar = document.getElementById('calendar');
-                        const imgDiv = document.createElement('div');
-                        imgDiv.style.gridColumn = 'span 7'; // Занять всю ширину
-                        imgDiv.style.textAlign = 'center';
-                        imgDiv.appendChild(img);
-                        calendar.appendChild(imgDiv);
-                    };
+                    loadedImage = new Image();
+                    loadedImage.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Создание скриншота
-        document.getElementById('screenshotBtn').addEventListener('click', function() {
-            html2canvas(document.getElementById('calendar')).then(function(canvas) {
+        // Объединение изображений и скачивание
+        document.getElementById('combineBtn').addEventListener('click', function() {
+            const calendar = document.getElementById('calendar');
+
+            html2canvas(calendar).then(function(calendarCanvas) {
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = calendarCanvas.width;
+                canvas.height = calendarCanvas.height;
+
+                // Рисуем календарь на канвасе
+                ctx.drawImage(calendarCanvas, 0, 0);
+                
+                // Если изображение загружено, рисуем его
+                if (loadedImage) {
+                    ctx.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
+                }
+
+                // Экспортируем в JPEG
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/jpeg');
-                link.download = 'calendar.jpg';
+                link.download = 'calendar_with_image.jpg';
                 link.click();
             });
         });
