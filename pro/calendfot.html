@@ -15,15 +15,17 @@
         .calendar-container {
             display: inline-block;
             background: white;
-            padding: 20px;
+            padding: 10px;
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            width: 100%; /* Занимает 100% ширины */
+            max-width: 400px; /* Максимальная ширина для больших экранов */
         }
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 5px;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         .day {
             border: 1px solid #ccc;
@@ -31,14 +33,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5em;
+            font-size: 2em; /* Увеличен размер шрифта для мобильных */
             aspect-ratio: 1;
+            height: 10vw; /* Высота ячейки календаря в зависимости от ширины экрана */
         }
         .weekend {
             background-color: #ffcccc;
         }
         .header {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         img {
             max-width: 100%;
@@ -48,12 +51,19 @@
             font-size: 1.5em;
             margin-bottom: 10px;
         }
+        /* Медиазапросы для адаптивности */
+        @media (max-width: 400px) {
+            .day {
+                font-size: 1.5em; /* Уменьшаем размер шрифта для очень маленьких экранов */
+            }
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
         <input type="file" id="imageInput" accept="image/*">
+        <button onclick="loadImage()">Добавить изображение</button>
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
         <button onclick="saveCalendar()">Сохранить как изображение</button>
@@ -66,7 +76,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.0.0/html2canvas.min.js"></script>
-
     <script>
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
@@ -89,7 +98,7 @@
                     const headerImage = document.getElementById('headerImage');
                     headerImage.src = e.target.result;
                     headerImage.style.display = 'block';
-                };
+                }
                 reader.readAsDataURL(file);
             }
         }
@@ -125,10 +134,37 @@
 
         function saveCalendar() {
             const container = document.getElementById('calendarContainer');
-            html2canvas(container, { useCORS: true }).then(canvas => {
+            const headerImage = document.getElementById('headerImage');
+
+            // Создаем canvas
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+
+            // Устанавливаем размеры canvas
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+
+            // Рисуем загруженное изображение, если оно есть
+            if (headerImage.src) {
+                const img = new Image();
+                img.src = headerImage.src;
+                img.onload = function() {
+                    context.drawImage(img, 0, 0, canvas.width, img.height * (canvas.width / img.width));
+                    drawCalendar(container, context);
+                };
+            } else {
+                drawCalendar(container, context);
+            }
+        }
+
+        function drawCalendar(container, context) {
+            html2canvas(container).then(canvasElement => {
+                context.drawImage(canvasElement, 0, 0);
+                
+                // Сохраняем canvas как изображение
                 const link = document.createElement('a');
-                link.href = canvas.toDataURL('image/jpeg', 1.0);
-                link.download = 'calendar.jpeg';
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'calendar.png';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -146,8 +182,6 @@
             }
             monthSelector.value = new Date().getMonth();
             generateCalendar();
-
-            document.getElementById('imageInput').addEventListener('change', loadImage, false);
         };
     </script>
 </body>
