@@ -40,7 +40,7 @@
             background: white;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            white-space: pre-wrap; /* Для отображения текста столбиком */
+            white-space: pre-wrap;
         }
     </style>
 </head>
@@ -51,7 +51,9 @@
 <input type="number" id="mixtureWeight" placeholder="Масса смеси (г)" />
 <p>Введите название формы:</p>
 <input type="text" id="formName" placeholder="Название формы" />
-<button onclick="calculate()">Рассчитать</button>
+<button onclick="calculateStandard()">Стандартный расчет</button>
+<button onclick="calculatePalyzh()">Расчет для жидкого красителя "Палиж"</button>
+<button onclick="calculateStakhema()">Расчет для сухого красителя "Стахема-М"</button>
 <button onclick="downloadImage()">Сохранить как JPEG</button>
 
 <h2>Результаты:</h2>
@@ -61,7 +63,7 @@
 <script>
     let lastResult = '';
 
-    function calculate() {
+    function calculateStandard() {
         const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
         const formName = document.getElementById('formName').value || 'Форма';
         if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
@@ -69,21 +71,62 @@
             return;
         }
 
-        const waterRatio = 100 / 130; // 100 г воды на 130 г смеси
-        const gypsumRatio = 150 / 130; // 150 г гипса на 130 г смеси
-
+        const waterRatio = 100 / 130; 
+        const gypsumRatio = 150 / 130; 
         const waterWeight = waterRatio * mixtureWeight;
         const gypsumWeight = gypsumRatio * mixtureWeight;
-        const extraWaterWeight = waterWeight * 0.1; // 10% от воды
-
+        const extraWaterWeight = waterWeight * 0.1;
         const totalWaterWeight = waterWeight + extraWaterWeight;
 
-        lastResult = `Масса смеси: ${mixtureWeight.toFixed(2)} г\n` +
+        lastResult = `Стандартный расчет:\n` +
+                     `Масса смеси: ${mixtureWeight.toFixed(2)} г\n` +
+                     `Вода: ${totalWaterWeight.toFixed(2)} г (с 10% дополнительно)\n` +
+                     `Гипс: ${gypsumWeight.toFixed(2)} г\n` +
+                     `Форма: ${formName}`;
+
+        document.getElementById('result').innerText = lastResult;
+    }
+
+    function calculatePalyzh() {
+        const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
+        const formName = document.getElementById('formName').value || 'Форма';
+        if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
+            document.getElementById('result').innerText = 'Введите корректное значение массы смеси.';
+            return;
+        }
+
+        const waterRatio = 100 / 130;
+        const gypsumRatio = 150 / 130;
+        const waterWeight = waterRatio * mixtureWeight;
+        const gypsumWeight = gypsumRatio * mixtureWeight;
+
+        lastResult = `Расчет для жидкого красителя "Палиж":\n` +
+                     `Масса смеси: ${mixtureWeight.toFixed(2)} г\n` +
                      `Вода: ${waterWeight.toFixed(2)} г\n` +
                      `Гипс: ${gypsumWeight.toFixed(2)} г\n` +
-                     `Форма: ${formName}\n` +
-                     `\nБолее жидкий вариант:\n` +
-                     `Итого воды: ${totalWaterWeight.toFixed(2)} г (с 10% дополнительно)`;
+                     `Форма: ${formName}`;
+
+        document.getElementById('result').innerText = lastResult;
+    }
+
+    function calculateStakhema() {
+        const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
+        const formName = document.getElementById('formName').value || 'Форма';
+        if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
+            document.getElementById('result').innerText = 'Введите корректное значение массы смеси.';
+            return;
+        }
+
+        const waterRatio = 100 / 130;
+        const gypsumRatio = 150 / 130;
+        const waterWeight = waterRatio * mixtureWeight * 1.2;
+        const gypsumWeight = gypsumRatio * mixtureWeight * 1.1;
+
+        lastResult = `Расчет для сухого красителя "Стахема-М":\n` +
+                     `Масса смеси: ${mixtureWeight.toFixed(2)} г\n` +
+                     `Вода: ${waterWeight.toFixed(2)} г (с 20% дополнительно)\n` +
+                     `Гипс: ${gypsumWeight.toFixed(2)} г (с 10% дополнительно)\n` +
+                     `Форма: ${formName}`;
 
         document.getElementById('result').innerText = lastResult;
     }
@@ -96,17 +139,15 @@
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = 400;  // Ширина канваса
-        canvas.height = 200; // Высота канваса
+        canvas.width = 400;
+        canvas.height = 200;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Заголовок
         ctx.fillStyle = '#4CAF50';
         ctx.font = '18px Arial';
         ctx.fillText('Результаты расчета', 10, 20);
 
-        // Тело текста
         ctx.fillStyle = '#333333';
         ctx.font = '14px Arial';
         ctx.textAlign = 'left';
