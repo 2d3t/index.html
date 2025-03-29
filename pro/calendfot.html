@@ -65,11 +65,10 @@
 <body>
 
     <div class="header">
-        <input type="file" id="imageInput" accept="image/*" multiple>
-        <button onclick="loadImages()">Добавить изображения</button>
+        <input type="file" id="imageInput" accept="image/*" multiple onchange="loadImages()">
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
-        <button onclick="saveCalendar()">Сохранить как изображение</button>
+        <button onclick="saveCalendar()">Сохранить как PDF</button>
     </div>
 
     <div id="calendarContainer" class="calendar-container">
@@ -79,6 +78,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.0.0/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
@@ -138,17 +138,15 @@
             }
         }
 
-        function saveCalendar() {
+        async function saveCalendar() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
             const container = document.getElementById('calendarContainer');
 
-            html2canvas(container).then(canvas => {
-                const link = document.createElement('a');
-                link.href = canvas.toDataURL('image/png');
-                link.download = 'calendar.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
+            const canvas = await html2canvas(container);
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, 0);
+            pdf.save('calendar.pdf');
         }
 
         window.onload = function() {
