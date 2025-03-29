@@ -53,7 +53,7 @@
     <div class="header">
         <input type="file" id="imageInput" accept="image/*">
         <button onclick="loadImage()">Добавить изображение</button>
-        <select id="monthSelector">
+        <select id="monthSelector" onchange="generateCalendar()">
             <option value="0">Январь</option>
             <option value="1">Февраль</option>
             <option value="2">Март</option>
@@ -67,9 +67,9 @@
             <option value="10">Ноябрь</option>
             <option value="11">Декабрь</option>
         </select>
-        <button onclick="generateCalendar()">Показать календарь</button>
         <button onclick="saveCalendar()">Сохранить как изображение</button>
         <div id="monthYear" class="month-year"></div>
+        <img id="headerImage" src="" alt="Изображение" style="display: none;">
     </div>
 
     <div id="calendar" class="calendar"></div>
@@ -84,7 +84,9 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     imageUrl = e.target.result;
-                    document.getElementById('headerImage').src = imageUrl;
+                    const headerImage = document.getElementById('headerImage');
+                    headerImage.src = imageUrl;
+                    headerImage.style.display = 'block'; // Показать изображение
                 }
                 reader.readAsDataURL(file);
             }
@@ -95,7 +97,7 @@
             const monthYear = document.getElementById('monthYear');
             calendar.innerHTML = ''; // Очистка предыдущего календаря
             const month = parseInt(document.getElementById('monthSelector').value);
-            const year = new Date().getFullYear();
+            const year = 2025; // Установить конкретный год
             const date = new Date(year, month, 1);
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const firstDay = date.getDay();
@@ -113,7 +115,7 @@
             });
 
             // Добавление пустых ячеек до первого дня месяца
-            for (let i = 0; i < firstDay; i++) {
+            for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
                 calendar.innerHTML += '<div class="day"></div>';
             }
 
