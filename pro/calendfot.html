@@ -43,7 +43,6 @@
         img {
             max-width: 100%;
             height: auto;
-            display: block;
         }
         .month-year {
             font-size: 1.5em;
@@ -52,41 +51,49 @@
     </style>
 </head>
 <body>
+
     <div class="header">
         <input type="file" id="imageInput" accept="image/*">
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
-        <button onclick="saveCalendar()">Сохранить как JPEG</button>
+        <button onclick="saveCalendar()">Сохранить как изображение</button>
     </div>
+
     <div id="calendarContainer" class="calendar-container">
-        <img id="headerImage" src="" alt="">
+        <img id="headerImage" src="" alt="" style="display: none;">
         <div id="monthYear" class="month-year"></div>
         <div id="calendar" class="calendar"></div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.0.0/html2canvas.min.js"></script>
+
     <script>
-        document.getElementById('imageInput').addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('headerImage').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
             const currentYear = new Date().getFullYear();
             for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-                let option = document.createElement('option');
+                const option = document.createElement('option');
                 option.value = i;
                 option.textContent = i;
                 yearSelector.appendChild(option);
             }
             yearSelector.value = currentYear;
         }
-        
+
+        function loadImage() {
+            const input = document.getElementById('imageInput');
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const headerImage = document.getElementById('headerImage');
+                    headerImage.src = e.target.result;
+                    headerImage.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         function generateCalendar() {
             const calendar = document.getElementById('calendar');
             const monthYear = document.getElementById('monthYear');
@@ -100,16 +107,16 @@
             monthYear.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
             const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
             weekDays.forEach(day => {
-                let dayDiv = document.createElement('div');
+                const dayDiv = document.createElement('div');
                 dayDiv.className = 'day';
-                dayDiv.textContent = day;
+                dayDiv.innerHTML = `<p class="day-name">${day}</p>`;
                 calendar.appendChild(dayDiv);
             });
 
             for (let i = 0; i < firstDay; i++) {
                 calendar.innerHTML += '<div class="day"></div>';
             }
-            
+
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayClass = (firstDay + day) % 7 === 0 || (firstDay + day) % 7 === 6 ? 'day weekend' : 'day';
                 calendar.innerHTML += `<div class="${dayClass}">${day}</div>`;
@@ -117,11 +124,14 @@
         }
 
         function saveCalendar() {
-            html2canvas(document.getElementById('calendarContainer')).then(canvas => {
+            const container = document.getElementById('calendarContainer');
+            html2canvas(container, { useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/jpeg', 1.0);
                 link.download = 'calendar.jpeg';
+                document.body.appendChild(link);
                 link.click();
+                document.body.removeChild(link);
             });
         }
 
@@ -129,15 +139,16 @@
             initYearSelector();
             const monthSelector = document.getElementById('monthSelector');
             for (let i = 0; i < 12; i++) {
-                let option = document.createElement('option');
+                const option = document.createElement('option');
                 option.value = i;
                 option.textContent = new Date(0, i).toLocaleString('ru-RU', { month: 'long' });
                 monthSelector.appendChild(option);
             }
             monthSelector.value = new Date().getMonth();
             generateCalendar();
+
+            document.getElementById('imageInput').addEventListener('change', loadImage, false);
         };
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.0.0/html2canvas.min.js"></script>
 </body>
 </html>
