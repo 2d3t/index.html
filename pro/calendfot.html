@@ -12,6 +12,13 @@
             margin: 0;
             padding: 20px;
         }
+        .calendar-container {
+            display: inline-block;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -25,21 +32,17 @@
             align-items: center;
             justify-content: center;
             font-size: 1.5em;
-            aspect-ratio: 1; /* Сделать квадратные ячейки */
+            aspect-ratio: 1;
         }
         .weekend {
-            background-color: #ffcccc; /* Красный для выходных */
+            background-color: #ffcccc;
         }
         .header {
             margin-bottom: 20px;
         }
         img {
-            width: 100%; /* Масштабируемое изображение */
+            max-width: 100%;
             height: auto;
-        }
-        .day-name {
-            font-weight: bold;
-            margin: 0;
         }
         .month-year {
             font-size: 1.5em;
@@ -52,18 +55,18 @@
     <div class="header">
         <input type="file" id="imageInput" accept="image/*">
         <button onclick="loadImage()">Добавить изображение</button>
-        <select id="yearSelector"></select>
+        <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
         <button onclick="saveCalendar()">Сохранить как изображение</button>
-        <div id="monthYear" class="month-year"></div>
-        <img id="headerImage" src="" alt="Изображение" style="display: none;">
     </div>
 
-    <div id="calendar" class="calendar"></div>
+    <div id="calendarContainer" class="calendar-container">
+        <img id="headerImage" src="" alt="" style="display: none;">
+        <div id="monthYear" class="month-year"></div>
+        <div id="calendar" class="calendar"></div>
+    </div>
 
     <script>
-        let imageUrl = '';
-
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
             const currentYear = new Date().getFullYear();
@@ -73,7 +76,7 @@
                 option.textContent = i;
                 yearSelector.appendChild(option);
             }
-            yearSelector.value = currentYear; // Установить текущий год
+            yearSelector.value = currentYear;
         }
 
         function loadImage() {
@@ -82,10 +85,9 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    imageUrl = e.target.result;
                     const headerImage = document.getElementById('headerImage');
-                    headerImage.src = imageUrl;
-                    headerImage.style.display = 'block'; // Показать изображение
+                    headerImage.src = e.target.result;
+                    headerImage.style.display = 'block';
                 }
                 reader.readAsDataURL(file);
             }
@@ -94,12 +96,12 @@
         function generateCalendar() {
             const calendar = document.getElementById('calendar');
             const monthYear = document.getElementById('monthYear');
-            calendar.innerHTML = ''; // Очистка предыдущего календаря
+            calendar.innerHTML = '';
             const month = parseInt(document.getElementById('monthSelector').value);
             const year = parseInt(document.getElementById('yearSelector').value);
             const date = new Date(year, month, 1);
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDay = date.getDay() === 0 ? 6 : date.getDay() - 1; // Пн=0, Вск=6
+            const firstDay = date.getDay() === 0 ? 6 : date.getDay() - 1;
 
             monthYear.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
             const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -121,8 +123,8 @@
         }
 
         function saveCalendar() {
-            const calendarElement = document.getElementById('calendar');
-            html2canvas(calendarElement, { useCORS: true }).then(canvas => {
+            const container = document.getElementById('calendarContainer');
+            html2canvas(container, { useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
                 link.href = canvas.toDataURL('image/jpeg', 1.0);
                 link.download = 'calendar.jpeg';
