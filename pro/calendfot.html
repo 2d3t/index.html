@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь на месяц</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .day {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: white;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+        .weekend {
+            background-color: #ffcccc; /* Красный для выходных */
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        img {
+            width: 100%; /* Масштабируемое изображение */
+            height: auto;
+        }
+        .day-name {
+            font-weight: bold;
+            margin: 0;
+        }
+        .month-year {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="loadImage()">Добавить изображение</button>
+        <select id="monthSelector">
+            <option value="0">Январь</option>
+            <option value="1">Февраль</option>
+            <option value="2">Март</option>
+            <option value="3">Апрель</option>
+            <option value="4">Май</option>
+            <option value="5">Июнь</option>
+            <option value="6">Июль</option>
+            <option value="7">Август</option>
+            <option value="8">Сентябрь</option>
+            <option value="9">Октябрь</option>
+            <option value="10">Ноябрь</option>
+            <option value="11">Декабрь</option>
+        </select>
+        <button onclick="generateCalendar()">Показать календарь</button>
+        <button onclick="saveCalendar()">Сохранить как изображение</button>
+        <div id="monthYear" class="month-year"></div>
+    </div>
+
+    <div id="calendar" class="calendar"></div>
+
+    <script>
+        let imageUrl = '';
+
+        function loadImage() {
+            const input = document.getElementById('imageInput');
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageUrl = e.target.result;
+                    document.getElementById('headerImage').src = imageUrl;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function generateCalendar() {
+            const calendar = document.getElementById('calendar');
+            const monthYear = document.getElementById('monthYear');
+            calendar.innerHTML = ''; // Очистка предыдущего календаря
+            const month = parseInt(document.getElementById('monthSelector').value);
+            const year = new Date().getFullYear();
+            const date = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = date.getDay();
+
+            // Установка текста месяца и года
+            monthYear.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
+
+            // Подписи дней недели
+            const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            weekDays.forEach(day => {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                dayDiv.innerHTML = `<p class="day-name">${day}</p>`;
+                calendar.appendChild(dayDiv);
+            });
+
+            // Добавление пустых ячеек до первого дня месяца
+            for (let i = 0; i < firstDay; i++) {
+                calendar.innerHTML += '<div class="day"></div>';
+            }
+
+            // Добавление дней месяца
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayClass = (firstDay + day - 1) % 7 === 5 || (firstDay + day - 1) % 7 === 6 ? 'day weekend' : 'day';
+                calendar.innerHTML += `<div class="${dayClass}">${day}</div>`;
+            }
+        }
+
+        function saveCalendar() {
+            html2canvas(document.getElementById('calendar')).then(canvas => {
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL();
+                link.download = 'calendar.png';
+                link.click();
+            });
+        }
+
+        // Инициализация календаря для текущего месяца
+        window.onload = generateCalendar;
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+</body>
+</html>
