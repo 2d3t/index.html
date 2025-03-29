@@ -21,6 +21,17 @@
             width: 100%;
             max-width: 400px;
         }
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .image-gallery img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -40,11 +51,6 @@
         .weekend {
             background-color: #ffcccc;
         }
-        img {
-            max-width: 100%;
-            height: auto;
-            margin-bottom: 10px;
-        }
         .month-year {
             font-size: 1.5em;
             margin-bottom: 10px;
@@ -59,15 +65,15 @@
 <body>
 
     <div class="header">
-        <input type="file" id="imageInput" accept="image/*">
-        <button onclick="loadImage()">Добавить изображение</button>
+        <input type="file" id="imageInput" accept="image/*" multiple>
+        <button onclick="loadImages()">Добавить изображения</button>
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
         <button onclick="saveCalendar()">Сохранить как изображение</button>
     </div>
 
     <div id="calendarContainer" class="calendar-container">
-        <img id="headerImage" src="" alt="" style="display: none;">
+        <div class="image-gallery" id="imageGallery"></div>
         <div id="monthYear" class="month-year"></div>
         <div id="calendar" class="calendar"></div>
     </div>
@@ -86,18 +92,21 @@
             yearSelector.value = currentYear;
         }
 
-        function loadImage() {
+        function loadImages() {
             const input = document.getElementById('imageInput');
-            const file = input.files[0];
-            if (file) {
+            const files = Array.from(input.files);
+            const imageGallery = document.getElementById('imageGallery');
+            imageGallery.innerHTML = ''; // Clear existing images
+
+            files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const headerImage = document.getElementById('headerImage');
-                    headerImage.src = e.target.result;
-                    headerImage.style.display = 'block';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    imageGallery.appendChild(img);
                 }
                 reader.readAsDataURL(file);
-            }
+            });
         }
 
         function generateCalendar() {
