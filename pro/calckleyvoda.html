@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор для пропорции клея и воды</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            width: 300px;
+            margin: 0 auto;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input {
+            padding: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Калькулятор пропорции клея и воды</h2>
+        <form id="calcForm">
+            <label for="mixtureAmount">Введите количество смеси (г):</label>
+            <input type="number" id="mixtureAmount" placeholder="Например, 130" required>
+            <label for="formName">Введите название формы:</label>
+            <input type="text" id="formName" placeholder="Название формы" required>
+            <button type="button" onclick="calculate()">Рассчитать</button>
+        </form>
+
+        <div class="result" id="result" style="display:none;">
+            <h3>Результаты</h3>
+            <p><strong>Название формы:</strong> <span id="formResult"></span></p>
+            <p><strong>Клей:</strong> <span id="glueResult"></span> г</p>
+            <p><strong>Вода:</strong> <span id="waterResult"></span> г</p>
+            <button onclick="saveAsImage()">Сохранить как JPEG</button>
+        </div>
+    </div>
+
+    <script>
+        function calculate() {
+            const mixtureAmount = parseFloat(document.getElementById('mixtureAmount').value);
+            const formName = document.getElementById('formName').value;
+            
+            if (isNaN(mixtureAmount) || mixtureAmount <= 0 || formName.trim() === "") {
+                alert("Пожалуйста, введите корректное количество смеси и название формы.");
+                return;
+            }
+
+            const glueAmount = (mixtureAmount * 156) / 130;
+            const waterAmount = (mixtureAmount * 104) / 130;
+
+            document.getElementById('formResult').textContent = formName;
+            document.getElementById('glueResult').textContent = glueAmount.toFixed(2);
+            document.getElementById('waterResult').textContent = waterAmount.toFixed(2);
+
+            document.getElementById('result').style.display = 'block';
+        }
+
+        function saveAsImage() {
+            const resultDiv = document.getElementById('result');
+            
+            html2canvas(resultDiv).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'result.jpg';
+                link.href = canvas.toDataURL('image/jpeg');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
