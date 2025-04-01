@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инвестиционный калькулятор</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Инвестиционный калькулятор</h1>
+    <form id="investment-form">
+        <label for="start_date">Введите дату начала (YYYY-MM-DD):</label>
+        <input type="date" id="start_date" required>
+        <br>
+        <label for="monthly_investment">Ежемесячные вложения ($):</label>
+        <input type="number" id="monthly_investment" required value="70">
+        <br>
+        <label for="garage_cost">Стоимость гаража ($):</label>
+        <input type="number" id="garage_cost" required>
+        <br>
+        <label for="garage_income">Доход с гаража ($):</label>
+        <input type="number" id="garage_income" required value="50">
+        <br>
+        <label for="years">Количество лет:</label>
+        <input type="number" id="years" required>
+        <br>
+        <button type="submit">Рассчитать</button>
+    </form>
+
+    <div id="results" style="display:none;">
+        <h2>Итоги</h2>
+        <h3>Введенные данные</h3>
+        <ul id="input-summary"></ul>
+        
+        <h3>Результаты</h3>
+        <p id="balance"></p>
+        <p id="total_income"></p>
+        <p id="garage_count"></p>
+        <p id="monthly_income"></p>
+        
+        <h3>Годовой отчет</h3>
+        <table id="yearly-report">
+            <tr>
+                <th>Год</th>
+                <th>Баланс ($)</th>
+                <th>Общий доход ($)</th>
+                <th>Количество гаражей</th>
+                <th>Ежемесячный доход от гаражей ($)</th>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('investment-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const monthlyInvestment = parseFloat(document.getElementById('monthly_investment').value);
+            const garageCost = parseFloat(document.getElementById('garage_cost').value);
+            const garageIncome = parseFloat(document.getElementById('garage_income').value);
+            const years = parseInt(document.getElementById('years').value);
+            const startDate = new Date(document.getElementById('start_date').value);
+
+            const months = years * 12;
+            let balance = 0;
+            let totalIncome = 0;
+            let garageCount = 0;
+            let totalMonthlyIncome = 0;
+            const yearlyReport = [];
+
+            for (let month = 1; month <= months; month++) {
+                balance += monthlyInvestment + totalMonthlyIncome;
+
+                if (balance >= garageCost) {
+                    const garagesBought = Math.floor(balance / garageCost);
+                    garageCount += garagesBought;
+                    balance -= garagesBought * garageCost;
+                }
+
+                totalMonthlyIncome = garageCount * garageIncome;
+                totalIncome += totalMonthlyIncome;
+
+                if (month % 12 === 0) {
+                    yearlyReport.push({
+                        year: startDate.getFullYear() + (month / 12),
+                        balance: balance,
+                        totalIncome: totalIncome,
+                        garageCount: garageCount,
+                        monthlyIncome: totalMonthlyIncome
+                    });
+                }
+            }
+
+            document.getElementById('input-summary').innerHTML = `
+                <li>Дата начала: ${startDate.toISOString().split('T')[0]}</li>
+                <li>Ежемесячные вложения: $${monthlyInvestment}</li>
+                <li>Стоимость гаража: $${garageCost}</li>
+                <li>Доход с гаража: $${garageIncome}</li>
+                <li>Количество лет: ${years}</li>
+            `;
+
+            document.getElementById('balance').innerText = `Баланс: $${balance.toFixed(2)}`;
+            document.getElementById('total_income').innerText = `Общий доход: $${totalIncome.toFixed(2)}`;
+            document.getElementById('garage_count').innerText = `Количество гаражей: ${garageCount}`;
+            document.getElementById('monthly_income').innerText = `Ежемесячный доход от гаражей: $${totalMonthlyIncome.toFixed(2)}`;
+
+            const reportRows = yearlyReport.map(entry => `
+                <tr>
+                    <td>${entry.year}</td>
+                    <td>${entry.balance.toFixed(2)}</td>
+                    <td>${entry.totalIncome.toFixed(2)}</td>
+                    <td>${entry.garageCount}</td>
+                    <td>${entry.monthlyIncome.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('yearly-report').innerHTML += reportRows;
+
+            document.getElementById('results').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
