@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор вероятностей</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            color: #ffcc00;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ffcc00;
+            border-radius: 5px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        button {
+            background-color: #ffcc00;
+            color: #121212;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #e6b800;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ffcc00;
+            background-color: #1e1e1e;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Калькулятор вероятностей для валюты</h1>
+<p>Введите цены валюты за последние 5 дней:</p>
+<input type="text" id="prices" placeholder="Например: 100, 102, 101, 103, 99">
+<button onclick="calculateForecast()">Прогнозировать</button>
+
+<div class="result" id="result" style="display:none;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/mathjs/lib/browser/math.js"></script>
+<script>
+    function calculateForecast() {
+        const input = document.getElementById('prices').value;
+        const prices = input.split(',').map(Number);
+        
+        if (prices.length !== 5 || prices.some(isNaN)) {
+            alert("Пожалуйста, введите 5 чисел, разделённых запятыми.");
+            return;
+        }
+
+        const mean = math.mean(prices);
+        const stdDev = math.std(prices);
+        
+        const predictedPrice = mean;
+        const probabilityAbove102 = 1 - math.erf((102 - mean) / (stdDev * Math.sqrt(2))) / 2;
+
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <p>Предсказанная цена: <strong>${predictedPrice.toFixed(2)}</strong></p>
+            <p>Вероятность, что цена будет выше 102: <strong>${(probabilityAbove102 * 100).toFixed(2)}%</strong></p>
+        `;
+    }
+</script>
+
+</body>
+</html>
