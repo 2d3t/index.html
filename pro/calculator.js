@@ -4,17 +4,24 @@ function calculateForecast() {
     const input = document.getElementById('prices').value;
     const prices = input.split(',').map(Number);
     
-    if (prices.length !== 5 || prices.some(isNaN)) {
-        alert("Пожалуйста, введите 5 чисел, разделённых запятыми.");
+    // Check if there are any valid numbers
+    if (prices.length === 0 || prices.some(isNaN)) {
+        alert("Пожалуйста, введите хотя бы одно число, разделённое запятыми.");
         return;
     }
 
     const mean = math.mean(prices);
     const stdDev = math.std(prices);
     
-    const targetPrice = prices[4];
+    // Use the last price as the target price
+    const targetPrice = prices[prices.length - 1];
     const predictedPrice = mean;
-    const probabilityAboveTarget = 1 - math.erf((targetPrice - mean) / (stdDev * Math.sqrt(2))) / 2;
+
+    // Calculate the probability only if stdDev is greater than 0
+    let probabilityAboveTarget = 0;
+    if (stdDev > 0) {
+        probabilityAboveTarget = 1 - math.erf((targetPrice - mean) / (stdDev * Math.sqrt(2))) / 2;
+    }
 
     const resultDiv = document.getElementById('result');
     resultDiv.style.display = 'block';
