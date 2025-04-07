@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройщик гитары</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        button { margin: 5px; }
+        #indicator { 
+            width: 200px; 
+            height: 200px; 
+            position: relative; 
+            margin: 20px auto; 
+            border: 2px solid #000; 
+            border-radius: 50%; 
+        }
+        #arrow {
+            width: 4px; 
+            height: 100px; 
+            background: red; 
+            position: absolute; 
+            bottom: 100px; 
+            left: 98px; 
+            transform-origin: bottom;
+            transition: transform 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <h1>Настройщик гитары</h1>
+    <button onclick="playSound('E')">Струна E</button>
+    <button onclick="playSound('A')">Струна A</button>
+    <button onclick="playSound('D')">Струна D</button>
+    <button onclick="playSound('G')">Струна G</button>
+    <button onclick="playSound('B')">Струна B</button>
+    <button onclick="playSound('e')">Струна e</button>
+
+    <div id="indicator">
+        <div id="arrow"></div>
+    </div>
+    <div id="status">Состояние: Нормально</div>
+
+    <script>
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        let analyser = context.createAnalyser();
+        let microphone;
+
+        const frequencies = {
+            'E': 82.41,
+            'A': 110.00,
+            'D': 146.83,
+            'G': 196.00,
+            'B': 246.94,
+            'e': 329.63
+        };
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                microphone = context.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                analyser.fftSize = 2048;
+                analyzePitch();
+            });
+
+        function playSound(note) {
+            const audio = new Audio(`sounds/${note}.mp3`);
+            audio.play();
+        }
+
+        function analyzePitch() {
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            const frequency = dataArray.indexOf(Math.max(...dataArray));
+            const note = detectNoteFromFrequency(frequency);
+
+            const targetNote = 'E'; // Измените на нужную струну
+            const indicator = document.getElementById('arrow');
+            const status = document.getElementById('status');
+
+            const targetFrequency = frequencies[targetNote];
+            const deviation = frequency - targetFrequency;
+
+            if (Math.abs(deviation) < 5) {
+                status.innerText = 'Состояние: Нормально';
+                indicator.style.transform = 'rotate(0deg)';
+            } else {
+                status.innerText = 'Состояние: Неправильно';
+                const rotation = (deviation > 0) ? 30 : -30; // угол отклонения
+                indicator.style.transform = `rotate(${rotation}deg)`;
+            }
+
+            requestAnimationFrame(analyzePitch);
+        }
+
+        function detectNoteFromFrequency(frequency) {
+            // Упрощенная логика для определения ноты (нужно улучшить)
+            if (frequency < 90) return 'E';
+            else if (frequency < 120) return 'A';
+            else if (frequency < 160) return 'D';
+            else if (frequency < 210) return 'G';
+            else if (frequency < 250) return 'B';
+            else return 'e';
+        }
+    </script>
+</body>
+</html>
