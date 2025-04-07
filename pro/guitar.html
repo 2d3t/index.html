@@ -110,30 +110,29 @@
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
             const frequency = getFrequency(dataArray);
-            const targetFrequency = frequencies[targetNote];
-            const deviation = frequency - targetFrequency;
 
-            const pointer = document.getElementById('pointer');
-            const frequenciesDisplay = document.getElementById('frequencies');
-            const currentFrequencyDisplay = document.getElementById('currentFrequency');
+            if (frequency > 0) {
+                const targetFrequency = frequencies[targetNote];
+                const pointer = document.getElementById('pointer');
+                const frequenciesDisplay = document.getElementById('frequencies');
+                const currentFrequencyDisplay = document.getElementById('currentFrequency');
 
-            currentFrequencyDisplay.innerText = frequency.toFixed(2);
-            frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Ожидаемая частота: ${targetFrequency.toFixed(2)} Hz`;
+                currentFrequencyDisplay.innerText = frequency.toFixed(2);
+                frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Ожидаемая частота: ${targetFrequency.toFixed(2)} Hz`;
 
-            // Установка позиции указателя
-            if (targetFrequency > 0) {
+                // Установка позиции указателя
                 const position = Math.max(0, Math.min(100, (frequency / targetFrequency) * 100));
                 pointer.style.bottom = `${100 - position}%`;
-            }
 
-            // Сообщение о состоянии
-            const message = document.getElementById('status');
-            if (Math.abs(deviation) < 5) {
-                message.innerText = `Состояние: Нормально`;
-            } else if (deviation > 0) {
-                message.innerText = `Ослабьте натяжение`;
-            } else {
-                message.innerText = `Подтяните струну`;
+                // Сообщение о состоянии
+                const message = document.getElementById('status');
+                if (Math.abs(frequency - targetFrequency) < 5) {
+                    message.innerText = `Состояние: Нормально`;
+                } else if (frequency > targetFrequency) {
+                    message.innerText = `Ослабьте натяжение`;
+                } else {
+                    message.innerText = `Подтяните струну`;
+                }
             }
 
             requestAnimationFrame(analyzePitch);
@@ -142,7 +141,9 @@
         function getFrequency(dataArray) {
             const maxIndex = dataArray.indexOf(Math.max(...dataArray));
             const nyquist = context.sampleRate / 2;
-            return (maxIndex * nyquist) / dataArray.length;
+            const frequency = (maxIndex * nyquist) / dataArray.length;
+
+            return frequency;
         }
     </script>
 </body>
