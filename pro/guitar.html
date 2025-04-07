@@ -29,17 +29,20 @@
 </head>
 <body>
     <h1>Настройщик гитары</h1>
-    <button onclick="playSound('E')">Струна E</button>
-    <button onclick="playSound('A')">Струна A</button>
-    <button onclick="playSound('D')">Струна D</button>
-    <button onclick="playSound('G')">Струна G</button>
-    <button onclick="playSound('B')">Струна B</button>
-    <button onclick="playSound('e')">Струна e</button>
+    <div>
+        <button onclick="setTarget('E')">1. Струна E</button>
+        <button onclick="setTarget('A')">2. Струна A</button>
+        <button onclick="setTarget('D')">3. Струна D</button>
+        <button onclick="setTarget('G')">4. Струна G</button>
+        <button onclick="setTarget('B')">5. Струна B</button>
+        <button onclick="setTarget('e')">6. Струна e</button>
+    </div>
 
     <div id="indicator">
         <div id="arrow"></div>
     </div>
     <div id="status">Состояние: Нормально</div>
+    <div id="frequencies"></div>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
@@ -55,38 +58,41 @@
             'e': 329.63
         };
 
+        let targetNote = null;
+
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 microphone = context.createMediaStreamSource(stream);
                 microphone.connect(analyser);
                 analyser.fftSize = 2048;
-                analyzePitch();
             });
 
-        function playSound(note) {
-            const audio = new Audio(`sounds/${note}.mp3`);
-            audio.play();
+        function setTarget(note) {
+            targetNote = note;
+            document.getElementById('status').innerText = `Настройка: ${note}`;
+            analyzePitch();
         }
 
         function analyzePitch() {
+            if (!targetNote) return;
+
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
-
-            const frequency = dataArray.indexOf(Math.max(...dataArray));
-            const note = detectNoteFromFrequency(frequency);
-
-            const targetNote = 'E'; // Измените на нужную струну
-            const indicator = document.getElementById('arrow');
-            const status = document.getElementById('status');
-
+            const frequency = getFrequency(dataArray);
             const targetFrequency = frequencies[targetNote];
             const deviation = frequency - targetFrequency;
 
+            const indicator = document.getElementById('arrow');
+            const status = document.getElementById('status');
+            const frequenciesDisplay = document.getElementById('frequencies');
+
+            frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Целевая частота: ${targetFrequency.toFixed(2)} Hz`;
+
             if (Math.abs(deviation) < 5) {
-                status.innerText = 'Состояние: Нормально';
+                status.innerText = `Состояние: Нормально`;
                 indicator.style.transform = 'rotate(0deg)';
             } else {
-                status.innerText = 'Состояние: Неправильно';
+                status.innerText = `Отклонение: ${deviation.toFixed(2)} Hz`;
                 const rotation = (deviation > 0) ? 30 : -30; // угол отклонения
                 indicator.style.transform = `rotate(${rotation}deg)`;
             }
@@ -94,14 +100,10 @@
             requestAnimationFrame(analyzePitch);
         }
 
-        function detectNoteFromFrequency(frequency) {
-            // Упрощенная логика для определения ноты (нужно улучшить)
-            if (frequency < 90) return 'E';
-            else if (frequency < 120) return 'A';
-            else if (frequency < 160) return 'D';
-            else if (frequency < 210) return 'G';
-            else if (frequency < 250) return 'B';
-            else return 'e';
+        function getFrequency(dataArray) {
+            const maxIndex = dataArray.indexOf(Math.max(...dataArray));
+            const nyquist = context.sampleRate / 2;
+            return maxIndex * nyquist / dataArray.length;
         }
     </script>
 </body>
