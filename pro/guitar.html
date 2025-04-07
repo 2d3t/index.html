@@ -7,64 +7,140 @@
     <style>
         body { font-family: Arial, sans-serif; }
         button { margin: 5px; }
-        #indicator { font-size: 24px; margin-top: 20px; }
+        #indicator-container {
+            display: flex;
+            align-items: center;
+        }
+        #indicator {
+            width: 20px; 
+            height: 300px; 
+            border: 2px solid #000; 
+            position: relative; 
+            margin-right: 20px; 
+        }
+        #targetLine {
+            position: absolute; 
+            bottom: 50%; 
+            left: 0; 
+            right: 0; 
+            height: 2px; 
+            background: green; 
+        }
+        #pointer {
+            width: 20px; 
+            height: 10px; 
+            background: red; 
+            position: absolute; 
+            transition: bottom 0.1s;
+        }
+        #status { margin-top: 20px; }
+        #microphoneStatus {
+            width: 20px; 
+            height: 20px; 
+            border-radius: 50%; 
+            margin-left: 20px; 
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <h1>Настройщик гитары</h1>
-    <button onclick="playSound('E')">Струна E</button>
-    <button onclick="playSound('A')">Струна A</button>
-    <button onclick="playSound('D')">Струна D</button>
-    <button onclick="playSound('G')">Струна G</button>
-    <button onclick="playSound('B')">Струна B</button>
-    <button onclick="playSound('e')">Струна e</button>
+    <div>
+        <button onclick="setTarget('E')">1. Струна E</button>
+        <button onclick="setTarget('A')">2. Струна A</button>
+        <button onclick="setTarget('D')">3. Струна D</button>
+        <button onclick="setTarget('G')">4. Струна G</button>
+        <button onclick="setTarget('B')">5. Струна B</button>
+        <button onclick="setTarget('e')">6. Струна e</button>
+    </div>
 
-    <div id="indicator">Состояние: Нормально</div>
+    <div id="indicator-container">
+        <div id="indicator">
+            <div id="targetLine"></div>
+            <div id="pointer"></div>
+        </div>
+        <div id="frequencies">
+            Текущая частота: <span id="currentFrequency">0.00</span> Hz | 
+            Ожидаемая частота: <span id="targetFrequency">0.00</span> Hz
+        </div>
+    </div>
+    <div id="status">Состояние: Нормально</div>
+    <div>
+        Статус микрофона: <div id="microphoneStatus" style="background: red;"></div>
+    </div>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
         let analyser = context.createAnalyser();
         let microphone;
 
+        const frequencies = {
+            'E': 82.41,
+            'A': 110.00,
+            'D': 146.83,
+            'G': 196.00,
+            'B': 246.94,
+            'e': 329.63
+        };
+
+        let targetNote = null;
+
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 microphone = context.createMediaStreamSource(stream);
                 microphone.connect(analyser);
                 analyser.fftSize = 2048;
+                document.getElementById('microphoneStatus').style.background = 'green'; // Микрофон подключен
                 analyzePitch();
+            })
+            .catch(err => {
+                console.error('Ошибка доступа к микрофону:', err);
+                document.getElementById('microphoneStatus').style.background = 'red'; // Микрофон не подключен
             });
 
-        function playSound(note) {
-            const audio = new Audio(`sounds/${note}.mp3`);
-            audio.play();
+        function setTarget(note) {
+            targetNote = note;
+            document.getElementById('status').innerText = `Настройка: ${note}`;
+            document.getElementById('targetFrequency').innerText = frequencies[note].toFixed(2);
         }
 
         function analyzePitch() {
+            if (!targetNote) return;
+
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
+            const frequency = getFrequency(dataArray);
+            const targetFrequency = frequencies[targetNote];
+            const deviation = frequency - targetFrequency;
 
-            // Простой анализ частоты (пример, можно улучшить)
-            const frequency = dataArray.indexOf(Math.max(...dataArray));
-            const pitch = frequencyToNote(frequency);
+            const pointer = document.getElementById('pointer');
+            const frequenciesDisplay = document.getElementById('frequencies');
+            const currentFrequencyDisplay = document.getElementById('currentFrequency');
 
-            const targetNote = 'E'; // Измените на нужную струну
-            const indicator = document.getElementById('indicator');
+            currentFrequencyDisplay.innerText = frequency.toFixed(2);
+            frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Ожидаемая частота: ${targetFrequency.toFixed(2)} Hz`;
 
-            if (pitch === targetNote) {
-                indicator.innerText = 'Состояние: Нормально';
-                indicator.style.color = 'green';
+            // Установка позиции указателя
+            const position = Math.max(0, Math.min(100, (frequency / targetFrequency) * 100));
+            pointer.style.bottom = `${100 - position}%`;
+
+            // Сообщение о состоянии
+            const message = document.getElementById('status');
+            if (Math.abs(deviation) < 5) {
+                message.innerText = `Состояние: Нормально`;
+            } else if (deviation > 0) {
+                message.innerText = `Ослабьте натяжение`;
             } else {
-                indicator.innerText = 'Состояние: Неправильно';
-                indicator.style.color = 'red';
+                message.innerText = `Подтяните струну`;
             }
 
             requestAnimationFrame(analyzePitch);
         }
 
-        function frequencyToNote(frequency) {
-            // Преобразование частоты в ноту (упрощенный вариант)
-            // Замените на точное соответствие частотам для каждой струны
-            return frequency < 200 ? 'E' : 'A'; // Пример, необходимо уточнить
+        function getFrequency(dataArray) {
+            const maxIndex = dataArray.indexOf(Math.max(...dataArray));
+            const nyquist = context.sampleRate / 2;
+            return maxIndex * nyquist / (dataArray.length);
         }
     </script>
 </body>
