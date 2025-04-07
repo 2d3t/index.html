@@ -1,92 +1,148 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Индикаторы звука</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #soundIndicator {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            margin: 20px auto;
-            background-color: red;
-        }
-        #micIndicator {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            margin: 20px auto;
-            background-color: gray;
-            display: inline-block;
-        }
-        #frequencyDisplay {
-            font-size: 24px;
-            margin-top: 20px;
-        }
-        #stringFrequencies {
-            margin-top: 20px;
-            text-align: left;
-            display: inline-block;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Гитарный тюнер</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; }
+    #soundIndicator {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: red; margin: 20px auto;
+    }
+    #micIndicator {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: gray; display: inline-block; margin: 10px;
+    }
+    #frequencyDisplay { font-size: 24px; margin-top: 10px; }
+
+    .string {
+      margin: 5px auto;
+      font-size: 20px;
+    }
+
+    .highlight {
+      color: green;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <h1>Индикатор звука</h1>
-    <div id="soundIndicator"></div>
-    <div id="micIndicator"></div>
-    <div id="frequencyDisplay">Частота: 0 Hz</div>
+  <h1>Гитарный тюнер</h1>
+  <div id="soundIndicator"></div>
+  <div id="micIndicator"></div>
+  <div id="frequencyDisplay">Частота: 0 Hz</div>
 
-    <div id="stringFrequencies">
-        <h2>Частоты струн гитары</h2>
-        <ul>
-            <li>6-я струна (E2) - 82.41 Hz</li>
-            <li>5-я струна (A2) - 110.00 Hz</li>
-            <li>4-я струна (D3) - 146.83 Hz</li>
-            <li>3-я струна (G3) - 196.00 Hz</li>
-            <li>2-я струна (B3) - 246.94 Hz</li>
-            <li>1-я струна (E4) - 329.63 Hz</li>
-        </ul>
-    </div>
+  <div id="strings">
+    <div class="string" data-name="E2">6-я струна (E2) – 82.41 Hz</div>
+    <div class="string" data-name="A2">5-я струна (A2) – 110.00 Hz</div>
+    <div class="string" data-name="D3">4-я струна (D3) – 146.83 Hz</div>
+    <div class="string" data-name="G3">3-я струна (G3) – 196.00 Hz</div>
+    <div class="string" data-name="B3">2-я струна (B3) – 246.94 Hz</div>
+    <div class="string" data-name="E4">1-я струна (E4) – 329.63 Hz</div>
+  </div>
 
-    <script>
-        const context = new (window.AudioContext || window.webkitAudioContext)();
-        let analyser = context.createAnalyser();
-        let microphone;
+  <script>
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                microphone = context.createMediaStreamSource(stream);
-                microphone.connect(analyser);
-                analyser.fftSize = 2048;
+    const soundIndicator = document.getElementById("soundIndicator");
+    const micIndicator = document.getElementById("micIndicator");
+    const frequencyDisplay = document.getElementById("frequencyDisplay");
+    const stringElements = document.querySelectorAll(".string");
 
-                // Изменение цвета индикатора микрофона
-                document.getElementById('micIndicator').style.backgroundColor = 'green';
-                analyzeSound();
-            });
+    const stringFrequencies = [
+      { name: "E2", freq: 82.41 },
+      { name: "A2", freq: 110.00 },
+      { name: "D3", freq: 146.83 },
+      { name: "G3", freq: 196.00 },
+      { name: "B3", freq: 246.94 },
+      { name: "E4", freq: 329.63 }
+    ];
 
-        function analyzeSound() {
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(dataArray);
-            const soundDetected = dataArray.some(value => value > 0);
-            const frequency = getFrequency(dataArray);
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      micIndicator.style.backgroundColor = 'green';
+      analyze();
+    });
 
-            // Обновление индикатора звука
-            const soundIndicator = document.getElementById('soundIndicator');
-            soundIndicator.style.backgroundColor = soundDetected ? 'green' : 'red';
+    function autoCorrelate(buffer, sampleRate) {
+      const SIZE = buffer.length;
+      let bestOffset = -1;
+      let bestCorrelation = 0;
+      let rms = 0;
 
-            // Обновление частоты
-            document.getElementById('frequencyDisplay').innerText = `Частота: ${frequency.toFixed(2)} Hz`;
+      for (let i = 0; i < SIZE; i++) {
+        const val = buffer[i];
+        rms += val * val;
+      }
+      rms = Math.sqrt(rms / SIZE);
+      if (rms < 0.01) return -1;
 
-            requestAnimationFrame(analyzeSound);
+      let lastCorrelation = 1;
+      for (let offset = 1; offset < SIZE; offset++) {
+        let correlation = 0;
+        for (let i = 0; i < SIZE - offset; i++) {
+          correlation += buffer[i] * buffer[i + offset];
         }
-
-        function getFrequency(dataArray) {
-            const maxIndex = dataArray.indexOf(Math.max(...dataArray));
-            const nyquist = context.sampleRate / 2;
-            return maxIndex * nyquist / dataArray.length;
+        correlation = correlation / (SIZE - offset);
+        if (correlation > bestCorrelation && correlation < lastCorrelation) {
+          bestCorrelation = correlation;
+          bestOffset = offset;
         }
-    </script>
+        lastCorrelation = correlation;
+      }
+
+      if (bestCorrelation > 0.01) {
+        return sampleRate / bestOffset;
+      }
+
+      return -1;
+    }
+
+    function findClosestString(freq) {
+      let closest = stringFrequencies[0];
+      let minDiff = Math.abs(freq - closest.freq);
+      for (let i = 1; i < stringFrequencies.length; i++) {
+        const diff = Math.abs(freq - stringFrequencies[i].freq);
+        if (diff < minDiff) {
+          closest = stringFrequencies[i];
+          minDiff = diff;
+        }
+      }
+      return closest;
+    }
+
+    function highlightString(name) {
+      stringElements.forEach(el => {
+        if (el.dataset.name === name) {
+          el.classList.add("highlight");
+        } else {
+          el.classList.remove("highlight");
+        }
+      });
+    }
+
+    function analyze() {
+      const buffer = new Float32Array(analyser.fftSize);
+      analyser.getFloatTimeDomainData(buffer);
+      const frequency = autoCorrelate(buffer, audioContext.sampleRate);
+
+      if (frequency > 0) {
+        soundIndicator.style.backgroundColor = 'lime';
+        frequencyDisplay.textContent = `Частота: ${frequency.toFixed(2)} Hz`;
+
+        const closest = findClosestString(frequency);
+        highlightString(closest.name);
+      } else {
+        soundIndicator.style.backgroundColor = 'red';
+        frequencyDisplay.textContent = 'Частота: —';
+        highlightString(null);
+      }
+
+      requestAnimationFrame(analyze);
+    }
+  </script>
 </body>
 </html>
