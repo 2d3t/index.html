@@ -52,9 +52,9 @@
             <div id="targetLine"></div>
             <div id="pointer"></div>
         </div>
-        <div id="message"></div>
+        <div id="frequencies"></div>
     </div>
-    <div id="frequencies"></div>
+    <div id="status">Состояние: Нормально</div>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
@@ -82,7 +82,7 @@
 
         function setTarget(note) {
             targetNote = note;
-            document.getElementById('message').innerText = `Настройка: ${note}`;
+            document.getElementById('status').innerText = `Настройка: ${note}`;
         }
 
         function analyzePitch() {
@@ -95,16 +95,16 @@
             const deviation = frequency - targetFrequency;
 
             const pointer = document.getElementById('pointer');
-            const message = document.getElementById('message');
             const frequenciesDisplay = document.getElementById('frequencies');
 
             frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Целевая частота: ${targetFrequency.toFixed(2)} Hz`;
 
             // Установка позиции указателя
-            const position = (frequency / targetFrequency) * 100;
-            pointer.style.bottom = `${Math.min(100, Math.max(0, 100 - position))}%`;
+            const position = Math.max(0, Math.min(100, (frequency / targetFrequency) * 100));
+            pointer.style.bottom = `${100 - position}%`;
 
             // Сообщение о состоянии
+            const message = document.getElementById('status');
             if (Math.abs(deviation) < 5) {
                 message.innerText = `Состояние: Нормально`;
             } else if (deviation > 0) {
