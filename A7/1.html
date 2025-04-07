@@ -1,1 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Индикаторы звука</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #soundIndicator {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 20px auto;
+            background-color: red;
+        }
+        #micIndicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 20px auto;
+            background-color: gray;
+            display: inline-block;
+        }
+        #frequencyDisplay {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        #stringFrequencies {
+            margin-top: 20px;
+            text-align: left;
+            display: inline-block;
+        }
+        #startButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Индикатор звука</h1>
+    <button id="startButton" onclick="startTuner()">Включить тюнер</button> <!-- Кнопка -->
+    <div id="soundIndicator"></div>
+    <div id="micIndicator"></div>
+    <div id="frequencyDisplay">Частота: 0 Hz</div>
 
+    <div id="stringFrequencies">
+        <h2>Частоты струн гитары</h2>
+        <ul>
+            <li>6-я струна (E2) - 82.41 Hz</li>
+            <li>5-я струна (A2) - 110.00 Hz</li>
+            <li>4-я струна (D3) - 146.83 Hz</li>
+            <li>3-я струна (G3) - 196.00 Hz</li>
+            <li>2-я струна (B3) - 246.94 Hz</li>
+            <li>1-я струна (E4) - 329.63 Hz</li>
+        </ul>
+    </div>
+
+    <script>
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        let analyser = context.createAnalyser();
+        let microphone;
+
+        function startTuner() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    microphone = context.createMediaStreamSource(stream);
+                    microphone.connect(analyser);
+                    analyser.fftSize = 2048;
+
+                    document.getElementById('micIndicator').style.backgroundColor = 'green';
+                    analyzeSound();
+                })
+                .catch(err => {
+                    alert("Ошибка доступа к микрофону: " + err.message);
+                });
+        }
+
+        function analyzeSound() {
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            const soundDetected = dataArray.some(value => value > 0);
+            const frequency = getFrequency(dataArray);
+
+            document.getElementById('soundIndicator').style.backgroundColor = soundDetected ? 'green' : 'red';
+            document.getElementById('frequencyDisplay').innerText = `Частота: ${frequency.toFixed(2)} Hz`;
+
+            requestAnimationFrame(analyzeSound);
+        }
+
+        function getFrequency(dataArray) {
+            const maxIndex = dataArray.indexOf(Math.max(...dataArray));
+            const nyquist = context.sampleRate / 2;
+            return maxIndex * nyquist / dataArray.length;
+        }
+    </script>
+</body>
+</html>
