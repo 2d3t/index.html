@@ -7,58 +7,24 @@
     <style>
         body { font-family: Arial, sans-serif; }
         button { margin: 5px; }
-        #indicator { 
-            width: 200px; 
-            height: 200px; 
-            position: relative; 
-            margin: 20px auto; 
-            border: 2px solid #000; 
-            border-radius: 50%; 
-        }
-        #arrow {
-            width: 4px; 
-            height: 100px; 
-            background: red; 
-            position: absolute; 
-            bottom: 100px; 
-            left: 98px; 
-            transform-origin: bottom;
-            transition: transform 0.1s;
-        }
+        #indicator { font-size: 24px; margin-top: 20px; }
     </style>
 </head>
 <body>
     <h1>Настройщик гитары</h1>
-    <div>
-        <button onclick="setTarget('E')">1. Струна E</button>
-        <button onclick="setTarget('A')">2. Струна A</button>
-        <button onclick="setTarget('D')">3. Струна D</button>
-        <button onclick="setTarget('G')">4. Струна G</button>
-        <button onclick="setTarget('B')">5. Струна B</button>
-        <button onclick="setTarget('e')">6. Струна e</button>
-    </div>
+    <button onclick="playSound('E')">Струна E</button>
+    <button onclick="playSound('A')">Струна A</button>
+    <button onclick="playSound('D')">Струна D</button>
+    <button onclick="playSound('G')">Струна G</button>
+    <button onclick="playSound('B')">Струна B</button>
+    <button onclick="playSound('e')">Струна e</button>
 
-    <div id="indicator">
-        <div id="arrow"></div>
-    </div>
-    <div id="status">Состояние: Нормально</div>
-    <div id="frequencies"></div>
+    <div id="indicator">Состояние: Нормально</div>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
         let analyser = context.createAnalyser();
         let microphone;
-
-        const frequencies = {
-            'E': 82.41,
-            'A': 110.00,
-            'D': 146.83,
-            'G': 196.00,
-            'B': 246.94,
-            'e': 329.63
-        };
-
-        let targetNote = null;
 
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
@@ -68,42 +34,37 @@
                 analyzePitch();
             });
 
-        function setTarget(note) {
-            targetNote = note;
-            document.getElementById('status').innerText = `Настройка: ${note}`;
+        function playSound(note) {
+            const audio = new Audio(`sounds/${note}.mp3`);
+            audio.play();
         }
 
         function analyzePitch() {
-            if (!targetNote) return;
-
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
-            const frequency = getFrequency(dataArray);
-            const targetFrequency = frequencies[targetNote];
-            const deviation = frequency - targetFrequency;
 
-            const indicator = document.getElementById('arrow');
-            const status = document.getElementById('status');
-            const frequenciesDisplay = document.getElementById('frequencies');
+            // Простой анализ частоты (пример, можно улучшить)
+            const frequency = dataArray.indexOf(Math.max(...dataArray));
+            const pitch = frequencyToNote(frequency);
 
-            frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Целевая частота: ${targetFrequency.toFixed(2)} Hz`;
+            const targetNote = 'E'; // Измените на нужную струну
+            const indicator = document.getElementById('indicator');
 
-            if (Math.abs(deviation) < 5) {
-                status.innerText = `Состояние: Нормально`;
-                indicator.style.transform = 'rotate(0deg)';
+            if (pitch === targetNote) {
+                indicator.innerText = 'Состояние: Нормально';
+                indicator.style.color = 'green';
             } else {
-                status.innerText = `Отклонение: ${deviation.toFixed(2)} Hz`;
-                const rotation = (deviation > 0) ? 30 : -30; // угол отклонения
-                indicator.style.transform = `rotate(${rotation}deg)`;
+                indicator.innerText = 'Состояние: Неправильно';
+                indicator.style.color = 'red';
             }
 
             requestAnimationFrame(analyzePitch);
         }
 
-        function getFrequency(dataArray) {
-            const maxIndex = dataArray.indexOf(Math.max(...dataArray));
-            const nyquist = context.sampleRate / 2;
-            return maxIndex * nyquist / (dataArray.length);
+        function frequencyToNote(frequency) {
+            // Преобразование частоты в ноту (упрощенный вариант)
+            // Замените на точное соответствие частотам для каждой струны
+            return frequency < 200 ? 'E' : 'A'; // Пример, необходимо уточнить
         }
     </script>
 </body>
