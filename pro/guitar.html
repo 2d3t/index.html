@@ -7,33 +7,24 @@
     <style>
         body { font-family: Arial, sans-serif; }
         button { margin: 5px; }
-        #indicator-container {
-            display: flex;
-            align-items: center;
-        }
-        #indicator {
-            width: 20px; 
-            height: 300px; 
-            border: 2px solid #000; 
+        #indicator { 
+            width: 200px; 
+            height: 200px; 
             position: relative; 
-            margin-right: 20px; 
+            margin: 20px auto; 
+            border: 2px solid #000; 
+            border-radius: 50%; 
         }
-        #targetLine {
-            position: absolute; 
-            bottom: 50%; 
-            left: 0; 
-            right: 0; 
-            height: 2px; 
-            background: green; 
-        }
-        #pointer {
-            width: 20px; 
-            height: 10px; 
+        #arrow {
+            width: 4px; 
+            height: 100px; 
             background: red; 
             position: absolute; 
-            transition: bottom 0.1s;
+            bottom: 100px; 
+            left: 98px; 
+            transform-origin: bottom;
+            transition: transform 0.1s;
         }
-        #status { margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -47,14 +38,11 @@
         <button onclick="setTarget('e')">6. Струна e</button>
     </div>
 
-    <div id="indicator-container">
-        <div id="indicator">
-            <div id="targetLine"></div>
-            <div id="pointer"></div>
-        </div>
-        <div id="frequencies"></div>
+    <div id="indicator">
+        <div id="arrow"></div>
     </div>
     <div id="status">Состояние: Нормально</div>
+    <div id="frequencies"></div>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
@@ -94,23 +82,19 @@
             const targetFrequency = frequencies[targetNote];
             const deviation = frequency - targetFrequency;
 
-            const pointer = document.getElementById('pointer');
+            const indicator = document.getElementById('arrow');
+            const status = document.getElementById('status');
             const frequenciesDisplay = document.getElementById('frequencies');
 
             frequenciesDisplay.innerText = `Текущая частота: ${frequency.toFixed(2)} Hz | Целевая частота: ${targetFrequency.toFixed(2)} Hz`;
 
-            // Установка позиции указателя
-            const position = Math.max(0, Math.min(100, (frequency / targetFrequency) * 100));
-            pointer.style.bottom = `${100 - position}%`;
-
-            // Сообщение о состоянии
-            const message = document.getElementById('status');
             if (Math.abs(deviation) < 5) {
-                message.innerText = `Состояние: Нормально`;
-            } else if (deviation > 0) {
-                message.innerText = `Ослабьте натяжение`;
+                status.innerText = `Состояние: Нормально`;
+                indicator.style.transform = 'rotate(0deg)';
             } else {
-                message.innerText = `Подтяните струну`;
+                status.innerText = `Отклонение: ${deviation.toFixed(2)} Hz`;
+                const rotation = (deviation > 0) ? 30 : -30; // угол отклонения
+                indicator.style.transform = `rotate(${rotation}deg)`;
             }
 
             requestAnimationFrame(analyzePitch);
