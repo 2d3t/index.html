@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Индикаторы звука</title>
+    <title>Безопасный дом</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
         #soundIndicator {
@@ -25,35 +25,18 @@
             font-size: 24px;
             margin-top: 20px;
         }
-        #stringFrequencies {
-            margin-top: 20px;
-            text-align: left;
-            display: inline-block;
-        }
         video { margin-top: 20px; max-width: 300px; }
         ul { list-style-type: none; padding: 0; }
     </style>
 </head>
 <body>
-    <h1>Индикатор звука</h1>
+    <h1>Безопасный дом</h1>
     <div id="soundIndicator"></div>
     <div id="micIndicator"></div>
     <div id="frequencyDisplay">Частота: 0 Hz</div>
     <ul id="videoList"></ul>
 
     <audio id="clickSound" src="click.mp3" preload="auto"></audio>
-
-    <div id="stringFrequencies">
-        <h2>Частоты струн гитары</h2>
-        <ul>
-            <li>6-я струна (E2) - 82.41 Hz</li>
-            <li>5-я струна (A2) - 110.00 Hz</li>
-            <li>4-я струна (D3) - 146.83 Hz</li>
-            <li>3-я струна (G3) - 196.00 Hz</li>
-            <li>2-я струна (B3) - 246.94 Hz</li>
-            <li>1-я струна (E4) - 329.63 Hz</li>
-        </ul>
-    </div>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
@@ -116,7 +99,8 @@
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
                         const videoURL = URL.createObjectURL(recordedBlob);
-                        videos.push(videoURL); // Сохраняем ссылку на видео
+                        const recordTime = new Date().toLocaleString(); // Время записи
+                        videos.push({ url: videoURL, time: recordTime }); // Сохраняем ссылку на видео и время записи
                         recordedChunks = []; // Сбросить массив после остановки записи
                         updateVideoList(); // Обновляем интерфейс
                     };
@@ -132,11 +116,12 @@
         function updateVideoList() {
             const videoList = document.getElementById('videoList');
             videoList.innerHTML = ''; // Очистить список
-            videos.forEach((videoSrc, index) => {
+            videos.forEach((video, index) => {
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
-                    <video controls src="${videoSrc}" width="300"></video>
-                    <button onclick="downloadVideo('${videoSrc}', ${index + 1})">Скачать видео ${index + 1}</button>
+                    <video controls src="${video.url}" width="300"></video>
+                    <div>Запись сделана: ${video.time}</div>
+                    <button onclick="downloadVideo('${video.url}', ${index + 1})">Скачать видео ${index + 1}</button>
                 `;
                 videoList.appendChild(listItem);
             });
