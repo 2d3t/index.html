@@ -27,6 +27,7 @@
         }
         video { margin-top: 20px; max-width: 300px; }
         ul { list-style-type: none; padding: 0; }
+        button { margin: 10px; }
     </style>
 </head>
 <body>
@@ -38,6 +39,8 @@
 
     <audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
+    <button id="stopButton">Остановить процесс</button>
+
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
         let analyser = context.createAnalyser();
@@ -46,6 +49,7 @@
         let recordedChunks = [];
         let videos = []; // Массив для хранения видеозаписей
         let photoTaken = false;
+        let recording = false;
 
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
@@ -99,8 +103,7 @@
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
                         const videoURL = URL.createObjectURL(recordedBlob);
-                        const recordTime = new Date().toLocaleString(); // Время записи
-                        videos.push({ url: videoURL, time: recordTime }); // Сохраняем ссылку на видео и время записи
+                        videos.push(videoURL); // Сохраняем ссылку на видео и время записи
                         recordedChunks = []; // Сбросить массив после остановки записи
                         updateVideoList(); // Обновляем интерфейс
                     };
@@ -119,22 +122,20 @@
             videos.forEach((video, index) => {
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
-                    <video controls src="${video.url}" width="300"></video>
-                    <div>Запись сделана: ${video.time}</div>
-                    <button onclick="downloadVideo('${video.url}', ${index + 1})">Скачать видео ${index + 1}</button>
+                    <video controls src="${video}" width="300"></video>
+                    <div>Запись сделана: ${new Date().toLocaleString()}</div>
                 `;
                 videoList.appendChild(listItem);
             });
         }
 
-        function downloadVideo(videoSrc, index) {
-            const a = document.createElement('a');
-            a.href = videoSrc;
-            a.download = `video${index}.webm`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
+        document.getElementById('stopButton').addEventListener('click', () => {
+            if (mediaRecorder && recording) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                recording = false;
+            }
+        });
     </script>
 </body>
 </html>
