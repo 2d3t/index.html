@@ -30,7 +30,8 @@
             text-align: left;
             display: inline-block;
         }
-        video { margin-top: 20px; max-width: 100%; }
+        video { margin-top: 20px; max-width: 300px; }
+        ul { list-style-type: none; padding: 0; }
     </style>
 </head>
 <body>
@@ -38,7 +39,7 @@
     <div id="soundIndicator"></div>
     <div id="micIndicator"></div>
     <div id="frequencyDisplay">Частота: 0 Hz</div>
-    <video id="recordedVideo" controls style="display: none;"></video>
+    <ul id="videoList"></ul>
 
     <audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
@@ -60,6 +61,7 @@
         let microphone;
         let mediaRecorder;
         let recordedChunks = [];
+        let videos = []; // Массив для хранения видеозаписей
         let photoTaken = false;
 
         navigator.mediaDevices.getUserMedia({ audio: true })
@@ -104,12 +106,8 @@
             const clickSound = document.getElementById('clickSound');
             clickSound.play(); // Воспроизведение звука щелчка
 
-            navigator.mediaDevices.getUserMedia({ video: true })
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(stream => {
-                    const video = document.createElement('video');
-                    video.srcObject = stream;
-                    video.play();
-
                     mediaRecorder = new MediaRecorder(stream);
                     mediaRecorder.ondataavailable = event => {
                         recordedChunks.push(event.data);
@@ -117,11 +115,9 @@
 
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                        const recordedVideo = document.getElementById('recordedVideo');
-                        recordedVideo.src = URL.createObjectURL(recordedBlob);
-                        recordedVideo.style.display = 'block';
-                        recordedVideo.play();
+                        videos.push(URL.createObjectURL(recordedBlob)); // Сохраняем ссылку на видео
                         recordedChunks = []; // Сбросить массив после остановки записи
+                        updateVideoList(); // Обновляем интерфейс
                     };
 
                     mediaRecorder.start();
@@ -130,6 +126,19 @@
                         stream.getTracks().forEach(track => track.stop());
                     }, 5000); // Записывать 5 секунд
                 });
+        }
+
+        function updateVideoList() {
+            const videoList = document.getElementById('videoList');
+            videoList.innerHTML = ''; // Очистить список
+            videos.forEach((videoSrc, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    <video controls src="${videoSrc}" width="300"></video>
+                    <a href="${videoSrc}" download="video${index + 1}.webm">Скачать видео ${index + 1}</a>
+                `;
+                videoList.appendChild(listItem);
+            });
         }
     </script>
 </body>
