@@ -32,6 +32,7 @@
         }
         video { margin-top: 20px; max-width: 300px; }
         ul { list-style-type: none; padding: 0; }
+        button { margin: 10px; }
     </style>
 </head>
 <body>
@@ -39,6 +40,7 @@
     <div id="soundIndicator"></div>
     <div id="micIndicator"></div>
     <div id="frequencyDisplay">Частота: 0 Hz</div>
+    <button id="toggleButton">Начать запись</button>
     <ul id="videoList"></ul>
 
     <audio id="clickSound" src="click.mp3" preload="auto"></audio>
@@ -63,16 +65,39 @@
         let recordedChunks = [];
         let videos = []; // Массив для хранения видеозаписей
         let photoTaken = false;
+        let recording = false;
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                microphone = context.createMediaStreamSource(stream);
-                microphone.connect(analyser);
-                analyser.fftSize = 2048;
+        document.getElementById('toggleButton').addEventListener('click', () => {
+            if (recording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
 
-                document.getElementById('micIndicator').style.backgroundColor = 'green';
-                analyzeSound();
-            });
+        function startRecording() {
+            recordedChunks = []; // Сбросить массив перед началом записи
+            recording = true;
+            document.getElementById('toggleButton').innerText = 'Остановить запись';
+            setTimeout(() => {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        microphone = context.createMediaStreamSource(stream);
+                        microphone.connect(analyser);
+                        analyser.fftSize = 2048;
+                        analyzeSound();
+                    });
+            }, 5000); // Задержка перед началом анализа звука
+        }
+
+        function stopRecording() {
+            recording = false;
+            document.getElementById('toggleButton').innerText = 'Начать запись';
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
 
         function analyzeSound() {
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -124,7 +149,6 @@
                     mediaRecorder.start();
                     setTimeout(() => {
                         mediaRecorder.stop();
-                        stream.getTracks().forEach(track => track.stop());
                     }, 5000); // Записывать 5 секунд
                 });
         }
