@@ -30,13 +30,7 @@
             text-align: left;
             display: inline-block;
         }
-        canvas { display: none; }
-        #previewImage {
-            margin-top: 20px;
-            max-width: 100%; /* Уменьшение изображения по ширине */
-            height: auto; /* Автоматическая высота */
-            display: none; /* Скрыто по умолчанию */
-        }
+        video { margin-top: 20px; max-width: 100%; }
     </style>
 </head>
 <body>
@@ -44,10 +38,9 @@
     <div id="soundIndicator"></div>
     <div id="micIndicator"></div>
     <div id="frequencyDisplay">Частота: 0 Hz</div>
-    <canvas id="canvas" width="640" height="480"></canvas>
-    <img id="previewImage" src="" alt="Preview" />
+    <video id="recordedVideo" controls style="display: none;"></video>
 
-    <a id="downloadLink" style="display: none;"></a>
+    <audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
     <div id="stringFrequencies">
         <h2>Частоты струн гитары</h2>
@@ -65,7 +58,9 @@
         const context = new (window.AudioContext || window.webkitAudioContext)();
         let analyser = context.createAnalyser();
         let microphone;
-        let photoTaken = false; // Переменная для отслеживания, сделано ли фото
+        let mediaRecorder;
+        let recordedChunks = [];
+        let photoTaken = false;
 
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
@@ -89,11 +84,11 @@
             document.getElementById('frequencyDisplay').innerText = `Частота: ${frequency.toFixed(2)} Hz`;
 
             if (soundDetected && !photoTaken) {
-                takePhoto();
-                photoTaken = true; // Установить флаг, что фото сделано
+                takeVideo();
+                photoTaken = true;
                 setTimeout(() => {
-                    photoTaken = false; // Сбросить флаг через 30 секунд
-                }, 30000);
+                    photoTaken = false;
+                }, 30000); // 30 секунд до следующего видео
             }
 
             requestAnimationFrame(analyzeSound);
@@ -105,33 +100,35 @@
             return maxIndex * nyquist / dataArray.length;
         }
 
-        function takePhoto() {
+        function takeVideo() {
+            const clickSound = document.getElementById('clickSound');
+            clickSound.play(); // Воспроизведение звука щелчка
+
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     const video = document.createElement('video');
                     video.srcObject = stream;
                     video.play();
 
-                    const canvas = document.getElementById('canvas');
-                    const context = canvas.getContext('2d');
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = event => {
+                        recordedChunks.push(event.data);
+                    };
 
-                    const imgData = canvas.toDataURL('image/jpeg'); // Получение изображения в формате JPEG
-                    const downloadLink = document.getElementById('downloadLink');
-                    downloadLink.href = imgData;
-                    downloadLink.download = 'photo.jpg'; // Имя файла
+                    mediaRecorder.onstop = () => {
+                        const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                        const recordedVideo = document.getElementById('recordedVideo');
+                        recordedVideo.src = URL.createObjectURL(recordedBlob);
+                        recordedVideo.style.display = 'block';
+                        recordedVideo.play();
+                        recordedChunks = []; // Сбросить массив после остановки записи
+                    };
 
-                    // Отображение превью изображения
-                    const previewImage = document.getElementById('previewImage');
-                    previewImage.src = imgData;
-                    previewImage.style.display = 'block'; // Показать изображение
-
-                    // Автоматический клик для скачивания
+                    mediaRecorder.start();
                     setTimeout(() => {
-                        downloadLink.click();
-                    }, 100); // Небольшая задержка перед скачиванием
-
-                    stream.getTracks().forEach(track => track.stop());
+                        mediaRecorder.stop();
+                        stream.getTracks().forEach(track => track.stop());
+                    }, 5000); // Записывать 5 секунд
                 });
         }
     </script>
