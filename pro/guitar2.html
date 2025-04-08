@@ -115,7 +115,8 @@
 
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                        videos.push(URL.createObjectURL(recordedBlob)); // Сохраняем ссылку на видео
+                        const videoURL = URL.createObjectURL(recordedBlob);
+                        videos.push(videoURL); // Сохраняем ссылку на видео
                         recordedChunks = []; // Сбросить массив после остановки записи
                         updateVideoList(); // Обновляем интерфейс
                     };
@@ -135,10 +136,19 @@
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
                     <video controls src="${videoSrc}" width="300"></video>
-                    <a href="${videoSrc}" download="video${index + 1}.webm">Скачать видео ${index + 1}</a>
+                    <button onclick="downloadVideo('${videoSrc}', ${index + 1})">Скачать видео ${index + 1}</button>
                 `;
                 videoList.appendChild(listItem);
             });
+        }
+
+        function downloadVideo(videoSrc, index) {
+            const a = document.createElement('a');
+            a.href = videoSrc;
+            a.download = `video${index}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
     </script>
 </body>
