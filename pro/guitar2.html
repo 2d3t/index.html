@@ -39,7 +39,7 @@
 
     <audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
-    <button id="stopButton">Остановить процесс</button>
+    <button id="stopButton">Остановить приложение</button>
 
     <script>
         const context = new (window.AudioContext || window.webkitAudioContext)();
@@ -47,18 +47,21 @@
         let microphone;
         let mediaRecorder;
         let recordedChunks = [];
-        let videos = []; // Массив для хранения видеозаписей
+        let videos = [];
         let photoTaken = false;
+        let recording = false;
+        let useFrontCamera = true;
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                microphone = context.createMediaStreamSource(stream);
-                microphone.connect(analyser);
-                analyser.fftSize = 2048;
-
-                document.getElementById('micIndicator').style.backgroundColor = 'green';
-                analyzeSound();
-            });
+        function startMicrophone() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    microphone = context.createMediaStreamSource(stream);
+                    microphone.connect(analyser);
+                    analyser.fftSize = 2048;
+                    document.getElementById('micIndicator').style.backgroundColor = 'green';
+                    analyzeSound();
+                });
+        }
 
         function analyzeSound() {
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -68,7 +71,6 @@
 
             const soundIndicator = document.getElementById('soundIndicator');
             soundIndicator.style.backgroundColor = soundDetected ? 'green' : 'red';
-
             document.getElementById('frequencyDisplay').innerText = `Частота: ${frequency.toFixed(2)} Hz`;
 
             if (soundDetected && !photoTaken) {
@@ -90,9 +92,16 @@
 
         function takeVideo() {
             const clickSound = document.getElementById('clickSound');
-            clickSound.play(); // Воспроизведение звука щелчка
+            clickSound.play();
 
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            const videoConstraints = {
+                video: {
+                    facingMode: useFrontCamera ? 'user' : 'environment'
+                },
+                audio: true
+            };
+
+            navigator.mediaDevices.getUserMedia(videoConstraints)
                 .then(stream => {
                     mediaRecorder = new MediaRecorder(stream);
                     mediaRecorder.ondataavailable = event => {
@@ -102,22 +111,23 @@
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
                         const videoURL = URL.createObjectURL(recordedBlob);
-                        videos.push(videoURL); // Сохраняем ссылку на видео
-                        recordedChunks = []; // Сбросить массив после остановки записи
-                        updateVideoList(); // Обновляем интерфейс
+                        videos.push(videoURL);
+                        recordedChunks = [];
+                        updateVideoList();
                     };
 
                     mediaRecorder.start();
                     setTimeout(() => {
                         mediaRecorder.stop();
                         stream.getTracks().forEach(track => track.stop());
+                        useFrontCamera = !useFrontCamera; // Переключаем камеру
                     }, 5000); // Записывать 5 секунд
                 });
         }
 
         function updateVideoList() {
             const videoList = document.getElementById('videoList');
-            videoList.innerHTML = ''; // Очистить список
+            videoList.innerHTML = '';
             videos.forEach((video, index) => {
                 const listItem = document.createElement('li');
                 listItem.innerHTML = `
@@ -134,7 +144,12 @@
                 mediaRecorder.stop();
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
             }
+            context.suspend(); // Останавливаем восприятие звука
+            microphone.disconnect(); // Отключаем микрофон
+            document.getElementById('micIndicator').style.backgroundColor = 'red';
         });
+
+        startMicrophone(); // Запускаем микрофон
     </script>
 </body>
 </html>
