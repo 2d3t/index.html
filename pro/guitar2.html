@@ -49,8 +49,7 @@
         let recordedChunks = [];
         let videos = [];
         let photoTaken = false;
-        let recording = false;
-        let useFrontCamera = true;
+        let animationFrameId; // Для остановки анимации
 
         function startMicrophone() {
             navigator.mediaDevices.getUserMedia({ audio: true })
@@ -81,7 +80,7 @@
                 }, 30000); // 30 секунд до следующего видео
             }
 
-            requestAnimationFrame(analyzeSound);
+            animationFrameId = requestAnimationFrame(analyzeSound);
         }
 
         function getFrequency(dataArray) {
@@ -145,8 +144,12 @@
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
             }
             context.suspend(); // Останавливаем восприятие звука
-            microphone.disconnect(); // Отключаем микрофон
+            if (microphone) {
+                microphone.disconnect(); // Отключаем микрофон
+            }
+            cancelAnimationFrame(animationFrameId); // Останавливаем анализ звука
             document.getElementById('micIndicator').style.backgroundColor = 'red';
+            // Дополнительная логика для завершения приложения может быть добавлена здесь
         });
 
         startMicrophone(); // Запускаем микрофон
