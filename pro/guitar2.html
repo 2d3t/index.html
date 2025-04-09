@@ -49,7 +49,6 @@
         let recordedChunks = [];
         let videos = []; // Массив для хранения видеозаписей
         let photoTaken = false;
-        let recording = false;
 
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
@@ -103,7 +102,7 @@
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
                         const videoURL = URL.createObjectURL(recordedBlob);
-                        videos.push(videoURL); // Сохраняем ссылку на видео и время записи
+                        videos.push(videoURL); // Сохраняем ссылку на видео
                         recordedChunks = []; // Сбросить массив после остановки записи
                         updateVideoList(); // Обновляем интерфейс
                     };
@@ -124,16 +123,16 @@
                 listItem.innerHTML = `
                     <video controls src="${video}" width="300"></video>
                     <div>Запись сделана: ${new Date().toLocaleString()}</div>
+                    <a href="${video}" download="video${index + 1}.webm">Сохранить видео</a>
                 `;
                 videoList.appendChild(listItem);
             });
         }
 
         document.getElementById('stopButton').addEventListener('click', () => {
-            if (mediaRecorder && recording) {
+            if (mediaRecorder) {
                 mediaRecorder.stop();
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                recording = false;
             }
         });
     </script>
