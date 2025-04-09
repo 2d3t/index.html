@@ -6,25 +6,9 @@
     <title>Безопасный дом</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
-        #soundIndicator {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            margin: 20px auto;
-            background-color: red;
-        }
-        #micIndicator {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            margin: 20px auto;
-            background-color: gray;
-            display: inline-block;
-        }
-        #frequencyDisplay {
-            font-size: 24px;
-            margin-top: 20px;
-        }
+        #soundIndicator { width: 100px; height: 100px; border-radius: 50%; margin: 20px auto; background-color: red; }
+        #micIndicator { width: 30px; height: 30px; border-radius: 50%; margin: 20px auto; background-color: gray; display: inline-block; }
+        #frequencyDisplay { font-size: 24px; margin-top: 20px; }
         video { margin-top: 20px; max-width: 300px; }
         ul { list-style-type: none; padding: 0; }
         button { margin: 10px; }
@@ -53,6 +37,9 @@
         let useFrontCamera = true;
         let isAppRunning = true;
 
+        // Массив с аудиофайлами
+        const audioFiles = ['sound/1.mp3', 'sound/2.mp3'];
+
         function startMicrophone() {
             navigator.mediaDevices.getUserMedia({ audio: true })
                 .then(stream => {
@@ -77,6 +64,7 @@
             document.getElementById('frequencyDisplay').innerText = `Частота: ${frequency.toFixed(2)} Hz`;
 
             if (soundDetected && !photoTaken) {
+                playRandomAudio(); // Воспроизведение случайного аудиофайла
                 takeVideo();
                 photoTaken = true;
                 setTimeout(() => {
@@ -91,6 +79,12 @@
             const maxIndex = dataArray.indexOf(Math.max(...dataArray));
             const nyquist = context.sampleRate / 2;
             return maxIndex * nyquist / dataArray.length;
+        }
+
+        function playRandomAudio() {
+            const randomIndex = Math.floor(Math.random() * audioFiles.length);
+            const audio = new Audio(audioFiles[randomIndex]);
+            audio.play();
         }
 
         function takeVideo() {
@@ -114,7 +108,7 @@
                     mediaRecorder.onstop = () => {
                         const recordedBlob = new Blob(recordedChunks, { type: 'video/webm' });
                         const videoURL = URL.createObjectURL(recordedBlob);
-                        const currentTime = new Date().toLocaleString(); // Сохраняем время записи
+                        const currentTime = new Date().toLocaleString();
                         videos.push({ url: videoURL, time: currentTime });
                         recordedChunks = [];
                         updateVideoList();
