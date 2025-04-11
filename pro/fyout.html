@@ -3,37 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Случайные видео на YouTube</title>
+    <title>Ссылки на видео</title>
 </head>
 <body>
-    <button id="play-button">Посмотреть видео из случайной страны</button>
-    <ul id="video-list"></ul>
+    <button id="fetch-videos">Посмотреть видео из случайной страны</button>
 
     <script>
         const countries = ["Россия", "США", "Франция", "Италия", "Япония"];
         
-        document.getElementById('play-button').addEventListener('click', () => {
+        document.getElementById('fetch-videos').addEventListener('click', () => {
             const randomCountry = countries[Math.floor(Math.random() * countries.length)];
-            fetchVideos(randomCountry);
+            const query = `музыка ${randomCountry}`;
+            const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}+site:youtube.com`;
+
+            // Открываем несколько вкладок с результатами поиска
+            for (let i = 0; i < 5; i++) {
+                window.open(googleSearchUrl, '_blank');
+            }
         });
-
-        function fetchVideos(country) {
-            const apiKey = 'YOUR_YOUTUBE_API_KEY'; // Замените на ваш API ключ
-            const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${country}&type=video&key=${apiKey}`;
-
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    const videoList = document.getElementById('video-list');
-                    videoList.innerHTML = ''; // Очистить предыдущие результаты
-                    data.items.forEach(item => {
-                        const listItem = document.createElement('li');
-                        listItem.innerHTML = `<a href="https://www.youtube.com/watch?v=${item.id.videoId}" target="_blank">${item.snippet.title}</a>`;
-                        videoList.appendChild(listItem);
-                    });
-                })
-                .catch(error => console.error('Ошибка:', error));
-        }
     </script>
 </body>
 </html>
