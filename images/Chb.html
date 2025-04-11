@@ -10,15 +10,44 @@
             flex-direction: column;
             align-items: center;
             margin-top: 20px;
+            background-image: url('https://2d3t.github.io/index.html/images/sky.png');
+            background-size: cover;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            text-align: center;
         }
         canvas {
             margin-top: 20px;
-            border: 1px solid #000;
+            border: 2px solid #fff;
+            max-width: 100%;
+            height: auto;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            border-radius: 5px;
+            color: #000;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #ff4081;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #e91e63;
         }
     </style>
 </head>
 <body>
-    <h1>Загрузите изображение</h1>
+    <h1>Инверсия + чёрно-белое фото из обычного фото.</h1>
     <input type="file" id="upload" accept="image/*">
     <canvas id="canvas"></canvas>
     <button id="download">Скачать</button>
@@ -37,9 +66,15 @@
                 const img = new Image();
                 img.onload = function() {
                     // Устанавливаем размеры канваса
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
+                    const aspectRatio = img.width / img.height;
+                    if (img.width > img.height) {
+                        canvas.width = Math.min(window.innerWidth, img.width);
+                        canvas.height = canvas.width / aspectRatio;
+                    } else {
+                        canvas.height = Math.min(window.innerHeight * 0.7, img.height);
+                        canvas.width = canvas.height * aspectRatio;
+                    }
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
                     // Получаем данные изображения
                     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -48,9 +83,6 @@
                     // Преобразуем в черно-белое и инвертируем цвета
                     for (let i = 0; i < data.length; i += 4) {
                         const avg = (data[i] + data[i + 1] + data[i + 2]) / 3; // Среднее значение
-                        data[i] = avg;     // Красный
-                        data[i + 1] = avg; // Зеленый
-                        data[i + 2] = avg; // Синий
                         data[i] = 255 - avg;     // Инвертируем красный
                         data[i + 1] = 255 - avg; // Инвертируем зеленый
                         data[i + 2] = 255 - avg; // Инвертируем синий
