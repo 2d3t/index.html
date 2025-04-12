@@ -47,6 +47,7 @@
     <input type="file" id="audioFile" accept="audio/*">
     <button id="recordPauseButton">Запись</button>
     <button id="stopButton" disabled>Стоп</button>
+    <button id="clearButton">Очистить кэш</button>
     <video id="video" autoplay muted></video>
 
     <script>
@@ -58,6 +59,7 @@
 
         document.getElementById('recordPauseButton').onclick = toggleRecording;
         document.getElementById('stopButton').onclick = stopRecording;
+        document.getElementById('clearButton').onclick = clearCache;
 
         async function toggleRecording() {
             if (!isRecording) {
@@ -140,6 +142,29 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             recordedChunks = [];
+        }
+
+        function clearCache() {
+            if (videoElement.srcObject) {
+                videoElement.srcObject.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+            }
+
+            if (!audio.paused) {
+                audio.pause();
+            }
+
+            if (audio.src) {
+                URL.revokeObjectURL(audio.src);
+            }
+
+            audio.src = '';
+            recordedChunks = [];
+            document.getElementById('recordPauseButton').textContent = 'Запись';
+            document.getElementById('stopButton').disabled = true;
+            isRecording = false;
+
+            alert('Кэш очищен. Можно начать заново.');
         }
     </script>
 </body>
