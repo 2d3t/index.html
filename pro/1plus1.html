@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Объединение видео и аудио</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        input[type="file"] {
+            margin: 10px;
+            color: white;
+            background-color: #1e1e1e;
+            border: 1px solid #3d3d3d;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #6200ea;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3700b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Объединение видео и аудио</h1>
+    <input type="file" id="videoFile" accept="video/*">
+    <input type="file" id="audioFile" accept="audio/*">
+    <button id="mergeButton">Объединить</button>
+    <a id="downloadLink" style="display:none;">Скачать</a>
+
+    <script src="https://cdn.rawgit.com/Kagami/ffmpeg.js/master/ffmpeg.min.js"></script>
+    <script>
+        document.getElementById('mergeButton').addEventListener('click', async () => {
+            const videoFile = document.getElementById('videoFile').files[0];
+            const audioFile = document.getElementById('audioFile').files[0];
+
+            if (!videoFile || !audioFile) {
+                alert('Пожалуйста, выберите видео и аудио файлы.');
+                return;
+            }
+
+            const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+            await ffmpeg.load();
+            ffmpeg.FS('writeFile', 'inputVideo.mp4', await fetchFile(videoFile));
+            ffmpeg.FS('writeFile', 'inputAudio.mp3', await fetchFile(audioFile));
+
+            await ffmpeg.run('-i', 'inputVideo.mp4', '-i', 'inputAudio.mp3', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4');
+
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = url;
+            downloadLink.download = 'output.mp4';
+            downloadLink.style.display = 'block';
+            downloadLink.innerText = 'Скачать видео';
+        });
+
+        const fetchFile = async (file) => {
+            const response = await fetch(URL.createObjectURL(file));
+            return await response.arrayBuffer();
+        };
+    </script>
+</body>
+</html>
