@@ -7,21 +7,22 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            background-image: url('https://2d3t.github.io/index.html/images/sky.png');
+            background-size: cover;
+            color: #fff;
             padding: 20px;
         }
         .container {
             max-width: 600px;
             margin: 0 auto;
-            background-color: #fff;
+            background-color: rgba(0, 0, 0, 0.8);
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
         h1 {
             text-align: center;
-            color: #2c3e50;
+            color: #f39c12;
         }
         .result {
             font-size: 18px;
@@ -30,79 +31,97 @@
             color: #27ae60;
             margin-top: 20px;
         }
+        button {
+            background-color: #f39c12;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #e67e22;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Информация о Днях города в Беларуси</h1>
-
         <div class="result" id="result"></div>
+        <button id="nextButton">Следующий День города</button>
     </div>
 
     <script>
         const cityData = [
-    { name: "Минск", population: 2000000, date: "09-01" },
-    { name: "Гомель", population: 510000, date: "09-02" },
-    { name: "Могилёв", population: 360000, date: "09-01" },
-    { name: "Витебск", population: 360000, date: "06-02" },
-    { name: "Гродно", population: 355000, date: "09-03" },
-    { name: "Брест", population: 350000, date: "09-01" },
-    { name: "Бобруйск", population: 210000, date: "09-01" },
-    { name: "Барановичи", population: 170000, date: "09-03" },
-    { name: "Пинск", population: 130000, date: "09-01" },
-    { name: "Орша", population: 110000, date: "09-01" },
-    { name: "Мозырь", population: 110000, date: "09-01" },
-    { name: "Новополоцк", population: 100000, date: "08-03" },
-    { name: "Солигорск", population: 98000, date: "07-02" },
-    { name: "Лида", population: 98000, date: "07-02" },
-    { name: "Кобрин", population: 86000, date: "08-03" },
-    { name: "Слуцк", population: 63000, date: "09-01" },
-    { name: "Жлобин", population: 76000, date: "08-03" },
-    { name: "Светлогорск", population: 66000, date: "09-03" },
-    { name: "Речица", population: 65000, date: "09-01" },
-    { name: "Марьина Горка", population: 60000, date: "07-01" },
-    { name: "Борисов", population: 140000, date: "05-03" },
-    { name: "Новогрудок", population: 54000, date: "07-02" },
-    { name: "Берёза", population: 52000, date: "08-03" },
-    { name: "Дзержинск", population: 50000, date: "09-02" },
-    { name: "Мосты", population: 15000, date: "08-01" },
-    { name: "Дрогичин", population: 25000, date: "07-01" },
-    { name: "Несвиж", population: 24000, date: "09-01" },
-    { name: "Островец", population: 23000, date: "07-03" },
-    { name: "Кричев", population: 22000, date: "08-02" },
-    { name: "Калинковичи", population: 38000, date: "07-02" },
-    { name: "Клецк", population: 25000, date: "06-04" },
-    { name: "Волковыск", population: 43000, date: "09-02" },
-    { name: "Сморгонь", population: 36000, date: "09-01" }
-];
+            { name: "Минск", population: 2000000, date: "09-01" },
+            { name: "Гомель", population: 510000, date: "09-02" },
+            { name: "Могилёв", population: 360000, date: "09-01" },
+            { name: "Витебск", population: 360000, date: "06-02" },
+            { name: "Гродно", population: 355000, date: "09-03" },
+            { name: "Брест", population: 350000, date: "09-01" },
+            { name: "Бобруйск", population: 210000, date: "09-01" },
+            { name: "Барановичи", population: 170000, date: "09-03" },
+            { name: "Пинск", population: 130000, date: "09-01" },
+            { name: "Орша", population: 110000, date: "09-01" },
+            { name: "Мозырь", population: 110000, date: "09-01" },
+            { name: "Новополоцк", population: 100000, date: "08-03" },
+            { name: "Солигорск", population: 98000, date: "07-02" },
+            { name: "Лида", population: 98000, date: "07-02" },
+            { name: "Кобрин", population: 86000, date: "08-03" },
+            { name: "Слуцк", population: 63000, date: "09-01" },
+            { name: "Жлобин", population: 76000, date: "08-03" },
+            { name: "Светлогорск", population: 66000, date: "09-03" },
+            { name: "Речица", population: 65000, date: "09-01" },
+            { name: "Марьина Горка", population: 60000, date: "07-01" },
+            { name: "Борисов", population: 140000, date: "05-03" },
+            { name: "Новогрудок", population: 54000, date: "07-02" },
+            { name: "Берёза", population: 52000, date: "08-03" },
+            { name: "Дзержинск", population: 50000, date: "09-02" },
+            { name: "Мосты", population: 15000, date: "08-01" },
+            { name: "Дрогичин", population: 25000, date: "07-01" },
+            { name: "Несвиж", population: 24000, date: "09-01" },
+            { name: "Островец", population: 23000, date: "07-03" },
+            { name: "Кричев", population: 22000, date: "08-02" },
+            { name: "Калинковичи", population: 38000, date: "07-02" },
+            { name: "Клецк", population: 25000, date: "06-04" },
+            { name: "Волковыск", population: 43000, date: "09-02" },
+            { name: "Сморгонь", population: 36000, date: "09-01" }
+        ];
 
-function getNextCityEvent() {
-    const currentDate = new Date();
-    let nextEvent = null;
+        let currentIndex = -1;
 
-    cityData.forEach(city => {
-        const eventDate = new Date(`${currentDate.getFullYear()}-${city.date}`);
-        if (eventDate < currentDate) {
-            eventDate.setFullYear(currentDate.getFullYear() + 1);
+        function getNextCityEvent() {
+            const currentDate = new Date();
+            const upcomingEvents = cityData.map(city => {
+                const eventDate = new Date(`${currentDate.getFullYear()}-${city.date}`);
+                if (eventDate < currentDate) {
+                    eventDate.setFullYear(eventDate.getFullYear() + 1);
+                }
+                return { ...city, eventDate };
+            }).sort((a, b) => a.eventDate - b.eventDate);
+
+            currentIndex = (currentIndex + 1) % upcomingEvents.length;
+            displayCityEvent(upcomingEvents[currentIndex]);
         }
 
-        if (!nextEvent || eventDate < nextEvent.date) {
-            nextEvent = { ...city, date: eventDate };
+        function displayCityEvent(city) {
+            const daysUntilEvent = Math.ceil((city.eventDate - new Date()) / (1000 * 3600 * 24));
+
+            document.getElementById('result').innerHTML = `Следующий День города: <b>${city.name}</b><br>
+                Дата события: <b>${city.eventDate.toLocaleDateString()}</b><br>
+                Ожидается через: <b>${daysUntilEvent} дней</b><br>
+                Население города: <b>${city.population}</b> человек`;
         }
-    });
 
-    return nextEvent;
-}
+        // Initial display
+        getNextCityEvent();
 
-const nextEvent = getNextCityEvent();
-const daysUntilEvent = Math.ceil((nextEvent.date - new Date()) / (1000 * 3600 * 24));
-
-document.getElementById('result').innerHTML = `Следующий День города: <b>${nextEvent.name}</b><br>
-    Дата события: <b>${nextEvent.date.toLocaleDateString()}</b><br>
-    Ожидается через: <b>${daysUntilEvent} дней</b><br>
-    Население города: <b>${nextEvent.population}</b> человек`;
-
+        // Next button event listener
+        document.getElementById('nextButton').addEventListener('click', getNextCityEvent);
     </script>
 
 </body>
