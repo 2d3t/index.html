@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Запись видео под музыку</title>
-    <script src="https://cdn.jsdelivr.net/gh/Kagami/ffmpeg.js/ffmpeg.min.js"></script>
     <style>
         body {
-            background-color: #121212;
+            background-image: url('https://2d3t.github.io/index.html/images/sky.png');
+            background-size: cover;
             color: white;
             font-family: Arial, sans-serif;
             display: flex;
@@ -22,6 +22,7 @@
             max-width: 400px;
             border: 2px solid #fff;
             border-radius: 10px;
+            margin-bottom: 20px;
         }
         input, button {
             background-color: #1e1e1e;
@@ -41,24 +42,14 @@
         button:hover:not(:disabled) {
             background-color: #00cc00;
         }
-        #loading {
-            display: none;
-            margin-top: 10px;
-            color: #00ff00;
-        }
     </style>
 </head>
 <body>
     <h1>Запись видео под музыку</h1>
     <input type="file" id="audioFile" accept="audio/*">
-    <label for="start">Начало (сек):</label>
-    <input type="number" id="start" value="0" min="0">
-    <label for="duration">Длительность (сек):</label>
-    <input type="number" id="duration" value="30" min="1">
     <button id="recordPauseButton">Запись</button>
     <button id="stopButton" disabled>Стоп</button>
     <video id="video" autoplay muted></video>
-    <div id="loading">Создание видео...</div>
 
     <script>
         let mediaRecorder;
@@ -66,7 +57,6 @@
         let audio = new Audio();
         let isRecording = false;
         const videoElement = document.getElementById('video');
-        const loadingIndicator = document.getElementById('loading');
 
         document.getElementById('recordPauseButton').onclick = toggleRecording;
         document.getElementById('stopButton').onclick = stopRecording;
@@ -86,7 +76,6 @@
                 if (file) {
                     const url = URL.createObjectURL(file);
                     audio.src = url;
-                    audio.currentTime = parseFloat(document.getElementById('start').value);
                     audio.play();
                 }
 
@@ -113,46 +102,18 @@
             isRecording = false;
         }
 
-        async function downloadVideo() {
-            const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-            const audioFileInput = document.getElementById('audioFile');
-            const audioFile = audioFileInput.files[0];
-
-            const videoFile = new File([videoBlob], 'video.webm', { type: 'video/webm' });
-            const audioFileBlob = new Blob([audioFile], { type: audioFile.type });
-
-            const ffmpeg = FFmpeg.createFFmpeg({ log: true });
-            await ffmpeg.load();
-            loadingIndicator.style.display = 'block';
-
-            // Загрузка файлов в ffmpeg
-            ffmpeg.FS('writeFile', 'video.webm', await fetchFile(videoFile));
-            ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(audioFileBlob));
-
-            const start = parseFloat(document.getElementById('start').value);
-            const duration = parseFloat(document.getElementById('duration').value);
-            await ffmpeg.run('-i', 'video.webm', '-i', 'audio.mp3', '-ss', start.toString(), '-t', duration.toString(), '-c:v', 'copy', '-c:a', 'aac', 'output.mp4');
-
-            // Получение готового файла
-            const data = ffmpeg.FS('readFile', 'output.mp4');
-
-            // Создание URL для скачивания
-            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+        function downloadVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'final_video.mp4';
+            a.download = 'video.webm';
             a.click();
-
             recordedChunks = [];
-            loadingIndicator.style.display = 'none';
-        }
-
-        async function fetchFile(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(new Uint8Array(reader.result));
-                reader.readAsArrayBuffer(file);
-            });
+            // Воспроизведение загруженного видео
+            videoElement.src = url;
+            videoElement.controls = true; // Добавление элементов управления
+            videoElement.play();
         }
     </script>
 </body>
