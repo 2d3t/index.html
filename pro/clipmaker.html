@@ -60,6 +60,7 @@
         const videoElement = document.getElementById('video');
         const viewButton = document.getElementById('viewButton');
         let mediaStream;
+        let recordedVideoUrl;
 
         document.getElementById('recordPauseButton').onclick = toggleRecording;
         document.getElementById('stopButton').onclick = stopRecording;
@@ -108,23 +109,22 @@
 
         function downloadVideo() {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'video.webm';
-            a.click();
+            recordedVideoUrl = URL.createObjectURL(blob);
             recordedChunks = [];
 
             // Остановить поток с камеры и микрофона
             mediaStream.getTracks().forEach(track => track.stop());
 
             // Воспроизведение загруженного видео
-            videoElement.src = url;
+            videoElement.src = recordedVideoUrl;
             videoElement.controls = true; // Добавление элементов управления
+            videoElement.play();
             viewButton.style.display = 'block'; // Показать кнопку просмотра
         }
 
         function playRecordedVideo() {
+            audio.pause(); // Остановить аудио при воспроизведении видео
+            videoElement.src = recordedVideoUrl; // Установить URL для видео
             videoElement.play();
         }
     </script>
