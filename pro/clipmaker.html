@@ -22,7 +22,7 @@
             border: 2px solid #fff;
             border-radius: 10px;
         }
-        select, button {
+        input, button {
             background-color: #1e1e1e;
             color: #00ff00;
             border: none;
@@ -44,10 +44,7 @@
 </head>
 <body>
     <h1>Запись видео под музыку</h1>
-    <select id="musicSelect">
-        <option value="music1.mp3">Музыка 1</option>
-        <option value="music2.mp3">Музыка 2</option>
-    </select>
+    <input type="file" id="audioFile" accept="audio/*">
     <button id="recordButton">Запись</button>
     <button id="pauseButton" disabled>Пауза</button>
     <button id="stopButton" disabled>Стоп</button>
@@ -72,9 +69,13 @@
             mediaRecorder.onstop = downloadVideo;
             mediaRecorder.start();
 
-            const musicSelect = document.getElementById('musicSelect');
-            audio.src = musicSelect.value;
-            audio.play();
+            const audioFileInput = document.getElementById('audioFile');
+            const file = audioFileInput.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                audio.src = url;
+                audio.play();
+            }
 
             document.getElementById('pauseButton').disabled = false;
             document.getElementById('stopButton').disabled = false;
