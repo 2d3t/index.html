@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Запись видео под музыку</title>
+    <script src="https://cdn.jsdelivr.net/gh/Kagami/ffmpeg.js/ffmpeg.min.js"></script>
     <style>
         body {
             background-color: #121212;
@@ -100,14 +101,43 @@
             isRecording = false;
         }
 
-        function downloadVideo() {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
+        async function downloadVideo() {
+            const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+            const audioFileInput = document.getElementById('audioFile');
+            const audioFile = audioFileInput.files[0];
+
+            const videoFile = new File([videoBlob], 'video.webm', { type: 'video/webm' });
+            const audioFileBlob = new Blob([audioFile], { type: audioFile.type });
+
+            const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+            await ffmpeg.load();
+
+            // Загрузка файлов в ffmpeg
+            ffmpeg.FS('writeFile', 'video.webm', await fetchFile(videoFile));
+            ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(audioFileBlob));
+
+            // Объединение видео и аудио
+            await ffmpeg.run('-i', 'video.webm', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4');
+
+            // Получение готового файла
+            const data = ffmpeg.FS('readFile', 'output.mp4');
+
+            // Создание URL для скачивания
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'video.webm';
+            a.download = 'final_video.mp4';
             a.click();
+
             recordedChunks = [];
+        }
+
+        async function fetchFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(new Uint8Array(reader.result));
+                reader.readAsArrayBuffer(file);
+            });
         }
     </script>
 </body>
