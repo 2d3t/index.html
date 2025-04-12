@@ -64,10 +64,25 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 videoElement.srcObject = stream;
 
+                recordedChunks = []; // сбрасываем на всякий случай
                 mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
-                mediaRecorder.onstop = downloadVideo;
-                mediaRecorder.start();
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onerror = e => {
+                    console.error('MediaRecorder error:', e.error);
+                    alert('Ошибка записи: ' + e.error.message);
+                };
+
+                mediaRecorder.onstop = () => {
+                    setTimeout(downloadVideo, 200); // задержка для накопления всех данных
+                };
+
+                mediaRecorder.start(1000); // сброс каждые 1000 мс
 
                 const audioFileInput = document.getElementById('audioFile');
                 const file = audioFileInput.files[0];
@@ -88,25 +103,42 @@
                     mediaRecorder.resume();
                     audio.play();
                 }
-                document.getElementById('recordPauseButton').textContent = mediaRecorder.state === 'paused' ? 'Продолжить' : 'Пауза';
+                document.getElementById('recordPauseButton').textContent =
+                    mediaRecorder.state === 'paused' ? 'Продолжить' : 'Пауза';
             }
         }
 
         function stopRecording() {
-            mediaRecorder.stop();
+            const stopButton = document.getElementById('stopButton');
+            stopButton.disabled = true; // мгновенная блокировка
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
             audio.pause();
             document.getElementById('recordPauseButton').textContent = 'Запись';
-            document.getElementById('stopButton').disabled = true;
             isRecording = false;
+
+            // На всякий случай блокируем кнопку на секунду
+            setTimeout(() => {
+                stopButton.disabled = false;
+            }, 1000);
         }
 
         function downloadVideo() {
+            if (recordedChunks.length === 0) {
+                alert('Нечего сохранять: видео не записано.');
+                return;
+            }
+
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'video.webm';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
             recordedChunks = [];
         }
     </script>
