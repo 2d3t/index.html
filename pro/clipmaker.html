@@ -50,6 +50,7 @@
     <button id="recordPauseButton">Запись</button>
     <button id="stopButton" disabled>Стоп</button>
     <video id="video" autoplay muted></video>
+    <button id="viewButton" style="display:none;">Посмотреть, что получилось</button>
 
     <script>
         let mediaRecorder;
@@ -57,13 +58,15 @@
         let audio = new Audio();
         let isRecording = false;
         const videoElement = document.getElementById('video');
+        const viewButton = document.getElementById('viewButton');
 
         document.getElementById('recordPauseButton').onclick = toggleRecording;
         document.getElementById('stopButton').onclick = stopRecording;
+        viewButton.onclick = playRecordedVideo;
 
         async function toggleRecording() {
             if (!isRecording) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 videoElement.srcObject = stream;
 
                 mediaRecorder = new MediaRecorder(stream);
@@ -110,9 +113,15 @@
             a.download = 'video.webm';
             a.click();
             recordedChunks = [];
+
             // Воспроизведение загруженного видео
             videoElement.src = url;
             videoElement.controls = true; // Добавление элементов управления
+            videoElement.play();
+            viewButton.style.display = 'block'; // Показать кнопку просмотра
+        }
+
+        function playRecordedVideo() {
             videoElement.play();
         }
     </script>
