@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Запись видео под музыку</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid #fff;
+            border-radius: 10px;
+        }
+        select, button {
+            background-color: #1e1e1e;
+            color: #00ff00;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <h1>Запись видео под музыку</h1>
+    <select id="musicSelect">
+        <option value="music1.mp3">Музыка 1</option>
+        <option value="music2.mp3">Музыка 2</option>
+    </select>
+    <button id="recordButton">Запись</button>
+    <button id="pauseButton" disabled>Пауза</button>
+    <button id="stopButton" disabled>Стоп</button>
+    <video id="video" autoplay muted></video>
+
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+        let audio = new Audio();
+        const videoElement = document.getElementById('video');
+
+        document.getElementById('recordButton').onclick = startRecording;
+        document.getElementById('pauseButton').onclick = togglePause;
+        document.getElementById('stopButton').onclick = stopRecording;
+
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoElement.srcObject = stream;
+
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
+            mediaRecorder.onstop = downloadVideo;
+            mediaRecorder.start();
+
+            const musicSelect = document.getElementById('musicSelect');
+            audio.src = musicSelect.value;
+            audio.play();
+
+            document.getElementById('pauseButton').disabled = false;
+            document.getElementById('stopButton').disabled = false;
+        }
+
+        function togglePause() {
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                audio.pause();
+            } else {
+                mediaRecorder.resume();
+                audio.play();
+            }
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            audio.pause();
+            document.getElementById('pauseButton').disabled = true;
+            document.getElementById('stopButton').disabled = true;
+        }
+
+        function downloadVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'video.webm';
+            a.click();
+            recordedChunks = [];
+        }
+    </script>
+</body>
+</html>
