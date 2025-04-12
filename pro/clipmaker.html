@@ -30,7 +30,6 @@
             padding: 10px 20px;
             margin: 5px;
             cursor: pointer;
-            font-size: 16px;
         }
         button:disabled {
             background-color: #555;
@@ -45,62 +44,45 @@
 <body>
     <h1>Запись видео под музыку</h1>
     <input type="file" id="audioFile" accept="audio/*">
-    <button id="recordPauseButton">Запись</button>
+    <button id="recordButton">Запись</button>
     <button id="stopButton" disabled>Стоп</button>
     <video id="video" autoplay muted></video>
 
     <script>
         let mediaRecorder;
         let recordedChunks = [];
-        let audio = new Audio();
-        let isRecording = false;
         const videoElement = document.getElementById('video');
 
-        document.getElementById('recordPauseButton').onclick = toggleRecording;
+        document.getElementById('recordButton').onclick = startRecording;
         document.getElementById('stopButton').onclick = stopRecording;
 
-        async function toggleRecording() {
-            if (!isRecording) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoElement.srcObject = stream;
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoElement.srcObject = stream;
 
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
-                mediaRecorder.onstop = downloadVideo;
-                mediaRecorder.start();
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = (event) => recordedChunks.push(event.data);
+            mediaRecorder.onstop = saveVideo;
+            mediaRecorder.start();
 
-                const audioFileInput = document.getElementById('audioFile');
-                const file = audioFileInput.files[0];
-                if (file) {
-                    const url = URL.createObjectURL(file);
-                    audio.src = url;
-                    audio.play();
-                }
-
-                document.getElementById('recordPauseButton').textContent = 'Пауза';
-                document.getElementById('stopButton').disabled = false;
-                isRecording = true;
-            } else {
-                if (mediaRecorder.state === 'recording') {
-                    mediaRecorder.pause();
-                    audio.pause();
-                } else {
-                    mediaRecorder.resume();
-                    audio.play();
-                }
-                document.getElementById('recordPauseButton').textContent = mediaRecorder.state === 'paused' ? 'Продолжить' : 'Пауза';
+            const audioFileInput = document.getElementById('audioFile');
+            const file = audioFileInput.files[0];
+            if (file) {
+                const audio = new Audio(URL.createObjectURL(file));
+                audio.play();
             }
+
+            document.getElementById('recordButton').textContent = 'Пауза';
+            document.getElementById('stopButton').disabled = false;
         }
 
         function stopRecording() {
             mediaRecorder.stop();
-            audio.pause();
-            document.getElementById('recordPauseButton').textContent = 'Запись';
+            document.getElementById('recordButton').textContent = 'Запись';
             document.getElementById('stopButton').disabled = true;
-            isRecording = false;
         }
 
-        function downloadVideo() {
+        function saveVideo() {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
