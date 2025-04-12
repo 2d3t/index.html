@@ -51,10 +51,9 @@
     <button id="stopButton" disabled>Стоп</button>
     <video id="video" autoplay muted></video>
 
-    
+    <script>
         let mediaRecorder;
         let recordedChunks = [];
-        let audio = new Audio();
         let isRecording = false;
         const videoElement = document.getElementById('video');
 
@@ -63,21 +62,37 @@
 
         async function toggleRecording() {
             if (!isRecording) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoElement.srcObject = stream;
+                const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const audioFileInput = document.getElementById('audioFile');
+                const file = audioFileInput.files[0];
 
-                mediaRecorder = new MediaRecorder(stream);
+                if (!file) {
+                    alert("Пожалуйста, выберите аудиофайл.");
+                    return;
+                }
+
+                const audioContext = new AudioContext();
+                const audioSource = audioContext.createBufferSource();
+                const fileArrayBuffer = await file.arrayBuffer();
+                const audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
+                audioSource.buffer = audioBuffer;
+
+                const destination = audioContext.createMediaStreamDestination();
+                audioSource.connect(destination);
+                audioSource.start(0);
+
+                // Объединяем видео и аудио в один поток
+                const combinedStream = new MediaStream([
+                    ...videoStream.getVideoTracks(),
+                    ...destination.stream.getAudioTracks()
+                ]);
+
+                videoElement.srcObject = combinedStream;
+
+                mediaRecorder = new MediaRecorder(combinedStream);
                 mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
                 mediaRecorder.onstop = downloadVideo;
                 mediaRecorder.start();
-
-                const audioFileInput = document.getElementById('audioFile');
-                const file = audioFileInput.files[0];
-                if (file) {
-                    const url = URL.createObjectURL(file);
-                    audio.src = url;
-                    audio.play();
-                }
 
                 document.getElementById('recordPauseButton').textContent = 'Пауза';
                 document.getElementById('stopButton').disabled = false;
@@ -85,18 +100,19 @@
             } else {
                 if (mediaRecorder.state === 'recording') {
                     mediaRecorder.pause();
-                    audio.pause();
+                    // пауза аудио невозможна при использовании AudioBufferSourceNode
+                    alert("Пауза записи видео активирована (аудио не приостанавливается).");
                 } else {
                     mediaRecorder.resume();
-                    audio.play();
                 }
                 document.getElementById('recordPauseButton').textContent = mediaRecorder.state === 'paused' ? 'Продолжить' : 'Пауза';
             }
         }
 
         function stopRecording() {
-            mediaRecorder.stop();
-            audio.pause();
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
             document.getElementById('recordPauseButton').textContent = 'Запись';
             document.getElementById('stopButton').disabled = true;
             isRecording = false;
@@ -107,94 +123,14 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'video.webm';
+            a.download = 'video_with_audio.webm';
             a.click();
             recordedChunks = [];
-            // Воспроизведение загруженного видео
+
             videoElement.src = url;
-            videoElement.controls = true; // Добавление элементов управления
+            videoElement.controls = true;
             videoElement.play();
         }
-    </script><script>
-    let mediaRecorder;
-    let recordedChunks = [];
-    let audio = new Audio();
-    let isRecording = false;
-    const videoElement = document.getElementById('video');
-
-    document.getElementById('recordPauseButton').onclick = toggleRecording;
-    document.getElementById('stopButton').onclick = stopRecording;
-
-    async function toggleRecording() {
-        if (!isRecording) {
-            const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const audioFileInput = document.getElementById('audioFile');
-            const file = audioFileInput.files[0];
-
-            if (!file) {
-                alert("Пожалуйста, выберите аудиофайл.");
-                return;
-            }
-
-            const audioContext = new AudioContext();
-            const audioSource = audioContext.createBufferSource();
-            const fileArrayBuffer = await file.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(fileArrayBuffer);
-            audioSource.buffer = audioBuffer;
-
-            const destination = audioContext.createMediaStreamDestination();
-            audioSource.connect(destination);
-            audioSource.start(0);
-
-            // Объединение видео и аудио в один MediaStream
-            const combinedStream = new MediaStream([
-                ...videoStream.getVideoTracks(),
-                ...destination.stream.getAudioTracks()
-            ]);
-
-            videoElement.srcObject = combinedStream;
-
-            mediaRecorder = new MediaRecorder(combinedStream);
-            mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
-            mediaRecorder.onstop = downloadVideo;
-            mediaRecorder.start();
-
-            document.getElementById('recordPauseButton').textContent = 'Пауза';
-            document.getElementById('stopButton').disabled = false;
-            isRecording = true;
-        } else {
-            if (mediaRecorder.state === 'recording') {
-                mediaRecorder.pause();
-                audio.pause();
-            } else {
-                mediaRecorder.resume();
-                audio.play();
-            }
-            document.getElementById('recordPauseButton').textContent = mediaRecorder.state === 'paused' ? 'Продолжить' : 'Пауза';
-        }
-    }
-
-    function stopRecording() {
-        mediaRecorder.stop();
-        document.getElementById('recordPauseButton').textContent = 'Запись';
-        document.getElementById('stopButton').disabled = true;
-        isRecording = false;
-    }
-
-    function downloadVideo() {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'video_with_audio.webm';
-        a.click();
-        recordedChunks = [];
-
-        videoElement.src = url;
-        videoElement.controls = true;
-        videoElement.play();
-    }
-</script>
-
+    </script>
 </body>
 </html>
