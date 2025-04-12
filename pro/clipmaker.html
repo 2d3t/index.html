@@ -59,6 +59,7 @@
         let isRecording = false;
         const videoElement = document.getElementById('video');
         const viewButton = document.getElementById('viewButton');
+        let mediaStream;
 
         document.getElementById('recordPauseButton').onclick = toggleRecording;
         document.getElementById('stopButton').onclick = stopRecording;
@@ -66,10 +67,10 @@
 
         async function toggleRecording() {
             if (!isRecording) {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                videoElement.srcObject = stream;
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                videoElement.srcObject = mediaStream;
 
-                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder = new MediaRecorder(mediaStream);
                 mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
                 mediaRecorder.onstop = downloadVideo;
                 mediaRecorder.start();
@@ -114,10 +115,12 @@
             a.click();
             recordedChunks = [];
 
+            // Остановить поток с камеры и микрофона
+            mediaStream.getTracks().forEach(track => track.stop());
+
             // Воспроизведение загруженного видео
             videoElement.src = url;
             videoElement.controls = true; // Добавление элементов управления
-            videoElement.play();
             viewButton.style.display = 'block'; // Показать кнопку просмотра
         }
 
