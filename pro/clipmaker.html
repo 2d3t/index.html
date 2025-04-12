@@ -41,14 +41,24 @@
         button:hover:not(:disabled) {
             background-color: #00cc00;
         }
+        #loading {
+            display: none;
+            margin-top: 10px;
+            color: #00ff00;
+        }
     </style>
 </head>
 <body>
     <h1>Запись видео под музыку</h1>
     <input type="file" id="audioFile" accept="audio/*">
+    <label for="start">Начало (сек):</label>
+    <input type="number" id="start" value="0" min="0">
+    <label for="duration">Длительность (сек):</label>
+    <input type="number" id="duration" value="30" min="1">
     <button id="recordPauseButton">Запись</button>
     <button id="stopButton" disabled>Стоп</button>
     <video id="video" autoplay muted></video>
+    <div id="loading">Создание видео...</div>
 
     <script>
         let mediaRecorder;
@@ -56,6 +66,7 @@
         let audio = new Audio();
         let isRecording = false;
         const videoElement = document.getElementById('video');
+        const loadingIndicator = document.getElementById('loading');
 
         document.getElementById('recordPauseButton').onclick = toggleRecording;
         document.getElementById('stopButton').onclick = stopRecording;
@@ -75,6 +86,7 @@
                 if (file) {
                     const url = URL.createObjectURL(file);
                     audio.src = url;
+                    audio.currentTime = parseFloat(document.getElementById('start').value);
                     audio.play();
                 }
 
@@ -111,13 +123,15 @@
 
             const ffmpeg = FFmpeg.createFFmpeg({ log: true });
             await ffmpeg.load();
+            loadingIndicator.style.display = 'block';
 
             // Загрузка файлов в ffmpeg
             ffmpeg.FS('writeFile', 'video.webm', await fetchFile(videoFile));
             ffmpeg.FS('writeFile', 'audio.mp3', await fetchFile(audioFileBlob));
 
-            // Объединение видео и аудио
-            await ffmpeg.run('-i', 'video.webm', '-i', 'audio.mp3', '-c:v', 'copy', '-c:a', 'aac', 'output.mp4');
+            const start = parseFloat(document.getElementById('start').value);
+            const duration = parseFloat(document.getElementById('duration').value);
+            await ffmpeg.run('-i', 'video.webm', '-i', 'audio.mp3', '-ss', start.toString(), '-t', duration.toString(), '-c:v', 'copy', '-c:a', 'aac', 'output.mp4');
 
             // Получение готового файла
             const data = ffmpeg.FS('readFile', 'output.mp4');
@@ -130,6 +144,7 @@
             a.click();
 
             recordedChunks = [];
+            loadingIndicator.style.display = 'none';
         }
 
         async function fetchFile(file) {
