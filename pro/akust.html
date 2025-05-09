@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор акустических волн</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        input {
+            margin: 10px;
+            padding: 5px;
+            width: 100px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 10px;
+            background-color: #007bff;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .phase-indicator {
+            margin: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .status-indicator {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Генератор акустических волн</h1>
+
+    <div>
+        <label for="frequency1">Частота 1 (Гц): </label>
+        <input type="number" id="frequency1" value="440">
+        <button onclick="togglePhase(1)">Переключить фазу</button>
+        <button id="statusButton1" onclick="startStop(1)">Запустить</button>
+        <div id="phaseIndicator1" class="phase-indicator">Фаза: 0°</div>
+        <div id="statusIndicator1" class="status-indicator">Статус: Остановлено</div>
+    </div>
+
+    <div>
+        <label for="frequency2">Частота 2 (Гц): </label>
+        <input type="number" id="frequency2" value="440">
+        <button onclick="togglePhase(2)">Переключить фазу</button>
+        <button id="statusButton2" onclick="startStop(2)">Запустить</button>
+        <div id="phaseIndicator2" class="phase-indicator">Фаза: 0°</div>
+        <div id="statusIndicator2" class="status-indicator">Статус: Остановлено</div>
+    </div>
+
+    <div>
+        <label for="frequency3">Частота 3 (Гц): </label>
+        <input type="number" id="frequency3" value="440">
+        <button onclick="togglePhase(3)">Переключить фазу</button>
+        <button id="statusButton3" onclick="startStop(3)">Запустить</button>
+        <div id="phaseIndicator3" class="phase-indicator">Фаза: 0°</div>
+        <div id="statusIndicator3" class="status-indicator">Статус: Остановлено</div>
+    </div>
+
+    <script>
+        let audioContext;
+        let oscillators = [];
+        let phases = [0, 0, 0]; // Начальные фазы
+
+        function startStop(index) {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            const statusButton = document.getElementById(`statusButton${index}`);
+            const statusIndicator = document.getElementById(`statusIndicator${index}`);
+
+            if (oscillators[index - 1]) {
+                // Остановить
+                oscillators[index - 1].stop();
+                oscillators[index - 1] = null;
+                statusButton.innerText = "Запустить";
+                statusIndicator.innerText = "Статус: Остановлено";
+            } else {
+                // Запустить
+                const freq = document.getElementById(`frequency${index}`).value;
+                const phase = phases[index - 1] * (Math.PI / 180);
+
+                const oscillator = audioContext.createOscillator();
+                oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                oscillator.start();
+
+                const gainNode = audioContext.createGain();
+                gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillators[index - 1] = oscillator;
+
+                statusButton.innerText = "Остановить";
+                statusIndicator.innerText = "Статус: Идет";
+            }
+        }
+
+        function togglePhase(index) {
+            phases[index - 1] = (phases[index - 1] + 180) % 360; // Переключить между 0 и 180
+            document.getElementById(`phaseIndicator${index}`).innerText = `Фаза: ${phases[index - 1]}°`;
+        }
+    </script>
+</body>
+</html>
