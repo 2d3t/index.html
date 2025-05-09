@@ -25,20 +25,31 @@
     <script>
         let savedSignal = null;
 
-        document.getElementById('saveSignal').addEventListener('click', function() {
-            // Включение инфракрасного порта на прием
+        async function requestDevice() {
+            // Запрос на подключение к инфракрасному устройству
+            const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x1234 }] });
+            return device;
+        }
+
+        document.getElementById('saveSignal').addEventListener('click', async function() {
+            const device = await requestDevice();
+            await device.open();
+            // Включаем инфракрасный порт на прием
             console.log("Прием сигнала...");
-            // Здесь должен быть код для сохранения сигнала
-            // savedSignal = полученный сигнал;
-            alert("Сигнал сохранен! (симуляция)");
+
+            // Здесь должен быть код для записи сигнала
+            // savedSignal = await receiveSignal(device);
+            alert("Сигнал сохранен! (реальная запись не реализована)");
         });
 
-        document.getElementById('playSignal').addEventListener('click', function() {
+        document.getElementById('playSignal').addEventListener('click', async function() {
             if (savedSignal) {
+                const device = await requestDevice();
+                await device.open();
                 // Воспроизведение сигнала
                 console.log("Воспроизведение сигнала...");
-                // Здесь должен быть код для воспроизведения сохраненного сигнала
-                alert("Сигнал воспроизведен! (симуляция)");
+                // await playSignal(device, savedSignal);
+                alert("Сигнал воспроизведен! (реальная воспроизведение не реализовано)");
             } else {
                 alert("Сигнал не сохранен!");
             }
