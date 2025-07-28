@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PNG с рваными краями</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: #222;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      margin-top: 1rem;
+      border: 1px solid #555;
+      background: #333;
+    }
+    input[type="range"] {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    .controls {
+      width: 100%;
+      max-width: 400px;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      background-color: #00bcd4;
+      color: white;
+      cursor: pointer;
+    }
+    input[type="file"] {
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>Загрузка PNG с рваными краями</h2>
+  <div class="controls">
+    <input type="file" accept="image/png" id="fileInput" />
+    <input type="range" id="roughness" min="1" max="50" value="20" />
+    <input type="range" id="chaos" min="1" max="100" value="30" />
+    <input type="range" id="intensity" min="1" max="100" value="50" />
+    <input type="range" id="edgeWidth" min="1" max="50" value="5" />
+    <button id="randomPresetBtn">Случайный пресет</button>
+    <button id="downloadBtn">Скачать результат</button>
+  </div>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const roughnessInput = document.getElementById('roughness');
+    const chaosInput = document.getElementById('chaos');
+    const intensityInput = document.getElementById('intensity');
+    const edgeWidthInput = document.getElementById('edgeWidth');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const randomPresetBtn = document.getElementById('randomPresetBtn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let originalImage = null;
+
+    function applyTornEdges(image, roughness = 20, chaos = 30, intensity = 50, edgeWidth = 5) {
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const mask = ctx.createImageData(canvas.width, canvas.height);
+      const edgeHeight = Math.floor(canvas.height * 0.05);
+
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const index = (y * canvas.width + x) * 4;
+          const dx = Math.min(x, canvas.width - x - 1);
+          const dy = Math.min(y, canvas.height - y - 1);
+
+          const noiseX = Math.sin((y + Math.random() * chaos) / roughness) * edgeWidth;
+          const noiseY = Math.cos((x + Math.random() * chaos) / roughness) * edgeHeight;
+
+          const visible = dx > edgeWidth + noiseX && dy > edgeHeight + noiseY;
+
+          mask.data[index + 3] = visible ? 255 : 0; // альфа-канал
+        }
+      }
+
+      ctx.drawImage(image, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        imgData.data[i + 3] = mask.data[i + 3];
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function applySettings() {
+      if (originalImage) {
+        applyTornEdges(
+          originalImage,
+          parseInt(roughnessInput.value),
+          parseInt(chaosInput.value),
+          parseInt(intensityInput.value),
+          parseInt(edgeWidthInput.value)
+        );
+      }
+    }
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          originalImage = img;
+          applySettings();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    roughnessInput.addEventListener('input', applySettings);
+    chaosInput.addEventListener('input', applySettings);
+    intensityInput.addEventListener('input', applySettings);
+    edgeWidthInput.addEventListener('input', applySettings);
+
+    randomPresetBtn.addEventListener('click', () => {
+      roughnessInput.value = Math.floor(Math.random() * 50) + 1;
+      chaosInput.value = Math.floor(Math.random() * 100) + 1;
+      intensityInput.value = Math.floor(Math.random() * 100) + 1;
+      edgeWidthInput.value = Math.floor(Math.random() * 50) + 1;
+      applySettings();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'torn-image.png';
+      canvas.toBlob(function (blob) {
+        link.href = URL.createObjectURL(blob);
+        link.click();
+      }, 'image/png');
+    });
+  </script>
+</body>
+</html>
