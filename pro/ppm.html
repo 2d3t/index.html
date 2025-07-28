@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер жёсткости воды PPM в dH</title></title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+        }
+        input {
+            width: 80%;
+            max-width: 300px;
+            background-color: #333;
+            color: #fff;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+        .gauge {
+            position: relative;
+            width: 300px;
+            height: 100px;
+            background: linear-gradient(to right, #4CAF50, #FFA500, #FF0000);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        .gauge::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            height: 100%;
+            width: 1px;
+            background: #fff;
+            transform: translateX(-50%);
+        }
+        .marker {
+            position: absolute;
+            bottom: 0;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #ffffff;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body>
+    <h1>Конвертер жёсткости воды</h1>
+    <input type="number" id="ppm" placeholder="Введите значение в ppm" />
+    <button onclick="convert()">Конвертировать</button>
+    <div class="result" id="result"></div>
+    <div class="gauge" id="gauge">
+        <div class="marker" id="marker" style="left: 50%;"></div>
+    </div>
+
+    <script>
+        function convert() {
+            const ppm = document.getElementById('ppm').value;
+            let hardnessDescription = '';
+
+            if (!ppm) {
+                document.getElementById('result').innerText = 'Пожалуйста, введите значение ppm.';
+                return;
+            }
+
+            const dH = (ppm / 17.848).toFixed(2);
+            let position = 0;
+
+            // Определение жёсткости воды и позиции стрелки
+            if (dH < 4) {
+                hardnessDescription = 'Очень мягкая вода';
+                position = 5; // позиция для очень мягкой
+            } else if (dH < 8.5) {
+                hardnessDescription = 'Мягкая вода';
+                position = 25; // позиция для мягкой
+            } else if (dH < 12) {
+                hardnessDescription = 'Средняя жёсткость';
+                position = 50; // позиция для средней
+            } else if (dH < 18) {
+                hardnessDescription = 'Жёсткая вода';
+                position = 75; // позиция для жёсткой
+            } else {
+                hardnessDescription = 'Очень жёсткая вода';
+                position = 95; // позиция для очень жёсткой
+            }
+
+            document.getElementById('result').innerText = 
+                `${ppm} ppm = ${dH} °dH\n${hardnessDescription}`;
+            document.getElementById('marker').style.left = position + '%';
+        }
+    </script>
+</body>
+</html>
