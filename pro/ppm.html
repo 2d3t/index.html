@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конвертер жёсткости воды PPM в dH</title></title>
+    <title>Конвертер жёсткости воды PPM в dH</title>
     <style>
         body {
             background-color: #1e1e1e;
@@ -85,6 +85,8 @@
         function convert() {
             const ppm = document.getElementById('ppm').value;
             let hardnessDescription = '';
+            let suitabilityDescription = '';
+            let position = 0;
 
             if (!ppm) {
                 document.getElementById('result').innerText = 'Пожалуйста, введите значение ppm.';
@@ -92,28 +94,44 @@
             }
 
             const dH = (ppm / 17.848).toFixed(2);
-            let position = 0;
 
             // Определение жёсткости воды и позиции стрелки
             if (dH < 4) {
                 hardnessDescription = 'Очень мягкая вода';
-                position = 5; // позиция для очень мягкой
+                position = 5;
+                suitabilityDescription = 'Дистиллированная вода';
             } else if (dH < 8.5) {
                 hardnessDescription = 'Мягкая вода';
-                position = 25; // позиция для мягкой
+                position = 25;
+                suitabilityDescription = 'Отличная вода';
             } else if (dH < 12) {
                 hardnessDescription = 'Средняя жёсткость';
-                position = 50; // позиция для средней
+                position = 50;
+                suitabilityDescription = 'Хорошая вода';
             } else if (dH < 18) {
                 hardnessDescription = 'Жёсткая вода';
-                position = 75; // позиция для жёсткой
+                position = 75;
+                suitabilityDescription = 'Удовлетворительная вода';
             } else {
                 hardnessDescription = 'Очень жёсткая вода';
-                position = 95; // позиция для очень жёсткой
+                position = 95;
+                suitabilityDescription = 'Плохая вода';
+            }
+
+            // Условия для технической воды
+            if (ppm >= 500) {
+                suitabilityDescription = 'Техническая вода';
+            }
+
+            // Условия для воды для кофемашин
+            if (dH > 6) {
+                suitabilityDescription += ' (не годная для кофемашин)';
+            } else {
+                suitabilityDescription += ' (годная для кофемашин)';
             }
 
             document.getElementById('result').innerText = 
-                `${ppm} ppm = ${dH} °dH\n${hardnessDescription}`;
+                `${ppm} ppm = ${dH} °dH\n${hardnessDescription}\n${suitabilityDescription}`;
             document.getElementById('marker').style.left = position + '%';
         }
     </script>
