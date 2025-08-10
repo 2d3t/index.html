@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Skiber – вход</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.json" />
   <style>
     :root {
       --primary: #1e88e5;
@@ -124,17 +124,15 @@
   </style>
 </head>
 <body>
-
   <div class="container">
     <h1>Добро пожаловать в Skiber</h1>
 
     <div class="btn-group">
       <a class="btn" href="https://2d3t.github.io/index.html/pro/Skiber.html">Войти в Skiber</a>
       <button class="btn" onclick="toggleInfo()">Как добавить на главный экран</button>
-      <!-- Новая кнопка -->
       <a class="btn" href="https://2d3t.github.io/index.html/pro/tele1.html">Перейти в Skiber Chat</a>
-      <!-- Кнопка очистки данных -->
       <button class="btn" onclick="clearStorageAndCookies()">Очистить cookies и данные</button>
+      <button class="btn" onclick="sharePage()">Поделиться</button>
     </div>
 
     <div class="info" id="infoBox">
@@ -176,11 +174,9 @@
     }
 
     function clearStorageAndCookies() {
-      // Очистка localStorage и sessionStorage
       localStorage.clear();
       sessionStorage.clear();
 
-      // Попытка удалить все cookies текущего домена
       const cookies = document.cookie.split("; ");
       for (let c of cookies) {
         const eqPos = c.indexOf("=");
@@ -188,10 +184,50 @@
         document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
       }
 
-      alert("Данные очищены. Пожалуйста, обновите страницу.");
+      // Автоматически обновляем страницу
+      location.reload();
+    }
+
+    function sharePage() {
+      const shareData = {
+        title: document.title,
+        text: 'Посмотрите эту страницу Skiber:',
+        url: window.location.href
+      };
+
+      if (navigator.share) {
+        navigator.share(shareData).catch(console.error);
+      } else {
+        // Если Web Share API не поддерживается, копируем ссылку
+        copyToClipboard(window.location.href);
+        alert("Ссылка скопирована в буфер обмена. Поделитесь с друзьями!");
+      }
+    }
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        // современный способ
+        return navigator.clipboard.writeText(text);
+      } else {
+        // fallback для HTTP или старых браузеров
+        let textArea = document.createElement("textarea");
+        textArea.value = text;
+        // избегаем прокрутки
+        textArea.style.position = "fixed";
+        textArea.style.top = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          console.error('Не удалось скопировать текст: ', err);
+        }
+
+        document.body.removeChild(textArea);
+      }
     }
   </script>
-
 </body>
-  </html>
-  
+</html>
