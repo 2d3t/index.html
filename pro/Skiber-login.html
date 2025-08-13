@@ -211,71 +211,73 @@
 
   <script>
     window.onload = function() {
-      clearStorageAndCookies();
-    };
+  clearStorageAndCookies();
+};
 
-    function clearStorageAndCookies() {
-      localStorage.clear();
-      sessionStorage.clear();
+function clearStorageAndCookies() {
+  localStorage.clear();
+  sessionStorage.clear();
 
-      const cookies = document.cookie.split("; ");
-      for (let c of cookies) {
-        const eqPos = c.indexOf("=");
-        const name = eqPos > -1 ? c.substr(0, eqPos) : c;
-        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-      }
+  const cookies = document.cookie.split("; ");
+  for (let c of cookies) {
+    const eqPos = c.indexOf("=");
+    const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+  }
+}
+
+function toggleInfo() {
+  const box = document.getElementById('infoBox');
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+  document.getElementById('projectInfoBox').style.display = 'none';
+}
+
+function toggleProjectInfo() {
+  const box = document.getElementById('projectInfoBox');
+  box.style.display = box.style.display === 'block' ? 'none' : 'block';
+  document.getElementById('infoBox').style.display = 'none';
+}
+
+function sharePage() {
+  const title = document.title;
+  const url = window.location.href;
+
+  const shareData = {
+    title: title,
+    text: 'Посмотрите эту страницу Skiber:',
+    url: url
+  };
+
+  if (navigator.share) {
+    navigator.share(shareData).catch(console.error);
+  } else {
+    copyToClipboard(url);
+    alert("Ссылка скопирована в буфер обмена. Поделитесь с друзьями!");
+  }
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  } else {
+    let textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+    } catch (err) {
+      console.error('Не удалось скопировать текст: ', err);
     }
 
-    function toggleInfo() {
-      const box = document.getElementById('infoBox');
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
-      document.getElementById('projectInfoBox').style.display = 'none';
-    }
+    document.body.removeChild(textArea);
+  }
+}
 
-    function toggleProjectInfo() {
-      const box = document.getElementById('projectInfoBox');
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
-      document.getElementById('infoBox').style.display = 'none';
-    }
-
-    function sharePage() {
-      const shareData = {
-        title: document.title,
-        text: 'Посмотрите эту страницу Skiber:',
-        url: window.location.href
-      };
-
-      if (navigator.share) {
-        navigator.share(shareData).catch(console.error);
-      } else {
-        // Если Web Share API не поддерживается, копируем ссылку
-        copyToClipboard(window.location.href);
-        alert("Ссылка скопирована в буфер обмена. Поделитесь с друзьями!");
-      }
-    }
-
-    function copyToClipboard(text) {
-      if (navigator.clipboard && window.isSecureContext) {
-        return navigator.clipboard.writeText(text);
-      } else {
-        let textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.top = "-9999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-
-        try {
-          document.execCommand('copy');
-        } catch (err) {
-          console.error('Не удалось скопировать текст: ', err);
-        }
-
-        document.body.removeChild(textArea);
-      }
-    }
   </script>
 </body>
-  </html>
-  
+</html>
