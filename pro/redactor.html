@@ -68,6 +68,11 @@
     .active-line {
       background: rgba(100, 150, 250, 0.3);
     }
+    .preview {
+      display: none;
+      height: calc(100vh - 60px);
+      border: 1px solid #ccc;
+    }
   </style>
 </head>
 <body>
@@ -78,16 +83,20 @@
   <button onclick="selectAll()">Выделить всё</button>
   <button onclick="copyText()">Скопировать</button>
   <button onclick="clearAll()">Очистить</button>
+  <button onclick="runCode()">Запустить</button>
+  <button onclick="showEditor()">Редактор</button>
 </div>
 
 <div class="editor">
   <div class="line-numbers" id="lineNumbers"></div>
   <textarea id="codeArea" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
 </div>
+<iframe class="preview" id="previewFrame"></iframe>
 
 <script>
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
+  const previewFrame = document.getElementById('previewFrame');
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
@@ -109,19 +118,11 @@
     if (!isNaN(line)) {
       const lines = textarea.value.split('\n');
       if (line <= lines.length && line > 0) {
-        // вычисляем высоту строки
         const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-
-        // позиция строки
         const linePos = (line - 1) * lineHeight;
-
-        // делаем так, чтобы строка была примерно в центре окна
         const visibleHeight = textarea.clientHeight;
         const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
-
         textarea.scrollTop = Math.max(0, scrollPos);
-
-        // подсветка номера
         highlightActiveLine(line);
       }
     }
@@ -153,11 +154,23 @@
     updateLineNumbers();
   }
 
+  function runCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    previewFrame.src = url;
+    previewFrame.style.display = "block";
+    document.querySelector('.editor').style.display = "none";
+  }
+
+  function showEditor() {
+    previewFrame.style.display = "none";
+    document.querySelector('.editor').style.display = "flex";
+  }
+
   // Инициализация
   updateLineNumbers();
 </script>
-
-
 
 </body>
 </html>
