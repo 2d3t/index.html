@@ -29,9 +29,13 @@
       background: #555;
       color: white;
       cursor: pointer;
+      transition: background 0.3s;
     }
     .toolbar button:hover {
       background: #777;
+    }
+    .toolbar button.copied {
+      background: #4CAF50; /* Зелёный цвет */
     }
     .editor {
       display: flex;
@@ -90,7 +94,7 @@
   <input type="number" id="lineNumber" min="1" placeholder="Строка">
   <button onclick="goToLine()">Перейти 🔀</button>
   
-  <button onclick="copyText()">Скопировать 📃</button>
+  <button id="copyButton" onclick="copyText()">Скопировать 📃</button>
   <button onclick="clearAll()">Очистить ❌</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
   <button onclick="showEditor()">Редактор 🛠️</button>
@@ -109,10 +113,11 @@
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
   const previewFrame = document.getElementById('previewFrame');
+  const copyButton = document.getElementById('copyButton');
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
-    const extraLines = Math.ceil(lines * 0.5); // 50% больше
+    const extraLines = Math.ceil(lines * 0.5);
     const totalLines = lines + extraLines;
 
     lineNumbers.innerHTML = '';
@@ -160,7 +165,13 @@
   function copyText() {
     textarea.select();
     document.execCommand('copy');
-    alert("Скопировано!");
+    
+    copyButton.classList.add('copied');
+    copyButton.textContent = "Скопировано"; // Изменяем текст на кнопке
+    setTimeout(() => {
+      copyButton.classList.remove('copied');
+      copyButton.textContent = "Скопировать 📃"; // Возвращаем исходный текст
+    }, 1000); // Задержка 1 секунда
   }
 
   function clearAll() {
@@ -182,7 +193,7 @@
     previewFrame.classList.remove("active");
     setTimeout(() => {
       document.querySelector('.editor').style.display = "flex";
-    }, 500); // совпадает с transition: 0.5s
+    }, 500);
   }
 
   function shareCode() {
@@ -196,14 +207,12 @@
 
   // Инициализация
   updateLineNumbers();
-// Запуск поиска строки по Enter
-document.getElementById('lineNumber').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault(); // чтобы не было лишних действий
-    goToLine();
-  }
-});
-
+  document.getElementById('lineNumber').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      goToLine();
+    }
+  });
 </script>
 
 </body>
