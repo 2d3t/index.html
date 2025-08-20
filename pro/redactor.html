@@ -102,6 +102,8 @@
   <button onclick="runCode()">Просмотр 🖥️</button>
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="shareCode()">Скачать ⬇️</button>
+  <button onclick="undo()">Отменить ↩️</button>
+  <button onclick="redo()">Повторить ↪️</button>
   <button onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход 🚸</button>
 </div>
   
@@ -118,6 +120,9 @@
   const previewFrame = document.getElementById('previewFrame');
   const copyButton = document.getElementById('copyButton');
   const searchInput = document.getElementById('searchInput');
+
+  let history = [];
+  let redoStack = [];
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
@@ -209,6 +214,29 @@
     link.click();
   }
 
+  function saveState() {
+    history.push(textarea.value);
+    redoStack = []; // Clear redo stack on new change
+  }
+
+  function undo() {
+    if (history.length > 0) {
+      redoStack.push(textarea.value);
+      textarea.value = history.pop();
+      updateLineNumbers();
+    }
+  }
+
+  function redo() {
+    if (redoStack.length > 0) {
+      history.push(textarea.value);
+      textarea.value = redoStack.pop();
+      updateLineNumbers();
+    }
+  }
+
+  textarea.addEventListener('input', saveState);
+
   // ---------- ПОИСК ----------
   let searchResults = [];
   let currentResult = -1;
@@ -292,4 +320,5 @@
 </script>
 
 </body>
-</html>
+  </html>
+  
