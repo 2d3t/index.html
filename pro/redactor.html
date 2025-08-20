@@ -69,9 +69,19 @@
       background: rgba(100, 150, 250, 0.3);
     }
     .preview {
-      display: none;
+      width: 100%;
       height: calc(100vh - 60px);
-      border: 1px solid #ccc;
+      border: none;
+      margin: 0;
+      padding: 0;
+
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease;
+    }
+    .preview.active {
+      opacity: 1;
+      visibility: visible;
     }
   </style>
 </head>
@@ -87,14 +97,13 @@
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="shareCode()">Скачать ⬇️</button>
   <button onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход 🚸</button>
-  
 </div>
   
-
 <div class="editor">
   <div class="line-numbers" id="lineNumbers"></div>
   <textarea id="codeArea" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
 </div>
+
 <iframe class="preview" id="previewFrame"></iframe>
 
 <script>
@@ -145,11 +154,6 @@
     });
   }
 
-  function selectAll() {
-    textarea.focus();
-    textarea.select();
-  }
-
   function copyText() {
     textarea.select();
     document.execCommand('copy');
@@ -166,13 +170,16 @@
     const blob = new Blob([code], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
-    previewFrame.style.display = "block";
+
+    previewFrame.classList.add("active");
     document.querySelector('.editor').style.display = "none";
   }
 
   function showEditor() {
-    previewFrame.style.display = "none";
-    document.querySelector('.editor').style.display = "flex";
+    previewFrame.classList.remove("active");
+    setTimeout(() => {
+      document.querySelector('.editor').style.display = "flex";
+    }, 300); // совпадает с transition: 0.3s
   }
 
   function shareCode() {
