@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icons/IMG_20250820_074649_225.jpg" type="image/jpg">
   <title> KlikEdit 🎀</title>
   <style>
     body {
@@ -71,18 +69,9 @@
       background: rgba(100, 150, 250, 0.3);
     }
     .preview {
-      width: 100%;
+      display: none;
       height: calc(100vh - 60px);
-      border: none;
-      margin: 0;
-      padding: 0;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.5s ease;
-    }
-    .preview.active {
-      opacity: 1;
-      visibility: visible;
+      border: 1px solid #ccc;
     }
   </style>
 </head>
@@ -98,13 +87,14 @@
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="shareCode()">Скачать ⬇️</button>
   <button onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход 🚸</button>
+  
 </div>
   
+
 <div class="editor">
   <div class="line-numbers" id="lineNumbers"></div>
   <textarea id="codeArea" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
 </div>
-
 <iframe class="preview" id="previewFrame"></iframe>
 
 <script>
@@ -132,18 +122,21 @@
 
   function goToLine() {
     const line = parseInt(document.getElementById('lineNumber').value);
-    if (!isNaN(line)) {
-      const lines = textarea.value.split('\n');
-      if (line <= lines.length && line > 0) {
+    const lines = textarea.value.split('\n');
+    
+    if (!isNaN(line) && line > 0 && line <= lines.length) {
         const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
         const linePos = (line - 1) * lineHeight;
         const visibleHeight = textarea.clientHeight;
         const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
+        
         textarea.scrollTop = Math.max(0, scrollPos);
-        highlightActiveLine(line); // Передаем номер строки
-      }
+        highlightActiveLine(line);
+    } else {
+        alert("Неверный номер строки!");
     }
-  }
+}
+
 
   function highlightActiveLine(line) {
     const lineElements = Array.from(lineNumbers.children);
@@ -153,6 +146,11 @@
         el.classList.add('active-line');
       }
     });
+  }
+
+  function selectAll() {
+    textarea.focus();
+    textarea.select();
   }
 
   function copyText() {
@@ -171,16 +169,13 @@
     const blob = new Blob([code], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
-
-    previewFrame.classList.add("active");
+    previewFrame.style.display = "block";
     document.querySelector('.editor').style.display = "none";
   }
 
   function showEditor() {
-    previewFrame.classList.remove("active");
-    setTimeout(() => {
-      document.querySelector('.editor').style.display = "flex";
-    }, 300); // совпадает с transition: 0.3s
+    previewFrame.style.display = "none";
+    document.querySelector('.editor').style.display = "flex";
   }
 
   function shareCode() {
@@ -197,5 +192,4 @@
 </script>
 
 </body>
-  </html>
-  
+</html>
