@@ -19,7 +19,6 @@
       flex-wrap: wrap;
     }
     .toolbar input {
-      width: 60px;
       padding: 5px;
     }
     .toolbar button {
@@ -35,7 +34,7 @@
       background: #777;
     }
     .toolbar button.copied {
-      background: #4CAF50; /* Зелёный цвет */
+      background: #4CAF50;
     }
     .editor {
       display: flex;
@@ -94,6 +93,10 @@
   <input type="number" id="lineNumber" min="1" placeholder="Строка">
   <button onclick="goToLine()">Перейти 🔀</button>
   
+  <input type="text" id="searchInput" placeholder="Поиск 🔎" style="width:120px;">
+  <button onclick="findNext()">Найти ▶️</button>
+  <button onclick="findPrev()">Назад ◀️</button>
+
   <button id="copyButton" onclick="copyText()">Скопировать 📃</button>
   <button onclick="clearAll()">Очистить ❌</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
@@ -114,6 +117,7 @@
   const lineNumbers = document.getElementById('lineNumbers');
   const previewFrame = document.getElementById('previewFrame');
   const copyButton = document.getElementById('copyButton');
+  const searchInput = document.getElementById('searchInput');
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
@@ -167,11 +171,11 @@
     document.execCommand('copy');
     
     copyButton.classList.add('copied');
-    copyButton.textContent = "Скопировано"; // Изменяем текст на кнопке
+    copyButton.textContent = "Скопировано"; 
     setTimeout(() => {
       copyButton.classList.remove('copied');
-      copyButton.textContent = "Скопировать 📃"; // Возвращаем исходный текст
-    }, 1000); // Задержка 1 секунда
+      copyButton.textContent = "Скопировать 📃"; 
+    }, 1000); 
   }
 
   function clearAll() {
@@ -204,6 +208,78 @@
     link.download = 'code.html';
     link.click();
   }
+
+  // ---------- ПОИСК ----------
+  let searchResults = [];
+  let currentResult = -1;
+  let lastSearch = "";
+
+  function findAll(term) {
+    searchResults = [];
+    currentResult = -1;
+    if (!term) return;
+
+    const text = textarea.value;
+    let index = text.indexOf(term);
+    while (index !== -1) {
+      searchResults.push(index);
+      index = text.indexOf(term, index + term.length);
+    }
+  }
+
+  function highlightMatch() {
+    if (searchResults.length === 0) return;
+
+    const pos = searchResults[currentResult];
+    const term = searchInput.value;
+
+    textarea.focus();
+    textarea.setSelectionRange(pos, pos + term.length);
+
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+    const before = textarea.value.substring(0, pos).split("\n").length;
+    const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2;
+    textarea.scrollTop = Math.max(0, scrollPos);
+  }
+
+  function findNext() {
+    const term = searchInput.value;
+    if (!term) return;
+
+    if (term !== lastSearch) {
+      findAll(term);
+      lastSearch = term;
+    }
+    if (searchResults.length === 0) {
+      alert("Совпадений не найдено");
+      return;
+    }
+    currentResult = (currentResult + 1) % searchResults.length;
+    highlightMatch();
+  }
+
+  function findPrev() {
+    const term = searchInput.value;
+    if (!term) return;
+
+    if (term !== lastSearch) {
+      findAll(term);
+      lastSearch = term;
+    }
+    if (searchResults.length === 0) {
+      alert("Совпадений не найдено");
+      return;
+    }
+    currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
+    highlightMatch();
+  }
+
+  // Обновляем поиск при вводе нового слова
+  searchInput.addEventListener("input", () => {
+    lastSearch = "";
+    searchResults = [];
+    currentResult = -1;
+  });
 
   // Инициализация
   updateLineNumbers();
