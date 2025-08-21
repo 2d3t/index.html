@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="color-scheme" content="light dark" />
+  <title>UPPERCASE — Text Booster</title>
+  <style>
+    :root {
+      --bg: #0f172a;           /* slate-900 */
+      --panel: #111827;        /* gray-900 */
+      --panel-2: #1f2937;      /* gray-800 */
+      --text: #e5e7eb;         /* gray-200 */
+      --muted: #94a3b8;        /* slate-400 */
+      --accent: #22d3ee;       /* cyan-400 */
+      --accent-2: #a78bfa;     /* violet-400 */
+      --success: #34d399;      /* emerald-400 */
+      --danger: #fb7185;       /* rose-400 */
+      --shadow: 0 20px 40px rgba(0,0,0,.35), 0 2px 10px rgba(0,0,0,.25);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --panel-2: #f3f4f6;
+        --text: #0f172a;
+        --muted: #475569;
+        --shadow: 0 12px 24px rgba(2,6,23,.12), 0 2px 6px rgba(2,6,23,.08);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background:
+        radial-gradient(1350px 600px at 100% -10%, rgba(34,211,238,.12), transparent 60%),
+        radial-gradient(1350px 600px at -10% 100%, rgba(167,139,250,.14), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: clamp(16px, 4vw, 28px);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 25px rgba(34,211,238,.25), inset 0 0 0 2px rgba(255,255,255,.12);
+    }
+    h1 {
+      margin: 0; font-size: clamp(18px, 2vw + 12px, 24px);
+      letter-spacing: .4px;
+    }
+    .hint { color: var(--muted); font-size: 13px; }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: clamp(14px, 2.5vw, 20px);
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      appearance: none; border: 0; cursor: pointer; user-select: none;
+      border-radius: 16px; padding: 14px 16px; font-weight: 700; font-size: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0b1020;
+      box-shadow: 0 10px 30px rgba(34,211,238,.25), 0 6px 16px rgba(167,139,250,.18);
+      transition: transform .08s ease, filter .08s ease, opacity .2s ease;
+      touch-action: manipulation;
+    }
+    .btn:active { transform: translateY(1px) scale(.995); filter: brightness(.98); }
+
+    .btn.secondary {
+      background: linear-gradient(135deg, #d1d5db, #a1a1aa);
+      color: #0b1020;
+      box-shadow: 0 10px 25px rgba(148,163,184,.25), inset 0 0 0 1px rgba(2,6,23,.08);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px dashed rgba(148,163,184,.45);
+      box-shadow: none;
+    }
+
+    .io {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    textarea {
+      width: 100%; min-height: 38vh; resize: none; outline: none;
+      background: rgba(2,6,23,.35);
+      color: var(--text);
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: 16px;
+      padding: 14px 14px 42px; /* extra bottom for FAB */
+      font: 16px/1.5 monospace;
+      caret-color: var(--accent);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .meta {
+      display: flex; align-items: center; justify-content: space-between;
+      color: var(--muted); font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .fab {
+      position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom));
+      z-index: 10;
+    }
+
+    .toast {
+      position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      background: rgba(17,24,39,.92); color: #e5e7eb; border-radius: 12px;
+      padding: 10px 14px; font-size: 14px; box-shadow: var(--shadow);
+      opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, -6px); }
+
+    /* Larger screens */
+    @media (min-width: 640px) {
+      .toolbar { grid-template-columns: 1fr 1fr 1fr; }
+      .io { grid-template-columns: 1fr 1fr; }
+      textarea { min-height: 46vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        
+        <div>
+          <center><h1> ⬆️UPPER⬆️</h1>
+<h1>Преобразователь текста в заглавные буквы</h1><center>
+          <div class="hint">Вставьте текст → нажмите кнопку → получите БОЛЬШИЕ БУКВЫ</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="card" role="main">
+      <div class="toolbar" role="group" aria-label="Действия">
+<button class="btn ghost" onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход</button>
+        <button id="toUpper" class="btn" aria-label="Преобразовать в верхний регистр">В БОЛЬШИЕ БУКВЫ</button>
+        <button id="copy" class="btn secondary" aria-label="Скопировать текст">Копировать</button>
+        <button id="clear" class="btn ghost" aria-label="Очистить поле">Очистить</button>
+
+
+
+      </div>
+
+      <section class="io">
+        <label for="input" class="hint">Исходный текст</label>
+        <label for="output" class="hint">Результат</label>
+
+        <textarea id="input" placeholder="Напишите или вставьте сюда текст…" aria-label="Поле ввода"></textarea>
+        <textarea id="output" placeholder="Здесь появится результат…" aria-label="Поле результата" readonly></textarea>
+      </section>
+
+      <div class="meta">
+        <span id="stats">0 символов • 0 строк</span>
+        <span class="hint">Локаль: авто</span>
+      </div>
+    </main>
+  </div>
+
+  <div class="fab">
+    <button id="fabUpper" class="btn" title="Преобразовать (быстро)">В БОЛЬШИЕ БУКВЫ</button>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Elements
+    const $in = document.getElementById('input');
+    const $out = document.getElementById('output');
+    const $upper = document.getElementById('toUpper');
+    const $fabUpper = document.getElementById('fabUpper');
+    const $copy = document.getElementById('copy');
+    const $clear = document.getElementById('clear');
+    const $toast = document.getElementById('toast');
+    const $stats = document.getElementById('stats');
+
+    // Utilities
+    const showToast = (msg) => {
+      $toast.textContent = msg;
+      $toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => $toast.classList.remove('show'), 1600);
+    };
+
+    const autoResize = (el) => {
+      el.style.height = 'auto';
+      el.style.height = Math.min(600, el.scrollHeight) + 'px';
+    };
+
+    const updateStats = () => {
+      const t = $in.value;
+      const lines = t.length ? t.split(/\n/).length : 0;
+      $stats.textContent = `${t.length} символов • ${lines} строк`;
+    };
+
+    const toUpperSmart = (text) => {
+      try {
+        // Пытаемся использовать локаль пользователя (включая русскую)
+        return text.toLocaleUpperCase(navigator.language || 'ru-RU');
+      } catch (e) {
+        return text.toUpperCase();
+      }
+    };
+
+    const convert = () => {
+      const src = $in.value;
+      const res = toUpperSmart(src);
+      $out.value = res;
+      autoResize($out);
+      showToast('Готово: преобразовано в БОЛЬШИЕ БУКВЫ');
+      // Сохраняем в localStorage для удобства
+      try { localStorage.setItem('uppercase:last', src); } catch(_){}
+    };
+
+    // Event listeners
+    $upper.addEventListener('click', convert);
+    $fabUpper.addEventListener('click', convert);
+
+    $copy.addEventListener('click', async () => {
+      const text = $out.value || $in.value;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Скопировано в буфер обмена');
+      } catch (e) {
+        // Фолбэк через временный input
+        const tmp = document.createElement('textarea');
+        tmp.value = text; document.body.appendChild(tmp); tmp.select();
+        document.execCommand('copy'); tmp.remove();
+        showToast('Скопировано');
+      }
+    });
+
+    $clear.addEventListener('click', () => {
+      $in.value = '';
+      $out.value = '';
+      autoResize($in); autoResize($out);
+      updateStats();
+    });
+
+    // Live helpers
+    ['input', 'change'].forEach(ev => {
+      $in.addEventListener(ev, () => { autoResize($in); updateStats(); });
+    });
+
+    // Paste-to-convert: мгновенно преобразовывать при вставке (настраиваемо)
+    $in.addEventListener('paste', () => setTimeout(() => { autoResize($in); updateStats(); }, 0));
+
+    // Keyboard shortcuts (mobile + desktop)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') { // Ctrl/Cmd+U
+        e.preventDefault(); convert();
+      }
+    });
+
+    // Restore last input
+    (function init() {
+      try {
+        const last = localStorage.getItem('uppercase:last');
+        if (last) { $in.value = last; autoResize($in); updateStats(); }
+      } catch(_) {}
+    })();
+  </script>
+</body>
+</html>
