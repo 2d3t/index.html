@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Обрезка песни в MP3</title>
+<style>
+  /* Основной стиль */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1f1c2c, #928dab);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Контейнер */
+  .container {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 30px 40px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+  }
+
+  h2 {
+    margin-bottom: 25px;
+    font-weight: 600;
+    font-size: 1.8em;
+    color: #ffe;
+  }
+
+  input[type=file] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 20px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  input[type=text] {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    width: 80px;
+    text-align: center;
+  }
+
+  select {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    margin-left: 10px;
+  }
+
+  label {
+    display: block;
+    margin: 15px 0 5px;
+    font-weight: 500;
+    font-size: 0.95em;
+    color: #fff;
+  }
+
+  .player audio {
+    width: 100%;
+    margin: 20px 0;
+    border-radius: 12px;
+    outline: none;
+  }
+
+  button {
+    background: #ff6b81;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 25px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 20px;
+  }
+
+  button:hover {
+    background: #ff4757;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  }
+
+  /* Адаптив */
+  @media(max-width: 450px){
+    .container {
+      padding: 20px 25px;
+    }
+    button {
+      width: 100%;
+    }
+    input[type=text], select {
+      width: 60px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Обрезка песни в MP3</h2>
+  <input type="file" id="fileInput" accept="audio/*">
+
+  <div class="player">
+    <audio id="audio" controls></audio>
+  </div>
+
+  <label>Начало: <input type="text" id="start" value="0:00"></label>
+  <label>Конец: <input type="text" id="end" value="0:10"></label>
+
+  <label>Битрейт MP3:
+    <select id="bitrate">
+      <option value="128">128</option>
+      <option value="192">192</option>
+      <option value="256">256</option>
+      <option value="320">320</option>
+    </select> кбит/с
+  </label>
+
+  <button id="cutBtn">Обрезать и скачать MP3</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
+<script>
+const fileInput = document.getElementById('fileInput');
+const audio = document.getElementById('audio');
+let audioBuffer = null;
+
+fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  audio.src = url;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+});
+
+function timeToSeconds(str) {
+  const parts = str.split(":").map(p => parseInt(p, 10));
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parseInt(str, 10) || 0;
+}
+
+function floatTo16BitPCM(float32Array) {
+  const buffer = new Int16Array(float32Array.length);
+  for (let i = 0; i < float32Array.length; i++) {
+    let s = Math.max(-1, Math.min(1, float32Array[i]));
+    buffer[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  return buffer;
+}
+
+document.getElementById('cutBtn').addEventListener('click', async () => {
+  if (!audioBuffer) {
+    alert("Сначала загрузите песню!");
+    return;
+  }
+
+  const startSec = timeToSeconds(document.getElementById('start').value);
+  const endSec = timeToSeconds(document.getElementById('end').value);
+  const duration = endSec - startSec;
+
+  if (duration <= 0) {
+    alert("Неверные значения начала и конца");
+    return;
+  }
+
+  const bitrate = parseInt(document.getElementById('bitrate').value);
+  const sampleRate = audioBuffer.sampleRate;
+  const numChannels = audioBuffer.numberOfChannels;
+
+  const startSample = Math.floor(startSec * sampleRate);
+  const endSample = Math.floor(endSec * sampleRate);
+
+  const cutData = [];
+  for (let ch = 0; ch < numChannels; ch++) {
+    cutData.push(audioBuffer.getChannelData(ch).slice(startSample, endSample));
+  }
+
+  const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, bitrate);
+  let mp3Data = [];
+
+  if (numChannels === 2) {
+    const left = floatTo16BitPCM(cutData[0]);
+    const right = floatTo16BitPCM(cutData[1]);
+    let sampleBlockSize = 1152;
+    for (let i = 0; i < left.length; i += sampleBlockSize) {
+      const leftChunk = left.subarray(i, i + sampleBlockSize);
+      const rightChunk = right.subarray(i, i + sampleBlockSize);
+      const mp3buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    }
+  } else {
+    const samples = floatTo16BitPCM(cutData[0]);
+    let sampleBlockSize = 1152;
+    for (let i = 0; i < samples.length; i += sampleBlockSize) {
+      const sampleChunk = samples.subarray(i, i + sampleBlockSize);
+      const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
+      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    }
+  }
+
+  const mp3buf = mp3Encoder.flush();
+  if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+  const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = "cut.mp3";
+  link.click();
+});
+</script>
+</body>
+</html>
