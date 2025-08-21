@@ -118,6 +118,13 @@
 <div class="container">
   <h2>Обрезка песни в MP3</h2>
   <input type="file" id="fileInput" accept="audio/*">
+<div id="progressContainer" style="display:none; margin-top:15px; text-align:center;">
+  <div style="background:#444; border-radius:10px; overflow:hidden; height:20px; width:80%; margin:0 auto;">
+    <div id="progressBar" style="width:0%; height:100%; background:#4caf50; transition:width 0.2s;"></div>
+  </div>
+  <p id="progressText" style="margin-top:5px; font-size:0.9em; color:#ccc;">0%</p>
+</div>
+
 
   <div class="player">
     <audio id="audio" controls></audio>
@@ -137,6 +144,10 @@
 
   <button id="cutBtn">Обрезать и скачать MP3</button>
 </div>
+
+<!-- Под кнопкой -->
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
 <script>
@@ -201,35 +212,55 @@ document.getElementById('cutBtn').addEventListener('click', async () => {
   const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, bitrate);
   let mp3Data = [];
 
-  if (numChannels === 2) {
-    const left = floatTo16BitPCM(cutData[0]);
-    const right = floatTo16BitPCM(cutData[1]);
-    let sampleBlockSize = 1152;
-    for (let i = 0; i < left.length; i += sampleBlockSize) {
-      const leftChunk = left.subarray(i, i + sampleBlockSize);
-      const rightChunk = right.subarray(i, i + sampleBlockSize);
-      const mp3buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  progressContainer.style.display = "block";
+  progressBar.style.width = "0%";
+  progressText.innerText = "0%";
+
+  const sampleBlockSize = 1152;
+  const totalSamples = cutData[0].length;
+  let processedSamples = 0;
+
+  function encodeChunk(start) {
+    const end = Math.min(start + sampleBlockSize, totalSamples);
+
+    if (numChannels === 2) {
+      const left = floatTo16BitPCM(cutData[0].subarray(start, end));
+      const right = floatTo16BitPCM(cutData[1].subarray(start, end));
+      const mp3buf = mp3Encoder.encodeBuffer(left, right);
+      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    } else {
+      const samples = floatTo16BitPCM(cutData[0].subarray(start, end));
+      const mp3buf = mp3Encoder.encodeBuffer(samples);
       if (mp3buf.length > 0) mp3Data.push(mp3buf);
     }
-  } else {
-    const samples = floatTo16BitPCM(cutData[0]);
-    let sampleBlockSize = 1152;
-    for (let i = 0; i < samples.length; i += sampleBlockSize) {
-      const sampleChunk = samples.subarray(i, i + sampleBlockSize);
-      const mp3buf = mp3Encoder.encodeBuffer(sampleChunk);
+
+    processedSamples = end;
+    const percent = Math.floor((processedSamples / totalSamples) * 100);
+    progressBar.style.width = percent + "%";
+    progressText.innerText = percent + "%";
+
+    if (end < totalSamples) {
+      setTimeout(() => encodeChunk(end), 0); // не блокируем интерфейс
+    } else {
+      const mp3buf = mp3Encoder.flush();
       if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+      const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = "cut.mp3";
+      link.click();
+
+      progressText.innerText = "Готово!";
     }
   }
 
-  const mp3buf = mp3Encoder.flush();
-  if (mp3buf.length > 0) mp3Data.push(mp3buf);
-
-  const blob = new Blob(mp3Data, { type: 'audio/mp3' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = "cut.mp3";
-  link.click();
+  encodeChunk(0);
 });
 </script>
+
 </body>
 </html>
