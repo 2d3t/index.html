@@ -121,33 +121,46 @@
 </head>
 <body>
   <header>
-    <div class="header-inner wrap">
-      <a class="brand" href="#" aria-label="На главную">
-        <div class="logo" aria-hidden="true">EK</div>
-        <div>
-          <div class="title">Eugene Klik</div>
-          <div class="subtitle">Музыка · Официальная страница</div>
-        </div>
-      </a>
-      <div class="grow"></div>
-      <div class="toolbar" role="region" aria-label="Панель управления">
-        <div class="search">
-          <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <input id="search" type="text" placeholder="Поиск по названию… (например: Night Drive)" aria-label="Поиск по названию" />
-        </div>
-        <button class="btn" id="sortBtn" title="Сортировка (A→Я)">Сортировать</button>
-        <button class="btn" id="shareBtn" title="Поделиться ссылкой">Поделиться</button>
-        <div class="theme-toggle">
-          <input type="checkbox" id="theme" />
-          <label for="theme" class="btn" title="Переключить тему">Тема</label>
-        </div>
-        <button class="btn" onclick="window.location.href='https://2d3t.github.io/index.html/'" title="Выйти">Выход</button>
+  <div class="header-inner wrap">
+    <a class="brand" href="#" aria-label="На главную">
+      <div class="logo" aria-hidden="true">EK</div>
+      <div>
+        <div class="title">Eugene Klik</div>
+        <div class="subtitle">Музыка · Официальная страница</div>
       </div>
+    </a>
+    <div class="grow"></div>
+    <div class="toolbar" role="region" aria-label="Панель управления">
+      
+      <!-- 🎵 Наш блок управления -->
+      <div id="player-controls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+  <button class="btn primary" id="playBtn">▶|| Play/Pause</button>
+  <button class="btn" id="stopBtn">⏹ Stop</button>
+  <button class="btn" id="prevBtn">⏮️ Pre</button>
+  <button class="btn" id="nextBtn">⏭️ Next</button>
+  <label><input type="checkbox" id="randomToggle">🔀 Random</label>
+  <label><input type="checkbox" id="autoToggle">▶️ AutoPlay</label>
+</div>
+
+      <!-- конец блока -->
+
+      <div class="search">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <input id="search" type="text" placeholder="Поиск по названию… (например: Night Drive)" aria-label="Поиск по названию" />
+      </div>
+      <button class="btn" id="sortBtn" title="Сортировка (A→Я)">Сортировать</button>
+      <button class="btn" id="shareBtn" title="Поделиться ссылкой">Поделиться</button>
+      <div class="theme-toggle">
+        <input type="checkbox" id="theme" />
+        <label for="theme" class="btn" title="Переключить тему">Тема</label>
+      </div>
+      <button class="btn" onclick="window.location.href='https://2d3t.github.io/index.html/'" title="Выйти">Выход</button>
     </div>
-  </header>
+  </div>
+</header>
 
   <main class="wrap" id="app" aria-live="polite"></main>
 
@@ -286,6 +299,70 @@ $("#twitterShare")?.addEventListener('click', e => {
 document.getElementById('year').textContent = new Date().getFullYear();
 render(TRACKS);
 </script>
+<script>
+let currentIndex = 0;
+let currentAudio = null;
+
+function playTrack(index) {
+  if (currentAudio) currentAudio.pause();
+  const audios = document.querySelectorAll('audio');
+  if (audios[index]) {
+    currentIndex = index;
+    currentAudio = audios[index];
+    currentAudio.play();
+
+    // обработка автоперехода
+    currentAudio.onended = () => {
+      if ($("#autoToggle").checked) {
+        nextTrack();
+      }
+    };
+  }
+}
+
+function stopTrack() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+}
+
+function nextTrack() {
+  if ($("#randomToggle").checked) {
+    currentIndex = Math.floor(Math.random() * TRACKS.length);
+  } else {
+    currentIndex = (currentIndex + 1) % TRACKS.length;
+  }
+  playTrack(currentIndex);
+}
+
+function prevTrack() {
+  if ($("#randomToggle").checked) {
+    currentIndex = Math.floor(Math.random() * TRACKS.length);
+  } else {
+    currentIndex = (currentIndex - 1 + TRACKS.length) % TRACKS.length;
+  }
+  playTrack(currentIndex);
+}
+
+// кнопки управления
+$("#playBtn").addEventListener("click", () => {
+  if (!currentAudio || currentAudio.paused) {
+    // если еще не играло и включен случайный выбор
+    if (!currentAudio && $("#randomToggle").checked) {
+      currentIndex = Math.floor(Math.random() * TRACKS.length);
+    }
+    playTrack(currentIndex);
+  } else {
+    currentAudio.pause();
+  }
+});
+
+$("#stopBtn").addEventListener("click", stopTrack);
+$("#nextBtn").addEventListener("click", nextTrack);
+$("#prevBtn").addEventListener("click", prevTrack);
+</script>
+
 
 </body>
 </html>
