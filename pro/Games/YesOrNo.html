@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Живая Змейка</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: linear-gradient(120deg, #0f2027, #203a43, #2c5364);
+    font-family: Arial, sans-serif;
+    color: white;
+  }
+  canvas {
+    display: block;
+  }
+  /* Верхний блок */
+  .header {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 10;
+  }
+  .header h1 {
+    font-size: 2rem;
+    margin: 0;
+  }
+  .header .yes {
+    color: #00ff00; /* зелёный */
+  }
+  .header .no {
+    color: #ff3333; /* красный */
+  }
+  .info-box {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+  .exit-btn {
+    margin-top: 10px;
+    padding: 6px 14px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #ff4444;
+    color: white;
+    transition: background 0.3s;
+  }
+  .exit-btn:hover {
+    background: #cc0000;
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1><span class="yes">Yes</span> or <span class="no">No</span></h1>
+  <div class="info-box">❗ Задайте вопрос змейке и приложите палец к экрану. 👇<br>Спрашивать у змейки можно только один раз в день!</div>
+  <button class="exit-btn" onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход</button>
+</div>
+
+<canvas id="snakeCanvas"></canvas>
+<script>
+const canvas = document.getElementById('snakeCanvas');
+const ctx = canvas.getContext('2d');
+let width = canvas.width = window.innerWidth;
+let height = canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+});
+
+const snake = {
+    segments: 20,
+    length: 15,
+    points: [],
+    color: 'hsl(200, 100%, 50%)',
+    speed: 2,
+    angle: 0,
+    target: null,
+    isColorChanged: false,
+};
+
+// Инициализация змейки
+for (let i = 0; i < snake.segments; i++) {
+    snake.points.push({x: width/2, y: height/2});
+}
+
+// Случайное движение
+function randomMove() {
+    snake.angle += (Math.random() - 0.5) * 0.2;
+    snake.points[0].x += Math.cos(snake.angle) * snake.speed;
+    snake.points[0].y += Math.sin(snake.angle) * snake.speed;
+
+    // Столкновение с краями
+    if(snake.points[0].x < 0) snake.points[0].x = 0;
+    if(snake.points[0].x > width) snake.points[0].x = width;
+    if(snake.points[0].y < 0) snake.points[0].y = 0;
+    if(snake.points[0].y > height) snake.points[0].y = height;
+}
+
+// Обновление змейки
+function updateSnake() {
+    if (snake.target) {
+        const dx = snake.target.x - snake.points[0].x;
+        const dy = snake.target.y - snake.points[0].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Изменяем цвет при первом прикосновении
+        if (distance < snake.length && !snake.isColorChanged) {
+            snake.isColorChanged = true;
+            snake.color = Math.random() < 0.5 ? 'red' : 'green';
+
+            // Устанавливаем таймер на возврат к голубому
+            setTimeout(() => {
+                snake.color = 'hsl(200, 100%, 50%)';
+            }, 10000); // 10 секунд
+        }
+
+        snake.angle = Math.atan2(dy, dx) + Math.sin(Date.now()/500)*0.5;
+        snake.points[0].x += Math.cos(snake.angle) * snake.speed;
+        snake.points[0].y += Math.sin(snake.angle) * snake.speed;
+    } else {
+        randomMove();
+    }
+
+    // Остальные сегменты следуют за первым
+    for (let i = 1; i < snake.segments; i++) {
+        const prev = snake.points[i-1];
+        const cur = snake.points[i];
+        const dx = prev.x - cur.x;
+        const dy = prev.y - cur.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const t = (dist - snake.length) / dist;
+        cur.x += dx * t;
+        cur.y += dy * t;
+    }
+}
+
+// Рисуем змейку
+function drawSnake() {
+    ctx.clearRect(0, 0, width, height);
+    ctx.beginPath();
+    ctx.moveTo(snake.points[0].x, snake.points[0].y);
+    for (let i = 1; i < snake.segments; i++) {
+        ctx.lineTo(snake.points[i].x, snake.points[i].y);
+    }
+    ctx.strokeStyle = snake.color;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+}
+
+function animate() {
+    updateSnake();
+    drawSnake();
+    requestAnimationFrame(animate);
+}
+animate();
+
+// Управление пальцем
+canvas.addEventListener('touchstart', e => {
+    snake.target = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+});
+canvas.addEventListener('touchmove', e => {
+    snake.target.x = e.touches[0].clientX;
+    snake.target.y = e.touches[0].clientY;
+});
+canvas.addEventListener('touchend', e => {
+    snake.target = null; // Убираем цель
+});
+</script>
+</body>
+</html>
