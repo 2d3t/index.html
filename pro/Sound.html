@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eugene Klik -- Музыка</title>
+  <meta name="description" content="Музыкальная страница Eugene Klik: поиск по трекам, прослушивание и скачивание" />
+  <style>
+    :root {
+      --bg: #0b0b10;
+      --card: rgba(255, 255, 255, 0.06);
+      --muted: #9aa0a6;
+      --text: #e8eaed;
+      --accent: #7c5cff;
+      --accent-2: #00d4ff;
+      --ring: rgba(124, 92, 255, 0.45);
+      --shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .04);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: radial-gradient(1200px 800px at 10% -10%, rgba(124, 92, 255, .15), transparent),
+                  radial-gradient(1000px 700px at 100% 0%, rgba(0, 212, 255, .12), transparent),
+                  var(--bg);
+      color: var(--text); 
+      font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      letter-spacing: .2px;
+    }
+    .wrap { max-width: 100%; margin: 0 auto; padding: 24px; }
+    header {
+      position: sticky; top: 0; z-index: 10; backdrop-filter: blur(14px);
+      background: linear-gradient(180deg, rgba(11, 11, 16, .85), rgba(11, 11, 16, .55));
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+    .header-inner { display: flex; align-items: center; gap: 16px; padding: 14px 24px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 20px rgba(124, 92, 255, .35), inset 0 1px 0 rgba(255, 255, 255, .35);
+      font-weight: 800; letter-spacing: .5px;
+    }
+    .title { font-weight: 800; font-size: 20px; }
+    .subtitle { color: var(--muted); font-size: 12px; }
+    .grow { flex: 1; }
+    
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .search {
+      position: relative; flex: 1; min-width: 220px; max-width: 100%;
+    }
+    .search input {
+      width: 100%; padding: 12px 40px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .08);
+      background: rgba(255, 255, 255, .06); color: var(--text); outline: none; 
+      transition: .2s border-color, .2s box-shadow; box-shadow: var(--shadow);
+    }
+    .search input:focus { border-color: var(--accent); box-shadow: 0 0 0 6px var(--ring); }
+    .search .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .7; }
+
+    .btn { 
+      border: 1px solid rgba(255, 255, 255, .08); background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02));
+      color: var(--text); padding: 10px 14px; border-radius: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center;
+      transition: .2s transform, .2s border-color, .2s background; box-shadow: var(--shadow);
+    }
+    .btn:hover { transform: translateY(-1px); border-color: rgba(255, 255, 255, .18); }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .card {
+      grid-column: span 12; background: var(--card); border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
+      display: grid; grid-template-columns: 88px 1fr; gap: 0; align-items: stretch;
+    }
+    @media(min-width: 620px) { .card { grid-column: span 6; } }
+    @media(min-width: 940px) { .card { grid-column: span 4; } }
+
+    .cover { width: 88px; height: 100%; background:
+      radial-gradient(200px 100px at 10% 10%, rgba(255, 255, 255, .18), transparent),
+      linear-gradient(135deg, rgba(124, 92, 255, .5), rgba(0, 212, 255, .35));
+      display: grid; place-items: center; font-weight: 800; letter-spacing: 1px; font-size: 14px;
+    }
+    .card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .meta { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .meta .name { font-weight: 700; }
+    .meta .time { color: var(--muted); font-size: 12px; }
+
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { font-size: 12px; color: var(--muted); }
+
+    audio { width: 100%; height: 36px; filter: drop-shadow(0 2px 10px rgba(0, 0, 0, .2)); }
+
+    .footer { color: var(--muted); text-align: center; padding: 28px 0; }
+
+    .theme-toggle { position: relative; }
+    .theme-toggle input { display: none; }
+    .theme-toggle label { cursor: pointer; }
+
+    /* Light theme */
+    .light { --bg: #f6f7fb; --card: #ffffffea; --text: #1c1f23; --muted: #61666b; --shadow: 0 10px 30px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .4); --ring: rgba(124, 92, 255, .18); }
+
+    /* Share buttons */
+    .share-btn { background: var(--accent); color: white; border-radius: 10px; padding: 8px 12px; text-decoration: none; }
+    .share-btn:hover { background: var(--accent-2); }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/ek_1024x1024-1.png" type="image/png">
+  <meta property="og:title" content="Eugene Klik -- Музыка">
+  <meta property="og:description" content="Слушай и скачивай треки Eugene Klik на официальной странице.">
+  <meta property="og:image" content="https://2d3t.github.io/2d3t/ek_1024x1024-1.png">
+  <meta property="og:url" content="https://2d3t.github.io/index.html/pro/Sogs.html">
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Eugene Klik -- Музыка">
+  <meta name="twitter:description" content="Слушай и скачивай треки Eugene Klik.">
+  <meta name="twitter:image" content="https://2d3t.github.io/2d3t/ek_1024x1024-1.png">
+
+<link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/ek_1024x1024-1.png " type="image/png">
+
+
+</head>
+<body>
+  <header>
+  <div class="header-inner wrap">
+    <a class="brand" href="#" aria-label="На главную">
+      <div class="logo" aria-hidden="true">EK</div>
+      <div>
+        <div class="title">Eugene Klik</div>
+        <div class="subtitle">Музыка · Официальная страница</div>
+      </div>
+    </a>
+    <div class="grow"></div>
+    <div class="toolbar" role="region" aria-label="Панель управления">
+      
+      <!-- 🎵 Наш блок управления -->
+      <div id="player-controls" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+  <button class="btn primary" id="playBtn">▶ Play</button>
+  <button class="btn" id="stopBtn">⏹ Stop</button>
+  <button class="btn" id="prevBtn">⏮ Предыдущая</button>
+  <button class="btn" id="nextBtn">⏭ Следующая</button>
+  <label><input type="checkbox" id="randomToggle"> Случайная песня</label>
+  <label><input type="checkbox" id="autoToggle"> Автовоспроизведение</label>
+</div>
+
+      <!-- конец блока -->
+
+      <div class="search">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <input id="search" type="text" placeholder="Поиск по названию… (например: Night Drive)" aria-label="Поиск по названию" />
+      </div>
+      <button class="btn" id="sortBtn" title="Сортировка (A→Я)">Сортировать</button>
+      <button class="btn" id="shareBtn" title="Поделиться ссылкой">Поделиться</button>
+      <div class="theme-toggle">
+        <input type="checkbox" id="theme" />
+        <label for="theme" class="btn" title="Переключить тему">Тема</label>
+      </div>
+      <button class="btn" onclick="window.location.href='https://2d3t.github.io/index.html/'" title="Выйти">Выход</button>
+    </div>
+  </div>
+</header>
+
+  <main class="wrap" id="app" aria-live="polite"></main>
+
+  <footer class="footer wrap">
+  <div>
+    © <span id="year"></span> Eugene Klik. Сделано с любовью к музыке.
+  </div>
+</footer>
+
+
+
+
+
+
+
+
+  <script>
+const TRACKS = [
+  { title: "Coming Home To You", artist: "Eugene Klik", url: "sound/Forever Highway.mp3", downloadName: "Eugene Klik - Coming Home To You.mp3" },
+{ title: "I Feel It Coming", artist: "Eugene Klik", url: "sound/Can You Feel It.mp3", downloadName: "Eugene Klik - I Feel It Coming.mp3" },
+  { title: "Sometimes I Feel Like Screaming", artist: "Eugene Klik", url: "sound/Fading Screams (Minor Version).mp3", downloadName: "Eugene Klik - Sometimes I Feel Like Screaming.mp3" },
+  { title: "Dance Of Goodbye", artist: "Eugene Klik", url: "sound/Goodbye.mp3", downloadName: "Eugene Klik - Dance Of Goodbye.mp3" },
+];
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const el = (tag, opts = {}) => Object.assign(document.createElement(tag), opts);
+
+function coverInitials(name = "EK") {
+  const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  const svg = `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'>
+    <defs>
+      <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+        <stop offset='0%' stop-color='${getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()}'/>
+        <stop offset='100%' stop-color='${getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim()}'/>
+      </linearGradient>
+    </defs>
+    <rect width='100%' height='100%' rx='24' fill='url(#g)'/>
+    <text x='50%' y='54%' text-anchor='middle' font-size='74' font-family='Inter, system-ui' font-weight='800' fill='white'>${initials}</text>
+  </svg>`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+let asc = true;
+
+function render(list) {
+  const app = $("#app");
+  app.innerHTML = "";
+
+  const grid = el('div', { className: 'grid', role: 'list' });
+
+  list.forEach((t) => {
+    const card = el('article', { className: 'card', role: 'listitem' });
+
+    const cover = el('div', { className: 'cover' });
+    const img = el('img', { alt: `${t.artist} -- ${t.title} (обложка)`, width: 88, height: 88, style: 'width:88px;height:100%;object-fit:cover;display:block;border-right:1px solid rgba(255,255,255,.06);' });
+    img.src = coverInitials('Eugene Klik');
+    cover.append(img);
+
+    const body = el('div', { className: 'card-body' });
+    const meta = el('div', { className: 'meta' });
+    const name = el('div', { className: 'name', textContent: t.title });
+    const time = el('div', { className: 'time', textContent: t.duration || "3:00" });
+    meta.append(name, time);
+
+    const audio = el('audio', { controls: true });
+    audio.src = t.url;
+    audio.preload = 'none';
+    audio.addEventListener('play', () => {
+      document.querySelectorAll('audio').forEach(a => { if (a !== audio) a.pause(); });
+    });
+
+    const controls = el('div', { className: 'controls' });
+    const playBtn = el('button', { className: 'btn primary', innerHTML: '▶︎ Слушать' });
+    playBtn.addEventListener('click', () => audio.paused ? audio.play() : audio.pause());
+
+    const dl = el('a', { className: 'btn', innerHTML: '⬇️ Скачать', href: t.url });
+    if (t.downloadName) dl.download = t.downloadName;
+
+    const tags = el('div', { className: 'chip', textContent: (t.tags || []).join(' · ') });
+    controls.append(playBtn, dl, tags);
+
+    body.append(meta, audio, controls);
+    card.append(cover, body);
+    grid.append(card);
+  });
+
+  app.append(grid);
+}
+
+function applyFilter() {
+  const q = $("#search").value.trim().toLowerCase();
+  let list = TRACKS.filter(t => t.title.toLowerCase().includes(q));
+  list.sort((a, b) => asc ? a.title.localeCompare(b.title, 'ru') : b.title.localeCompare(a.title, 'ru'));
+  render(list);
+}
+
+$("#search").addEventListener('input', applyFilter);
+$("#sortBtn").addEventListener('click', () => { asc = !asc; applyFilter(); });
+
+const themeToggle = $("#theme");
+const savedTheme = localStorage.getItem('ek_theme');
+if (savedTheme === 'light') { document.body.classList.add('light'); themeToggle.checked = true; }
+themeToggle.addEventListener('change', e => {
+  document.body.classList.toggle('light', e.target.checked);
+  localStorage.setItem('ek_theme', e.target.checked ? 'light' : 'dark');
+});
+
+const shareBtn = $("#shareBtn");
+shareBtn?.addEventListener('click', async () => {
+  const url = location.href;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Музыка -- Eugene Klik', text: '', url });
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      alert('Ссылка скопирована в буфер обмена');
+    } else {
+      prompt('Скопируй ссылку:', url);
+    }
+  } catch (e) {}
+});
+
+$("#telegramShare")?.addEventListener('click', e => {
+  e.preventDefault();
+  const url = encodeURIComponent(location.href);
+  window.open(`https://t.me/share/url?url=${url}`, '_blank');
+});
+
+$("#twitterShare")?.addEventListener('click', e => {
+  e.preventDefault();
+  const url = encodeURIComponent(location.href);
+  const text = encodeURIComponent('Слушай и скачивай треки  Eugene Klik!');
+  window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+});
+
+document.getElementById('year').textContent = new Date().getFullYear();
+render(TRACKS);
+</script>
+<script>
+let currentIndex = 0;
+let currentAudio = null;
+
+function playTrack(index) {
+  if (currentAudio) currentAudio.pause();
+  const audios = document.querySelectorAll('audio');
+  if (audios[index]) {
+    currentIndex = index;
+    currentAudio = audios[index];
+    currentAudio.play();
+
+    // обработка автоперехода
+    currentAudio.onended = () => {
+      if ($("#autoToggle").checked) {
+        nextTrack();
+      }
+    };
+  }
+}
+
+function stopTrack() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+}
+
+function nextTrack() {
+  if ($("#randomToggle").checked) {
+    currentIndex = Math.floor(Math.random() * TRACKS.length);
+  } else {
+    currentIndex = (currentIndex + 1) % TRACKS.length;
+  }
+  playTrack(currentIndex);
+}
+
+function prevTrack() {
+  if ($("#randomToggle").checked) {
+    currentIndex = Math.floor(Math.random() * TRACKS.length);
+  } else {
+    currentIndex = (currentIndex - 1 + TRACKS.length) % TRACKS.length;
+  }
+  playTrack(currentIndex);
+}
+
+// кнопки управления
+$("#playBtn").addEventListener("click", () => {
+  if (!currentAudio || currentAudio.paused) {
+    // если еще не играло и включен случайный выбор
+    if (!currentAudio && $("#randomToggle").checked) {
+      currentIndex = Math.floor(Math.random() * TRACKS.length);
+    }
+    playTrack(currentIndex);
+  } else {
+    currentAudio.pause();
+  }
+});
+
+$("#stopBtn").addEventListener("click", stopTrack);
+$("#nextBtn").addEventListener("click", nextTrack);
+$("#prevBtn").addEventListener("click", prevTrack);
+</script>
+
+
+</body>
+</html>
