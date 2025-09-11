@@ -1,153 +1,184 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Редактор тегов MP3</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Редактор тегов MP3 — с исправлением</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/browser-id3-writer/dist/browser-id3-writer.umd.js"></script>
+  <style>
+    @keyframes pulse-text { 0%{opacity:1}50%{opacity:.4}100%{opacity:1} }
+    .pulse-text { animation: pulse-text 1.2s infinite; }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center min-h-screen p-4">
+  <div class="w-full max-w-lg bg-white rounded-2xl shadow-lg p-8 space-y-6 relative">
+    <h1 class="text-3xl font-bold text-center text-indigo-600">🎵 Редактор тегов MP3</h1>
 
-  <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 space-y-4 relative">
-    <h1 class="text-2xl font-bold text-center text-indigo-600">🎵 Редактор тегов MP3</h1>
-
-    <!-- Загрузка MP3 -->
     <div>
       <label class="block text-sm font-medium text-gray-700">Выберите MP3</label>
-      <input type="file" id="fileInput" accept="audio/mpeg" class="mt-1 block w-full text-sm text-gray-600">
+      <input type="file" id="fileInput" accept="audio/mpeg" class="mt-1 block w-full text-sm text-gray-600 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
     </div>
 
-    <!-- Поля для тегов -->
     <div>
       <label class="block text-sm font-medium text-gray-700">Название</label>
-      <input type="text" id="title" class="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      <input type="text" id="title" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
     </div>
 
     <div>
       <label class="block text-sm font-medium text-gray-700">Исполнитель</label>
-      <input type="text" id="artist" class="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      <input type="text" id="artist" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
     </div>
 
     <div>
       <label class="block text-sm font-medium text-gray-700">Альбом</label>
-      <input type="text" id="album" class="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400">
+      <input type="text" id="album" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400" />
     </div>
 
-    <!-- Загрузка обложки -->
     <div>
       <label class="block text-sm font-medium text-gray-700">Обложка</label>
-      <input type="file" id="coverInput" accept="image/*" class="mt-1 block w-full text-sm text-gray-600">
-      <img id="coverPreview" class="mt-3 rounded-lg shadow max-h-40 mx-auto hidden"/>
+      <input type="file" id="coverInput" accept="image/*" class="mt-1 block w-full text-sm text-gray-600 border border-gray-300 rounded-lg" />
+      <img id="coverPreview" class="mt-3 rounded-lg shadow max-h-40 mx-auto hidden" />
     </div>
 
-    <!-- Кнопка -->
     <button id="saveBtn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-indigo-700 transition disabled:opacity-50" disabled>
       💾 Сохранить новый MP3
     </button>
 
-    <!-- Индикатор загрузки -->
-    <div id="loader" class="absolute inset-0 bg-white/80 flex flex-col items-center justify-center hidden rounded-2xl">
+    <div id="loader" class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center hidden rounded-2xl">
       <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-      <p id="loaderText" class="mt-3 text-indigo-700 font-semibold">Загрузка...</p>
+      <p id="loaderText" class="mt-3 text-indigo-700 font-semibold pulse-text">Загрузка...</p>
     </div>
   </div>
 
   <script>
-    let selectedFile;
-    let coverImage;
+    (async () => {
+      let ID3WriterCtor = null;
 
-    const fileInput = document.getElementById("fileInput");
-    const coverInput = document.getElementById("coverInput");
-    const coverPreview = document.getElementById("coverPreview");
-    const saveBtn = document.getElementById("saveBtn");
-
-    const loader = document.getElementById("loader");
-    const loaderText = document.getElementById("loaderText");
-
-    function showLoader(text = "Загрузка...") {
-      loaderText.textContent = text;
-      loader.classList.remove("hidden");
-    }
-
-    function hideLoader() {
-      loader.classList.add("hidden");
-    }
-
-    fileInput.addEventListener("change", (e) => {
-      selectedFile = e.target.files[0];
-      if (selectedFile) {
-        saveBtn.disabled = false;
-        console.log("Выбран MP3:", selectedFile.name);
-      }
-    });
-
-    coverInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          coverImage = evt.target.result;
-          coverPreview.src = coverImage;
-          coverPreview.classList.remove("hidden");
-          console.log("Обложка загружена");
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    saveBtn.addEventListener("click", async () => {
-      if (!selectedFile) {
-        alert("Выберите MP3!");
-        return;
+      async function tryLoadESM() {
+        try {
+          const mod = await import('https://unpkg.com/browser-id3-writer@6.3.1/dist/browser-id3-writer.mjs');
+          ID3WriterCtor = mod.ID3Writer;
+          console.log('Loaded browser-id3-writer (ESM) OK');
+        } catch (err) {
+          console.warn('ESM import failed:', err);
+          throw err;
+        }
       }
 
-      showLoader("Обработка MP3...");
+      async function tryLoadUMDfallback() {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://unpkg.com/browser-id3-writer@5.0.0/dist/browser-id3-writer.umd.js';
+          s.crossOrigin = 'anonymous';
+          s.onload = () => {
+            ID3WriterCtor = window.ID3Writer || window.browserId3Writer || null;
+            console.log('Loaded browser-id3-writer UMD fallback:', !!ID3WriterCtor);
+            resolve();
+          };
+          s.onerror = () => reject(new Error('Не удалось загрузить UMD fallback'));
+          document.head.appendChild(s);
+        });
+      }
 
       try {
-        const arrayBuffer = await selectedFile.arrayBuffer();
-        const writer = new window.ID3Writer(new Uint8Array(arrayBuffer));
-
-        const title = document.getElementById("title").value;
-        const artist = document.getElementById("artist").value;
-        const album = document.getElementById("album").value;
-
-        if (title) writer.setFrame("TIT2", title);
-        if (artist) writer.setFrame("TPE1", [artist]);
-        if (album) writer.setFrame("TALB", album);
-
-        if (coverImage) {
-          loaderText.textContent = "Добавляем обложку...";
-          const response = await fetch(coverImage);
-          const blob = await response.blob();
-          const buffer = await blob.arrayBuffer();
-          writer.setFrame("APIC", {
-            type: 3,
-            data: new Uint8Array(buffer),
-            description: "Cover"
-          });
+        await tryLoadESM();
+      } catch (_) {
+        try {
+          await tryLoadUMDfallback();
+        } catch (err) {
+          console.error('Не удалось загрузить библиотеку ID3Writer ни как ESM, ни как UMD', err);
+          alert('Ошибка: не удалось загрузить библиотеку для работы с ID3. Открой консоль для подробностей.');
         }
-
-        writer.addTag();
-
-        loaderText.textContent = "Сохраняем файл...";
-
-        const blob = writer.getBlob();
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "edited_" + selectedFile.name;
-        a.click();
-
-        URL.revokeObjectURL(url);
-        console.log("Файл сохранён!");
-      } catch (err) {
-        alert("Ошибка: " + err.message);
-        console.error(err);
-      } finally {
-        hideLoader();
       }
-    });
+
+      const fileInput = document.getElementById('fileInput');
+      const coverInput = document.getElementById('coverInput');
+      const coverPreview = document.getElementById('coverPreview');
+      const saveBtn = document.getElementById('saveBtn');
+      const loader = document.getElementById('loader');
+      const loaderText = document.getElementById('loaderText');
+
+      let selectedFile = null;
+      let coverImageDataUrl = null;
+
+      function showLoader(text = 'Загрузка...') {
+        loaderText.textContent = text;
+        loader.classList.remove('hidden');
+      }
+      function hideLoader() { loader.classList.add('hidden'); }
+
+      fileInput.addEventListener('change', (e) => {
+        selectedFile = e.target.files[0] || null;
+        saveBtn.disabled = !selectedFile;
+        console.log('Файл выбран:', selectedFile && selectedFile.name);
+      });
+
+      coverInput.addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => {
+          coverImageDataUrl = r.result;
+          coverPreview.src = coverImageDataUrl;
+          coverPreview.classList.remove('hidden');
+          console.log('Обложка готова');
+        };
+        r.onerror = () => {
+          console.error('Ошибка чтения обложки', r.error);
+          alert('Ошибка при чтении изображения обложки.');
+        };
+        r.readAsDataURL(f);
+        showLoader('Читаем обложку...');
+        r.onloadend = () => hideLoader();
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        if (!selectedFile) { alert('Выберите MP3!'); return; }
+        if (!ID3WriterCtor) { alert('Библиотека для работы с тегами не загружена. Открой консоль.'); return; }
+
+        try {
+          showLoader('Обработка MP3...');
+
+          const arrayBuffer = await selectedFile.arrayBuffer();
+          const writer = new ID3WriterCtor(new Uint8Array(arrayBuffer));
+
+          const title = document.getElementById('title').value.trim();
+          const artist = document.getElementById('artist').value.trim();
+          const album = document.getElementById('album').value.trim();
+
+          if (title) writer.setFrame('TIT2', title);
+          if (artist) writer.setFrame('TPE1', artist ? [artist] : []);
+          if (album) writer.setFrame('TALB', album);
+
+          if (coverImageDataUrl) {
+            showLoader('Добавляем обложку...');
+            const resp = await fetch(coverImageDataUrl);
+            const blob = await resp.blob();
+            const buf = await blob.arrayBuffer();
+            writer.setFrame('APIC', { type: 3, data: new Uint8Array(buf), description: 'Cover' });
+          }
+
+          writer.addTag();
+
+          showLoader('Готовим файл...');
+          const blobOut = writer.getBlob ? writer.getBlob() : new Blob([writer.arrayBuffer || writer.arrayBuffer()]);
+          const url = URL.createObjectURL(blobOut);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'edited_' + selectedFile.name;
+          a.click();
+          URL.revokeObjectURL(url);
+
+          console.log('Файл создан и отправлен на скачивание.');
+        } catch (err) {
+          console.error('Ошибка при обработке MP3:', err);
+          alert('Ошибка: ' + (err && err.message ? err.message : String(err)));
+        } finally {
+          hideLoader();
+        }
+      });
+
+    })();
   </script>
 </body>
 </html>
