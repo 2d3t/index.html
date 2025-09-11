@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Загрузчик обложки MP3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 space-y-4">
+    <h1 class="text-2xl font-bold text-center text-indigo-600">📥 Загрузчик обложки MP3</h1>
+
+    <!-- Загрузка MP3 -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Выберите MP3</label>
+      <input type="file" id="fileInput" accept="audio/mpeg" class="mt-1 block w-full text-sm text-gray-600">
+    </div>
+
+    <!-- Обложка -->
+    <div>
+      <img id="coverPreview" class="mt-3 rounded-lg shadow max-h-40 mx-auto hidden"/>
+    </div>
+
+    <!-- Индикатор -->
+    <div id="status" class="text-center text-sm text-gray-500 hidden">⏳ Чтение обложки...</div>
+
+    <!-- Кнопка -->
+    <button id="downloadBtn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-indigo-700 transition disabled:opacity-50" disabled>
+      📥 Скачать обложку
+    </button>
+
+<button onclick="window.location.href='https://2d3t.github.io/index.html/pro/tagmp3.html'">Назад</button>
+  </div>
+
+  <script>
+    let existingCover; // старая обложка (Uint8Array)
+
+    const fileInput = document.getElementById("fileInput");
+    const coverPreview = document.getElementById("coverPreview");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const status = document.getElementById("status");
+
+    // Загрузка MP3 и чтение тегов через jsmediatags
+    fileInput.addEventListener("change", (e) => {
+      const selectedFile = e.target.files[0];
+      if (!selectedFile) return;
+
+      status.textContent = "⏳ Чтение обложки...";
+      status.classList.remove("hidden");
+
+      window.jsmediatags.read(selectedFile, {
+        onSuccess: (tag) => {
+          if (tag.tags.picture) {
+            const { data, format } = tag.tags.picture;
+            existingCover = new Uint8Array(data);
+            const blob = new Blob([existingCover], { type: format });
+            coverPreview.src = URL.createObjectURL(blob);
+            coverPreview.classList.remove("hidden");
+            downloadBtn.disabled = false;
+
+            // Создание ссылки для скачивания
+            downloadBtn.onclick = () => {
+              const link = document.createElement('a');
+              link.href = coverPreview.src;
+              link.download = "cover." + format.split('/')[1]; // получаем расширение (jpg/png и т.д.)
+              link.click();
+            };
+          } else {
+            coverPreview.classList.add("hidden");
+            downloadBtn.disabled = true;
+          }
+
+          status.classList.add("hidden");
+        },
+        onError: (err) => {
+          console.error("Ошибка чтения тегов:", err);
+          status.textContent = "⚠️ Ошибка чтения тегов";
+        }
+      });
+    });
+  </script>
+
+
+
+</body>
+</html>
