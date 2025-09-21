@@ -64,12 +64,16 @@
 <body>
   <h1>Да↑ или Нет↓?</h1>
   <input type="number" id="count" value="100" min="1" max="10000">
+  <input type="text" id="title" placeholder="Название расчета" style="margin-bottom: 15px;">
   <button onclick="calculate()">Посчитать</button>
+  <button id="download" style="margin-top: 10px;">Скачать результат</button>
   <div id="results"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     function calculate() {
       const count = parseInt(document.getElementById("count").value) || 100;
+      const title = document.getElementById("title").value || "Расчет";
       let yesCount = 0;
       let noCount = 0;
 
@@ -78,13 +82,31 @@
         else noCount++;
       }
 
-      document.getElementById("results").innerHTML = `
+      const now = new Date();
+      const dateTime = now.toLocaleString('ru-RU', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = `
+        <strong>${title}</strong><br>
         📊 Результат (${count} испытаний):<br>
         <span class="yes">Да↑: ${yesCount}</span><br>
-        <span class="no">Нет↓: ${noCount}</span>
+        <span class="no">Нет↓: ${noCount}</span><br>
+        <small>Дата и время: ${dateTime}</small>
       `;
     }
+
+    document.getElementById('download').addEventListener('click', () => {
+      const resultsDiv = document.getElementById('results');
+      html2canvas(resultsDiv).then(canvas => {
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/jpeg');
+        link.download = 'result.jpeg';
+        link.click();
+      });
+    });
   </script>
 </body>
 </html>
-
