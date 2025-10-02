@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Изменение размера PNG</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        canvas {
+            display: none;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .result img {
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        a {
+            display: inline-block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #fff;
+            background-color: #28a745;
+            padding: 10px 15px;
+            border-radius: 5px;
+        }
+        a:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Превращение PNG в 3000x3000</h1>
+    <input type="file" id="fileInput" accept="image/png">
+    <button id="resizeButton">Изменить размер</button>
+    <div class="result" id="result"></div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        document.getElementById('resizeButton').onclick = function() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            if (fileInput.files.length === 0) {
+                alert('Пожалуйста, выберите PNG файл.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const img = new Image();
+
+            img.onload = function() {
+                canvas.width = 3000;
+                canvas.height = 3000;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, 3000, 3000);
+
+                const imgURL = canvas.toDataURL('image/png');
+                resultDiv.innerHTML = `
+                    <h2>Результат:</h2>
+                    <img src="${imgURL}" alt="Результат">
+                    <button id="downloadButton">Скачать изображение</button>
+                `;
+
+                document.getElementById('downloadButton').onclick = function() {
+                    const link = document.createElement('a');
+                    link.href = imgURL;
+                    link.download = 'resized_image.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                };
+            };
+
+            img.src = URL.createObjectURL(file);
+        };
+    </script>
+
+</body>
+</html>
