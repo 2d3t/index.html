@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -9,152 +8,199 @@
     body {
       font-family: Arial, sans-serif;
       display: flex;
+      height: 100vh;
+      margin: 0;
     }
     #sidebar {
-      width: 300px;
-      background: #f4f4f4;
+      width: 320px;
+      background: #f7f7f7;
       padding: 10px;
       border-right: 1px solid #ccc;
+      overflow-y: auto;
     }
     #editor {
       flex-grow: 1;
       padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    textarea {
+      flex-grow: 1;
+      width: 100%;
+      resize: none;
     }
     .folder, .file {
+      margin: 3px 0;
+      display: flex;
+      align-items: center;
       cursor: pointer;
-      margin: 5px 0;
-    }
-    .file {
-      padding-left: 20px;
     }
     .folder-contents {
       padding-left: 20px;
     }
     button {
-      margin: 5px 0;
+      margin: 3px;
+      padding: 3px 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 4px;
     }
   </style>
 </head>
 <body>
   <div id="sidebar">
-    <button onclick="createFolder()">Create Folder</button>
-    <button onclick="createFile()">Create File</button>
-    <button onclick="saveSystem()">Save System</button>
-    <button onclick="loadSystem()">Load System</button>
+    <div class="actions">
+      <button title="New Folder" onclick="createFolder()">📁</button>
+      <button title="New File" onclick="createFile()">📄</button>
+      <button title="Save JSON" onclick="saveSystem()">💾</button>
+      <button title="Load JSON" onclick="loadSystem()">📂</button>
+    </div>
     <div id="file-system"></div>
-    <input type="file" id="file-input" style="display: none;" onchange="handleFileLoad(event)">
+    <input type="file" id="file-input" style="display:none" onchange="handleFileLoad(event)">
   </div>
+
   <div id="editor">
-    <textarea id="file-content" rows="20" cols="50" style="width: 100%;"></textarea>
+    <textarea id="file-content" placeholder="Select or create a file to start editing..."></textarea>
   </div>
 
   <script>
-    // Инициализация файловой системы
-    let fileSystem = {};
+    let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
     let currentFile = null;
-    let currentFolder = fileSystem; // Указатель на текущую папку
 
-    // Рендер файловой системы
     function renderFileSystem() {
       const container = document.getElementById('file-system');
       container.innerHTML = '';
       renderFolder(fileSystem, container, []);
+      autoSave();
     }
 
     function renderFolder(folder, container, path) {
       Object.keys(folder).forEach(name => {
         const fullPath = [...path, name];
+        const itemDiv = document.createElement('div');
+
         if (typeof folder[name] === 'object') {
-          const folderDiv = document.createElement('div');
-          folderDiv.className = 'folder';
-          folderDiv.textContent = `📁 ${name}`;
-          folderDiv.onclick = (e) => {
+          itemDiv.className = 'folder';
+          const toggle = document.createElement('span');
+          toggle.textContent = '📁 ' + name;
+          toggle.onclick = (e) => {
             e.stopPropagation();
-            const subContainer = document.createElement('div');
-            subContainer.className = 'folder-contents';
-            renderFolder(folder[name], subContainer, fullPath);
-            folderDiv.appendChild(subContainer);
-            folderDiv.onclick = null;
+            subContainer.classList.toggle('hidden');
           };
-          const createInsideButton = document.createElement('button');
-          createInsideButton.textContent = '+';
-          createInsideButton.title = "Add to folder";
-          createInsideButton.onclick = (e) => {
+
+          const addFileBtn = document.createElement('button');
+          addFileBtn.textContent = '📄';
+          addFileBtn.className = 'icon-btn';
+          addFileBtn.title = 'Add file';
+          addFileBtn.onclick = (e) => {
             e.stopPropagation();
-            currentFolder = folder[name];
-            handleCreateInside(fullPath);
+            createFile(fullPath);
           };
-          folderDiv.appendChild(createInsideButton);
-          container.appendChild(folderDiv);
+
+          const addFolderBtn = document.createElement('button');
+          addFolderBtn.textContent = '📁';
+          addFolderBtn.className = 'icon-btn';
+          addFolderBtn.title = 'Add folder';
+          addFolderBtn.onclick = (e) => {
+            e.stopPropagation();
+            createFolder(fullPath);
+          };
+
+          const delBtn = document.createElement('button');
+          delBtn.textContent = '🗑';
+          delBtn.className = 'icon-btn';
+          delBtn.title = 'Delete folder';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteItem(fullPath);
+          };
+
+          itemDiv.append(toggle, addFileBtn, addFolderBtn, delBtn);
+
+          const subContainer = document.createElement('div');
+          subContainer.className = 'folder-contents';
+          renderFolder(folder[name], subContainer, fullPath);
+          itemDiv.appendChild(subContainer);
         } else {
-          const fileDiv = document.createElement('div');
-          fileDiv.className = 'file';
-          fileDiv.textContent = `📄 ${name}`;
-          fileDiv.onclick = () => {
-            currentFile = fullPath;
-            document.getElementById('file-content').value = folder[name];
+          itemDiv.className = 'file';
+          itemDiv.textContent = '📄 ' + name;
+          itemDiv.onclick = () => openFile(fullPath);
+
+          const delBtn = document.createElement('button');
+          delBtn.textContent = '🗑';
+          delBtn.className = 'icon-btn';
+          delBtn.title = 'Delete file';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteItem(fullPath);
           };
-          container.appendChild(fileDiv);
+          itemDiv.appendChild(delBtn);
         }
+
+        container.appendChild(itemDiv);
       });
     }
 
-    function handleCreateInside(path) {
-      const action = prompt('Enter "folder" to create folder or "file" to create file:');
-      if (action === 'folder') {
-        createFolder(path);
-      } else if (action === 'file') {
-        createFile(path);
-      }
+    function openFile(path) {
+      currentFile = path;
+      let file = fileSystem;
+      for (let i = 0; i < path.length - 1; i++) file = file[path[i]];
+      document.getElementById('file-content').value = file[path[path.length - 1]];
     }
 
-    // Функция для получения папки по пути
     function getFolderByPath(path) {
       let folder = fileSystem;
-      for (const part of path) {
-        folder = folder[part];
-      }
+      for (const part of path) folder = folder[part];
       return folder;
     }
 
-    // Создание новой папки
     function createFolder(path = []) {
-      const name = prompt('Enter folder name:');
+      const name = prompt('Folder name:');
       if (!name) return;
-      const folder = path.length > 0 ? getFolderByPath(path) : fileSystem;
-      if (!folder[name]) {
-        folder[name] = {};
-        renderFileSystem();
-      } else {
-        alert('Folder already exists!');
-      }
+      const folder = path.length ? getFolderByPath(path) : fileSystem;
+      if (folder[name]) return alert('Folder already exists!');
+      folder[name] = {};
+      renderFileSystem();
     }
 
-    // Создание нового файла
     function createFile(path = []) {
-      const name = prompt('Enter file name:');
+      const name = prompt('File name:');
       if (!name) return;
-      const folder = path.length > 0 ? getFolderByPath(path) : fileSystem;
-      if (!folder[name]) {
-        folder[name] = '';
-        renderFileSystem();
-      } else {
-        alert('File already exists!');
-      }
+      const folder = path.length ? getFolderByPath(path) : fileSystem;
+      if (folder[name]) return alert('File already exists!');
+      folder[name] = '';
+      renderFileSystem();
     }
 
-    // Обновление содержимого файла
-    document.getElementById('file-content').addEventListener('input', (e) => {
-      if (currentFile) {
-        let file = fileSystem;
-        for (let i = 0; i < currentFile.length - 1; i++) {
-          file = file[currentFile[i]];
-        }
-        file[currentFile[currentFile.length - 1]] = e.target.value;
-      }
+    function deleteItem(path) {
+      if (!confirm('Delete this item?')) return;
+      let obj = fileSystem;
+      for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]];
+      delete obj[path[path.length - 1]];
+      if (currentFile && JSON.stringify(path) === JSON.stringify(currentFile))
+        document.getElementById('file-content').value = '';
+      renderFileSystem();
+    }
+
+    document.getElementById('file-content').addEventListener('input', e => {
+      if (!currentFile) return;
+      let file = fileSystem;
+      for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
+      file[currentFile[currentFile.length - 1]] = e.target.value;
+      autoSave();
     });
 
-    // Сохранение файловой системы в JSON-файл
     function saveSystem() {
       const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
       const link = document.createElement('a');
@@ -164,25 +210,30 @@
       URL.revokeObjectURL(link.href);
     }
 
-    // Загрузка JSON-файла файловой системы
     function loadSystem() {
       document.getElementById('file-input').click();
     }
 
     function handleFileLoad(event) {
       const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          fileSystem = JSON.parse(e.target.result);
-          renderFileSystem();
-          alert('File system loaded successfully!');
-        };
-        reader.readAsText(file);
-      }
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fileSystem = JSON.parse(e.target.result);
+        localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+        renderFileSystem();
+        alert('File system loaded!');
+      };
+      reader.readAsText(file);
     }
 
-    // Начальный рендер
+    function autoSave() {
+      localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+    }
+
+    // Автосохранение каждые 5 секунд
+    setInterval(autoSave, 5000);
+
     renderFileSystem();
   </script>
 </body>
