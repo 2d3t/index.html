@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>File System Editor</title>
+  <title>File System Explorer</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,151 +12,180 @@
       margin: 0;
     }
     #sidebar {
-      width: 320px;
+      width: 340px;
       background: #f7f7f7;
       padding: 10px;
       border-right: 1px solid #ccc;
       overflow-y: auto;
-    }
-    #editor {
-      flex-grow: 1;
-      padding: 10px;
       display: flex;
       flex-direction: column;
     }
-    textarea {
-      flex-grow: 1;
-      width: 100%;
-      resize: none;
+    #path-bar {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
     }
-    .folder, .file {
-      margin: 3px 0;
+    #file-list {
+      flex-grow: 1;
+    }
+    .item {
+      margin: 4px 0;
+      padding: 4px;
+      cursor: pointer;
+      border-radius: 5px;
       display: flex;
       align-items: center;
-      cursor: pointer;
+      justify-content: space-between;
     }
-    .folder-contents {
-      padding-left: 20px;
-    }
-    button {
-      margin: 3px;
-      padding: 3px 6px;
-      font-size: 14px;
-      cursor: pointer;
+    .item:hover {
+      background-color: #eaeaea;
     }
     .actions {
       display: flex;
       justify-content: space-between;
+      flex-wrap: wrap;
       margin-bottom: 10px;
     }
-    .icon-btn {
-      background: none;
-      border: none;
+    button {
+      margin: 3px;
+      padding: 4px 8px;
+      font-size: 14px;
       cursor: pointer;
-      font-size: 16px;
-      margin-left: 4px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: white;
+    }
+    button:hover {
+      background: #f0f0f0;
+    }
+    #editor {
+      flex-grow: 1;
+      display: none;
+      flex-direction: column;
+      padding: 10px;
+    }
+    #editor textarea {
+      flex-grow: 1;
+      width: 100%;
+      resize: none;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 8px;
+    }
+    #editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
   </style>
 </head>
 <body>
   <div id="sidebar">
     <div class="actions">
-      <button title="New Folder" onclick="createFolder()">📁</button>
-      <button title="New File" onclick="createFile()">📄</button>
-      <button title="Save JSON" onclick="saveSystem()">💾</button>
-      <button title="Load JSON" onclick="loadSystem()">📂</button>
+      <button onclick="goBack()">⬅️</button>
+      <button onclick="createFolder()">📁</button>
+      <button onclick="createFile()">📄</button>
+      <button onclick="saveSystem()">💾</button>
+      <button onclick="loadSystem()">📂</button>
+      <button onclick="shareSystem()">🔗</button>
     </div>
-    <div id="file-system"></div>
+    <div id="path-bar"></div>
+    <div id="file-list"></div>
     <input type="file" id="file-input" style="display:none" onchange="handleFileLoad(event)">
   </div>
 
   <div id="editor">
-    <textarea id="file-content" placeholder="Select or create a file to start editing..."></textarea>
+    <div id="editor-header">
+      <span id="editor-filename"></span>
+      <div>
+        <button onclick="saveFile()">💾 Save</button>
+        <button onclick="closeEditor()">❌ Close</button>
+      </div>
+    </div>
+    <textarea id="file-content"></textarea>
   </div>
 
   <script>
     let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
+    let currentPath = [];
     let currentFile = null;
 
-    function renderFileSystem() {
-      const container = document.getElementById('file-system');
+    function renderFileList() {
+      const container = document.getElementById('file-list');
       container.innerHTML = '';
-      renderFolder(fileSystem, container, []);
+      const folder = getFolderByPath(currentPath);
+
+      document.getElementById('path-bar').textContent =
+        '/' + (currentPath.length ? currentPath.join('/') : '');
+
+      Object.keys(folder).forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'item';
+
+        const label = document.createElement('span');
+        if (typeof folder[name] === 'object') {
+          label.textContent = '📁 ' + name;
+          label.onclick = () => {
+            currentPath.push(name);
+            renderFileList();
+          };
+        } else {
+          label.textContent = '📄 ' + name;
+          label.onclick = () => openFile([...currentPath, name]);
+        }
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑';
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteItem([...currentPath, name]);
+        };
+
+        div.append(label, delBtn);
+        container.appendChild(div);
+      });
       autoSave();
     }
 
-    function renderFolder(folder, container, path) {
-      Object.keys(folder).forEach(name => {
-        const fullPath = [...path, name];
-        const itemDiv = document.createElement('div');
-
-        if (typeof folder[name] === 'object') {
-          itemDiv.className = 'folder';
-          const toggle = document.createElement('span');
-          toggle.textContent = '📁 ' + name;
-          toggle.onclick = (e) => {
-            e.stopPropagation();
-            subContainer.classList.toggle('hidden');
-          };
-
-          const addFileBtn = document.createElement('button');
-          addFileBtn.textContent = '📄';
-          addFileBtn.className = 'icon-btn';
-          addFileBtn.title = 'Add file';
-          addFileBtn.onclick = (e) => {
-            e.stopPropagation();
-            createFile(fullPath);
-          };
-
-          const addFolderBtn = document.createElement('button');
-          addFolderBtn.textContent = '📁';
-          addFolderBtn.className = 'icon-btn';
-          addFolderBtn.title = 'Add folder';
-          addFolderBtn.onclick = (e) => {
-            e.stopPropagation();
-            createFolder(fullPath);
-          };
-
-          const delBtn = document.createElement('button');
-          delBtn.textContent = '🗑';
-          delBtn.className = 'icon-btn';
-          delBtn.title = 'Delete folder';
-          delBtn.onclick = (e) => {
-            e.stopPropagation();
-            deleteItem(fullPath);
-          };
-
-          itemDiv.append(toggle, addFileBtn, addFolderBtn, delBtn);
-
-          const subContainer = document.createElement('div');
-          subContainer.className = 'folder-contents';
-          renderFolder(folder[name], subContainer, fullPath);
-          itemDiv.appendChild(subContainer);
-        } else {
-          itemDiv.className = 'file';
-          itemDiv.textContent = '📄 ' + name;
-          itemDiv.onclick = () => openFile(fullPath);
-
-          const delBtn = document.createElement('button');
-          delBtn.textContent = '🗑';
-          delBtn.className = 'icon-btn';
-          delBtn.title = 'Delete file';
-          delBtn.onclick = (e) => {
-            e.stopPropagation();
-            deleteItem(fullPath);
-          };
-          itemDiv.appendChild(delBtn);
-        }
-
-        container.appendChild(itemDiv);
-      });
+    function goBack() {
+      if (currentFile) {
+        closeEditor();
+        return;
+      }
+      if (currentPath.length === 0) return;
+      currentPath.pop();
+      renderFileList();
     }
 
     function openFile(path) {
       currentFile = path;
       let file = fileSystem;
       for (let i = 0; i < path.length - 1; i++) file = file[path[i]];
-      document.getElementById('file-content').value = file[path[path.length - 1]];
+      const content = file[path[path.length - 1]];
+      document.getElementById('editor-filename').textContent = '/' + path.join('/');
+      document.getElementById('file-content').value = content;
+      document.getElementById('editor').style.display = 'flex';
+      document.getElementById('sidebar').style.display = 'none';
+    }
+
+    function saveFile() {
+      if (!currentFile) return;
+      let file = fileSystem;
+      for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
+      file[currentFile[currentFile.length - 1]] =
+        document.getElementById('file-content').value;
+      autoSave();
+      alert('File saved!');
+    }
+
+    function closeEditor() {
+      currentFile = null;
+      document.getElementById('editor').style.display = 'none';
+      document.getElementById('sidebar').style.display = 'flex';
+      renderFileList();
     }
 
     function getFolderByPath(path) {
@@ -165,22 +194,22 @@
       return folder;
     }
 
-    function createFolder(path = []) {
+    function createFolder() {
       const name = prompt('Folder name:');
       if (!name) return;
-      const folder = path.length ? getFolderByPath(path) : fileSystem;
-      if (folder[name]) return alert('Folder already exists!');
+      const folder = getFolderByPath(currentPath);
+      if (folder[name]) return alert('Already exists!');
       folder[name] = {};
-      renderFileSystem();
+      renderFileList();
     }
 
-    function createFile(path = []) {
+    function createFile() {
       const name = prompt('File name:');
       if (!name) return;
-      const folder = path.length ? getFolderByPath(path) : fileSystem;
-      if (folder[name]) return alert('File already exists!');
+      const folder = getFolderByPath(currentPath);
+      if (folder[name]) return alert('Already exists!');
       folder[name] = '';
-      renderFileSystem();
+      renderFileList();
     }
 
     function deleteItem(path) {
@@ -188,18 +217,8 @@
       let obj = fileSystem;
       for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]];
       delete obj[path[path.length - 1]];
-      if (currentFile && JSON.stringify(path) === JSON.stringify(currentFile))
-        document.getElementById('file-content').value = '';
-      renderFileSystem();
+      renderFileList();
     }
-
-    document.getElementById('file-content').addEventListener('input', e => {
-      if (!currentFile) return;
-      let file = fileSystem;
-      for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
-      file[currentFile[currentFile.length - 1]] = e.target.value;
-      autoSave();
-    });
 
     function saveSystem() {
       const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
@@ -221,20 +240,32 @@
       reader.onload = (e) => {
         fileSystem = JSON.parse(e.target.result);
         localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
-        renderFileSystem();
+        currentPath = [];
+        renderFileList();
         alert('File system loaded!');
       };
       reader.readAsText(file);
+    }
+
+    function shareSystem() {
+      const data = JSON.stringify(fileSystem, null, 2);
+      navigator.clipboard.writeText(data).then(() => {
+        alert('File system copied to clipboard!');
+      }).catch(() => {
+        const blob = new Blob([data], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'sharedFileSystem.json';
+        a.click();
+      });
     }
 
     function autoSave() {
       localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
     }
 
-    // Автосохранение каждые 5 секунд
     setInterval(autoSave, 5000);
-
-    renderFileSystem();
+    renderFileList();
   </script>
 </body>
 </html>
