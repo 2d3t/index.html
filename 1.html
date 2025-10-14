@@ -126,16 +126,23 @@
         div.className = 'item';
 
         const label = document.createElement('span');
+        label.textContent = typeof folder[name] === 'object' ? '📁 ' + name : '📄 ' + name;
+
         if (typeof folder[name] === 'object') {
-          label.textContent = '📁 ' + name;
           label.onclick = () => {
             currentPath.push(name);
             renderFileList();
           };
         } else {
-          label.textContent = '📄 ' + name;
           label.onclick = () => openFile([...currentPath, name]);
         }
+
+        const renameBtn = document.createElement('button');
+        renameBtn.textContent = '✏️';
+        renameBtn.onclick = (e) => {
+          e.stopPropagation();
+          renameItem([...currentPath, name]);
+        };
 
         const delBtn = document.createElement('button');
         delBtn.textContent = '🗑';
@@ -144,7 +151,13 @@
           deleteItem([...currentPath, name]);
         };
 
-        div.append(label, delBtn);
+        const rightButtons = document.createElement('div');
+rightButtons.style.display = 'flex';
+rightButtons.style.gap = '5px';
+rightButtons.append(renameBtn, delBtn);
+
+div.append(label, rightButtons);
+
         container.appendChild(div);
       });
       autoSave();
@@ -247,17 +260,17 @@
       reader.readAsText(file);
     }
 
-    function shareSystem() {
-      const data = JSON.stringify(fileSystem, null, 2);
-      navigator.clipboard.writeText(data).then(() => {
-        alert('File system copied to clipboard!');
-      }).catch(() => {
-        const blob = new Blob([data], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'sharedFileSystem.json';
-        a.click();
-      });
+    function renameItem(path) {
+      const currentName = path[path.length - 1];
+      const newName = prompt('Rename to:', currentName);
+      if (!newName || newName === currentName) return;
+
+      const folder = getFolderByPath(currentPath);
+      if (folder[newName]) return alert('Name already exists!');
+
+      folder[newName] = folder[currentName];
+      delete folder[currentName];
+      renderFileList();
     }
 
     function autoSave() {
