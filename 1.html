@@ -80,6 +80,25 @@
       align-items: center;
       margin-bottom: 8px;
     }
+    /* 🔍 стиль для поиска */
+    #search-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    #search-bar {
+      flex-grow: 1;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    label {
+      font-size: 13px;
+      color: #444;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -90,9 +109,17 @@
       <button onclick="createFile()">📄</button>
       <button onclick="saveSystem()">💾</button>
       <button onclick="loadSystem()">📂</button>
-      <div style="width: 36px;"></div> <!-- пустое место вместо кнопки -->
+      <div style="width: 36px;"></div>
     </div>
+
     <div id="path-bar"></div>
+
+    <!-- 🔍 поиск + чекбокс -->
+    <div id="search-container">
+      <input type="text" id="search-bar" placeholder="🔍 Search..." oninput="renderFileList(this.value)">
+      <label><input type="checkbox" id="global-search" onchange="renderFileList(document.getElementById('search-bar').value)"> Везде</label>
+    </div>
+
     <div id="file-list"></div>
     <input type="file" id="file-input" style="display:none" onchange="handleFileLoad(event)">
   </div>
@@ -113,53 +140,93 @@
     let currentPath = [];
     let currentFile = null;
 
-    function renderFileList() {
+    // 🔍 функция рекурсивного поиска по всему дереву
+    function findAllMatches(folder, term, path = []) {
+      let results = [];
+      for (let name in folder) {
+        const fullPath = [...path, name];
+        if (name.toLowerCase().includes(term.toLowerCase())) {
+          results.push({ name, fullPath, isFolder: typeof folder[name] === 'object' });
+        }
+        if (typeof folder[name] === 'object') {
+          results = results.concat(findAllMatches(folder[name], term, fullPath));
+        }
+      }
+      return results;
+    }
+
+    function renderFileList(searchTerm = '') {
       const container = document.getElementById('file-list');
       container.innerHTML = '';
+
+      const globalSearch = document.getElementById('global-search').checked;
       const folder = getFolderByPath(currentPath);
 
       document.getElementById('path-bar').textContent =
         '/' + (currentPath.length ? currentPath.join('/') : '');
 
-      Object.keys(folder).forEach(name => {
+      let items = [];
+
+      if (searchTerm && globalSearch) {
+        items = findAllMatches(fileSystem, searchTerm);
+      } else {
+        items = Object.keys(folder)
+          .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map(name => ({
+            name,
+            fullPath: [...currentPath, name],
+            isFolder: typeof folder[name] === 'object'
+          }));
+      }
+
+      if (items.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.textContent = 'Ничего не найдено.';
+        emptyMsg.style.color = '#888';
+        container.appendChild(emptyMsg);
+        return;
+      }
+
+      items.forEach(({ name, fullPath, isFolder }) => {
         const div = document.createElement('div');
         div.className = 'item';
 
         const label = document.createElement('span');
-        label.textContent = typeof folder[name] === 'object' ? '📁 ' + name : '📄 ' + name;
+        label.textContent = (isFolder ? '📁 ' : '📄 ') + name;
 
-        if (typeof folder[name] === 'object') {
-          label.onclick = () => {
-            currentPath.push(name);
+        label.onclick = () => {
+          if (isFolder) {
+            currentPath = [...fullPath];
+            document.getElementById('search-bar').value = '';
             renderFileList();
-          };
-        } else {
-          label.onclick = () => openFile([...currentPath, name]);
-        }
+          } else {
+            openFile(fullPath);
+          }
+        };
 
         const renameBtn = document.createElement('button');
         renameBtn.textContent = '✏️';
         renameBtn.onclick = (e) => {
           e.stopPropagation();
-          renameItem([...currentPath, name]);
+          renameItem(fullPath);
         };
 
         const delBtn = document.createElement('button');
         delBtn.textContent = '🗑';
         delBtn.onclick = (e) => {
           e.stopPropagation();
-          deleteItem([...currentPath, name]);
+          deleteItem(fullPath);
         };
 
         const rightButtons = document.createElement('div');
-rightButtons.style.display = 'flex';
-rightButtons.style.gap = '5px';
-rightButtons.append(renameBtn, delBtn);
+        rightButtons.style.display = 'flex';
+        rightButtons.style.gap = '5px';
+        rightButtons.append(renameBtn, delBtn);
 
-div.append(label, rightButtons);
-
+        div.append(label, rightButtons);
         container.appendChild(div);
       });
+
       autoSave();
     }
 
@@ -170,6 +237,7 @@ div.append(label, rightButtons);
       }
       if (currentPath.length === 0) return;
       currentPath.pop();
+      document.getElementById('search-bar').value = '';
       renderFileList();
     }
 
@@ -265,7 +333,7 @@ div.append(label, rightButtons);
       const newName = prompt('Rename to:', currentName);
       if (!newName || newName === currentName) return;
 
-      const folder = getFolderByPath(currentPath);
+      const folder = getFolderByPath(path.slice(0, -1));
       if (folder[newName]) return alert('Name already exists!');
 
       folder[newName] = folder[currentName];
