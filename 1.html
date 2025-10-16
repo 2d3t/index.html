@@ -80,7 +80,6 @@
       align-items: center;
       margin-bottom: 8px;
     }
-    /* 🔍 стиль для поиска */
     #search-container {
       display: flex;
       align-items: center;
@@ -103,68 +102,45 @@
 </head>
 <body>
   <div id="sidebar">
-    <div class="actions" style="
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-">
-  <div style="display: flex; gap: 5px;">
-    <button onclick="goBack()">⬅️</button>
-    <button onclick="createFolder()">📁</button>
-    <button onclick="createFile()">📄</button>
-    <button onclick="saveSystem()">💾</button>
-    <button onclick="loadSystem()">📂</button>
-    <button onclick="location.href='https://2d3t.github.io/index.html/'">🚪</button>
-  </div>
-
-  <div style="
-    text-align: center;
-    flex-grow: 1;
-    font-weight: bold;
-    font-size: 18px;
-    color: #333;
-  ">
-    Initi
-  </div>
-
-  <div style="width: 60px;"></div> <!-- просто "пустое место" для симметрии -->
-</div>
-
-
-
+    <div class="actions">
+      <div style="display: flex; gap: 5px;">
+        <button onclick="goBack()">⬅️</button>
+        <button onclick="createFolder()">📁</button>
+        <button onclick="createFile()">📄</button>
+        <button onclick="saveSystem()">💾</button>
+        <button onclick="loadSystem()">📂</button>
+        <button onclick="location.href='https://2d3t.github.io/index.html/'">🚪</button>
+      </div>
+      <div style="text-align: center; flex-grow: 1; font-weight: bold; font-size: 18px; color: #333;">
+        Initi
+      </div>
+      <div style="width: 60px;"></div>
+    </div>
     <div id="path-bar"></div>
-
-    <!-- 🔍 поиск + чекбокс -->
     <div id="search-container">
       <input type="text" id="search-bar" placeholder="🔍 Search..." oninput="renderFileList(this.value)">
       <label><input type="checkbox" id="global-search" onchange="renderFileList(document.getElementById('search-bar').value)"> Везде</label>
     </div>
-
     <div id="file-list"></div>
     <input type="file" id="file-input" style="display:none" onchange="handleFileLoad(event)">
   </div>
-
   <div id="editor">
     <div id="editor-header">
-  <span id="editor-filename"></span>
-  <div>
-<button onclick="location.href='https://2d3t.github.io/index.html/pro/redactor.html'">KlikEdit🎀</button>
-    <button onclick="copyFileText()">📋 Copy</button>
-    <button onclick="saveFile()">💾 Save</button>
-    <button onclick="closeEditor()">❌ Close</button>
-  </div>
-</div>
-
+      <span id="editor-filename"></span>
+      <div>
+        <button onclick="location.href='https://2d3t.github.io/index.html/pro/redactor.html'">KlikEdit🎀</button>
+        <button onclick="copyFileText()">📋 Copy</button>
+        <button onclick="saveFile()">💾 Save</button>
+        <button onclick="closeEditor()">❌ Close</button>
+      </div>
+    </div>
     <textarea id="file-content"></textarea>
   </div>
-
   <script>
     let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
     let currentPath = [];
     let currentFile = null;
 
-    // 🔍 функция рекурсивного поиска по всему дереву
     function findAllMatches(folder, term, path = []) {
       let results = [];
       for (let name in folder) {
@@ -202,6 +178,9 @@
             isFolder: typeof folder[name] === 'object'
           }));
       }
+
+      // Сортировка по алфавиту
+      items.sort((a, b) => a.name.localeCompare(b.name));
 
       if (items.length === 0) {
         const emptyMsg = document.createElement('div');
@@ -369,28 +348,16 @@
       localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
     }
 
-function copyFileText() {
-  const textarea = document.getElementById('file-content');
-  
-  // запоминаем текущую прокрутку
-  const scrollPos = textarea.scrollTop;
-  
-  // выделяем текст
-  textarea.focus();
-  textarea.select();
-  
-  // копируем
-  document.execCommand('copy');
-  
-  // возвращаем прокрутку в начало
-  textarea.scrollTop = 0;
-  
-  // снимаем выделение (чтобы визуально не мигал текст)
-  window.getSelection().removeAllRanges();
-  
-  alert('File text copied to clipboard!');
-}
-
+    function copyFileText() {
+      const textarea = document.getElementById('file-content');
+      const scrollPos = textarea.scrollTop;
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      textarea.scrollTop = 0;
+      window.getSelection().removeAllRanges();
+      alert('File text copied to clipboard!');
+    }
 
     setInterval(autoSave, 5000);
     renderFileList();
