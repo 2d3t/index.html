@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Результаты от -10 до +10, множителей и временных интервалов 🎲</title>
+  <title>Результаты от -10 до +10 и множителей 🎲</title>
   <style>
     body {
       margin: 0;
@@ -13,7 +13,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start; /* Align items to the start */
+      justify-content: flex-start;
       height: 100vh;
       overflow-y: auto;
       text-align: center;
@@ -33,7 +33,7 @@
       width: 140px;
     }
     button {
-      background: rgba(255, 106, 0, 0.7); /* Semi-transparent background */
+      background: rgba(255, 106, 0, 0.7);
       border: none;
       border-radius: 12px;
       padding: 12px 30px;
@@ -43,7 +43,7 @@
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: transform 0.2s, box-shadow 0.2s;
-      margin: 10px; /* Margin for spacing */
+      margin: 10px;
     }
     button:active {
       transform: scale(0.95);
@@ -60,22 +60,30 @@
       min-width: 250px;
       max-width: 90%;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      margin-bottom: 20px; /* Space for buttons below */
+      margin-bottom: 20px;
     }
     small { color: #fff; font-weight: normal; }
     .max-result {
-      color: green; /* Highlight maximum results in green */
+      color: green;
     }
     .button-container {
       display: flex;
-      justify-content: center; /* Center buttons */
-      margin-bottom: 20px; /* Space from bottom of the page */
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .quick-buttons {
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
   <h1>Выбор от -10 до +10 и множителей 🎲</h1>
-  <input type="number" id="count" value="100" min="1" max="10000">
+  <input type="number" id="count" value="100" min="1" max="1000000000">
+  <div class="quick-buttons">
+    <button onclick="setCount(10000000)">10 млн</button>
+    <button onclick="setCount(100000000)">100 млн</button>
+    <button onclick="setCount(1000000000)">1 млрд</button>
+  </div>
   <input type="text" id="title" placeholder="Название расчета">
   <button onclick="calculate()">Посчитать</button>
 
@@ -88,6 +96,10 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
+    function setCount(value) {
+      document.getElementById("count").value = value;
+    }
+
     function calculate() {
       const count = parseInt(document.getElementById("count").value) || 100;
       const title = document.getElementById("title").value || "Расчет";
@@ -108,7 +120,7 @@
       }
 
       // Results for time intervals
-      const timeCount = Array(11).fill(0); // Time intervals array
+      const timeCount = Array(11).fill(0);
       for (let i = 0; i < count; i++) {
         timeCount[Math.floor(Math.random() * timeCount.length)]++;
       }
@@ -132,7 +144,7 @@
       resultsDiv.innerHTML = `<strong>${title}</strong><br><br>
         📊 Результат (${count} испытаний):<br>`;
 
-      // Results from -10 to +10
+      // Results from +10 to -10
       let maxResult = -Infinity;
       for (let i = -10; i <= 10; i++) {
         if (resultsCount[i + 10] > maxResult) {
@@ -140,7 +152,7 @@
         }
       }
 
-      for (let i = -10; i <= 10; i++) {
+      for (let i = 10; i >= -10; i--) { // Reverse order for display
         let checkmark = '';
         if (resultsCount[i + 10] === maxResult) {
           checkmark = '<span class="max-result">✔️</span>'; // Green checkmark for the max result
@@ -191,9 +203,8 @@
     document.getElementById('download').addEventListener('click', () => {
       const resultsDiv = document.getElementById('results');
 
-      // Create a clone of the results div to capture the full content
       const clone = resultsDiv.cloneNode(true);
-      document.body.appendChild(clone); // Temporarily add to the DOM
+      document.body.appendChild(clone);
 
       html2canvas(clone, {
         backgroundColor: '#000',
@@ -208,7 +219,7 @@
           document.body.removeChild(link);
         }, 'image/jpeg', 1.0);
       }).finally(() => {
-        document.body.removeChild(clone); // Remove the clone after saving
+        document.body.removeChild(clone);
       });
     });
 
