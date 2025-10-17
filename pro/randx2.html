@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результаты от -10 до +10 🎲</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+      text-align: center;
+      width: 140px;
+    }
+    button {
+      background: linear-gradient(135deg, #ff6a00, #ee0979);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 30px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+    button:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    #results {
+      margin-top: 20px;
+      font-size: 1.4rem;
+      font-weight: bold;
+      background: #000;
+      color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      min-width: 250px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    small { color: #fff; font-weight: normal; }
+  </style>
+</head>
+<body>
+  <h1>Выбор от -10 до +10</h1>
+  <input type="number" id="count" value="100" min="1" max="10000">
+  <input type="text" id="title" placeholder="Название расчета">
+  <button onclick="calculate()">Посчитать</button>
+  <button id="download">Скачать результат</button>
+  <div id="results"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    function calculate() {
+      const count = parseInt(document.getElementById("count").value) || 100;
+      const title = document.getElementById("title").value || "Расчет";
+      const resultsCount = Array(21).fill(0);
+
+      for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * 21);
+        resultsCount[randomIndex]++;
+      }
+
+      const totalResults = resultsCount.reduce((a, b) => a + b, 0);
+      const percentages = resultsCount.map(count => ((count / totalResults) * 100).toFixed(2));
+
+      const now = new Date();
+      const dateTime = now.toLocaleString('ru-RU', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = `<strong>${title}</strong><br><br>
+        📊 Результат (${count} испытаний):<br>`;
+
+      for (let i = -10; i <= 10; i++) {
+        resultsDiv.innerHTML += `${i}: ${resultsCount[i + 10]} (${percentages[i + 10]}%)<br>`;
+      }
+
+      resultsDiv.innerHTML += `<br><small>Дата и время: ${dateTime}</small>`;
+    }
+
+    document.getElementById('download').addEventListener('click', () => {
+      const resultsDiv = document.getElementById('results');
+
+      html2canvas(resultsDiv, {
+        backgroundColor: '#000',
+        scale: 2
+      }).then(canvas => {
+        canvas.toBlob(function(blob) {
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = 'result.jpeg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }, 'image/jpeg', 1.0);
+      });
+    });
+  </script>
+</body>
+</html>
