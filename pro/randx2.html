@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Результаты от -10 до +10 🎲</title>
+  <title>Результаты от -10 до +10 и множителей 🎲</title>
   <style>
     body {
       margin: 0;
@@ -13,14 +13,15 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start; /* Align items to the start */
       height: 100vh;
+      overflow-y: auto;
       text-align: center;
     }
     h1 {
       font-size: 2rem;
       margin-bottom: 15px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
     input {
       padding: 10px;
@@ -32,7 +33,7 @@
       width: 140px;
     }
     button {
-      background: linear-gradient(135deg, #ff6a00, #ee0979);
+      background: rgba(255, 106, 0, 0.7); /* Semi-transparent background */
       border: none;
       border-radius: 12px;
       padding: 12px 30px;
@@ -40,13 +41,13 @@
       font-weight: bold;
       color: #fff;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: transform 0.2s, box-shadow 0.2s;
-      margin-bottom: 10px;
+      margin: 10px; /* Margin for spacing */
     }
     button:active {
       transform: scale(0.95);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
     #results {
       margin-top: 20px;
@@ -57,33 +58,69 @@
       padding: 20px;
       border-radius: 12px;
       min-width: 250px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      max-width: 90%;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      margin-bottom: 20px; /* Space for buttons below */
     }
     small { color: #fff; font-weight: normal; }
+    .max-result {
+      color: green; /* Highlight maximum results in green */
+    }
+    .button-container {
+      display: flex;
+      justify-content: center; /* Center buttons */
+      margin-bottom: 20px; /* Space from bottom of the page */
+    }
   </style>
 </head>
 <body>
-  <h1>Выбор от -10 до +10</h1>
+  <h1>Выбор от -10 до +10 и множителей 🎲</h1>
   <input type="number" id="count" value="100" min="1" max="10000">
   <input type="text" id="title" placeholder="Название расчета">
   <button onclick="calculate()">Посчитать</button>
-  <button id="download">Скачать результат</button>
+
   <div id="results"></div>
+
+  <div class="button-container">
+    <button id="download">Скачать результат</button>
+    <button onclick="reset()">Начать заново</button>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     function calculate() {
       const count = parseInt(document.getElementById("count").value) || 100;
       const title = document.getElementById("title").value || "Расчет";
+      
+      // Results for -10 to +10
       const resultsCount = Array(21).fill(0);
-
       for (let i = 0; i < count; i++) {
         const randomIndex = Math.floor(Math.random() * 21);
         resultsCount[randomIndex]++;
       }
 
+      // Results for multipliers
+      const multiplierOptions = [1, 5, 10, 15, 20, 25, 30, 35, 40, 50];
+      const multiplierCount = Array(multiplierOptions.length).fill(0);
+      for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * multiplierOptions.length);
+        multiplierCount[randomIndex]++;
+      }
+
+      // Results for time intervals
+      const timeCount = Array(11).fill(0); // Time intervals array
+      for (let i = 0; i < count; i++) {
+        timeCount[Math.floor(Math.random() * timeCount.length)]++;
+      }
+
       const totalResults = resultsCount.reduce((a, b) => a + b, 0);
       const percentages = resultsCount.map(count => ((count / totalResults) * 100).toFixed(2));
+
+      const totalMultiplierResults = multiplierCount.reduce((a, b) => a + b, 0);
+      const multiplierPercentages = multiplierCount.map(count => ((count / totalMultiplierResults) * 100).toFixed(2));
+
+      const totalTimeResults = timeCount.reduce((a, b) => a + b, 0);
+      const timePercentages = timeCount.map(count => ((count / totalTimeResults) * 100).toFixed(2));
 
       const now = new Date();
       const dateTime = now.toLocaleString('ru-RU', {
@@ -95,9 +132,58 @@
       resultsDiv.innerHTML = `<strong>${title}</strong><br><br>
         📊 Результат (${count} испытаний):<br>`;
 
+      // Results from -10 to +10
+      let maxResult = -Infinity;
       for (let i = -10; i <= 10; i++) {
-        resultsDiv.innerHTML += `${i}: ${resultsCount[i + 10]} (${percentages[i + 10]}%)<br>`;
+        if (resultsCount[i + 10] > maxResult) {
+          maxResult = resultsCount[i + 10];
+        }
       }
+
+      for (let i = -10; i <= 10; i++) {
+        let checkmark = '';
+        if (resultsCount[i + 10] === maxResult) {
+          checkmark = '<span class="max-result">✔️</span>'; // Green checkmark for the max result
+        }
+        resultsDiv.innerHTML += `${i}: ${checkmark}<br>`;
+      }
+
+      resultsDiv.innerHTML += `<br>📈 Результат множителей:<br>`;
+      
+      // Results for multipliers
+      maxResult = -Infinity;
+      multiplierCount.forEach(count => {
+        if (count > maxResult) {
+          maxResult = count;
+        }
+      });
+
+      multiplierOptions.forEach((multiplier, index) => {
+        let checkmark = '';
+        if (multiplierCount[index] === maxResult) {
+          checkmark = '<span class="max-result">✔️</span>'; // Green checkmark for the max result
+        }
+        resultsDiv.innerHTML += `x${multiplier}: ${checkmark}<br>`;
+      });
+
+      resultsDiv.innerHTML += `<br>⏳ Результат времени выдержки:<br>`;
+      
+      // Results for time intervals
+      const timeOptions = ["5 минут", "15 минут", "30 минут", "1 час", "2 часа", "4 часа", "8 часов", "16 часов", "24 часа", "36 часов", "48 часов"];
+      maxResult = -Infinity;
+      timeCount.forEach(count => {
+        if (count > maxResult) {
+          maxResult = count;
+        }
+      });
+
+      timeOptions.forEach((time, index) => {
+        let checkmark = '';
+        if (timeCount[index] === maxResult) {
+          checkmark = '<span class="max-result">✔️</span>'; // Green checkmark for the max result
+        }
+        resultsDiv.innerHTML += `${time}: ${checkmark}<br>`;
+      });
 
       resultsDiv.innerHTML += `<br><small>Дата и время: ${dateTime}</small>`;
     }
@@ -105,7 +191,11 @@
     document.getElementById('download').addEventListener('click', () => {
       const resultsDiv = document.getElementById('results');
 
-      html2canvas(resultsDiv, {
+      // Create a clone of the results div to capture the full content
+      const clone = resultsDiv.cloneNode(true);
+      document.body.appendChild(clone); // Temporarily add to the DOM
+
+      html2canvas(clone, {
         backgroundColor: '#000',
         scale: 2
       }).then(canvas => {
@@ -117,8 +207,16 @@
           link.click();
           document.body.removeChild(link);
         }, 'image/jpeg', 1.0);
+      }).finally(() => {
+        document.body.removeChild(clone); // Remove the clone after saving
       });
     });
-  </script><a href="https://2d3t.github.io/index.html" class="button" style="margin-top: 20px; padding: 12px 30px; font-size: 1.3rem; background: linear-gradient(135deg, #007bff, #00bfff); border: none; border-radius: 12px; color: #fff; text-decoration: none;">Выход🚪</a>
+
+    function reset() {
+      document.getElementById("count").value = 100;
+      document.getElementById("title").value = "";
+      document.getElementById("results").innerHTML = "";
+    }
+  </script>
 </body>
 </html>
