@@ -137,244 +137,273 @@
     </div>
     <textarea id="file-content"></textarea>
   </div>
+
+
+
   <script>
-    let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
-    let currentPath = [];
-    let currentFile = null;
+let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
+let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {}; // здесь храним даты создания файлов
+let currentPath = [];
+let currentFile = null;
 
-    function findAllMatches(folder, term, path = []) {
-      let results = [];
-      for (let name in folder) {
-        const fullPath = [...path, name];
-        if (name.toLowerCase().includes(term.toLowerCase())) {
-          results.push({ name, fullPath, isFolder: typeof folder[name] === 'object' });
-        }
-        if (typeof folder[name] === 'object') {
-          results = results.concat(findAllMatches(folder[name], term, fullPath));
-        }
-      }
-      return results;
-    }
-
-    function renderFileList(searchTerm = '') {
-      const container = document.getElementById('file-list');
-      container.innerHTML = '';
-
-      const globalSearch = document.getElementById('global-search').checked;
-      const folder = getFolderByPath(currentPath);
-
-      document.getElementById('path-bar').textContent =
-        '/' + (currentPath.length ? currentPath.join('/') : '');
-
-      let items = [];
-
-      if (searchTerm && globalSearch) {
-        items = findAllMatches(fileSystem, searchTerm);
-      } else {
-        items = Object.keys(folder)
-          .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(name => ({
-            name,
-            fullPath: [...currentPath, name],
-            isFolder: typeof folder[name] === 'object'
-          }));
-      }
-
-      // Сортировка по алфавиту
-      items.sort((a, b) => a.name.localeCompare(b.name));
-
-      if (items.length === 0) {
-        const emptyMsg = document.createElement('div');
-        emptyMsg.textContent = 'Ничего не найдено.';
-        emptyMsg.style.color = '#888';
-        container.appendChild(emptyMsg);
-        return;
-      }
-
-      items.forEach(({ name, fullPath, isFolder }) => {
-        const div = document.createElement('div');
-        div.className = 'item';
-
-        const label = document.createElement('span');
-        label.textContent = (isFolder ? '📁 ' : '📄 ') + name;
-
-        label.onclick = () => {
-          if (isFolder) {
-            currentPath = [...fullPath];
-            document.getElementById('search-bar').value = '';
-            renderFileList();
-          } else {
-            openFile(fullPath);
-          }
-        };
-
-        const renameBtn = document.createElement('button');
-        renameBtn.textContent = '✏️';
-        renameBtn.onclick = (e) => {
-          e.stopPropagation();
-          renameItem(fullPath);
-        };
-
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '🗑';
-        delBtn.onclick = (e) => {
-          e.stopPropagation();
-          deleteItem(fullPath);
-        };
-
-        const rightButtons = document.createElement('div');
-        rightButtons.style.display = 'flex';
-        rightButtons.style.gap = '5px';
-        rightButtons.append(renameBtn, delBtn);
-
-        div.append(label, rightButtons);
-        container.appendChild(div);
-      });
-
-      autoSave();
-    }
-
-    function goBack() {
-      if (currentFile) {
-        closeEditor();
-        return;
-      }
-      if (currentPath.length === 0) return;
-      currentPath.pop();
-      document.getElementById('search-bar').value = '';
-      renderFileList();
-    }
-
-    function openFile(path) {
-      currentFile = path;
-      let file = fileSystem;
-      for (let i = 0; i < path.length - 1; i++) file = file[path[i]];
-      const content = file[path[path.length - 1]];
-      document.getElementById('editor-filename').textContent = '/' + path.join('/');
-      document.getElementById('file-content').value = content;
-      document.getElementById('editor').style.display = 'flex';
-      document.getElementById('sidebar').style.display = 'none';
-    }
-
-function openInKlikEdit() {
-  const content = document.getElementById('file-content').value;
-
-  // Копируем текст в буфер
-  navigator.clipboard.writeText(content).then(() => {
-    // После копирования — открываем KlikEdit
-    window.location.href = 'https://2d3t.github.io/index.html/pro/redactor.html';
-  }).catch(err => {
-    console.error('Не удалось скопировать текст:', err);
-    alert('Ошибка копирования. Разрешите доступ к буферу обмена.');
-  });
+function now() {
+  return new Date().toLocaleString();
 }
 
-    function saveFile() {
-      if (!currentFile) return;
-      let file = fileSystem;
-      for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
-      file[currentFile[currentFile.length - 1]] =
-        document.getElementById('file-content').value;
-      autoSave();
-      alert('File saved!');
-    }
+function getFullPath(pathArray) {
+  return '/' + pathArray.join('/');
+}
 
-    function closeEditor() {
-      currentFile = null;
-      document.getElementById('editor').style.display = 'none';
-      document.getElementById('sidebar').style.display = 'flex';
-      renderFileList();
-    }
+function getFolderByPath(path) {
+  let folder = fileSystem;
+  for (const part of path) folder = folder[part];
+  return folder;
+}
 
-    function getFolderByPath(path) {
-      let folder = fileSystem;
-      for (const part of path) folder = folder[part];
-      return folder;
+function findAllMatches(folder, term, path = []) {
+  let results = [];
+  for (let name in folder) {
+    const fullPath = [...path, name];
+    if (name.toLowerCase().includes(term.toLowerCase())) {
+      results.push({ name, fullPath, isFolder: typeof folder[name] === 'object' });
     }
-
-    function createFolder() {
-      const name = prompt('Folder name:');
-      if (!name) return;
-      const folder = getFolderByPath(currentPath);
-      if (folder[name]) return alert('Already exists!');
-      folder[name] = {};
-      renderFileList();
+    if (typeof folder[name] === 'object') {
+      results = results.concat(findAllMatches(folder[name], term, fullPath));
     }
+  }
+  return results;
+}
 
-    function createFile() {
-      const name = prompt('File name:');
-      if (!name) return;
-      const folder = getFolderByPath(currentPath);
-      if (folder[name]) return alert('Already exists!');
-      folder[name] = '';
-      renderFileList();
-    }
+function renderFileList(searchTerm = '') {
+  const container = document.getElementById('file-list');
+  container.innerHTML = '';
 
-    function deleteItem(path) {
-      if (!confirm('Delete this item?')) return;
-      let obj = fileSystem;
-      for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]];
-      delete obj[path[path.length - 1]];
-      renderFileList();
-    }
+  const globalSearch = document.getElementById('global-search').checked;
+  const folder = getFolderByPath(currentPath);
 
-    function saveSystem() {
-      const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'fileSystem.json';
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
+  document.getElementById('path-bar').textContent =
+    '/' + (currentPath.length ? currentPath.join('/') : '');
 
-    function loadSystem() {
-      document.getElementById('file-input').click();
-    }
+  let items = [];
 
-    function handleFileLoad(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        fileSystem = JSON.parse(e.target.result);
-        localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
-        currentPath = [];
+  if (searchTerm && globalSearch) {
+    items = findAllMatches(fileSystem, searchTerm);
+  } else {
+    items = Object.keys(folder)
+      .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
+      .map(name => ({
+        name,
+        fullPath: [...currentPath, name],
+        isFolder: typeof folder[name] === 'object'
+      }));
+  }
+
+  items.sort((a, b) => a.name.localeCompare(b.name));
+
+  if (items.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.textContent = 'Ничего не найдено.';
+    emptyMsg.style.color = '#888';
+    container.appendChild(emptyMsg);
+    return;
+  }
+
+  items.forEach(({ name, fullPath, isFolder }) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+
+    const label = document.createElement('span');
+    label.textContent = (isFolder ? '📁 ' : '📄 ') + name;
+
+    label.onclick = () => {
+      if (isFolder) {
+        currentPath = [...fullPath];
+        document.getElementById('search-bar').value = '';
         renderFileList();
-        alert('File system loaded!');
-      };
-      reader.readAsText(file);
-    }
+      } else {
+        openFile(fullPath);
+      }
+    };
 
-    function renameItem(path) {
-      const currentName = path[path.length - 1];
-      const newName = prompt('Rename to:', currentName);
-      if (!newName || newName === currentName) return;
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = '✏️';
+    renameBtn.onclick = (e) => {
+      e.stopPropagation();
+      renameItem(fullPath);
+    };
 
-      const folder = getFolderByPath(path.slice(0, -1));
-      if (folder[newName]) return alert('Name already exists!');
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(fullPath);
+    };
 
-      folder[newName] = folder[currentName];
-      delete folder[currentName];
-      renderFileList();
-    }
+    const rightButtons = document.createElement('div');
+    rightButtons.style.display = 'flex';
+    rightButtons.style.gap = '5px';
+    rightButtons.append(renameBtn, delBtn);
 
-    function autoSave() {
-      localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
-    }
+    div.append(label, rightButtons);
+    container.appendChild(div);
+  });
 
-    function copyFileText() {
-      const textarea = document.getElementById('file-content');
-      const scrollPos = textarea.scrollTop;
-      textarea.focus();
-      textarea.select();
-      document.execCommand('copy');
-      textarea.scrollTop = 0;
-      window.getSelection().removeAllRanges();
-      alert('File text copied to clipboard!');
-    }
+  autoSave();
+}
 
-    setInterval(autoSave, 5000);
+function goBack() {
+  if (currentFile) {
+    closeEditor();
+    return;
+  }
+  if (currentPath.length === 0) return;
+  currentPath.pop();
+  document.getElementById('search-bar').value = '';
+  renderFileList();
+}
+
+function openFile(path) {
+  currentFile = path;
+  let file = fileSystem;
+  for (let i = 0; i < path.length - 1; i++) file = file[path[i]];
+  const content = file[path[path.length - 1]];
+
+  const fullPath = getFullPath(path);
+  const created = fileMeta[fullPath]?.created || 'неизвестно';
+
+  document.getElementById('editor-filename').textContent =
+    fullPath + ` | 📅 Создан: ${created}`;
+
+  document.getElementById('file-content').value = content;
+  document.getElementById('editor').style.display = 'flex';
+  document.getElementById('sidebar').style.display = 'none';
+}
+
+function saveFile() {
+  if (!currentFile) return;
+  let file = fileSystem;
+  for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
+  file[currentFile[currentFile.length - 1]] =
+    document.getElementById('file-content').value;
+  autoSave();
+  alert('File saved!');
+}
+
+function closeEditor() {
+  currentFile = null;
+  document.getElementById('editor').style.display = 'none';
+  document.getElementById('sidebar').style.display = 'flex';
+  renderFileList();
+}
+
+function createFolder() {
+  const name = prompt('Folder name:');
+  if (!name) return;
+  const folder = getFolderByPath(currentPath);
+  if (folder[name]) return alert('Already exists!');
+  folder[name] = {};
+  renderFileList();
+}
+
+function createFile() {
+  const name = prompt('File name:');
+  if (!name) return;
+  const folder = getFolderByPath(currentPath);
+  if (folder[name]) return alert('Already exists!');
+  folder[name] = '';
+  const fullPath = getFullPath([...currentPath, name]);
+  fileMeta[fullPath] = { created: now() };
+  renderFileList();
+}
+
+function deleteItem(path) {
+  if (!confirm('Delete this item?')) return;
+  let obj = fileSystem;
+  for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]];
+  const fullPath = getFullPath(path);
+  delete fileMeta[fullPath];
+  delete obj[path[path.length - 1]];
+  renderFileList();
+}
+
+function saveSystem() {
+  const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'fileSystem.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
+
+  const metaBlob = new Blob([JSON.stringify(fileMeta, null, 2)], { type: 'application/json' });
+  const metaLink = document.createElement('a');
+  metaLink.href = URL.createObjectURL(metaBlob);
+  metaLink.download = 'fileMeta.json';
+  metaLink.click();
+  URL.revokeObjectURL(metaLink.href);
+}
+
+function loadSystem() {
+  document.getElementById('file-input').click();
+}
+
+function handleFileLoad(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    fileSystem = JSON.parse(e.target.result);
+    localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+    currentPath = [];
     renderFileList();
-  </script>
+    alert('File system loaded!');
+  };
+  reader.readAsText(file);
+}
+
+function renameItem(path) {
+  const currentName = path[path.length - 1];
+  const newName = prompt('Rename to:', currentName);
+  if (!newName || newName === currentName) return;
+  const folder = getFolderByPath(path.slice(0, -1));
+  if (folder[newName]) return alert('Name already exists!');
+  folder[newName] = folder[currentName];
+  delete folder[currentName];
+
+  const oldFull = getFullPath(path);
+  const newFull = getFullPath([...path.slice(0, -1), newName]);
+  if (fileMeta[oldFull]) {
+    fileMeta[newFull] = fileMeta[oldFull];
+    delete fileMeta[oldFull];
+  }
+
+  renderFileList();
+}
+
+function autoSave() {
+  localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+  localStorage.setItem('fileMeta', JSON.stringify(fileMeta));
+}
+
+function copyFileText() {
+  const textarea = document.getElementById('file-content');
+  textarea.select();
+  document.execCommand('copy');
+  alert('File text copied to clipboard!');
+}
+
+// 🔸 Новая функция — копирует текст, потом переходит в KlikEdit
+function openInKlikEdit() {
+  const textarea = document.getElementById('file-content');
+  textarea.select();
+  document.execCommand('copy');
+  setTimeout(() => {
+    window.location.href = 'https://2d3t.github.io/index.html/pro/redactor.html';
+  }, 300);
+}
+
+setInterval(autoSave, 5000);
+renderFileList();
+</script>
+
 </body>
 </html>
