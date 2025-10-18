@@ -107,6 +107,7 @@
         <button onclick="goBack()">⬅️</button>
         <button onclick="createFolder()">📁</button>
         <button onclick="createFile()">📄</button>
+        <button onclick="recordAudio()">🎙️</button>
         <button onclick="saveSystem()">💾</button>
         <button onclick="loadSystem()">📂</button>
         <button onclick="location.href='https://2d3t.github.io/index.html/'">🚪</button>
@@ -129,7 +130,6 @@
       <span id="editor-filename"></span>
       <div>
         <button onclick="openInKlikEdit()">KlikEdit🎀</button>
-
         <button onclick="copyFileText()">📋 Copy</button>
         <button onclick="saveFile()">💾 Save</button>
         <button onclick="closeEditor()">❌ Close</button>
@@ -138,11 +138,9 @@
     <textarea id="file-content"></textarea>
   </div>
 
-
-
   <script>
 let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
-let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {}; // здесь храним даты создания файлов
+let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {};
 let currentPath = [];
 let currentFile = null;
 
@@ -267,14 +265,26 @@ function openFile(path) {
   let file = fileSystem;
   for (let i = 0; i < path.length - 1; i++) file = file[path[i]];
   const content = file[path[path.length - 1]];
-
   const fullPath = getFullPath(path);
   const created = fileMeta[fullPath]?.created || 'неизвестно';
 
   document.getElementById('editor-filename').textContent =
     fullPath + ` | 📅 Создан: ${created}`;
 
-  document.getElementById('file-content').value = content;
+  document.querySelectorAll('#editor audio').forEach(a => a.remove());
+
+  if (fileMeta[fullPath]?.type === 'audio') {
+    document.getElementById('file-content').style.display = 'none';
+    const audioEl = document.createElement('audio');
+    audioEl.controls = true;
+    audioEl.src = 'data:audio/webm;base64,' + content;
+    audioEl.style.width = '100%';
+    document.getElementById('editor').appendChild(audioEl);
+  } else {
+    document.getElementById('file-content').style.display = 'block';
+    document.getElementById('file-content').value = content;
+  }
+
   document.getElementById('editor').style.display = 'flex';
   document.getElementById('sidebar').style.display = 'none';
 }
@@ -291,6 +301,7 @@ function saveFile() {
 
 function closeEditor() {
   currentFile = null;
+  document.querySelectorAll('#editor audio').forEach(a => a.remove());
   document.getElementById('editor').style.display = 'none';
   document.getElementById('sidebar').style.display = 'flex';
   renderFileList();
@@ -391,7 +402,6 @@ function copyFileText() {
   alert('File text copied to clipboard!');
 }
 
-// 🔸 Новая функция — копирует текст, потом переходит в KlikEdit
 function openInKlikEdit() {
   const textarea = document.getElementById('file-content');
   textarea.select();
@@ -399,6 +409,103 @@ function openInKlikEdit() {
   setTimeout(() => {
     window.location.href = 'https://2d3t.github.io/index.html/pro/redactor.html';
   }, 300);
+}
+
+// === Новая логика записи аудио с временной кнопкой ===
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+let stopBtn;
+
+async function recordAudio() {
+  const micBtn = document.querySelector('button[onclick="recordAudio()"]');
+
+  if (isRecording) {
+    stopRecording();
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Ваш браузер не поддерживает запись аудио.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = saveAudioNote;
+
+    mediaRecorder.start();
+    isRecording = true;
+
+    // Меняем вид кнопки микрофона
+    micBtn.style.background = '#ffb3b3';
+    micBtn.style.borderColor = 'red';
+
+    // Создаём временную кнопку "⏹️ Остановить запись"
+    stopBtn = document.createElement('button');
+    stopBtn.textContent = '⏹️ Остановить запись';
+    stopBtn.style.background = '#ffe6e6';
+    stopBtn.style.border = '1px solid red';
+    stopBtn.style.color = '#c00';
+    stopBtn.onclick = stopRecording;
+
+    micBtn.parentNode.insertBefore(stopBtn, micBtn.nextSibling);
+
+    alert('🎙️ Запись началась (до 30 секунд)...');
+    setTimeout(() => {
+      if (isRecording) stopRecording();
+    }, 30000);
+
+  } catch (err) {
+    alert('Ошибка доступа к микрофону.');
+    console.error(err);
+  }
+}
+
+function stopRecording() {
+  const micBtn = document.querySelector('button[onclick="recordAudio()"]');
+  if (!isRecording) return;
+
+  isRecording = false;
+  mediaRecorder.stop();
+
+  micBtn.style.background = '';
+  micBtn.style.borderColor = '';
+
+  if (stopBtn) {
+    stopBtn.remove();
+    stopBtn = null;
+  }
+
+  alert('⏹️ Запись остановлена.');
+}
+
+function saveAudioNote() {
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    const base64Audio = reader.result.split(',')[1];
+    const name = prompt('Имя аудиозаметки (без расширения):', 'audio_note');
+    if (!name) return;
+
+    const folder = getFolderByPath(currentPath);
+    const filename = name + '.audio.txt';
+    folder[filename] = base64Audio;
+
+    const fullPath = getFullPath([...currentPath, filename]);
+    fileMeta[fullPath] = { created: now(), type: 'audio' };
+
+    renderFileList();
+    autoSave();
+    alert('Аудиозаметка сохранена!');
+  };
+
+  reader.readAsDataURL(blob);
 }
 
 setInterval(autoSave, 5000);
