@@ -98,25 +98,67 @@
       color: #444;
       white-space: nowrap;
     }
+    .media-controls {
+      display: flex;
+      gap: 5px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    .media-item {
+      position: relative;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      padding: 5px;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    .media-item img {
+      max-width: 100%;
+      max-height: 300px;
+      display: block;
+    }
+    .delete-media {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(255, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .media-audio {
+      width: 100%;
+      margin: 5px 0;
+    }
+    .media-placeholder {
+      background: #eee;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 5px 0;
+      text-align: center;
+      color: #666;
+    }
   </style>
 </head>
 <body>
   <div id="sidebar">
     <div class="actions">
-  <div style="display: flex; gap: 5px;">
-    <button onclick="goBack()">⬅️</button>
-    <button onclick="createFolder()">📁</button>
-    <button onclick="createFile()">📄</button>
-    <button onclick="recordAudio()">🎙️</button>
-    <button onclick="saveSystem()">💾</button>
-    <button onclick="loadSystem()">📂</button>
-    <button onclick="location.href='https://2d3t.github.io/index.html/'">🚪</button>
-  </div>
-  <div style="font-weight: bold; font-size: 18px; color: #333; margin-left: auto;">
-    Initi
-  </div>
-
-
+      <div style="display: flex; gap: 5px;">
+        <button onclick="goBack()">⬅️</button>
+        <button onclick="createFolder()">📁</button>
+        <button onclick="createFile()">📄</button>
+        <button onclick="recordAudio()">🎙️</button>
+        <button onclick="saveSystem()">💾</button>
+        <button onclick="loadSystem()">📂</button>
+        <button onclick="location.href='https://2d3t.github.io/index.html/'">🚪</button>
+      </div>
+      <div style="font-weight: bold; font-size: 18px; color: #333; margin-left: auto;">
+        Initi
+      </div>
       <div style="width: 60px;"></div>
     </div>
     <div id="path-bar"></div>
@@ -126,6 +168,8 @@
     </div>
     <div id="file-list"></div>
     <input type="file" id="file-input" style="display:none" onchange="handleFileLoad(event)">
+    <input type="file" id="image-input" style="display:none" accept="image/*" multiple>
+    <input type="file" id="audio-input" style="display:none" accept="audio/*" multiple>
   </div>
   <div id="editor">
     <div id="editor-header">
@@ -137,6 +181,14 @@
         <button onclick="closeEditor()">❌ Close</button>
       </div>
     </div>
+    
+    <div class="media-controls">
+      <button onclick="addImageToFile()">🖼️ Add Image</button>
+      <button onclick="addAudioToFile()">🎵 Add Audio</button>
+    </div>
+    
+    <div id="media-container"></div>
+    
     <textarea id="file-content"></textarea>
   </div>
 
@@ -273,37 +325,76 @@ function openFile(path) {
   document.getElementById('editor-filename').textContent =
     fullPath + ` | 📅 Создан: ${created}`;
 
-  document.querySelectorAll('#editor audio').forEach(a => a.remove());
+  // Очищаем медиа-контейнер
+  document.getElementById('media-container').innerHTML = '';
+  
+  // Показываем текстовое содержимое
+  document.getElementById('file-content').style.display = 'block';
+  document.getElementById('file-content').value = content;
 
-  if (fileMeta[fullPath]?.type === 'audio') {
-    document.getElementById('file-content').style.display = 'none';
-    const audioEl = document.createElement('audio');
-    audioEl.controls = true;
-    audioEl.src = 'data:audio/webm;base64,' + content;
-    audioEl.style.width = '100%';
-    document.getElementById('editor').appendChild(audioEl);
-  } else {
-    document.getElementById('file-content').style.display = 'block';
-    document.getElementById('file-content').value = content;
+  // Если файл содержит медиа-вложения, показываем их
+  if (fileMeta[fullPath]?.media) {
+    renderMediaAttachments(fileMeta[fullPath].media);
   }
 
   document.getElementById('editor').style.display = 'flex';
   document.getElementById('sidebar').style.display = 'none';
 }
 
+function renderMediaAttachments(mediaArray) {
+  const container = document.getElementById('media-container');
+  
+  mediaArray.forEach((media, index) => {
+    const mediaItem = document.createElement('div');
+    mediaItem.className = 'media-item';
+    mediaItem.dataset.index = index;
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-media';
+    deleteBtn.textContent = '✕';
+    deleteBtn.onclick = () => deleteMediaAttachment(index);
+    
+    if (media.type === 'image') {
+      const img = document.createElement('img');
+      img.src = media.data;
+      img.alt = 'Attached image';
+      mediaItem.appendChild(img);
+    } else if (media.type === 'audio') {
+      const audio = document.createElement('audio');
+      audio.className = 'media-audio';
+      audio.controls = true;
+      audio.src = media.data;
+      mediaItem.appendChild(audio);
+    }
+    
+    mediaItem.appendChild(deleteBtn);
+    container.appendChild(mediaItem);
+  });
+}
+
+function deleteMediaAttachment(index) {
+  if (!currentFile || !confirm('Удалить это вложение?')) return;
+  
+  const fullPath = getFullPath(currentFile);
+  if (fileMeta[fullPath]?.media) {
+    fileMeta[fullPath].media.splice(index, 1);
+    renderMediaAttachments(fileMeta[fullPath].media);
+    autoSave();
+  }
+}
+
 function saveFile() {
   if (!currentFile) return;
   let file = fileSystem;
   for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
-  file[currentFile[currentFile.length - 1]] =
-    document.getElementById('file-content').value;
+  file[currentFile[currentFile.length - 1]] = document.getElementById('file-content').value;
   autoSave();
   alert('File saved!');
 }
 
 function closeEditor() {
   currentFile = null;
-  document.querySelectorAll('#editor audio').forEach(a => a.remove());
+  document.getElementById('media-container').innerHTML = '';
   document.getElementById('editor').style.display = 'none';
   document.getElementById('sidebar').style.display = 'flex';
   renderFileList();
@@ -325,7 +416,7 @@ function createFile() {
   if (folder[name]) return alert('Already exists!');
   folder[name] = '';
   const fullPath = getFullPath([...currentPath, name]);
-  fileMeta[fullPath] = { created: now() };
+  fileMeta[fullPath] = { created: now(), media: [] };
   renderFileList();
 }
 
@@ -413,7 +504,122 @@ function openInKlikEdit() {
   }, 300);
 }
 
-// === Новая логика записи аудио с временной кнопкой ===
+// === Функции для работы с медиа ===
+
+function addImageToFile() {
+  document.getElementById('image-input').click();
+}
+
+function addAudioToFile() {
+  document.getElementById('audio-input').click();
+}
+
+// Обработчики для загрузки изображений
+document.getElementById('image-input').addEventListener('change', function(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  
+  for (let i = 0; i < files.length; i++) {
+    compressAndAddImage(files[i]);
+  }
+  
+  this.value = ''; // Сбрасываем input
+});
+
+// Обработчики для загрузки аудио
+document.getElementById('audio-input').addEventListener('change', function(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  
+  for (let i = 0; i < files.length; i++) {
+    compressAndAddAudio(files[i]);
+  }
+  
+  this.value = ''; // Сбрасываем input
+});
+
+function compressAndAddImage(file) {
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // Создаем canvas для сжатия
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Устанавливаем максимальные размеры
+      let width = img.width;
+      let height = img.height;
+      const maxWidth = 800;
+      const maxHeight = 600;
+      
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      if (height > maxHeight) {
+        width = (width * maxHeight) / height;
+        height = maxHeight;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Рисуем сжатое изображение
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      // Получаем данные в формате JPEG с качеством 70%
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      
+      // Добавляем в медиа-вложения
+      addMediaAttachment('image', compressedDataUrl);
+    };
+    
+    img.src = e.target.result;
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+function compressAndAddAudio(file) {
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    // Для аудио просто используем оригинальный файл
+    // В реальном приложении здесь можно добавить сжатие аудио
+    addMediaAttachment('audio', e.target.result);
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+function addMediaAttachment(type, data) {
+  if (!currentFile) return;
+  
+  const fullPath = getFullPath(currentFile);
+  
+  // Инициализируем массив медиа, если его нет
+  if (!fileMeta[fullPath]) {
+    fileMeta[fullPath] = { created: now(), media: [] };
+  } else if (!fileMeta[fullPath].media) {
+    fileMeta[fullPath].media = [];
+  }
+  
+  // Добавляем новое медиа-вложение
+  fileMeta[fullPath].media.push({
+    type: type,
+    data: data,
+    added: now()
+  });
+  
+  // Перерисовываем медиа-вложения
+  renderMediaAttachments(fileMeta[fullPath].media);
+  autoSave();
+}
+
+// === Логика записи аудио ===
 let mediaRecorder;
 let audioChunks = [];
 let isRecording = false;
