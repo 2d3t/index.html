@@ -1,3 +1,5 @@
+Инити 8
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,24 +80,29 @@
     #editor-content {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 100px);
+      height: calc(100vh - 60px);
       overflow: hidden;
+      gap: 10px;
     }
     #media-section {
       flex: 0 0 auto;
-      max-height: 40%;
-      overflow-y: auto;
       border: 1px solid #e0e0e0;
       border-radius: 5px;
       padding: 10px;
-      margin-bottom: 10px;
       background: #fafafa;
+      max-height: 300px;
+      display: flex;
+      flex-direction: column;
     }
     #text-section {
       flex: 1 1 auto;
       min-height: 200px;
       display: flex;
       flex-direction: column;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 10px;
+      background: white;
     }
     #file-content {
       flex: 1;
@@ -107,6 +114,7 @@
       border: 1px solid #ccc;
       border-radius: 5px;
       min-height: 200px;
+      box-sizing: border-box;
     }
     #search-container {
       display: flex;
@@ -133,9 +141,19 @@
       flex-wrap: wrap;
       flex-shrink: 0;
     }
+    .media-container {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 60px;
+      max-height: 200px;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 5px;
+      background: white;
+    }
     .media-item {
       position: relative;
-      margin: 10px 0;
+      margin: 5px 0;
       border: 1px solid #ddd;
       padding: 5px;
       border-radius: 5px;
@@ -143,7 +161,7 @@
     }
     .media-item img {
       max-width: 100%;
-      max-height: 200px;
+      max-height: 150px;
       display: block;
     }
     .delete-media {
@@ -180,6 +198,44 @@
     .audio-player {
       width: 100%;
       margin: 10px 0;
+    }
+    .audio-note-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+    .audio-section {
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    .audio-main-section {
+      flex: 0 0 auto;
+    }
+    .audio-notes-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .audio-media-section {
+      flex: 0 0 auto;
+      max-height: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+    .notes-textarea {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      min-height: 150px;
+      box-sizing: border-box;
     }
   </style>
 </head>
@@ -222,19 +278,7 @@
     </div>
     
     <div id="editor-content">
-      <div id="media-section">
-        <div class="section-title">Медиа-вложения:</div>
-        <div class="media-controls">
-          <button onclick="addImageToFile()">🖼️ Add Image</button>
-          <button onclick="addAudioToFile()">🎵 Add Audio</button>
-        </div>
-        <div id="media-container"></div>
-      </div>
-      
-      <div id="text-section">
-        <div class="section-title">Текст файла:</div>
-        <textarea id="file-content"></textarea>
-      </div>
+      <!-- Контент будет динамически заполняться -->
     </div>
   </div>
 
@@ -270,6 +314,10 @@ function findAllMatches(folder, term, path = []) {
     }
   }
   return results;
+}
+
+function isAudioFile(filename) {
+  return filename.endsWith('.audio.txt') || (fileMeta[getFullPath([...currentPath, filename])]?.type === 'audio');
 }
 
 function renderFileList(searchTerm = '') {
@@ -314,7 +362,7 @@ function renderFileList(searchTerm = '') {
     let icon = '📄 ';
     if (isFolder) {
       icon = '📁 ';
-    } else if (name.endsWith('.audio.txt')) {
+    } else if (isAudioFile(name)) {
       icon = '🎵 ';
     }
 
@@ -375,61 +423,141 @@ function openFile(path) {
   const content = file[path[path.length - 1]];
   const fullPath = getFullPath(path);
   const created = fileMeta[fullPath]?.created || 'неизвестно';
+  const isAudio = isAudioFile(path[path.length - 1]);
 
   document.getElementById('editor-filename').textContent =
     fullPath + ` | 📅 Создан: ${created}`;
 
-  // Полностью очищаем медиа-контейнер
-  clearMediaContainer();
-  
-  // Проверяем, является ли файл аудиозаписью
-  if (path[path.length - 1].endsWith('.audio.txt')) {
-    // Для аудиофайлов показываем только плеер
-    document.getElementById('file-content').style.display = 'none';
-    document.getElementById('text-section').style.display = 'none';
-    
-    // Создаем аудиоплеер
-    const audioContainer = document.getElementById('media-container');
-    audioContainer.innerHTML = '';
-    
-    const audioPlayer = document.createElement('audio');
-    audioPlayer.className = 'audio-player';
-    audioPlayer.controls = true;
-    
-    // Создаем URL для аудио из Base64 данных
-    try {
-      const audioBlob = base64ToBlob(content, 'audio/webm');
-      const audioUrl = URL.createObjectURL(audioBlob);
-      audioPlayer.src = audioUrl;
-    } catch (e) {
-      console.error('Error creating audio URL:', e);
-      audioContainer.innerHTML = '<div class="media-placeholder">Ошибка загрузки аудио</div>';
-      return;
-    }
-    
-    const infoDiv = document.createElement('div');
-    infoDiv.style.marginTop = '10px';
-    infoDiv.style.fontSize = '14px';
-    infoDiv.style.color = '#666';
-    infoDiv.textContent = 'Аудиозапись';
-    
-    audioContainer.appendChild(audioPlayer);
-    audioContainer.appendChild(infoDiv);
-    
+  if (isAudio) {
+    // Для аудиофайлов показываем специальный интерфейс
+    showAudioNoteInterface(content, fullPath);
   } else {
     // Для обычных файлов показываем стандартный интерфейс
-    document.getElementById('file-content').style.display = 'block';
-    document.getElementById('text-section').style.display = 'flex';
-    document.getElementById('file-content').value = content;
-
-    // Если файл содержит медиа-вложения, показываем их
-    if (fileMeta[fullPath]?.media) {
-      renderMediaAttachments(fileMeta[fullPath].media);
-    }
+    showRegularFileInterface(content, fullPath);
   }
 
   document.getElementById('editor').style.display = 'flex';
   document.getElementById('sidebar').style.display = 'none';
+}
+
+function showAudioNoteInterface(audioContent, fullPath) {
+  const editorContent = document.getElementById('editor-content');
+  editorContent.innerHTML = '';
+  
+  const audioContainer = document.createElement('div');
+  audioContainer.className = 'audio-note-container';
+  
+  // Секция с аудиоплеером
+  const audioSection = document.createElement('div');
+  audioSection.className = 'audio-section audio-main-section';
+  
+  const audioTitle = document.createElement('div');
+  audioTitle.className = 'section-title';
+  audioTitle.textContent = 'Аудиозапись:';
+  audioSection.appendChild(audioTitle);
+  
+  const audioPlayer = document.createElement('audio');
+  audioPlayer.className = 'audio-player';
+  audioPlayer.controls = true;
+  
+  try {
+    const audioBlob = base64ToBlob(audioContent, 'audio/webm');
+    const audioUrl = URL.createObjectURL(audioBlob);
+    audioPlayer.src = audioUrl;
+  } catch (e) {
+    console.error('Error creating audio URL:', e);
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'media-placeholder';
+    errorDiv.textContent = 'Ошибка загрузки аудио';
+    audioSection.appendChild(errorDiv);
+  }
+  
+  audioSection.appendChild(audioPlayer);
+  audioContainer.appendChild(audioSection);
+  
+  // Секция с текстовыми заметками
+  const textSection = document.createElement('div');
+  textSection.className = 'audio-section audio-notes-section';
+  
+  const textTitle = document.createElement('div');
+  textTitle.className = 'section-title';
+  textTitle.textContent = 'Текстовые заметки:';
+  textSection.appendChild(textTitle);
+  
+  const textArea = document.createElement('textarea');
+  textArea.className = 'notes-textarea';
+  
+  // Загружаем текстовые заметки если они есть
+  if (fileMeta[fullPath]?.notes) {
+    textArea.value = fileMeta[fullPath].notes;
+  }
+  
+  textSection.appendChild(textArea);
+  audioContainer.appendChild(textSection);
+  
+  // Секция с медиа-вложениями
+  const mediaSection = document.createElement('div');
+  mediaSection.className = 'audio-section audio-media-section';
+  
+  const mediaTitle = document.createElement('div');
+  mediaTitle.className = 'section-title';
+  mediaTitle.textContent = 'Медиа-вложения:';
+  mediaSection.appendChild(mediaTitle);
+  
+  const mediaControls = document.createElement('div');
+  mediaControls.className = 'media-controls';
+  mediaControls.innerHTML = `
+    <button onclick="addImageToFile()">🖼️ Add Image</button>
+    <button onclick="addAudioToFile()">🎵 Add Audio</button>
+  `;
+  mediaSection.appendChild(mediaControls);
+  
+  const mediaContainer = document.createElement('div');
+  mediaContainer.className = 'media-container';
+  mediaSection.appendChild(mediaContainer);
+  
+  // Если есть медиа-вложения, показываем их
+  if (fileMeta[fullPath]?.media && fileMeta[fullPath].media.length > 0) {
+    renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Медиа-вложений нет';
+    mediaContainer.appendChild(placeholder);
+  }
+  
+  audioContainer.appendChild(mediaSection);
+  editorContent.appendChild(audioContainer);
+}
+
+function showRegularFileInterface(content, fullPath) {
+  const editorContent = document.getElementById('editor-content');
+  editorContent.innerHTML = `
+    <div id="media-section">
+      <div class="section-title">Медиа-вложения:</div>
+      <div class="media-controls">
+        <button onclick="addImageToFile()">🖼️ Add Image</button>
+        <button onclick="addAudioToFile()">🎵 Add Audio</button>
+      </div>
+      <div class="media-container" id="media-container"></div>
+    </div>
+    
+    <div id="text-section">
+      <div class="section-title">Текст файла:</div>
+      <textarea id="file-content">${content}</textarea>
+    </div>
+  `;
+  
+  // Если файл содержит медиа-вложения, показываем их
+  const mediaContainer = document.getElementById('media-container');
+  if (fileMeta[fullPath]?.media && fileMeta[fullPath].media.length > 0) {
+    renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Медиа-вложений нет';
+    mediaContainer.appendChild(placeholder);
+  }
 }
 
 // Функция для преобразования Base64 в Blob
@@ -452,16 +580,11 @@ function base64ToBlob(base64, mimeType) {
   return new Blob(byteArrays, { type: mimeType });
 }
 
-function clearMediaContainer() {
-  const container = document.getElementById('media-container');
-  container.innerHTML = '';
-}
-
-function renderMediaAttachments(mediaArray) {
-  const container = document.getElementById('media-container');
+function renderMediaAttachments(mediaArray, container) {
+  if (!container) return;
   
   // Полностью очищаем контейнер перед рендерингом
-  clearMediaContainer();
+  container.innerHTML = '';
   
   if (!mediaArray || mediaArray.length === 0) {
     const placeholder = document.createElement('div');
@@ -505,8 +628,13 @@ function deleteMediaAttachment(index) {
   const fullPath = getFullPath(currentFile);
   if (fileMeta[fullPath]?.media) {
     fileMeta[fullPath].media.splice(index, 1);
-    // Полностью перерисовываем медиа-вложения
-    renderMediaAttachments(fileMeta[fullPath].media);
+    
+    // Находим контейнер для медиа и перерисовываем
+    const mediaContainer = document.querySelector('.media-container');
+    if (mediaContainer) {
+      renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+    }
+    
     autoSave();
   }
 }
@@ -514,28 +642,36 @@ function deleteMediaAttachment(index) {
 function saveFile() {
   if (!currentFile) return;
   
-  // Не позволяем сохранять изменения в аудиофайлах через текстовый редактор
-  if (currentFile[currentFile.length - 1].endsWith('.audio.txt')) {
-    alert('Аудиофайлы нельзя редактировать как текст.');
-    return;
-  }
+  const fullPath = getFullPath(currentFile);
+  const isAudio = isAudioFile(currentFile[currentFile.length - 1]);
   
-  let file = fileSystem;
-  for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
-  file[currentFile[currentFile.length - 1]] = document.getElementById('file-content').value;
-  autoSave();
-  alert('File saved!');
+  if (isAudio) {
+    // Для аудиофайлов сохраняем только текстовые заметки
+    const textArea = document.querySelector('.notes-textarea');
+    if (textArea) {
+      if (!fileMeta[fullPath]) fileMeta[fullPath] = {};
+      fileMeta[fullPath].notes = textArea.value;
+    }
+    autoSave();
+    alert('Заметки сохранены!');
+  } else {
+    // Для обычных файлов сохраняем содержимое
+    let file = fileSystem;
+    for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
+    file[currentFile[currentFile.length - 1]] = document.getElementById('file-content').value;
+    autoSave();
+    alert('File saved!');
+  }
 }
 
 function closeEditor() {
   currentFile = null;
-  clearMediaContainer();
   document.getElementById('editor').style.display = 'none';
   document.getElementById('sidebar').style.display = 'flex';
-  document.getElementById('file-content').style.display = 'block';
-  document.getElementById('text-section').style.display = 'flex';
   renderFileList();
 }
+
+// ... (остальные функции остаются без изменений: createFolder, createFile, deleteItem, saveSystem, loadSystem, handleFileLoad, renameItem, autoSave, copyFileText, openInKlikEdit)
 
 function createFolder() {
   const name = prompt('Folder name:');
@@ -612,9 +748,16 @@ function renameItem(path) {
 
   const oldFull = getFullPath(path);
   const newFull = getFullPath([...path.slice(0, -1), newName]);
+  
+  // Сохраняем метаданные при переименовании
   if (fileMeta[oldFull]) {
     fileMeta[newFull] = fileMeta[oldFull];
     delete fileMeta[oldFull];
+    
+    // Если это аудиофайл, сохраняем тип
+    if (fileMeta[newFull]?.type === 'audio') {
+      fileMeta[newFull].type = 'audio';
+    }
   }
 
   renderFileList();
@@ -626,19 +769,39 @@ function autoSave() {
 }
 
 function copyFileText() {
-  const textarea = document.getElementById('file-content');
-  textarea.select();
-  document.execCommand('copy');
-  alert('File text copied to clipboard!');
+  let textarea;
+  const isAudio = currentFile && isAudioFile(currentFile[currentFile.length - 1]);
+  
+  if (isAudio) {
+    textarea = document.querySelector('.notes-textarea');
+  } else {
+    textarea = document.getElementById('file-content');
+  }
+  
+  if (textarea) {
+    textarea.select();
+    document.execCommand('copy');
+    alert('Text copied to clipboard!');
+  }
 }
 
 function openInKlikEdit() {
-  const textarea = document.getElementById('file-content');
-  textarea.select();
-  document.execCommand('copy');
-  setTimeout(() => {
-    window.location.href = 'https://2d3t.github.io/index.html/pro/redactor.html';
-  }, 300);
+  let textarea;
+  const isAudio = currentFile && isAudioFile(currentFile[currentFile.length - 1]);
+  
+  if (isAudio) {
+    textarea = document.querySelector('.notes-textarea');
+  } else {
+    textarea = document.getElementById('file-content');
+  }
+  
+  if (textarea) {
+    textarea.select();
+    document.execCommand('copy');
+    setTimeout(() => {
+      window.location.href = 'https://2d3t.github.io/index.html/pro/redactor.html';
+    }, 300);
+  }
 }
 
 // === Функции для работы с медиа ===
@@ -751,8 +914,12 @@ function addMediaAttachment(type, data) {
     added: now()
   });
   
-  // Полностью перерисовываем медиа-вложения
-  renderMediaAttachments(fileMeta[fullPath].media);
+  // Находим контейнер для медиа и перерисовываем
+  const mediaContainer = document.querySelector('.media-container');
+  if (mediaContainer) {
+    renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+  }
+  
   autoSave();
 }
 
@@ -844,7 +1011,12 @@ function saveAudioNote() {
     folder[filename] = base64Audio;
 
     const fullPath = getFullPath([...currentPath, filename]);
-    fileMeta[fullPath] = { created: now(), type: 'audio' };
+    fileMeta[fullPath] = { 
+      created: now(), 
+      type: 'audio',
+      notes: '',
+      media: []
+    };
 
     renderFileList();
     autoSave();
