@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -223,6 +224,7 @@
         <div class="media-controls">
           <button onclick="addImageToFile()">🖼️ Add Image</button>
           <button onclick="addAudioToFile()">🎵 Add Audio</button>
+          <button onclick="recordAudio()">🎤 Запись аудио</button>
         </div>
         <div id="media-container"></div>
       </div>
@@ -235,7 +237,6 @@
   </div>
 
   <script>
-// ... (весь JavaScript код остается без изменений, как в предыдущей версии)
 let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
 let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {};
 let currentPath = [];
@@ -723,10 +724,7 @@ async function recordAudio() {
 
     micBtn.parentNode.insertBefore(stopBtn, micBtn.nextSibling);
 
-    alert('🎙️ Запись началась (до 30 секунд)...');
-    setTimeout(() => {
-      if (isRecording) stopRecording();
-    }, 30000);
+    alert('🎙️ Запись началась... Остановите запись кнопкой "⏹️ Остановить запись"');
 
   } catch (err) {
     alert('Ошибка доступа к микрофону.');
@@ -739,46 +737,4 @@ function stopRecording() {
   if (!isRecording) return;
 
   isRecording = false;
-  mediaRecorder.stop();
-
-  micBtn.style.background = '';
-  micBtn.style.borderColor = '';
-
-  if (stopBtn) {
-    stopBtn.remove();
-    stopBtn = null;
-  }
-
-  alert('⏹️ Запись остановлена.');
-}
-
-function saveAudioNote() {
-  const blob = new Blob(audioChunks, { type: 'audio/webm' });
-  const reader = new FileReader();
-
-  reader.onloadend = () => {
-    const base64Audio = reader.result.split(',')[1];
-    const name = prompt('Имя аудиозаметки (без расширения):', 'audio_note');
-    if (!name) return;
-
-    const folder = getFolderByPath(currentPath);
-    const filename = name + '.audio.txt';
-    folder[filename] = base64Audio;
-
-    const fullPath = getFullPath([...currentPath, filename]);
-    fileMeta[fullPath] = { created: now(), type: 'audio' };
-
-    renderFileList();
-    autoSave();
-    alert('Аудиозаметка сохранена!');
-  };
-
-  reader.readAsDataURL(blob);
-}
-
-setInterval(autoSave, 5000);
-renderFileList();
-</script>
-
-</body>
-</html>
+  mediaRecorder.
