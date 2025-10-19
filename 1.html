@@ -79,8 +79,9 @@
       display: flex;
       flex-direction: column;
       height: calc(100vh - 60px);
-      overflow: hidden;
+      overflow-y: auto;
       gap: 10px;
+      padding-right: 5px;
     }
     #media-section {
       flex: 0 0 auto;
@@ -93,7 +94,7 @@
       flex-direction: column;
     }
     #text-section {
-      flex: 1 1 auto;
+      flex: 0 0 auto;
       min-height: 200px;
       display: flex;
       flex-direction: column;
@@ -171,7 +172,7 @@
       transform: translate(-50%, -50%) scale(1.5);
       max-width: 90vw;
       max-height: 90vh;
-      z-index: 1000;
+      z-index: 1002; /* Увеличил z-index для увеличенного изображения */
       background: white;
       padding: 10px;
       border-radius: 10px;
@@ -185,7 +186,7 @@
       width: 100%;
       height: 100%;
       background: rgba(0,0,0,0.8);
-      z-index: 999;
+      z-index: 1001; /* Увеличил z-index для оверлея */
       display: none;
     }
     .delete-media {
@@ -200,7 +201,10 @@
       height: 24px;
       cursor: pointer;
       font-size: 12px;
-      z-index: 1001;
+      z-index: 1000; /* z-index для обычных кнопок удаления */
+    }
+    .media-item img.zoomed ~ .delete-media {
+      display: none;
     }
     .media-audio {
       width: 100%;
@@ -243,6 +247,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 200px;
     }
     .audio-media-section {
       flex: 0 0 auto;
@@ -261,6 +266,42 @@
       border-radius: 5px;
       min-height: 150px;
       box-sizing: border-box;
+    }
+    .text-attachments-section {
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f9f9f9;
+      margin-top: 10px;
+    }
+    .text-attachments-list {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .text-attachment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: white;
+    }
+    .text-attachment-content {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .text-attachment-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .text-attachment-text {
+      font-size: 13px;
+      color: #333;
+      max-height: 60px;
+      overflow: hidden;
     }
   </style>
 <link rel="manifest" href="manifest.json">
@@ -325,6 +366,20 @@ let currentZoomedImage = null;
 // Простая функция для получения текущего времени
 function now() {
   return new Date().toLocaleString();
+}
+
+// Генерация имени файла с датой и временем
+function generateFileName() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  // Изменен формат: fileSystem-19-10-2025-20-08-45
+  return `fileSystem-${day}-${month}-${year}-${hours}-${minutes}-${seconds}`;
 }
 
 // Получить полный путь
@@ -586,7 +641,11 @@ function showAudioNoteInterface(audioContent, fullPath) {
   addAudioBtn.textContent = '🎵 Add Audio';
   addAudioBtn.onclick = addAudioToFile;
   
-  mediaControls.append(addImageBtn, addAudioBtn);
+  const addTextBtn = document.createElement('button');
+  addTextBtn.textContent = '📝 Add Text';
+  addTextBtn.onclick = addTextAttachment;
+  
+  mediaControls.append(addImageBtn, addAudioBtn, addTextBtn);
   mediaSection.appendChild(mediaControls);
   
   const mediaContainer = document.createElement('div');
@@ -603,7 +662,30 @@ function showAudioNoteInterface(audioContent, fullPath) {
     mediaContainer.appendChild(placeholder);
   }
   
-  audioContainer.appendChild(mediaSection);
+  // Секция с текстовыми вложениями
+  const textAttachmentsSection = document.createElement('div');
+  textAttachmentsSection.className = 'text-attachments-section';
+  
+  const textAttachmentsTitle = document.createElement('div');
+  textAttachmentsTitle.className = 'section-title';
+  textAttachmentsTitle.textContent = 'Текстовые вложения:';
+  textAttachmentsSection.appendChild(textAttachmentsTitle);
+  
+  const textAttachmentsList = document.createElement('div');
+  textAttachmentsList.className = 'text-attachments-list';
+  textAttachmentsSection.appendChild(textAttachmentsList);
+  
+  // Если есть текстовые вложения, показываем их
+  if (fileMeta[fullPath]?.textAttachments && fileMeta[fullPath].textAttachments.length > 0) {
+    renderTextAttachments(fileMeta[fullPath].textAttachments, textAttachmentsList);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Текстовых вложений нет';
+    textAttachmentsList.appendChild(placeholder);
+  }
+  
+  audioContainer.appendChild(textAttachmentsSection);
   editorContent.appendChild(audioContainer);
 }
 
@@ -634,7 +716,11 @@ function showRegularFileInterface(content, fullPath) {
   addAudioBtn.textContent = '🎵 Add Audio';
   addAudioBtn.onclick = addAudioToFile;
   
-  mediaControls.append(addImageBtn, addAudioBtn);
+  const addTextBtn = document.createElement('button');
+  addTextBtn.textContent = '📝 Add Text';
+  addTextBtn.onclick = addTextAttachment;
+  
+  mediaControls.append(addImageBtn, addAudioBtn, addTextBtn);
   mediaSection.appendChild(mediaControls);
   
   const mediaContainer = document.createElement('div');
@@ -657,9 +743,23 @@ function showRegularFileInterface(content, fullPath) {
   
   textSection.appendChild(textArea);
   
+  // Секция с текстовыми вложениями
+  const textAttachmentsSection = document.createElement('div');
+  textAttachmentsSection.className = 'text-attachments-section';
+  
+  const textAttachmentsTitle = document.createElement('div');
+  textAttachmentsTitle.className = 'section-title';
+  textAttachmentsTitle.textContent = 'Текстовые вложения:';
+  textAttachmentsSection.appendChild(textAttachmentsTitle);
+  
+  const textAttachmentsList = document.createElement('div');
+  textAttachmentsList.className = 'text-attachments-list';
+  textAttachmentsSection.appendChild(textAttachmentsList);
+  
   // Добавляем секции в редактор
   editorContent.appendChild(mediaSection);
   editorContent.appendChild(textSection);
+  editorContent.appendChild(textAttachmentsSection);
   
   // Если файл содержит медиа-вложения, показываем их
   if (fileMeta[fullPath]?.media && fileMeta[fullPath].media.length > 0) {
@@ -669,6 +769,16 @@ function showRegularFileInterface(content, fullPath) {
     placeholder.className = 'media-placeholder';
     placeholder.textContent = 'Медиа-вложений нет';
     mediaContainer.appendChild(placeholder);
+  }
+  
+  // Если есть текстовые вложения, показываем их
+  if (fileMeta[fullPath]?.textAttachments && fileMeta[fullPath].textAttachments.length > 0) {
+    renderTextAttachments(fileMeta[fullPath].textAttachments, textAttachmentsList);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Текстовых вложений нет';
+    textAttachmentsList.appendChild(placeholder);
   }
 }
 
@@ -739,6 +849,48 @@ function renderMediaAttachments(mediaArray, container) {
   });
 }
 
+// Отображение текстовых вложений
+function renderTextAttachments(textArray, container) {
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (!textArray || textArray.length === 0) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Текстовых вложений нет';
+    container.appendChild(placeholder);
+    return;
+  }
+  
+  textArray.forEach((textAttachment, index) => {
+    const item = document.createElement('div');
+    item.className = 'text-attachment-item';
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'text-attachment-content';
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'text-attachment-name';
+    nameDiv.textContent = textAttachment.name || 'Без названия';
+    
+    const textDiv = document.createElement('div');
+    textDiv.className = 'text-attachment-text';
+    textDiv.textContent = textAttachment.text || '';
+    
+    contentDiv.appendChild(nameDiv);
+    contentDiv.appendChild(textDiv);
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '🗑';
+    deleteBtn.onclick = () => deleteTextAttachment(index);
+    
+    item.appendChild(contentDiv);
+    item.appendChild(deleteBtn);
+    container.appendChild(item);
+  });
+}
+
 // Функция для увеличения/уменьшения изображения
 function toggleZoomImage(img) {
   const overlay = document.getElementById('media-overlay');
@@ -789,6 +941,23 @@ function deleteMediaAttachment(index) {
     const mediaContainer = document.querySelector('.media-container');
     if (mediaContainer) {
       renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+    }
+    
+    autoSave();
+  }
+}
+
+// Удаление текстового вложения
+function deleteTextAttachment(index) {
+  if (!currentFile || !confirm('Удалить это текстовое вложение?')) return;
+  
+  const fullPath = getFullPath(currentFile);
+  if (fileMeta[fullPath]?.textAttachments) {
+    fileMeta[fullPath].textAttachments.splice(index, 1);
+    
+    const textAttachmentsList = document.querySelector('.text-attachments-list');
+    if (textAttachmentsList) {
+      renderTextAttachments(fileMeta[fullPath].textAttachments, textAttachmentsList);
     }
     
     autoSave();
@@ -858,7 +1027,7 @@ function createFile() {
   if (folder[name]) return alert('Already exists!');
   folder[name] = '';
   const fullPath = getFullPath([...currentPath, name]);
-  fileMeta[fullPath] = { created: now(), media: [] };
+  fileMeta[fullPath] = { created: now(), media: [], textAttachments: [] };
   renderFileList();
 }
 
@@ -877,17 +1046,19 @@ function deleteItem(path) {
 
 // Сохранить систему
 function saveSystem() {
+  const fileName = generateFileName();
+  
   const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'fileSystem.json';
+  link.download = fileName + '.json';
   link.click();
   URL.revokeObjectURL(link.href);
 
   const metaBlob = new Blob([JSON.stringify(fileMeta, null, 2)], { type: 'application/json' });
   const metaLink = document.createElement('a');
   metaLink.href = URL.createObjectURL(metaBlob);
-  metaLink.download = 'fileMeta.json';
+  metaLink.download = fileName + '-meta.json';
   metaLink.click();
   URL.revokeObjectURL(metaLink.href);
 }
@@ -1000,6 +1171,37 @@ function addAudioToFile() {
   document.getElementById('audio-input').click();
 }
 
+function addTextAttachment() {
+  const name = prompt('Название текстового вложения:');
+  if (!name) return;
+  
+  const text = prompt('Текст вложения:');
+  if (text === null) return;
+  
+  if (!currentFile) return;
+  
+  const fullPath = getFullPath(currentFile);
+  
+  if (!fileMeta[fullPath]) {
+    fileMeta[fullPath] = { created: now(), media: [], textAttachments: [] };
+  } else if (!fileMeta[fullPath].textAttachments) {
+    fileMeta[fullPath].textAttachments = [];
+  }
+  
+  fileMeta[fullPath].textAttachments.push({
+    name: name,
+    text: text,
+    added: now()
+  });
+  
+  const textAttachmentsList = document.querySelector('.text-attachments-list');
+  if (textAttachmentsList) {
+    renderTextAttachments(fileMeta[fullPath].textAttachments, textAttachmentsList);
+  }
+  
+  autoSave();
+}
+
 // Обработчики для загрузки изображений
 document.getElementById('image-input').addEventListener('change', function(e) {
   const files = e.target.files;
@@ -1035,8 +1237,8 @@ function compressAndAddImage(file) {
       
       let width = img.width;
       let height = img.height;
-      const maxWidth = 800;
-      const maxHeight = 600;
+      const maxWidth = 1600; // Увеличил максимальный размер
+      const maxHeight = 1200;
       
       if (width > maxWidth) {
         height = (height * maxWidth) / width;
@@ -1053,7 +1255,8 @@ function compressAndAddImage(file) {
       
       ctx.drawImage(img, 0, 0, width, height);
       
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      // Увеличил качество сжатия
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
       
       addMediaAttachment('image', compressedDataUrl);
     };
@@ -1080,7 +1283,7 @@ function addMediaAttachment(type, data) {
   const fullPath = getFullPath(currentFile);
   
   if (!fileMeta[fullPath]) {
-    fileMeta[fullPath] = { created: now(), media: [] };
+    fileMeta[fullPath] = { created: now(), media: [], textAttachments: [] };
   } else if (!fileMeta[fullPath].media) {
     fileMeta[fullPath].media = [];
   }
@@ -1190,7 +1393,8 @@ function saveAudioNote() {
       created: now(), 
       type: 'audio',
       notes: '',
-      media: []
+      media: [],
+      textAttachments: []
     };
 
     renderFileList();
