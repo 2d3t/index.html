@@ -420,9 +420,45 @@ function isAudioFile(filename) {
   return filename.endsWith('.audio.txt') || (fileMeta[getFullPath([...currentPath, filename])]?.type === 'audio');
 }
 
+// Сохранить все изменения текущего файла
+function saveCurrentFileChanges() {
+  if (!currentFile) return;
+  
+  const fullPath = getFullPath(currentFile);
+  const isAudio = isAudioFile(currentFile[currentFile.length - 1]);
+  
+  if (isAudio) {
+    // Сохраняем текстовые заметки для аудиофайла
+    const textArea = document.querySelector('.notes-textarea');
+    if (textArea) {
+      if (!fileMeta[fullPath]) fileMeta[fullPath] = {};
+      fileMeta[fullPath].notes = textArea.value;
+    }
+  } else {
+    // Сохраняем содержимое обычного файла
+    let file = fileSystem;
+    for (let i = 0; i < currentFile.length - 1; i++) {
+      file = file[currentFile[i]];
+    }
+    
+    const textArea = document.getElementById('file-content');
+    if (textArea) {
+      file[currentFile[currentFile.length - 1]] = textArea.value;
+    }
+  }
+  
+  autoSave();
+}
+
 // Отображение списка файлов
 function renderFileList(searchTerm = '') {
   console.log('renderFileList called with:', searchTerm);
+  
+  // Сохраняем изменения текущего файла перед перерисовкой
+  if (currentFile) {
+    saveCurrentFileChanges();
+  }
+  
   const container = document.getElementById('file-list');
   if (!container) {
     console.error('file-list container not found!');
@@ -531,6 +567,12 @@ function goBack() {
 // Открыть файл
 function openFile(path) {
   console.log('Opening file:', path);
+  
+  // Сохраняем изменения предыдущего файла перед открытием нового
+  if (currentFile) {
+    saveCurrentFileChanges();
+  }
+  
   currentFile = path;
   let file = fileSystem;
   
@@ -968,34 +1010,21 @@ function deleteTextAttachment(index) {
 function saveFile() {
   if (!currentFile) return;
   
-  const fullPath = getFullPath(currentFile);
-  const isAudio = isAudioFile(currentFile[currentFile.length - 1]);
+  saveCurrentFileChanges();
   
+  const isAudio = isAudioFile(currentFile[currentFile.length - 1]);
   if (isAudio) {
-    const textArea = document.querySelector('.notes-textarea');
-    if (textArea) {
-      if (!fileMeta[fullPath]) fileMeta[fullPath] = {};
-      fileMeta[fullPath].notes = textArea.value;
-    }
-    autoSave();
     alert('Заметки сохранены!');
   } else {
-    let file = fileSystem;
-    for (let i = 0; i < currentFile.length - 1; i++) {
-      file = file[currentFile[i]];
-    }
-    
-    const textArea = document.getElementById('file-content');
-    if (textArea) {
-      file[currentFile[currentFile.length - 1]] = textArea.value;
-      autoSave();
-      alert('File saved!');
-    }
+    alert('File saved!');
   }
 }
 
 // Закрыть редактор
 function closeEditor() {
+  // Сохраняем изменения перед закрытием
+  saveCurrentFileChanges();
+  
   // Закрываем увеличенное изображение при закрытии редактора
   closeZoomedImage();
   
