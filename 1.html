@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -178,6 +177,10 @@
       margin-bottom: 5px;
       font-weight: bold;
     }
+    .audio-player {
+      width: 100%;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -236,7 +239,6 @@
   </div>
 
   <script>
-// ... (весь JavaScript код остается без изменений, как в предыдущей версии)
 let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
 let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {};
 let currentPath = [];
@@ -308,8 +310,16 @@ function renderFileList(searchTerm = '') {
     const div = document.createElement('div');
     div.className = 'item';
 
+    // Определяем иконку в зависимости от типа файла
+    let icon = '📄 ';
+    if (isFolder) {
+      icon = '📁 ';
+    } else if (name.endsWith('.audio.txt')) {
+      icon = '🎵 ';
+    }
+
     const label = document.createElement('span');
-    label.textContent = (isFolder ? '📁 ' : '📄 ') + name;
+    label.textContent = icon + name;
 
     label.onclick = () => {
       if (isFolder) {
@@ -372,17 +382,74 @@ function openFile(path) {
   // Полностью очищаем медиа-контейнер
   clearMediaContainer();
   
-  // Показываем текстовое содержимое
-  document.getElementById('file-content').style.display = 'block';
-  document.getElementById('file-content').value = content;
+  // Проверяем, является ли файл аудиозаписью
+  if (path[path.length - 1].endsWith('.audio.txt')) {
+    // Для аудиофайлов показываем только плеер
+    document.getElementById('file-content').style.display = 'none';
+    document.getElementById('text-section').style.display = 'none';
+    
+    // Создаем аудиоплеер
+    const audioContainer = document.getElementById('media-container');
+    audioContainer.innerHTML = '';
+    
+    const audioPlayer = document.createElement('audio');
+    audioPlayer.className = 'audio-player';
+    audioPlayer.controls = true;
+    
+    // Создаем URL для аудио из Base64 данных
+    try {
+      const audioBlob = base64ToBlob(content, 'audio/webm');
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioPlayer.src = audioUrl;
+    } catch (e) {
+      console.error('Error creating audio URL:', e);
+      audioContainer.innerHTML = '<div class="media-placeholder">Ошибка загрузки аудио</div>';
+      return;
+    }
+    
+    const infoDiv = document.createElement('div');
+    infoDiv.style.marginTop = '10px';
+    infoDiv.style.fontSize = '14px';
+    infoDiv.style.color = '#666';
+    infoDiv.textContent = 'Аудиозапись';
+    
+    audioContainer.appendChild(audioPlayer);
+    audioContainer.appendChild(infoDiv);
+    
+  } else {
+    // Для обычных файлов показываем стандартный интерфейс
+    document.getElementById('file-content').style.display = 'block';
+    document.getElementById('text-section').style.display = 'flex';
+    document.getElementById('file-content').value = content;
 
-  // Если файл содержит медиа-вложения, показываем их
-  if (fileMeta[fullPath]?.media) {
-    renderMediaAttachments(fileMeta[fullPath].media);
+    // Если файл содержит медиа-вложения, показываем их
+    if (fileMeta[fullPath]?.media) {
+      renderMediaAttachments(fileMeta[fullPath].media);
+    }
   }
 
   document.getElementById('editor').style.display = 'flex';
   document.getElementById('sidebar').style.display = 'none';
+}
+
+// Функция для преобразования Base64 в Blob
+function base64ToBlob(base64, mimeType) {
+  const byteCharacters = atob(base64);
+  const byteArrays = [];
+  
+  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+    const slice = byteCharacters.slice(offset, offset + 512);
+    
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    
+    const byteArray = new Uint8Array(byteNumbers);
+    byteArrays.push(byteArray);
+  }
+  
+  return new Blob(byteArrays, { type: mimeType });
 }
 
 function clearMediaContainer() {
@@ -446,6 +513,13 @@ function deleteMediaAttachment(index) {
 
 function saveFile() {
   if (!currentFile) return;
+  
+  // Не позволяем сохранять изменения в аудиофайлах через текстовый редактор
+  if (currentFile[currentFile.length - 1].endsWith('.audio.txt')) {
+    alert('Аудиофайлы нельзя редактировать как текст.');
+    return;
+  }
+  
   let file = fileSystem;
   for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
   file[currentFile[currentFile.length - 1]] = document.getElementById('file-content').value;
@@ -458,6 +532,8 @@ function closeEditor() {
   clearMediaContainer();
   document.getElementById('editor').style.display = 'none';
   document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('file-content').style.display = 'block';
+  document.getElementById('text-section').style.display = 'flex';
   renderFileList();
 }
 
@@ -758,6 +834,7 @@ function saveAudioNote() {
   const reader = new FileReader();
 
   reader.onloadend = () => {
+    // Получаем Base64 строку (убираем префикс data:audio/webm;base64,)
     const base64Audio = reader.result.split(',')[1];
     const name = prompt('Имя аудиозаметки (без расширения):', 'audio_note');
     if (!name) return;
