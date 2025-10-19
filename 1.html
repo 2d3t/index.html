@@ -142,6 +142,44 @@
       text-align: center;
       color: #666;
     }
+    .compression-dialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 1000;
+      min-width: 300px;
+    }
+    .compression-dialog h3 {
+      margin-top: 0;
+    }
+    .compression-dialog label {
+      display: block;
+      margin: 10px 0;
+    }
+    .compression-dialog select {
+      width: 100%;
+      padding: 6px;
+      margin: 5px 0 15px;
+    }
+    .compression-dialog .dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
   </style>
 </head>
 <body>
@@ -524,7 +562,8 @@ function addImageToFile() {
 }
 
 function addAudioToFile() {
-  document.getElementById('audio-input').click();
+  // Показываем диалог выбора качества сжатия
+  showCompressionDialog();
 }
 
 // Обработчики для загрузки изображений
@@ -544,12 +583,54 @@ document.getElementById('audio-input').addEventListener('change', function(e) {
   const files = e.target.files;
   if (!files.length) return;
   
+  // Получаем выбранное качество сжатия
+  const quality = document.getElementById('compression-quality')?.value || 'medium';
+  
   for (let i = 0; i < files.length; i++) {
-    compressAndAddAudio(files[i]);
+    compressAndAddAudio(files[i], quality);
   }
   
   this.value = ''; // Сбрасываем input
 });
+
+function showCompressionDialog() {
+  // Создаем оверлей
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  
+  // Создаем диалог
+  const dialog = document.createElement('div');
+  dialog.className = 'compression-dialog';
+  dialog.innerHTML = `
+    <h3>Настройки сжатия аудио</h3>
+    <label>Качество сжатия:</label>
+    <select id="compression-quality">
+      <option value="low">Низкое (максимальное сжатие)</option>
+      <option value="medium" selected>Среднее (рекомендуется)</option>
+      <option value="high">Высокое (минимальное сжатие)</option>
+    </select>
+    <div class="dialog-buttons">
+      <button onclick="hideCompressionDialog()">Отмена</button>
+      <button onclick="selectAudioFiles()">Выбрать файлы</button>
+    </div>
+  `;
+  
+  document.body.appendChild(overlay);
+  document.body.appendChild(dialog);
+}
+
+function hideCompressionDialog() {
+  const overlay = document.querySelector('.overlay');
+  const dialog = document.querySelector('.compression-dialog');
+  
+  if (overlay) overlay.remove();
+  if (dialog) dialog.remove();
+}
+
+function selectAudioFiles() {
+  hideCompressionDialog();
+  document.getElementById('audio-input').click();
+}
 
 function compressAndAddImage(file) {
   const reader = new FileReader();
@@ -596,142 +677,50 @@ function compressAndAddImage(file) {
   reader.readAsDataURL(file);
 }
 
-function compressAndAddAudio(file) {
+function compressAndAddAudio(file, quality = 'medium') {
   const reader = new FileReader();
   
   reader.onload = function(e) {
-    // Для аудио просто используем оригинальный файл
-    // В реальном приложении здесь можно добавить сжатие аудио
-    addMediaAttachment('audio', e.target.result);
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = e.target.result;
+    
+    audioContext.decodeAudioData(arrayBuffer, function(buffer) {
+      // Настройки сжатия в зависимости от выбранного качества
+      let bitrate;
+      switch(quality) {
+        case 'low':
+          bitrate = 64; // 64 kbps
+          break;
+        case 'high':
+          bitrate = 192; // 192 kbps
+          break;
+        case 'medium':
+        default:
+          bitrate = 128; // 128 kbps
+      }
+      
+      // Сжимаем аудио
+      compressAudioBuffer(buffer, bitrate).then(compressedDataUrl => {
+        addMediaAttachment('audio', compressedDataUrl);
+      }).catch(error => {
+        console.error('Ошибка сжатия аудио:', error);
+        // Если сжатие не удалось, используем оригинальный файл
+        addMediaAttachment('audio', e.target.result);
+      });
+    }, function(error) {
+      console.error('Ошибка декодирования аудио:', error);
+      // Если декодирование не удалось, используем оригинальный файл
+      addMediaAttachment('audio', e.target.result);
+    });
   };
   
-  reader.readAsDataURL(file);
+  reader.readAsArrayBuffer(file);
 }
 
-function addMediaAttachment(type, data) {
-  if (!currentFile) return;
-  
-  const fullPath = getFullPath(currentFile);
-  
-  // Инициализируем массив медиа, если его нет
-  if (!fileMeta[fullPath]) {
-    fileMeta[fullPath] = { created: now(), media: [] };
-  } else if (!fileMeta[fullPath].media) {
-    fileMeta[fullPath].media = [];
-  }
-  
-  // Добавляем новое медиа-вложение
-  fileMeta[fullPath].media.push({
-    type: type,
-    data: data,
-    added: now()
-  });
-  
-  // Полностью перерисовываем медиа-вложения
-  renderMediaAttachments(fileMeta[fullPath].media);
-  autoSave();
-}
-
-// === Логика записи аудио ===
-let mediaRecorder;
-let audioChunks = [];
-let isRecording = false;
-let stopBtn;
-
-async function recordAudio() {
-  const micBtn = document.querySelector('button[onclick="recordAudio()"]');
-
-  if (isRecording) {
-    stopRecording();
-    return;
-  }
-
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Ваш браузер не поддерживает запись аудио.');
-    return;
-  }
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-    mediaRecorder.onstop = saveAudioNote;
-
-    mediaRecorder.start();
-    isRecording = true;
-
-    // Меняем вид кнопки микрофона
-    micBtn.style.background = '#ffb3b3';
-    micBtn.style.borderColor = 'red';
-
-    // Создаём временную кнопку "⏹️ Остановить запись"
-    stopBtn = document.createElement('button');
-    stopBtn.textContent = '⏹️ Остановить запись';
-    stopBtn.style.background = '#ffe6e6';
-    stopBtn.style.border = '1px solid red';
-    stopBtn.style.color = '#c00';
-    stopBtn.onclick = stopRecording;
-
-    micBtn.parentNode.insertBefore(stopBtn, micBtn.nextSibling);
-
-    alert('🎙️ Запись началась (до 30 секунд)...');
-    setTimeout(() => {
-      if (isRecording) stopRecording();
-    }, 30000);
-
-  } catch (err) {
-    alert('Ошибка доступа к микрофону.');
-    console.error(err);
-  }
-}
-
-function stopRecording() {
-  const micBtn = document.querySelector('button[onclick="recordAudio()"]');
-  if (!isRecording) return;
-
-  isRecording = false;
-  mediaRecorder.stop();
-
-  micBtn.style.background = '';
-  micBtn.style.borderColor = '';
-
-  if (stopBtn) {
-    stopBtn.remove();
-    stopBtn = null;
-  }
-
-  alert('⏹️ Запись остановлена.');
-}
-
-function saveAudioNote() {
-  const blob = new Blob(audioChunks, { type: 'audio/webm' });
-  const reader = new FileReader();
-
-  reader.onloadend = () => {
-    const base64Audio = reader.result.split(',')[1];
-    const name = prompt('Имя аудиозаметки (без расширения):', 'audio_note');
-    if (!name) return;
-
-    const folder = getFolderByPath(currentPath);
-    const filename = name + '.audio.txt';
-    folder[filename] = base64Audio;
-
-    const fullPath = getFullPath([...currentPath, filename]);
-    fileMeta[fullPath] = { created: now(), type: 'audio' };
-
-    renderFileList();
-    autoSave();
-    alert('Аудиозаметка сохранена!');
-  };
-
-  reader.readAsDataURL(blob);
-}
-
-setInterval(autoSave, 5000);
-renderFileList();
-</script>
-
-</body>
-</html>
+function compressAudioBuffer(buffer, bitrate = 128) {
+  return new Promise((resolve, reject) => {
+    // Создаем новый аудиобуфер с пониженной частотой дискретизации для сжатия
+    const offlineContext = new OfflineAudioContext(
+      buffer.numberOfChannels,
+      buffer.length,
+      buffer.sampleRate > 22050 ? 22050 : buffer.sampleRate // Понижаем частот
