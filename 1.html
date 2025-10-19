@@ -281,25 +281,36 @@
   </div>
 
   <script>
+// Инициализация переменных
 let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
 let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {};
 let currentPath = [];
 let currentFile = null;
 
+// Простая функция для получения текущего времени
 function now() {
   return new Date().toLocaleString();
 }
 
+// Получить полный путь
 function getFullPath(pathArray) {
   return '/' + pathArray.join('/');
 }
 
+// Получить папку по пути
 function getFolderByPath(path) {
   let folder = fileSystem;
-  for (const part of path) folder = folder[part];
+  for (const part of path) {
+    if (folder[part]) {
+      folder = folder[part];
+    } else {
+      return null;
+    }
+  }
   return folder;
 }
 
+// Поиск по файловой системе
 function findAllMatches(folder, term, path = []) {
   let results = [];
   for (let name in folder) {
@@ -314,25 +325,35 @@ function findAllMatches(folder, term, path = []) {
   return results;
 }
 
+// Проверка, является ли файл аудио
 function isAudioFile(filename) {
   return filename.endsWith('.audio.txt') || (fileMeta[getFullPath([...currentPath, filename])]?.type === 'audio');
 }
 
+// Отображение списка файлов
 function renderFileList(searchTerm = '') {
+  console.log('renderFileList called with:', searchTerm);
   const container = document.getElementById('file-list');
+  if (!container) {
+    console.error('file-list container not found!');
+    return;
+  }
+  
   container.innerHTML = '';
 
-  const globalSearch = document.getElementById('global-search').checked;
+  const globalSearch = document.getElementById('global-search')?.checked || false;
   const folder = getFolderByPath(currentPath);
 
-  document.getElementById('path-bar').textContent =
-    '/' + (currentPath.length ? currentPath.join('/') : '');
+  const pathBar = document.getElementById('path-bar');
+  if (pathBar) {
+    pathBar.textContent = '/' + (currentPath.length ? currentPath.join('/') : '');
+  }
 
   let items = [];
 
   if (searchTerm && globalSearch) {
     items = findAllMatches(fileSystem, searchTerm);
-  } else {
+  } else if (folder) {
     items = Object.keys(folder)
       .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
       .map(name => ({
@@ -370,7 +391,8 @@ function renderFileList(searchTerm = '') {
     label.onclick = () => {
       if (isFolder) {
         currentPath = [...fullPath];
-        document.getElementById('search-bar').value = '';
+        const searchBar = document.getElementById('search-bar');
+        if (searchBar) searchBar.value = '';
         renderFileList();
       } else {
         openFile(fullPath);
@@ -403,6 +425,7 @@ function renderFileList(searchTerm = '') {
   autoSave();
 }
 
+// Назад
 function goBack() {
   if (currentFile) {
     closeEditor();
@@ -410,36 +433,51 @@ function goBack() {
   }
   if (currentPath.length === 0) return;
   currentPath.pop();
-  document.getElementById('search-bar').value = '';
+  const searchBar = document.getElementById('search-bar');
+  if (searchBar) searchBar.value = '';
   renderFileList();
 }
 
+// Открыть файл
 function openFile(path) {
+  console.log('Opening file:', path);
   currentFile = path;
   let file = fileSystem;
-  for (let i = 0; i < path.length - 1; i++) file = file[path[i]];
+  
+  // Находим файл в файловой системе
+  for (let i = 0; i < path.length - 1; i++) {
+    if (file[path[i]]) {
+      file = file[path[i]];
+    }
+  }
+  
   const content = file[path[path.length - 1]];
   const fullPath = getFullPath(path);
   const created = fileMeta[fullPath]?.created || 'неизвестно';
   const isAudio = isAudioFile(path[path.length - 1]);
 
-  document.getElementById('editor-filename').textContent =
-    fullPath + ` | 📅 Создан: ${created}`;
+  const filenameElement = document.getElementById('editor-filename');
+  if (filenameElement) {
+    filenameElement.textContent = fullPath + ` | 📅 Создан: ${created}`;
+  }
 
   if (isAudio) {
-    // Для аудиофайлов показываем специальный интерфейс
     showAudioNoteInterface(content, fullPath);
   } else {
-    // Для обычных файлов показываем стандартный интерфейс
     showRegularFileInterface(content, fullPath);
   }
 
-  document.getElementById('editor').style.display = 'flex';
-  document.getElementById('sidebar').style.display = 'none';
+  const editor = document.getElementById('editor');
+  const sidebar = document.getElementById('sidebar');
+  if (editor) editor.style.display = 'flex';
+  if (sidebar) sidebar.style.display = 'none';
 }
 
+// Показать интерфейс аудио-заметки
 function showAudioNoteInterface(audioContent, fullPath) {
   const editorContent = document.getElementById('editor-content');
+  if (!editorContent) return;
+  
   editorContent.innerHTML = '';
   
   const audioContainer = document.createElement('div');
@@ -504,10 +542,16 @@ function showAudioNoteInterface(audioContent, fullPath) {
   
   const mediaControls = document.createElement('div');
   mediaControls.className = 'media-controls';
-  mediaControls.innerHTML = `
-    <button onclick="addImageToFile()">🖼️ Add Image</button>
-    <button onclick="addAudioToFile()">🎵 Add Audio</button>
-  `;
+  
+  const addImageBtn = document.createElement('button');
+  addImageBtn.textContent = '🖼️ Add Image';
+  addImageBtn.onclick = addImageToFile;
+  
+  const addAudioBtn = document.createElement('button');
+  addAudioBtn.textContent = '🎵 Add Audio';
+  addAudioBtn.onclick = addAudioToFile;
+  
+  mediaControls.append(addImageBtn, addAudioBtn);
   mediaSection.appendChild(mediaControls);
   
   const mediaContainer = document.createElement('div');
@@ -528,26 +572,61 @@ function showAudioNoteInterface(audioContent, fullPath) {
   editorContent.appendChild(audioContainer);
 }
 
+// Показать интерфейс обычного файла
 function showRegularFileInterface(content, fullPath) {
   const editorContent = document.getElementById('editor-content');
-  editorContent.innerHTML = `
-    <div id="media-section">
-      <div class="section-title">Медиа-вложения:</div>
-      <div class="media-controls">
-        <button onclick="addImageToFile()">🖼️ Add Image</button>
-        <button onclick="addAudioToFile()">🎵 Add Audio</button>
-      </div>
-      <div class="media-container" id="media-container"></div>
-    </div>
-    
-    <div id="text-section">
-      <div class="section-title">Текст файла:</div>
-      <textarea id="file-content">${content}</textarea>
-    </div>
-  `;
+  if (!editorContent) return;
+  
+  editorContent.innerHTML = '';
+  
+  // Создаем секцию для медиа-вложений
+  const mediaSection = document.createElement('div');
+  mediaSection.id = 'media-section';
+  
+  const mediaTitle = document.createElement('div');
+  mediaTitle.className = 'section-title';
+  mediaTitle.textContent = 'Медиа-вложения:';
+  mediaSection.appendChild(mediaTitle);
+  
+  const mediaControls = document.createElement('div');
+  mediaControls.className = 'media-controls';
+  
+  const addImageBtn = document.createElement('button');
+  addImageBtn.textContent = '🖼️ Add Image';
+  addImageBtn.onclick = addImageToFile;
+  
+  const addAudioBtn = document.createElement('button');
+  addAudioBtn.textContent = '🎵 Add Audio';
+  addAudioBtn.onclick = addAudioToFile;
+  
+  mediaControls.append(addImageBtn, addAudioBtn);
+  mediaSection.appendChild(mediaControls);
+  
+  const mediaContainer = document.createElement('div');
+  mediaContainer.className = 'media-container';
+  mediaContainer.id = 'media-container';
+  mediaSection.appendChild(mediaContainer);
+  
+  // Создаем секцию для текста
+  const textSection = document.createElement('div');
+  textSection.id = 'text-section';
+  
+  const textTitle = document.createElement('div');
+  textTitle.className = 'section-title';
+  textTitle.textContent = 'Текст файла:';
+  textSection.appendChild(textTitle);
+  
+  const textArea = document.createElement('textarea');
+  textArea.id = 'file-content';
+  textArea.value = content || '';
+  
+  textSection.appendChild(textArea);
+  
+  // Добавляем секции в редактор
+  editorContent.appendChild(mediaSection);
+  editorContent.appendChild(textSection);
   
   // Если файл содержит медиа-вложения, показываем их
-  const mediaContainer = document.getElementById('media-container');
   if (fileMeta[fullPath]?.media && fileMeta[fullPath].media.length > 0) {
     renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
   } else {
@@ -558,30 +637,35 @@ function showRegularFileInterface(content, fullPath) {
   }
 }
 
-// Функция для преобразования Base64 в Blob
+// Преобразование Base64 в Blob
 function base64ToBlob(base64, mimeType) {
-  const byteCharacters = atob(base64);
-  const byteArrays = [];
-  
-  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-    const slice = byteCharacters.slice(offset, offset + 512);
+  try {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
     
-    const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i);
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
     }
     
-    const byteArray = new Uint8Array(byteNumbers);
-    byteArrays.push(byteArray);
+    return new Blob(byteArrays, { type: mimeType });
+  } catch (e) {
+    console.error('Error converting base64 to blob:', e);
+    return new Blob([], { type: mimeType });
   }
-  
-  return new Blob(byteArrays, { type: mimeType });
 }
 
+// Отображение медиа-вложений
 function renderMediaAttachments(mediaArray, container) {
   if (!container) return;
   
-  // Полностью очищаем контейнер перед рендерингом
   container.innerHTML = '';
   
   if (!mediaArray || mediaArray.length === 0) {
@@ -595,7 +679,6 @@ function renderMediaAttachments(mediaArray, container) {
   mediaArray.forEach((media, index) => {
     const mediaItem = document.createElement('div');
     mediaItem.className = 'media-item';
-    mediaItem.dataset.index = index;
     
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-media';
@@ -620,6 +703,7 @@ function renderMediaAttachments(mediaArray, container) {
   });
 }
 
+// Удаление медиа-вложения
 function deleteMediaAttachment(index) {
   if (!currentFile || !confirm('Удалить это вложение?')) return;
   
@@ -627,7 +711,6 @@ function deleteMediaAttachment(index) {
   if (fileMeta[fullPath]?.media) {
     fileMeta[fullPath].media.splice(index, 1);
     
-    // Находим контейнер для медиа и перерисовываем
     const mediaContainer = document.querySelector('.media-container');
     if (mediaContainer) {
       renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
@@ -637,6 +720,7 @@ function deleteMediaAttachment(index) {
   }
 }
 
+// Сохранение файла
 function saveFile() {
   if (!currentFile) return;
   
@@ -644,7 +728,6 @@ function saveFile() {
   const isAudio = isAudioFile(currentFile[currentFile.length - 1]);
   
   if (isAudio) {
-    // Для аудиофайлов сохраняем только текстовые заметки
     const textArea = document.querySelector('.notes-textarea');
     if (textArea) {
       if (!fileMeta[fullPath]) fileMeta[fullPath] = {};
@@ -653,37 +736,47 @@ function saveFile() {
     autoSave();
     alert('Заметки сохранены!');
   } else {
-    // Для обычных файлов сохраняем содержимое
     let file = fileSystem;
-    for (let i = 0; i < currentFile.length - 1; i++) file = file[currentFile[i]];
-    file[currentFile[currentFile.length - 1]] = document.getElementById('file-content').value;
-    autoSave();
-    alert('File saved!');
+    for (let i = 0; i < currentFile.length - 1; i++) {
+      file = file[currentFile[i]];
+    }
+    
+    const textArea = document.getElementById('file-content');
+    if (textArea) {
+      file[currentFile[currentFile.length - 1]] = textArea.value;
+      autoSave();
+      alert('File saved!');
+    }
   }
 }
 
+// Закрыть редактор
 function closeEditor() {
   currentFile = null;
-  document.getElementById('editor').style.display = 'none';
-  document.getElementById('sidebar').style.display = 'flex';
+  const editor = document.getElementById('editor');
+  const sidebar = document.getElementById('sidebar');
+  if (editor) editor.style.display = 'none';
+  if (sidebar) sidebar.style.display = 'flex';
   renderFileList();
 }
 
-// ... (остальные функции остаются без изменений: createFolder, createFile, deleteItem, saveSystem, loadSystem, handleFileLoad, renameItem, autoSave, copyFileText, openInKlikEdit)
-
+// Создать папку
 function createFolder() {
   const name = prompt('Folder name:');
   if (!name) return;
   const folder = getFolderByPath(currentPath);
+  if (!folder) return;
   if (folder[name]) return alert('Already exists!');
   folder[name] = {};
   renderFileList();
 }
 
+// Создать файл
 function createFile() {
   const name = prompt('File name:');
   if (!name) return;
   const folder = getFolderByPath(currentPath);
+  if (!folder) return;
   if (folder[name]) return alert('Already exists!');
   folder[name] = '';
   const fullPath = getFullPath([...currentPath, name]);
@@ -691,16 +784,20 @@ function createFile() {
   renderFileList();
 }
 
+// Удалить элемент
 function deleteItem(path) {
   if (!confirm('Delete this item?')) return;
   let obj = fileSystem;
-  for (let i = 0; i < path.length - 1; i++) obj = obj[path[i]];
+  for (let i = 0; i < path.length - 1; i++) {
+    obj = obj[path[i]];
+  }
   const fullPath = getFullPath(path);
   delete fileMeta[fullPath];
   delete obj[path[path.length - 1]];
   renderFileList();
 }
 
+// Сохранить систему
 function saveSystem() {
   const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
   const link = document.createElement('a');
@@ -717,29 +814,37 @@ function saveSystem() {
   URL.revokeObjectURL(metaLink.href);
 }
 
+// Загрузить систему
 function loadSystem() {
   document.getElementById('file-input').click();
 }
 
+// Обработка загрузки файла
 function handleFileLoad(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = (e) => {
-    fileSystem = JSON.parse(e.target.result);
-    localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
-    currentPath = [];
-    renderFileList();
-    alert('File system loaded!');
+    try {
+      fileSystem = JSON.parse(e.target.result);
+      localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+      currentPath = [];
+      renderFileList();
+      alert('File system loaded!');
+    } catch (error) {
+      alert('Ошибка загрузки файла: ' + error.message);
+    }
   };
   reader.readAsText(file);
 }
 
+// Переименовать элемент
 function renameItem(path) {
   const currentName = path[path.length - 1];
   const newName = prompt('Rename to:', currentName);
   if (!newName || newName === currentName) return;
   const folder = getFolderByPath(path.slice(0, -1));
+  if (!folder) return;
   if (folder[newName]) return alert('Name already exists!');
   folder[newName] = folder[currentName];
   delete folder[currentName];
@@ -747,12 +852,10 @@ function renameItem(path) {
   const oldFull = getFullPath(path);
   const newFull = getFullPath([...path.slice(0, -1), newName]);
   
-  // Сохраняем метаданные при переименовании
   if (fileMeta[oldFull]) {
     fileMeta[newFull] = fileMeta[oldFull];
     delete fileMeta[oldFull];
     
-    // Если это аудиофайл, сохраняем тип
     if (fileMeta[newFull]?.type === 'audio') {
       fileMeta[newFull].type = 'audio';
     }
@@ -761,11 +864,17 @@ function renameItem(path) {
   renderFileList();
 }
 
+// Автосохранение
 function autoSave() {
-  localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
-  localStorage.setItem('fileMeta', JSON.stringify(fileMeta));
+  try {
+    localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+    localStorage.setItem('fileMeta', JSON.stringify(fileMeta));
+  } catch (e) {
+    console.error('AutoSave error:', e);
+  }
 }
 
+// Копировать текст
 function copyFileText() {
   let textarea;
   const isAudio = currentFile && isAudioFile(currentFile[currentFile.length - 1]);
@@ -783,6 +892,7 @@ function copyFileText() {
   }
 }
 
+// Открыть в KlikEdit
 function openInKlikEdit() {
   let textarea;
   const isAudio = currentFile && isAudioFile(currentFile[currentFile.length - 1]);
@@ -821,7 +931,7 @@ document.getElementById('image-input').addEventListener('change', function(e) {
     compressAndAddImage(files[i]);
   }
   
-  this.value = ''; // Сбрасываем input
+  this.value = '';
 });
 
 // Обработчики для загрузки аудио
@@ -833,7 +943,7 @@ document.getElementById('audio-input').addEventListener('change', function(e) {
     compressAndAddAudio(files[i]);
   }
   
-  this.value = ''; // Сбрасываем input
+  this.value = '';
 });
 
 function compressAndAddImage(file) {
@@ -842,11 +952,9 @@ function compressAndAddImage(file) {
   reader.onload = function(e) {
     const img = new Image();
     img.onload = function() {
-      // Создаем canvas для сжатия
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // Устанавливаем максимальные размеры
       let width = img.width;
       let height = img.height;
       const maxWidth = 800;
@@ -865,13 +973,10 @@ function compressAndAddImage(file) {
       canvas.width = width;
       canvas.height = height;
       
-      // Рисуем сжатое изображение
       ctx.drawImage(img, 0, 0, width, height);
       
-      // Получаем данные в формате JPEG с качеством 70%
       const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
       
-      // Добавляем в медиа-вложения
       addMediaAttachment('image', compressedDataUrl);
     };
     
@@ -885,8 +990,6 @@ function compressAndAddAudio(file) {
   const reader = new FileReader();
   
   reader.onload = function(e) {
-    // Для аудио просто используем оригинальный файл
-    // В реальном приложении здесь можно добавить сжатие аудио
     addMediaAttachment('audio', e.target.result);
   };
   
@@ -898,21 +1001,18 @@ function addMediaAttachment(type, data) {
   
   const fullPath = getFullPath(currentFile);
   
-  // Инициализируем массив медиа, если его нет
   if (!fileMeta[fullPath]) {
     fileMeta[fullPath] = { created: now(), media: [] };
   } else if (!fileMeta[fullPath].media) {
     fileMeta[fullPath].media = [];
   }
   
-  // Добавляем новое медиа-вложение
   fileMeta[fullPath].media.push({
     type: type,
     data: data,
     added: now()
   });
   
-  // Находим контейнер для медиа и перерисовываем
   const mediaContainer = document.querySelector('.media-container');
   if (mediaContainer) {
     renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
@@ -951,11 +1051,9 @@ async function recordAudio() {
     mediaRecorder.start();
     isRecording = true;
 
-    // Меняем вид кнопки микрофона
     micBtn.style.background = '#ffb3b3';
     micBtn.style.borderColor = 'red';
 
-    // Создаём временную кнопку "⏹️ Остановить запись"
     stopBtn = document.createElement('button');
     stopBtn.textContent = '⏹️ Остановить запись';
     stopBtn.style.background = '#ffe6e6';
@@ -999,12 +1097,13 @@ function saveAudioNote() {
   const reader = new FileReader();
 
   reader.onloadend = () => {
-    // Получаем Base64 строку (убираем префикс data:audio/webm;base64,)
     const base64Audio = reader.result.split(',')[1];
     const name = prompt('Имя аудиозаметки (без расширения):', 'audio_note');
     if (!name) return;
 
     const folder = getFolderByPath(currentPath);
+    if (!folder) return;
+    
     const filename = name + '.audio.txt';
     folder[filename] = base64Audio;
 
@@ -1024,8 +1123,14 @@ function saveAudioNote() {
   reader.readAsDataURL(blob);
 }
 
-setInterval(autoSave, 5000);
-renderFileList();
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, initializing...');
+  renderFileList();
+});
+
+// Автосохранение каждые 10 секунд
+setInterval(autoSave, 10000);
 </script>
 
 </body>
