@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Initi</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      margin: 0;
+    }
+    #sidebar {
+      width: 340px;
+      background: #f7f7f7;
+      padding: 10px;
+      border-right: 1px solid #ccc;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    #path-bar {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    #file-list {
+      flex-grow: 1;
+    }
+    .item {
+      margin: 4px 0;
+      padding: 4px;
+      cursor: pointer;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .item:hover {
+      background-color: #eaeaea;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 3px;
+      padding: 4px 8px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: white;
+    }
+    button:hover {
+      background: #f0f0f0;
+    }
+    #editor {
+      flex-grow: 1;
+      display: none;
+      flex-direction: column;
+      padding: 10px;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    #editor-content {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+      gap: 10px;
+    }
+    #media-section {
+      flex: 0 0 auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 10px;
+      background: #fafafa;
+      max-height: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+    #text-section {
+      flex: 1 1 auto;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 10px;
+      background: white;
+    }
+    #file-content {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      min-height: 200px;
+      box-sizing: border-box;
+    }
+    #search-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    #search-bar {
+      flex-grow: 1;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    label {
+      font-size: 13px;
+      color: #444;
+      white-space: nowrap;
+    }
+    .media-controls {
+      display: flex;
+      gap: 5px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .media-container {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 60px;
+      max-height: 200px;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 5px;
+      background: white;
+    }
+    .media-item {
+      position: relative;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+      padding: 5px;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    .media-item img {
+      max-width: 100%;
+      max-height: 150px;
+      display: block;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .media-item img.zoomed {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.5);
+      max-width: 90vw;
+      max-height: 90vh;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      border: 2px solid #fff;
+    }
+    .media-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 999;
+      display: none;
+    }
+    .delete-media {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: rgba(255, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 12px;
+      z-index: 1001;
+    }
+    .media-audio {
+      width: 100%;
+      margin: 5px 0;
+    }
+    .media-placeholder {
+      background: #eee;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 5px 0;
+      text-align: center;
+      color: #666;
+    }
+    .section-title {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .audio-player {
+      width: 100%;
+      margin: 10px 0;
+    }
+    .audio-note-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+    }
+    .audio-section {
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    .audio-main-section {
+      flex: 0 0 auto;
+    }
+    .audio-notes-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .audio-media-section {
+      flex: 0 0 auto;
+      max-height: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+    .notes-textarea {
+      flex: 1;
+      width: 100%;
+      resize: none;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      min-height: 150px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="actions">
+      <div style="display: flex; gap: 5px;">
+        <button onclick="goBack()">⬅️</button>
+        <button onclick="createFolder()">📁</button>
+        <button onclick="createFile()">📄</button>
+        <button onclick="recordAudio()">🎙️</button>
+        <button onclick="saveSystem()">💾</button>
+        <button onclick="loadSystem()">📂</button>
+        <button onclick="location.href='https://2d3t.github.io/index.html/'">🚪</button>
+      </div>
+      <div style="font-weight: bold; font-size: 18px; color: #333; margin-left: auto;">
+        Initi
+      </div>
+      <div style="width: 60px;"></div>
+    </div>
+    <div id="path-bar"></div>
+    <div id="search-container">
+      <input type="text" id="search-bar" placeholder="🔍 Search..." oninput="renderFileList(this.value)">
+      <label><input type="checkbox" id="global-search" onchange="renderFileList(document.getElementById('search-bar').value)"> Везде</label>
+    </div>
+    <div id="file-list"></div>
+    <input type="file" id="file-input" style="display:none" onchange="handleFileLoad(event)">
+    <input type="file" id="image-input" style="display:none" accept="image/*" multiple>
+    <input type="file" id="audio-input" style="display:none" accept="audio/*" multiple>
+  </div>
+  <div id="editor">
+    <div id="editor-header">
+      <span id="editor-filename"></span>
+      <div>
+        <button onclick="openInKlikEdit()">KlikEdit🎀</button>
+        <button onclick="copyFileText()">📋 Copy</button>
+        <button onclick="saveFile()">💾 Save</button>
+        <button onclick="closeEditor()">❌ Close</button>
+      </div>
+    </div>
+    
+    <div id="editor-content">
+      <!-- Контент будет динамически заполняться -->
+    </div>
+  </div>
+
+  <!-- Оверлей для увеличенного изображения -->
+  <div class="media-overlay" id="media-overlay" onclick="closeZoomedImage()"></div>
+
+  <script>
+// Инициализация переменных
+let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
+let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {};
+let currentPath = [];
+let currentFile = null;
+let currentZoomedImage = null;
+
+// Простая функция для получения текущего времени
+function now() {
+  return new Date().toLocaleString();
+}
+
+// Получить полный путь
+function getFullPath(pathArray) {
+  return '/' + pathArray.join('/');
+}
+
+// Получить папку по пути
+function getFolderByPath(path) {
+  let folder = fileSystem;
+  for (const part of path) {
+    if (folder[part]) {
+      folder = folder[part];
+    } else {
+      return null;
+    }
+  }
+  return folder;
+}
+
+// Поиск по файловой системе
+function findAllMatches(folder, term, path = []) {
+  let results = [];
+  for (let name in folder) {
+    const fullPath = [...path, name];
+    if (name.toLowerCase().includes(term.toLowerCase())) {
+      results.push({ name, fullPath, isFolder: typeof folder[name] === 'object' });
+    }
+    if (typeof folder[name] === 'object') {
+      results = results.concat(findAllMatches(folder[name], term, fullPath));
+    }
+  }
+  return results;
+}
+
+// Проверка, является ли файл аудио
+function isAudioFile(filename) {
+  return filename.endsWith('.audio.txt') || (fileMeta[getFullPath([...currentPath, filename])]?.type === 'audio');
+}
+
+// Отображение списка файлов
+function renderFileList(searchTerm = '') {
+  console.log('renderFileList called with:', searchTerm);
+  const container = document.getElementById('file-list');
+  if (!container) {
+    console.error('file-list container not found!');
+    return;
+  }
+  
+  container.innerHTML = '';
+
+  const globalSearch = document.getElementById('global-search')?.checked || false;
+  const folder = getFolderByPath(currentPath);
+
+  const pathBar = document.getElementById('path-bar');
+  if (pathBar) {
+    pathBar.textContent = '/' + (currentPath.length ? currentPath.join('/') : '');
+  }
+
+  let items = [];
+
+  if (searchTerm && globalSearch) {
+    items = findAllMatches(fileSystem, searchTerm);
+  } else if (folder) {
+    items = Object.keys(folder)
+      .filter(name => name.toLowerCase().includes(searchTerm.toLowerCase()))
+      .map(name => ({
+        name,
+        fullPath: [...currentPath, name],
+        isFolder: typeof folder[name] === 'object'
+      }));
+  }
+
+  items.sort((a, b) => a.name.localeCompare(b.name));
+
+  if (items.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.textContent = 'Ничего не найдено.';
+    emptyMsg.style.color = '#888';
+    container.appendChild(emptyMsg);
+    return;
+  }
+
+  items.forEach(({ name, fullPath, isFolder }) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+
+    // Определяем иконку в зависимости от типа файла
+    let icon = '📄 ';
+    if (isFolder) {
+      icon = '📁 ';
+    } else if (isAudioFile(name)) {
+      icon = '🎵 ';
+    }
+
+    const label = document.createElement('span');
+    label.textContent = icon + name;
+
+    label.onclick = () => {
+      if (isFolder) {
+        currentPath = [...fullPath];
+        const searchBar = document.getElementById('search-bar');
+        if (searchBar) searchBar.value = '';
+        renderFileList();
+      } else {
+        openFile(fullPath);
+      }
+    };
+
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = '✏️';
+    renameBtn.onclick = (e) => {
+      e.stopPropagation();
+      renameItem(fullPath);
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteItem(fullPath);
+    };
+
+    const rightButtons = document.createElement('div');
+    rightButtons.style.display = 'flex';
+    rightButtons.style.gap = '5px';
+    rightButtons.append(renameBtn, delBtn);
+
+    div.append(label, rightButtons);
+    container.appendChild(div);
+  });
+
+  autoSave();
+}
+
+// Назад
+function goBack() {
+  if (currentFile) {
+    closeEditor();
+    return;
+  }
+  if (currentPath.length === 0) return;
+  currentPath.pop();
+  const searchBar = document.getElementById('search-bar');
+  if (searchBar) searchBar.value = '';
+  renderFileList();
+}
+
+// Открыть файл
+function openFile(path) {
+  console.log('Opening file:', path);
+  currentFile = path;
+  let file = fileSystem;
+  
+  // Находим файл в файловой системе
+  for (let i = 0; i < path.length - 1; i++) {
+    if (file[path[i]]) {
+      file = file[path[i]];
+    }
+  }
+  
+  const content = file[path[path.length - 1]];
+  const fullPath = getFullPath(path);
+  const created = fileMeta[fullPath]?.created || 'неизвестно';
+  const isAudio = isAudioFile(path[path.length - 1]);
+
+  const filenameElement = document.getElementById('editor-filename');
+  if (filenameElement) {
+    filenameElement.textContent = fullPath + ` | 📅 Создан: ${created}`;
+  }
+
+  if (isAudio) {
+    showAudioNoteInterface(content, fullPath);
+  } else {
+    showRegularFileInterface(content, fullPath);
+  }
+
+  const editor = document.getElementById('editor');
+  const sidebar = document.getElementById('sidebar');
+  if (editor) editor.style.display = 'flex';
+  if (sidebar) sidebar.style.display = 'none';
+}
+
+// Показать интерфейс аудио-заметки
+function showAudioNoteInterface(audioContent, fullPath) {
+  const editorContent = document.getElementById('editor-content');
+  if (!editorContent) return;
+  
+  editorContent.innerHTML = '';
+  
+  const audioContainer = document.createElement('div');
+  audioContainer.className = 'audio-note-container';
+  
+  // Секция с аудиоплеером
+  const audioSection = document.createElement('div');
+  audioSection.className = 'audio-section audio-main-section';
+  
+  const audioTitle = document.createElement('div');
+  audioTitle.className = 'section-title';
+  audioTitle.textContent = 'Аудиозапись:';
+  audioSection.appendChild(audioTitle);
+  
+  const audioPlayer = document.createElement('audio');
+  audioPlayer.className = 'audio-player';
+  audioPlayer.controls = true;
+  
+  try {
+    const audioBlob = base64ToBlob(audioContent, 'audio/webm');
+    const audioUrl = URL.createObjectURL(audioBlob);
+    audioPlayer.src = audioUrl;
+  } catch (e) {
+    console.error('Error creating audio URL:', e);
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'media-placeholder';
+    errorDiv.textContent = 'Ошибка загрузки аудио';
+    audioSection.appendChild(errorDiv);
+  }
+  
+  audioSection.appendChild(audioPlayer);
+  audioContainer.appendChild(audioSection);
+  
+  // Секция с текстовыми заметками
+  const textSection = document.createElement('div');
+  textSection.className = 'audio-section audio-notes-section';
+  
+  const textTitle = document.createElement('div');
+  textTitle.className = 'section-title';
+  textTitle.textContent = 'Текстовые заметки:';
+  textSection.appendChild(textTitle);
+  
+  const textArea = document.createElement('textarea');
+  textArea.className = 'notes-textarea';
+  
+  // Загружаем текстовые заметки если они есть
+  if (fileMeta[fullPath]?.notes) {
+    textArea.value = fileMeta[fullPath].notes;
+  }
+  
+  textSection.appendChild(textArea);
+  audioContainer.appendChild(textSection);
+  
+  // Секция с медиа-вложениями
+  const mediaSection = document.createElement('div');
+  mediaSection.className = 'audio-section audio-media-section';
+  
+  const mediaTitle = document.createElement('div');
+  mediaTitle.className = 'section-title';
+  mediaTitle.textContent = 'Медиа-вложения:';
+  mediaSection.appendChild(mediaTitle);
+  
+  const mediaControls = document.createElement('div');
+  mediaControls.className = 'media-controls';
+  
+  const addImageBtn = document.createElement('button');
+  addImageBtn.textContent = '🖼️ Add Image';
+  addImageBtn.onclick = addImageToFile;
+  
+  const addAudioBtn = document.createElement('button');
+  addAudioBtn.textContent = '🎵 Add Audio';
+  addAudioBtn.onclick = addAudioToFile;
+  
+  mediaControls.append(addImageBtn, addAudioBtn);
+  mediaSection.appendChild(mediaControls);
+  
+  const mediaContainer = document.createElement('div');
+  mediaContainer.className = 'media-container';
+  mediaSection.appendChild(mediaContainer);
+  
+  // Если есть медиа-вложения, показываем их
+  if (fileMeta[fullPath]?.media && fileMeta[fullPath].media.length > 0) {
+    renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Медиа-вложений нет';
+    mediaContainer.appendChild(placeholder);
+  }
+  
+  audioContainer.appendChild(mediaSection);
+  editorContent.appendChild(audioContainer);
+}
+
+// Показать интерфейс обычного файла
+function showRegularFileInterface(content, fullPath) {
+  const editorContent = document.getElementById('editor-content');
+  if (!editorContent) return;
+  
+  editorContent.innerHTML = '';
+  
+  // Создаем секцию для медиа-вложений
+  const mediaSection = document.createElement('div');
+  mediaSection.id = 'media-section';
+  
+  const mediaTitle = document.createElement('div');
+  mediaTitle.className = 'section-title';
+  mediaTitle.textContent = 'Медиа-вложения:';
+  mediaSection.appendChild(mediaTitle);
+  
+  const mediaControls = document.createElement('div');
+  mediaControls.className = 'media-controls';
+  
+  const addImageBtn = document.createElement('button');
+  addImageBtn.textContent = '🖼️ Add Image';
+  addImageBtn.onclick = addImageToFile;
+  
+  const addAudioBtn = document.createElement('button');
+  addAudioBtn.textContent = '🎵 Add Audio';
+  addAudioBtn.onclick = addAudioToFile;
+  
+  mediaControls.append(addImageBtn, addAudioBtn);
+  mediaSection.appendChild(mediaControls);
+  
+  const mediaContainer = document.createElement('div');
+  mediaContainer.className = 'media-container';
+  mediaContainer.id = 'media-container';
+  mediaSection.appendChild(mediaContainer);
+  
+  // Создаем секцию для текста
+  const textSection = document.createElement('div');
+  textSection.id = 'text-section';
+  
+  const textTitle = document.createElement('div');
+  textTitle.className = 'section-title';
+  textTitle.textContent = 'Текст файла:';
+  textSection.appendChild(textTitle);
+  
+  const textArea = document.createElement('textarea');
+  textArea.id = 'file-content';
+  textArea.value = content || '';
+  
+  textSection.appendChild(textArea);
+  
+  // Добавляем секции в редактор
+  editorContent.appendChild(mediaSection);
+  editorContent.appendChild(textSection);
+  
+  // Если файл содержит медиа-вложения, показываем их
+  if (fileMeta[fullPath]?.media && fileMeta[fullPath].media.length > 0) {
+    renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+  } else {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Медиа-вложений нет';
+    mediaContainer.appendChild(placeholder);
+  }
+}
+
+// Преобразование Base64 в Blob
+function base64ToBlob(base64, mimeType) {
+  try {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+    
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+    
+    return new Blob(byteArrays, { type: mimeType });
+  } catch (e) {
+    console.error('Error converting base64 to blob:', e);
+    return new Blob([], { type: mimeType });
+  }
+}
+
+// Отображение медиа-вложений
+function renderMediaAttachments(mediaArray, container) {
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (!mediaArray || mediaArray.length === 0) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    placeholder.textContent = 'Медиа-вложений нет';
+    container.appendChild(placeholder);
+    return;
+  }
+  
+  mediaArray.forEach((media, index) => {
+    const mediaItem = document.createElement('div');
+    mediaItem.className = 'media-item';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-media';
+    deleteBtn.textContent = '✕';
+    deleteBtn.onclick = () => deleteMediaAttachment(index);
+    
+    if (media.type === 'image') {
+      const img = document.createElement('img');
+      img.src = media.data;
+      img.alt = 'Attached image';
+      img.onclick = () => toggleZoomImage(img);
+      mediaItem.appendChild(img);
+    } else if (media.type === 'audio') {
+      const audio = document.createElement('audio');
+      audio.className = 'media-audio';
+      audio.controls = true;
+      audio.src = media.data;
+      mediaItem.appendChild(audio);
+    }
+    
+    mediaItem.appendChild(deleteBtn);
+    container.appendChild(mediaItem);
+  });
+}
+
+// Функция для увеличения/уменьшения изображения
+function toggleZoomImage(img) {
+  const overlay = document.getElementById('media-overlay');
+  
+  if (img.classList.contains('zoomed')) {
+    // Если изображение уже увеличено, возвращаем его в исходное состояние
+    img.classList.remove('zoomed');
+    overlay.style.display = 'none';
+    currentZoomedImage = null;
+  } else {
+    // Если есть другое увеличенное изображение, сначала закрываем его
+    if (currentZoomedImage && currentZoomedImage !== img) {
+      currentZoomedImage.classList.remove('zoomed');
+    }
+    
+    // Увеличиваем текущее изображение
+    img.classList.add('zoomed');
+    overlay.style.display = 'block';
+    currentZoomedImage = img;
+  }
+}
+
+// Закрыть увеличенное изображение при клике на оверлей
+function closeZoomedImage() {
+  if (currentZoomedImage) {
+    currentZoomedImage.classList.remove('zoomed');
+    currentZoomedImage = null;
+  }
+  const overlay = document.getElementById('media-overlay');
+  overlay.style.display = 'none';
+}
+
+// Закрыть увеличенное изображение при нажатии ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeZoomedImage();
+  }
+});
+
+// Удаление медиа-вложения
+function deleteMediaAttachment(index) {
+  if (!currentFile || !confirm('Удалить это вложение?')) return;
+  
+  const fullPath = getFullPath(currentFile);
+  if (fileMeta[fullPath]?.media) {
+    fileMeta[fullPath].media.splice(index, 1);
+    
+    const mediaContainer = document.querySelector('.media-container');
+    if (mediaContainer) {
+      renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+    }
+    
+    autoSave();
+  }
+}
+
+// Сохранение файла
+function saveFile() {
+  if (!currentFile) return;
+  
+  const fullPath = getFullPath(currentFile);
+  const isAudio = isAudioFile(currentFile[currentFile.length - 1]);
+  
+  if (isAudio) {
+    const textArea = document.querySelector('.notes-textarea');
+    if (textArea) {
+      if (!fileMeta[fullPath]) fileMeta[fullPath] = {};
+      fileMeta[fullPath].notes = textArea.value;
+    }
+    autoSave();
+    alert('Заметки сохранены!');
+  } else {
+    let file = fileSystem;
+    for (let i = 0; i < currentFile.length - 1; i++) {
+      file = file[currentFile[i]];
+    }
+    
+    const textArea = document.getElementById('file-content');
+    if (textArea) {
+      file[currentFile[currentFile.length - 1]] = textArea.value;
+      autoSave();
+      alert('File saved!');
+    }
+  }
+}
+
+// Закрыть редактор
+function closeEditor() {
+  // Закрываем увеличенное изображение при закрытии редактора
+  closeZoomedImage();
+  
+  currentFile = null;
+  const editor = document.getElementById('editor');
+  const sidebar = document.getElementById('sidebar');
+  if (editor) editor.style.display = 'none';
+  if (sidebar) sidebar.style.display = 'flex';
+  renderFileList();
+}
+
+// Создать папку
+function createFolder() {
+  const name = prompt('Folder name:');
+  if (!name) return;
+  const folder = getFolderByPath(currentPath);
+  if (!folder) return;
+  if (folder[name]) return alert('Already exists!');
+  folder[name] = {};
+  renderFileList();
+}
+
+// Создать файл
+function createFile() {
+  const name = prompt('File name:');
+  if (!name) return;
+  const folder = getFolderByPath(currentPath);
+  if (!folder) return;
+  if (folder[name]) return alert('Already exists!');
+  folder[name] = '';
+  const fullPath = getFullPath([...currentPath, name]);
+  fileMeta[fullPath] = { created: now(), media: [] };
+  renderFileList();
+}
+
+// Удалить элемент
+function deleteItem(path) {
+  if (!confirm('Delete this item?')) return;
+  let obj = fileSystem;
+  for (let i = 0; i < path.length - 1; i++) {
+    obj = obj[path[i]];
+  }
+  const fullPath = getFullPath(path);
+  delete fileMeta[fullPath];
+  delete obj[path[path.length - 1]];
+  renderFileList();
+}
+
+// Сохранить систему
+function saveSystem() {
+  const blob = new Blob([JSON.stringify(fileSystem, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'fileSystem.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
+
+  const metaBlob = new Blob([JSON.stringify(fileMeta, null, 2)], { type: 'application/json' });
+  const metaLink = document.createElement('a');
+  metaLink.href = URL.createObjectURL(metaBlob);
+  metaLink.download = 'fileMeta.json';
+  metaLink.click();
+  URL.revokeObjectURL(metaLink.href);
+}
+
+// Загрузить систему
+function loadSystem() {
+  document.getElementById('file-input').click();
+}
+
+// Обработка загрузки файла
+function handleFileLoad(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      fileSystem = JSON.parse(e.target.result);
+      localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+      currentPath = [];
+      renderFileList();
+      alert('File system loaded!');
+    } catch (error) {
+      alert('Ошибка загрузки файла: ' + error.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Переименовать элемент
+function renameItem(path) {
+  const currentName = path[path.length - 1];
+  const newName = prompt('Rename to:', currentName);
+  if (!newName || newName === currentName) return;
+  const folder = getFolderByPath(path.slice(0, -1));
+  if (!folder) return;
+  if (folder[newName]) return alert('Name already exists!');
+  folder[newName] = folder[currentName];
+  delete folder[currentName];
+
+  const oldFull = getFullPath(path);
+  const newFull = getFullPath([...path.slice(0, -1), newName]);
+  
+  if (fileMeta[oldFull]) {
+    fileMeta[newFull] = fileMeta[oldFull];
+    delete fileMeta[oldFull];
+    
+    if (fileMeta[newFull]?.type === 'audio') {
+      fileMeta[newFull].type = 'audio';
+    }
+  }
+
+  renderFileList();
+}
+
+// Автосохранение
+function autoSave() {
+  try {
+    localStorage.setItem('fileSystem', JSON.stringify(fileSystem));
+    localStorage.setItem('fileMeta', JSON.stringify(fileMeta));
+  } catch (e) {
+    console.error('AutoSave error:', e);
+  }
+}
+
+// Копировать текст
+function copyFileText() {
+  let textarea;
+  const isAudio = currentFile && isAudioFile(currentFile[currentFile.length - 1]);
+  
+  if (isAudio) {
+    textarea = document.querySelector('.notes-textarea');
+  } else {
+    textarea = document.getElementById('file-content');
+  }
+  
+  if (textarea) {
+    textarea.select();
+    document.execCommand('copy');
+    alert('Text copied to clipboard!');
+  }
+}
+
+// Открыть в KlikEdit
+function openInKlikEdit() {
+  let textarea;
+  const isAudio = currentFile && isAudioFile(currentFile[currentFile.length - 1]);
+  
+  if (isAudio) {
+    textarea = document.querySelector('.notes-textarea');
+  } else {
+    textarea = document.getElementById('file-content');
+  }
+  
+  if (textarea) {
+    textarea.select();
+    document.execCommand('copy');
+    setTimeout(() => {
+      window.location.href = 'https://2d3t.github.io/index.html/pro/redactor.html';
+    }, 300);
+  }
+}
+
+// === Функции для работы с медиа ===
+
+function addImageToFile() {
+  document.getElementById('image-input').click();
+}
+
+function addAudioToFile() {
+  document.getElementById('audio-input').click();
+}
+
+// Обработчики для загрузки изображений
+document.getElementById('image-input').addEventListener('change', function(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  
+  for (let i = 0; i < files.length; i++) {
+    compressAndAddImage(files[i]);
+  }
+  
+  this.value = '';
+});
+
+// Обработчики для загрузки аудио
+document.getElementById('audio-input').addEventListener('change', function(e) {
+  const files = e.target.files;
+  if (!files.length) return;
+  
+  for (let i = 0; i < files.length; i++) {
+    compressAndAddAudio(files[i]);
+  }
+  
+  this.value = '';
+});
+
+function compressAndAddImage(file) {
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      let width = img.width;
+      let height = img.height;
+      const maxWidth = 800;
+      const maxHeight = 600;
+      
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width;
+        width = maxWidth;
+      }
+      
+      if (height > maxHeight) {
+        width = (width * maxHeight) / height;
+        height = maxHeight;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      
+      addMediaAttachment('image', compressedDataUrl);
+    };
+    
+    img.src = e.target.result;
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+function compressAndAddAudio(file) {
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    addMediaAttachment('audio', e.target.result);
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+function addMediaAttachment(type, data) {
+  if (!currentFile) return;
+  
+  const fullPath = getFullPath(currentFile);
+  
+  if (!fileMeta[fullPath]) {
+    fileMeta[fullPath] = { created: now(), media: [] };
+  } else if (!fileMeta[fullPath].media) {
+    fileMeta[fullPath].media = [];
+  }
+  
+  fileMeta[fullPath].media.push({
+    type: type,
+    data: data,
+    added: now()
+  });
+  
+  const mediaContainer = document.querySelector('.media-container');
+  if (mediaContainer) {
+    renderMediaAttachments(fileMeta[fullPath].media, mediaContainer);
+  }
+  
+  autoSave();
+}
+
+// === Логика записи аудио ===
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+let stopBtn;
+
+async function recordAudio() {
+  const micBtn = document.querySelector('button[onclick="recordAudio()"]');
+
+  if (isRecording) {
+    stopRecording();
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Ваш браузер не поддерживает запись аудио.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = saveAudioNote;
+
+    mediaRecorder.start();
+    isRecording = true;
+
+    micBtn.style.background = '#ffb3b3';
+    micBtn.style.borderColor = 'red';
+
+    stopBtn = document.createElement('button');
+    stopBtn.textContent = '⏹️ Остановить запись';
+    stopBtn.style.background = '#ffe6e6';
+    stopBtn.style.border = '1px solid red';
+    stopBtn.style.color = '#c00';
+    stopBtn.onclick = stopRecording;
+
+    micBtn.parentNode.insertBefore(stopBtn, micBtn.nextSibling);
+
+    alert('🎙️ Запись началась (до 30 секунд)...');
+    setTimeout(() => {
+      if (isRecording) stopRecording();
+    }, 30000);
+
+  } catch (err) {
+    alert('Ошибка доступа к микрофону.');
+    console.error(err);
+  }
+}
+
+function stopRecording() {
+  const micBtn = document.querySelector('button[onclick="recordAudio()"]');
+  if (!isRecording) return;
+
+  isRecording = false;
+  mediaRecorder.stop();
+
+  micBtn.style.background = '';
+  micBtn.style.borderColor = '';
+
+  if (stopBtn) {
+    stopBtn.remove();
+    stopBtn = null;
+  }
+
+  alert('⏹️ Запись остановлена.');
+}
+
+function saveAudioNote() {
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const reader = new FileReader();
+
+  reader.onloadend = () => {
+    const base64Audio = reader.result.split(',')[1];
+    const name = prompt('Имя аудиозаметки (без расширения):', 'audio_note');
+    if (!name) return;
+
+    const folder = getFolderByPath(currentPath);
+    if (!folder) return;
+    
+    const filename = name + '.audio.txt';
+    folder[filename] = base64Audio;
+
+    const fullPath = getFullPath([...currentPath, filename]);
+    fileMeta[fullPath] = { 
+      created: now(), 
+      type: 'audio',
+      notes: '',
+      media: []
+    };
+
+    renderFileList();
+    autoSave();
+    alert('Аудиозаметка сохранена!');
+  };
+
+  reader.readAsDataURL(blob);
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, initializing...');
+  renderFileList();
+});
+
+// Автосохранение каждые 10 секунд
+setInterval(autoSave, 10000);
+</script>
+
+</body>
+</html>
