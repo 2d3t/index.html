@@ -161,6 +161,32 @@
       max-width: 100%;
       max-height: 150px;
       display: block;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .media-item img.zoomed {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.5);
+      max-width: 90vw;
+      max-height: 90vh;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      border: 2px solid #fff;
+    }
+    .media-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 999;
+      display: none;
     }
     .delete-media {
       position: absolute;
@@ -174,6 +200,7 @@
       height: 24px;
       cursor: pointer;
       font-size: 12px;
+      z-index: 1001;
     }
     .media-audio {
       width: 100%;
@@ -236,7 +263,7 @@
       box-sizing: border-box;
     }
   </style>
-  <link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="512x512" href="icons/initi512.png">
 <meta name="theme-color" content="#ffffff">
 
@@ -284,12 +311,16 @@
     </div>
   </div>
 
+  <!-- Оверлей для увеличенного изображения -->
+  <div class="media-overlay" id="media-overlay" onclick="closeZoomedImage()"></div>
+
   <script>
 // Инициализация переменных
 let fileSystem = JSON.parse(localStorage.getItem('fileSystem')) || {};
 let fileMeta = JSON.parse(localStorage.getItem('fileMeta')) || {};
 let currentPath = [];
 let currentFile = null;
+let currentZoomedImage = null;
 
 // Простая функция для получения текущего времени
 function now() {
@@ -693,6 +724,7 @@ function renderMediaAttachments(mediaArray, container) {
       const img = document.createElement('img');
       img.src = media.data;
       img.alt = 'Attached image';
+      img.onclick = () => toggleZoomImage(img);
       mediaItem.appendChild(img);
     } else if (media.type === 'audio') {
       const audio = document.createElement('audio');
@@ -706,6 +738,45 @@ function renderMediaAttachments(mediaArray, container) {
     container.appendChild(mediaItem);
   });
 }
+
+// Функция для увеличения/уменьшения изображения
+function toggleZoomImage(img) {
+  const overlay = document.getElementById('media-overlay');
+  
+  if (img.classList.contains('zoomed')) {
+    // Если изображение уже увеличено, возвращаем его в исходное состояние
+    img.classList.remove('zoomed');
+    overlay.style.display = 'none';
+    currentZoomedImage = null;
+  } else {
+    // Если есть другое увеличенное изображение, сначала закрываем его
+    if (currentZoomedImage && currentZoomedImage !== img) {
+      currentZoomedImage.classList.remove('zoomed');
+    }
+    
+    // Увеличиваем текущее изображение
+    img.classList.add('zoomed');
+    overlay.style.display = 'block';
+    currentZoomedImage = img;
+  }
+}
+
+// Закрыть увеличенное изображение при клике на оверлей
+function closeZoomedImage() {
+  if (currentZoomedImage) {
+    currentZoomedImage.classList.remove('zoomed');
+    currentZoomedImage = null;
+  }
+  const overlay = document.getElementById('media-overlay');
+  overlay.style.display = 'none';
+}
+
+// Закрыть увеличенное изображение при нажатии ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeZoomedImage();
+  }
+});
 
 // Удаление медиа-вложения
 function deleteMediaAttachment(index) {
@@ -756,6 +827,9 @@ function saveFile() {
 
 // Закрыть редактор
 function closeEditor() {
+  // Закрываем увеличенное изображение при закрытии редактора
+  closeZoomedImage();
+  
   currentFile = null;
   const editor = document.getElementById('editor');
   const sidebar = document.getElementById('sidebar');
