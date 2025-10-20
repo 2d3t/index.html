@@ -71,6 +71,7 @@
             border: 1px inset #c0c0c0;
             padding: 2px;
             display: flex;
+            flex-wrap: wrap;
         }
         
         .button {
@@ -79,10 +80,42 @@
             padding: 3px 8px;
             margin-right: 4px;
             font-size: 12px;
+            margin-bottom: 2px;
         }
         
         .button:active {
             border: 2px inset #c0c0c0;
+        }
+        
+        .search-bar {
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            background-color: #c0c0c0;
+            border: 1px inset #c0c0c0;
+        }
+        
+        .search-input {
+            flex-grow: 1;
+            border: 1px inset #c0c0c0;
+            padding: 2px;
+            background-color: white;
+            margin-right: 5px;
+        }
+        
+        .sort-options {
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            background-color: #c0c0c0;
+            border: 1px inset #c0c0c0;
+        }
+        
+        .sort-select {
+            margin-left: 5px;
+            border: 1px inset #c0c0c0;
+            background-color: white;
+            padding: 2px;
         }
         
         .address-bar {
@@ -240,6 +273,23 @@
             font-size: 10px;
             color: #666;
         }
+        
+        .text-documents-list {
+            margin-top: 10px;
+            border-top: 1px solid #c0c0c0;
+            padding-top: 10px;
+        }
+        
+        .text-document-item {
+            padding: 5px;
+            border: 1px solid #c0c0c0;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        
+        .text-document-item:hover {
+            background-color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -265,6 +315,23 @@
             <button class="button" id="btn-new-file">Новый файл</button>
             <button class="button" id="btn-save">Сохранить</button>
             <button class="button" id="btn-load">Загрузить</button>
+        </div>
+        <div class="search-bar">
+            <span>Поиск:</span>
+            <input type="text" class="search-input" id="search-input" placeholder="Введите название файла или папки">
+            <button class="button" id="btn-clear-search">Очистить</button>
+        </div>
+        <div class="sort-options">
+            <span>Сортировка:</span>
+            <select class="sort-select" id="sort-select">
+                <option value="name">По названию</option>
+                <option value="date">По дате</option>
+                <option value="type">По типу</option>
+            </select>
+            <select class="sort-select" id="sort-order">
+                <option value="asc">По возрастанию</option>
+                <option value="desc">По убыванию</option>
+            </select>
         </div>
         <div class="address-bar">
             <span>Адрес:</span>
@@ -333,6 +400,7 @@
                 <button class="button" id="btn-copy-file">Копировать</button>
                 <button class="button" id="btn-add-image">Добавить изображение</button>
                 <button class="button" id="btn-add-audio">Добавить аудио</button>
+                <button class="button" id="btn-add-text-doc">Добавить текстовый документ</button>
                 <button class="button" id="btn-preview-html" class="hidden">Просмотр HTML</button>
                 <button class="button" id="btn-exit-preview" class="hidden">Выйти из просмотра</button>
             </div>
@@ -340,6 +408,27 @@
                 <textarea class="text-editor" id="file-editor"></textarea>
                 <div id="file-content" class="hidden"></div>
                 <div id="media-container"></div>
+                <div class="text-documents-list" id="text-documents-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для создания текстового документа -->
+    <div class="modal hidden" id="text-doc-modal">
+        <div class="modal-content">
+            <div class="title-bar">
+                <div class="title-bar-text">Новый текстовый документ</div>
+                <div class="title-bar-controls">
+                    <button class="title-bar-button" id="close-text-doc-modal">×</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p>Введите имя документа:</p>
+                <input type="text" class="input-field" id="text-doc-name" placeholder="Имя документа">
+                <div style="text-align: right; margin-top: 10px;">
+                    <button class="button" id="cancel-text-doc">Отмена</button>
+                    <button class="button" id="create-text-doc">Создать</button>
+                </div>
             </div>
         </div>
     </div>
@@ -363,6 +452,9 @@
         let selectedItem = null;
         let pathHistory = [];
         let currentHistoryIndex = -1;
+        let searchQuery = "";
+        let sortBy = "name";
+        let sortOrder = "asc";
 
         // Инициализация приложения
         document.addEventListener('DOMContentLoaded', function() {
@@ -407,7 +499,17 @@
                 content: "",
                 path: currentFolder.path + name,
                 created: new Date().toLocaleString(),
-                media: []
+                media: [],
+                textDocuments: []
+            };
+        }
+
+        // Создание объекта текстового документа
+        function createTextDocument(name) {
+            return {
+                name: name,
+                content: "",
+                created: new Date().toLocaleString()
             };
         }
 
@@ -415,6 +517,9 @@
         function renderFileExplorer() {
             const explorer = document.getElementById('file-explorer');
             explorer.innerHTML = '';
+            
+            // Получаем отфильтрованный и отсортированный список элементов
+            let items = getFilteredAndSortedItems();
             
             // Отображаем родительскую папку, если это не корневая
             if (currentFolder !== fileSystem) {
@@ -431,7 +536,7 @@
             }
             
             // Отображаем папки
-            currentFolder.children.filter(item => item.type === 'folder').forEach(folder => {
+            items.filter(item => item.type === 'folder').forEach(folder => {
                 const folderItem = document.createElement('div');
                 folderItem.className = 'folder-item';
                 folderItem.innerHTML = `
@@ -450,7 +555,7 @@
             });
             
             // Отображаем файлы
-            currentFolder.children.filter(item => item.type !== 'folder').forEach(file => {
+            items.filter(item => item.type !== 'folder').forEach(file => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
                 
@@ -480,6 +585,41 @@
             
             // Обновляем путь в адресной строке
             document.getElementById('current-path').value = currentFolder.path;
+        }
+
+        // Получение отфильтрованного и отсортированного списка элементов
+        function getFilteredAndSortedItems() {
+            let items = [...currentFolder.children];
+            
+            // Применяем фильтрацию по поисковому запросу
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                items = items.filter(item => 
+                    item.name.toLowerCase().includes(query)
+                );
+            }
+            
+            // Применяем сортировку
+            items.sort((a, b) => {
+                let aValue, bValue;
+                
+                if (sortBy === 'name') {
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+                } else if (sortBy === 'date') {
+                    aValue = new Date(a.created);
+                    bValue = new Date(b.created);
+                } else if (sortBy === 'type') {
+                    aValue = a.type === 'folder' ? 0 : 1;
+                    bValue = b.type === 'folder' ? 0 : 1;
+                }
+                
+                if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            return items;
         }
 
         // Навигация в папку
@@ -527,6 +667,7 @@
             const editor = document.getElementById('file-editor');
             const contentView = document.getElementById('file-content');
             const mediaContainer = document.getElementById('media-container');
+            const textDocumentsList = document.getElementById('text-documents-list');
             const previewBtn = document.getElementById('btn-preview-html');
             const exitPreviewBtn = document.getElementById('btn-exit-preview');
             
@@ -538,6 +679,7 @@
             
             // Очищаем контейнер медиа
             mediaContainer.innerHTML = '';
+            textDocumentsList.innerHTML = '';
             
             // Устанавливаем заголовок
             document.getElementById('editor-title').textContent = file.name;
@@ -566,6 +708,26 @@
                 });
             }
             
+            // Отображаем текстовые документы, если они есть
+            if (file.textDocuments && file.textDocuments.length > 0) {
+                const title = document.createElement('h4');
+                title.textContent = 'Текстовые документы:';
+                textDocumentsList.appendChild(title);
+                
+                file.textDocuments.forEach(doc => {
+                    const docItem = document.createElement('div');
+                    docItem.className = 'text-document-item';
+                    docItem.innerHTML = `
+                        <div><strong>${doc.name}</strong></div>
+                        <div class="file-date">Создан: ${doc.created}</div>
+                    `;
+                    docItem.addEventListener('click', function() {
+                        openTextDocument(doc);
+                    });
+                    textDocumentsList.appendChild(docItem);
+                });
+            }
+            
             // Показываем кнопку предпросмотра для HTML файлов
             if (file.name.endsWith('.html')) {
                 previewBtn.classList.remove('hidden');
@@ -573,6 +735,15 @@
             
             // Показываем модальное окно редактора
             document.getElementById('editor-modal').classList.remove('hidden');
+        }
+
+        // Открытие текстового документа
+        function openTextDocument(doc) {
+            const content = prompt(`Содержимое документа "${doc.name}":`, doc.content);
+            if (content !== null) {
+                doc.content = content;
+                autoSave();
+            }
         }
 
         // Открытие модального окна с изображением
@@ -755,6 +926,29 @@
             document.getElementById('btn-save').addEventListener('click', saveFileSystem);
             document.getElementById('btn-load').addEventListener('click', loadFileSystem);
             
+            // Поиск
+            document.getElementById('search-input').addEventListener('input', function(e) {
+                searchQuery = e.target.value;
+                renderFileExplorer();
+            });
+            
+            document.getElementById('btn-clear-search').addEventListener('click', function() {
+                document.getElementById('search-input').value = '';
+                searchQuery = '';
+                renderFileExplorer();
+            });
+            
+            // Сортировка
+            document.getElementById('sort-select').addEventListener('change', function(e) {
+                sortBy = e.target.value;
+                renderFileExplorer();
+            });
+            
+            document.getElementById('sort-order').addEventListener('change', function(e) {
+                sortOrder = e.target.value;
+                renderFileExplorer();
+            });
+            
             // Модальное окно папки
             document.getElementById('close-folder-modal').addEventListener('click', function() {
                 document.getElementById('folder-modal').classList.add('hidden');
@@ -878,6 +1072,11 @@
                 input.click();
             });
             
+            document.getElementById('btn-add-text-doc').addEventListener('click', function() {
+                document.getElementById('text-doc-modal').classList.remove('hidden');
+                document.getElementById('text-doc-name').focus();
+            });
+            
             document.getElementById('btn-preview-html').addEventListener('click', function() {
                 const editor = document.getElementById('file-editor');
                 const contentView = document.getElementById('file-content');
@@ -902,6 +1101,30 @@
                 contentView.classList.add('hidden');
                 previewBtn.classList.remove('hidden');
                 exitPreviewBtn.classList.add('hidden');
+            });
+            
+            // Модальное окно текстового документа
+            document.getElementById('close-text-doc-modal').addEventListener('click', function() {
+                document.getElementById('text-doc-modal').classList.add('hidden');
+            });
+            
+            document.getElementById('cancel-text-doc').addEventListener('click', function() {
+                document.getElementById('text-doc-modal').classList.add('hidden');
+            });
+            
+            document.getElementById('create-text-doc').addEventListener('click', function() {
+                const docName = document.getElementById('text-doc-name').value.trim();
+                if (docName && selectedItem) {
+                    if (!selectedItem.textDocuments) selectedItem.textDocuments = [];
+                    const newDoc = createTextDocument(docName);
+                    selectedItem.textDocuments.push(newDoc);
+                    
+                    // Обновляем отображение
+                    openFile(selectedItem);
+                    
+                    document.getElementById('text-doc-modal').classList.add('hidden');
+                    document.getElementById('text-doc-name').value = '';
+                }
             });
             
             // Контекстное меню
