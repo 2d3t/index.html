@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Initi - Файловый Менеджер</title>
+    <style id="current-skin">
+        /* --- 🎨 Скин Windows 95 (По умолчанию) и базовый CSS --- */
+        :root {
+            --color-bg: #c0c0c0;
+            --color-primary: #000080;
+            --color-text: #000;
+            --color-btn-bg: #c0c0c0;
+            --color-btn-border-light: #fff;
+            --color-btn-border-dark: #808080;
+            --color-active: #000080;
+            --color-active-text: #fff;
+            --color-header-bg: #000080;
+            --color-header-text: #fff;
+            --color-input-bg: #fff;
+            --font-family: 'Tahoma', 'Arial', sans-serif;
+            --shadow-light: 1px 1px #fff;
+            --shadow-dark: 1px 1px #000;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-y: auto;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .window, #fileSystem {
+            background-color: var(--color-bg);
+            border: 3px solid;
+            border-color: var(--color-btn-border-light) var(--color-btn-border-dark) var(--color-btn-border-dark) var(--color-btn-border-light);
+            padding: 2px;
+            box-shadow: var(--shadow-dark) 2px 2px 0 0;
+        }
+
+        .header {
+            background-color: var(--color-header-bg);
+            color: var(--color-header-text);
+            padding: 2px 4px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        button, input[type="button"], select {
+            background-color: var(--color-btn-bg);
+            border: 3px solid;
+            border-color: var(--color-btn-border-light) var(--color-btn-border-dark) var(--color-btn-border-dark) var(--color-btn-border-light);
+            padding: 2px 8px;
+            margin: 2px;
+            font-family: var(--font-family);
+            font-size: 14px;
+            outline: none;
+        }
+
+        button:active, input[type="button"]:active {
+            border-color: var(--color-btn-border-dark) var(--color-btn-border-light) var(--color-btn-border-light) var(--color-btn-border-dark);
+            padding: 3px 7px 1px 9px;
+        }
+
+        #mainContainer {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            position: relative;
+        }
+
+        #pathBar {
+            background-color: var(--color-input-bg);
+            border: 1px solid var(--color-btn-border-dark);
+            padding: 4px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        #fileSystem {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 4px;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .file-item, .folder-item {
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            margin-bottom: 2px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-item:hover, .folder-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .file-item.selected, .folder-item.selected {
+            background-color: var(--color-active);
+            color: var(--color-active-text);
+        }
+
+        .file-item-name, .folder-item-name {
+            margin-left: 8px;
+            background-color: rgba(0, 0, 0, 0.5); 
+            color: white;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+        
+        .file-date, .folder-date {
+            margin-left: auto;
+            font-size: 10px;
+            background-color: rgba(0, 0, 0, 0.5); 
+            color: white;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+
+        #fileSystem.has-wallpaper {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: transparent !important;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            border-top: 1px solid var(--color-btn-border-dark);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        #textEditor textarea {
+            width: 100%;
+            min-height: 200px;
+            box-sizing: border-box;
+            border: 1px solid var(--color-btn-border-dark);
+            margin-bottom: 8px;
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
+            font-family: monospace;
+            padding: 4px;
+        }
+        
+        #photoViewer {
+            background-color: rgba(0, 0, 0, 0.95);
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            touch-action: pan-y;
+        }
+
+        #photoDisplay {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .icon {
+            font-size: 18px;
+            margin-right: 4px;
+        }
+        .icon-folder::before { content: '📁'; }
+        .icon-file::before { content: '📄'; }
+        .icon-text::before { content: '📝'; }
+        .icon-photo::before { content: '🖼️'; }
+        .icon-audio::before { content: '🎧'; }
+        .icon-html::before { content: '🌐'; }
+
+        #searchBox {
+            width: 100%;
+            padding: 4px;
+            box-sizing: border-box;
+            border: 1px solid var(--color-btn-border-dark);
+            margin-bottom: 8px;
+            background-color: var(--color-input-bg);
+        }
+
+        /* Стиль для кнопки закрытия фото */
+        #photoViewerCloseBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--color-header-bg);
+            color: var(--color-header-text);
+            border: 2px solid var(--color-header-text);
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 2001;
+            font-size: 18px;
+            line-height: 1;
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        /* Стиль для аудио плеера */
+        .audio-item-wrapper {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .audio-item-wrapper audio {
+            width: 100%;
+            max-width: 300px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .file-item, .folder-item {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            .file-item-name, .folder-item-name, .file-date, .folder-date {
+                width: 100%;
+                margin-left: 0;
+            }
+            .file-date, .folder-date {
+                text-align: right;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="mainContainer">
+        <h1 class="header" style="text-align: center;">Initi: Файловый Менеджер</h1>
+
+        <div class="control-panel window">
+            <input type="text" id="searchBox" placeholder="Поиск по названию...">
+            <button onclick="navigateUp()">⬆️ Вверх</button>
+            <button onclick="createItem('folder')">📁 Создать папку</button>
+            <button onclick="createItem('file')">📄 Создать файл</button>
+            <button onclick="renameItem()">✍️ Переименовать</button>
+            <button onclick="deleteItem()">❌ Удалить</button>
+            <button onclick="showSkinsModal()">🎨 Скины</button>
+            <button onclick="showSettingsModal()">⚙️ Настройки</button>
+            <select id="sortSelect" onchange="renderCurrentFolder()">
+                <option value="name_asc">Сорт: А-Я</option>
+                <option value="name_desc">Сорт: Я-А</option>
+                <option value="type">Сорт: Тип</option>
+                <option value="date_desc">Сорт: Дата (Новые)</option>
+                <option value="date_asc">Сорт: Дата (Старые)</option>
+            </select>
+        </div>
+
+        <div id="pathBar" class="window">Путь: /</div>
+
+        <div id="fileSystem" class="window" onclick="selectItem(event)">
+            <p id="loadingIndicator" style="text-align: center; color: var(--color-text);">Загрузка...</p>
+        </div>
+    </div>
+
+    <div id="fileContentModal" class="modal" onclick="closeModal(event, 'fileContentModal')">
+        <div class="modal-content window" onclick="event.stopPropagation()">
+            <div class="header" id="fileContentHeader">Содержимое файла</div>
+            <p id="fileContentDate" style="text-align: center; font-size: 12px; margin: 4px 0;"></p>
+            <div id="fileContentBody" style="padding: 8px;">
+                <div id="textNotesSection">
+                    <h3>Заметки 📝</h3>
+                    <div id="textNotesList"></div>
+                    <button onclick="createTextNote()">+ Создать заметку</button>
+                </div>
+                <hr>
+                <div id="mediaSection">
+                    <h3>Медиа (Фото/Аудио) 🖼️🎧</h3>
+                    <input type="file" id="mediaFileInput" style="display: none;" onchange="handleFileSelection(event)">
+                    <button onclick="document.getElementById('mediaFileInput').accept='image/*'; document.getElementById('mediaFileInput').click()">🖼️ Прикрепить фото</button>
+                    <button onclick="document.getElementById('mediaFileInput').accept='audio/*'; document.getElementById('mediaFileInput').click()">🎧 Прикрепить аудио</button>
+                    <div id="mediaList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+                </div>
+            </div>
+            <div class="control-panel">
+                <button onclick="closeFileContentModal()">💾 Закрыть (Автосохранение)</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="textEditorModal" class="modal" onclick="closeModal(event, 'textEditorModal')">
+        <div class="modal-content window" onclick="event.stopPropagation()">
+            <div class="header" id="textEditorHeader">Редактирование заметки</div>
+            <div id="textEditor" style="padding: 8px;">
+                <textarea id="noteContent" placeholder="Введите текст или HTML-код..."></textarea>
+                <input type="checkbox" id="isHtmlCheckbox"> <label for="isHtmlCheckbox">Сохранить как HTML</label>
+                <div class="control-panel" style="justify-content: space-between;">
+                    <div>
+                        <button id="runHtmlButton" onclick="runHtmlDemo()" style="display:none;">🌐 Запустить HTML-код</button>
+                    </div>
+                    <div>
+                        <button onclick="saveTextNote()">💾 Сохранить</button>
+                        <button onclick="closeTextEditorModal()">❌ Отмена</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="htmlDemoModal" class="modal" style="display: none; background-color: white;">
+        <iframe id="htmlDemoIframe" style="width: 100%; height: 100%; border: none;"></iframe>
+        <button onclick="closeHtmlDemoModal()" style="position: absolute; top: 10px; right: 10px; background-color: red; color: white;">✖️ Выход</button>
+    </div>
+
+    <div id="photoViewer" onclick="closePhotoViewer(event)" ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd(event)">
+        <button id="photoViewerCloseBtn" onclick="closePhotoViewer(event)">✖️</button>
+        <img id="photoDisplay" src="" alt="Photo" onclick="event.stopPropagation()">
+    </div>
+
+    <div id="settingsModal" class="modal" onclick="closeModal(event, 'settingsModal')">
+        <div class="modal-content window" onclick="event.stopPropagation()">
+            <div class="header">⚙️ Настройки и Данные</div>
+            <div style="padding: 8px;">
+                <h3>Управление файловой системой</h3>
+                <button onclick="saveFileSystem()">💾 Сохранить в .db</button>
+                <input type="file" id="loadFileInput" onchange="loadFileSystem(event)" style="display: none;">
+                <button onclick="document.getElementById('loadFileInput').click()">⬆️ Загрузить из .db</button>
+                <button onclick="clearIndexedDB()">🗑️ Очистить Медиа (IndexedDB)</button>
+
+                <h3 style="margin-top: 10px;">Обои корневой папки</h3>
+                <input type="text" id="wallpaperInput" placeholder="URL или Base64 изображения" style="width: 100%; box-sizing: border-box; margin-bottom: 8px;">
+                <button onclick="applyWallpaper()">Применить обои</button>
+                <button onclick="removeWallpaper()">Удалить обои</button>
+            </div>
+            <div class="control-panel">
+                <button onclick="closeSettingsModal()">❌ Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="skinsModal" class="modal" onclick="closeModal(event, 'skinsModal')">
+        <div class="modal-content window" onclick="event.stopPropagation()">
+            <div class="header">🎨 Выбор Скина</div>
+            <div style="padding: 8px; display: flex; flex-direction: column; gap: 8px;">
+                <button onclick="setSkin('win95')">Windows 95 (Классика)</button>
+                <button onclick="setSkin('winxp')">Windows XP (Luna)</button>
+                <button onclick="setSkin('win7')">Windows 7 (Aero)</button>
+                <button onclick="setSkin('dark')">Не-Windows (Темный)</button>
+                <button onclick="setSkin('light')">Не-Windows (Светлый)</button>
+            </div>
+            <div class="control-panel">
+                <button onclick="closeSkinsModal()">❌ Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- ⚙️ Глобальные переменные и Инициализация ---
+
+        let fileSystem = {
+            name: 'root',
+            type: 'folder',
+            children: [],
+            path: '/',
+            wallpaper: null,
+            created: new Date().toISOString()
+        };
+        let currentPath = '/';
+        let selectedItem = null;
+        let currentFile = null;
+        let currentNoteIndex = null;
+        let objectUrls = []; 
+        
+        // --- 📊 IndexedDB Setup ---
+
+        const DB_NAME = 'InitiFS';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'mediaStore';
+        let db;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                };
+
+                request.onsuccess = function(event) {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = function(event) {
+                    console.error("IndexedDB error:", event.target.errorCode);
+                    reject(event.target.error);
+                };
+            });
+        }
+        
+        function clearIndexedDB() {
+            if (!db) return alert("База данных не инициализирована.");
+
+            if (!confirm("Вы уверены, что хотите удалить ВСЕ сохраненные фото и аудио из браузера? Файловая структура (имена) останется.")) {
+                return;
+            }
+
+            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.clear();
+
+            request.onsuccess = () => {
+                alert("IndexedDB успешно очищена! Перезагрузите файл, чтобы обновить содержимое.");
+            };
+
+            request.onerror = (event) => {
+                alert("Ошибка очистки IndexedDB: " + event.target.error);
+            };
+        }
+        
+        function saveMediaToDB(id, file) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.add({ id: id, file: file });
+
+                request.onsuccess = () => resolve();
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        function getMediaFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get(id);
+
+                request.onsuccess = (event) => {
+                    const data = event.target.result;
+                    if (data) {
+                        resolve(data.file); 
+                    } else {
+                        reject(new Error(`Медиа с ID ${id} не найдено.`));
+                    }
+                };
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+        
+        function deleteMediaFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.delete(id);
+
+                request.onsuccess = () => resolve();
+                request.onerror = (event) => reject(event.target.error);
+            });
+        }
+
+        // --- 🖼️ Media Management with IndexedDB ---
+
+        function handleFileSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const mediaType = file.type.startsWith('image/') ? 'photo' : (file.type.startsWith('audio/') ? 'audio' : 'unknown');
+
+            if (mediaType === 'unknown') {
+                alert('Поддерживаются только форматы изображений и аудио.');
+                return;
+            }
+
+            const mediaId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+            
+            saveMediaToDB(mediaId, file)
+                .then(() => {
+                    currentFile.content.media.push({
+                        type: mediaType,
+                        id: mediaId
+                    });
+                    renderFileContent();
+                    saveState();
+                })
+                .catch(error => {
+                    alert(`Не удалось сохранить файл: ${error.message}. Возможно, превышен лимит браузера.`);
+                });
+            
+            event.target.value = '';
+        }
+        
+        function deleteMediaItem(index) {
+            const mediaId = currentFile.content.media[index].id;
+            
+            if (confirm(`Удалить медиафайл (ID: ${mediaId.substring(0, 8)}...)?`)) {
+                currentFile.content.media.splice(index, 1);
+                saveState(); 
+
+                deleteMediaFromDB(mediaId).then(() => {
+                    renderFileContent();
+                }).catch(e => {
+                    alert('Ошибка при удалении медиа из базы данных. Файл удален из структуры, но не из хранилища.');
+                    renderFileContent();
+                });
+            }
+        }
+
+
+        // --- 🎨 Стилевые настройки для скинов ---
+
+        const skins = {
+            'win95': {
+                '--color-bg': '#c0c0c0', '--color-primary': '#000080', '--color-text': '#000',
+                '--color-btn-bg': '#c0c0c0', '--color-btn-border-light': '#fff', '--color-btn-border-dark': '#808080',
+                '--color-active': '#000080', '--color-active-text': '#fff', '--color-header-bg': '#000080',
+                '--color-header-text': '#fff', '--color-input-bg': '#fff', '--font-family': 'Tahoma, Arial, sans-serif',
+                '--shadow-light': '1px 1px #fff', '--shadow-dark': '1px 1px #000'
+            },
+            'winxp': {
+                '--color-bg': '#eff3fb', '--color-primary': '#2a5b9b', '--color-text': '#000',
+                '--color-btn-bg': '#e6e6e6', '--color-btn-border-light': '#f0f0f0', '--color-btn-border-dark': '#a3a3a3',
+                '--color-active': '#316ac5', '--color-active-text': '#fff', '--color-header-bg': '#003c74',
+                '--color-header-text': '#fff', '--color-input-bg': '#fff', '--font-family': 'Tahoma, Arial, sans-serif',
+                '--shadow-light': 'none', '--shadow-dark': 'none'
+            },
+            'win7': {
+                '--color-bg': '#d8e4f1', '--color-primary': '#0061b6', '--color-text': '#000',
+                '--color-btn-bg': 'linear-gradient(to bottom, #f3f3f3, #e5e5e5)', '--color-btn-border-light': '#ccc', '--color-btn-border-dark': '#999',
+                '--color-active': '#1e90ff', '--color-active-text': '#fff', '--color-header-bg': 'linear-gradient(to right, #4a82c4, #2a69b6)',
+                '--color-header-text': '#fff', '--color-input-bg': '#fff', '--font-family': 'Segoe UI, Tahoma, Arial, sans-serif',
+                '--shadow-light': 'none', '--shadow-dark': '0 1px 2px rgba(0,0,0,0.3)'
+            },
+            'dark': {
+                '--color-bg': '#1e1e1e', '--color-primary': '#007acc', '--color-text': '#fff',
+                '--color-btn-bg': '#333', '--color-btn-border-light': '#555', '--color-btn-border-dark': '#111',
+                '--color-active': '#007acc', '--color-active-text': '#fff', '--color-header-bg': '#000',
+                '--color-header-text': '#fff', '--color-input-bg': '#252526', '--font-family': 'Consolas, monospace',
+                '--shadow-light': 'none', '--shadow-dark': '0 2px 5px rgba(0,0,0,0.5)'
+            },
+            'light': {
+                '--color-bg': '#f0f0f0', '--color-primary': '#6a0dad', '--color-text': '#333',
+                '--color-btn-bg': '#fff', '--color-btn-border-light': '#ddd', '--color-btn-border-dark': '#bbb',
+                '--color-active': '#6a0dad', '--color-active-text': '#fff', '--color-header-bg': '#fff',
+                '--color-header-text': '#6a0dad', '--color-input-bg': '#fff', '--font-family': 'Roboto, sans-serif',
+                '--shadow-light': '0 1px 3px rgba(0,0,0,0.1)', '--shadow-dark': '0 2px 5px rgba(0,0,0,0.2)'
+            }
+        };
+
+        function setSkin(skinName) {
+            const root = document.documentElement;
+            const style = skins[skinName];
+            for (const [prop, value] of Object.entries(style)) {
+                root.style.setProperty(prop, value);
+            }
+            localStorage.setItem('initi_skin', skinName);
+            renderCurrentFolder(); 
+            updateWallpaper();
+        }
+
+        // --- 📂 Управление файловой системой ---
+
+        function getItemByPath(path) {
+            if (path === '/') return fileSystem;
+            const parts = path.split('/').filter(p => p);
+            let current = fileSystem;
+            for (const part of parts) {
+                const child = current.children.find(c => c.name === part);
+                if (!child) return null;
+                current = child;
+            }
+            return current;
+        }
+
+        function getParentPath(path) {
+            if (path === '/') return '/';
+            const parts = path.split('/').filter(p => p);
+            return '/' + parts.slice(0, -1).join('/') + (parts.length > 1 ? '/' : '');
+        }
+
+        function renderCurrentFolder(searchQuery = '') {
+            const currentFolder = getItemByPath(currentPath);
+            const fileSystemDiv = document.getElementById('fileSystem');
+            const pathBar = document.getElementById('pathBar');
+
+            if (!currentFolder) {
+                currentPath = '/';
+                return renderCurrentFolder();
+            }
+
+            pathBar.textContent = 'Путь: ' + currentPath;
+            fileSystemDiv.innerHTML = '';
+            selectedItem = null;
+            updateWallpaper(); 
+
+            let items = currentFolder.children || [];
+            
+            if (searchQuery) {
+                items = searchFileSystem(searchQuery, fileSystem);
+            } else {
+                const sortType = document.getElementById('sortSelect').value;
+                items.sort((a, b) => {
+                    if (sortType.startsWith('name')) {
+                        return a.name.localeCompare(b.name) * (sortType.endsWith('desc') ? -1 : 1);
+                    } else if (sortType === 'type') {
+                        return a.type.localeCompare(b.type);
+                    } else if (sortType.startsWith('date')) {
+                        return new Date(a.created) - new Date(b.created) * (sortType.endsWith('desc') ? -1 : 1);
+                    }
+                    return 0;
+                });
+            }
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = item.type === 'folder' ? 'folder-item' : 'file-item';
+                div.dataset.name = item.name;
+                div.dataset.type = item.type;
+                div.dataset.path = searchQuery ? item.path : currentPath + item.name + (item.type === 'folder' ? '/' : '');
+
+                const icon = document.createElement('span');
+                icon.className = 'icon ' + (item.type === 'folder' ? 'icon-folder' : (item.content && item.content.notes.some(n => n.isHtml) ? 'icon-html' : 'icon-file'));
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = item.type === 'folder' ? 'folder-item-name' : 'file-item-name';
+                nameSpan.textContent = item.name;
+                
+                const dateSpan = document.createElement('span');
+                dateSpan.className = item.type === 'folder' ? 'folder-date' : 'file-date';
+                dateSpan.textContent = formatDate(item.created);
+
+                div.appendChild(icon);
+                div.appendChild(nameSpan);
+                div.appendChild(dateSpan);
+                fileSystemDiv.appendChild(div);
+            });
+        }
+
+        function searchFileSystem(query, node, results = []) {
+            if (node.name.toLowerCase().includes(query.toLowerCase()) && node.path !== '/') {
+                results.push({ name: node.name, type: node.type, path: node.path, created: node.created, content: node.content });
+            }
+            
+            if (node.children) {
+                node.children.forEach(child => {
+                    const childPath = (node.path === '/' ? '/' : node.path) + child.name + (child.type === 'folder' ? '/' : '');
+                    searchFileSystem(query, { ...child, path: childPath }, results);
+                });
+            }
+            return results;
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return 'Неизвестно';
+            const date = new Date(isoString);
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            return date.toLocaleDateString('ru-RU', options);
+        }
+
+        function navigateTo(path) {
+            currentPath = path;
+            renderCurrentFolder();
+        }
+
+        function navigateUp() {
+            const parentPath = getParentPath(currentPath);
+            navigateTo(parentPath);
+        }
+
+        function selectItem(event) {
+            const itemElement = event.target.closest('.file-item, .folder-item');
+            if (!itemElement) return;
+
+            if (selectedItem) {
+                selectedItem.classList.remove('selected');
+            }
+            
+            selectedItem = itemElement;
+            selectedItem.classList.add('selected');
+
+            if (event.detail === 2 || event.type === 'click' && window.innerWidth <= 600) { 
+                const path = itemElement.dataset.path;
+                const type = itemElement.dataset.type;
+                
+                if (type === 'folder') {
+                    navigateTo(path);
+                } else if (type === 'file') {
+                    openFileContent(path);
+                }
+            }
+        }
+
+        function createItem(type) {
+            const currentFolder = getItemByPath(currentPath);
+            let name = prompt(`Введите имя для новой ${type === 'folder' ? 'папки' : 'файла'}:`);
+            
+            if (!name || currentFolder.children.some(c => c.name === name)) {
+                alert('Неверное имя или элемент с таким именем уже существует!');
+                return;
+            }
+
+            const newItem = {
+                name: name,
+                type: type,
+                created: new Date().toISOString(),
+                children: type === 'folder' ? [] : undefined,
+                content: type === 'file' ? { notes: [], media: [] } : undefined
+            };
+
+            currentFolder.children.push(newItem);
+            saveState();
+            renderCurrentFolder();
+        }
+        
+        function renameItem() {
+            if (!selectedItem) {
+                alert('Сначала выберите папку или файл для переименования.');
+                return;
+            }
+
+            const oldName = selectedItem.dataset.name;
+            const path = selectedItem.dataset.path;
+            const newName = prompt(`Переименовать "${oldName}" в:`);
+
+            if (!newName || newName === oldName) return;
+
+            const parentPath = getParentPath(path);
+            const currentFolder = getItemByPath(parentPath);
+            const item = currentFolder.children.find(c => c.name === oldName);
+
+            if (item) {
+                item.name = newName;
+                saveState();
+                if (currentPath.endsWith(oldName + '/')) {
+                    currentPath = parentPath + newName + '/';
+                }
+                renderCurrentFolder();
+            }
+        }
+
+        function deleteItem() {
+            if (!selectedItem) {
+                alert('Сначала выберите папку или файл для удаления.');
+                return;
+            }
+
+            const name = selectedItem.dataset.name;
+            const path = selectedItem.dataset.path;
+
+            if (confirm(`Вы уверены, что хотите удалить "${name}"?`)) {
+                const parentPath = getParentPath(path);
+                const currentFolder = getItemByPath(parentPath);
+                
+                const itemToDelete = currentFolder.children.find(c => c.name === name && c.type === 'file');
+                if (itemToDelete && itemToDelete.content && itemToDelete.content.media.length > 0) {
+                    itemToDelete.content.media.forEach(media => {
+                        deleteMediaFromDB(media.id).catch(e => console.warn('Ошибка удаления медиа из DB:', e));
+                    });
+                }
+                
+                currentFolder.children = currentFolder.children.filter(c => c.name !== name);
+                saveState();
+                renderCurrentFolder();
+            }
+        }
+        
+        // --- 💾 Сохранение и Загрузка ---
+
+        function saveState() {
+            localStorage.setItem('initi_fs', JSON.stringify(fileSystem));
+        }
+
+        function loadState() {
+            const savedFs = localStorage.getItem('initi_fs');
+            const savedSkin = localStorage.getItem('initi_skin') || 'win95';
+            const savedWallpaper = localStorage.getItem('initi_wallpaper');
+
+            if (savedFs) {
+                fileSystem = JSON.parse(savedFs);
+            }
+            
+            setSkin(savedSkin);
+            if (savedWallpaper) {
+                fileSystem.wallpaper = savedWallpaper;
+                updateWallpaper();
+            }
+
+            renderCurrentFolder();
+        }
+
+        function saveFileSystem() {
+            const now = new Date();
+            const dateStr = [
+                now.getFullYear(), 
+                (now.getMonth() + 1).toString().padStart(2, '0'), 
+                now.getDate().toString().padStart(2, '0')
+            ].join('');
+            const timeStr = [
+                now.getHours().toString().padStart(2, '0'),
+                now.getMinutes().toString().padStart(2, '0'),
+                now.getSeconds().toString().padStart(2, '0')
+            ].join('-');
+            const filename = `${dateStr}-${timeStr}.db`;
+
+            const fsData = JSON.stringify(fileSystem);
+            const blob = new Blob([fsData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            alert(`Файловая система сохранена как "${filename}"`);
+            closeSettingsModal();
+        }
+
+        function loadFileSystem(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedFs = JSON.parse(e.target.result);
+                    if (loadedFs && loadedFs.name === 'root') {
+                        fileSystem = loadedFs;
+                        saveState(); 
+                        currentPath = '/';
+                        loadState(); 
+                        alert(`Файловая система "${file.name}" успешно загружена. Примечание: медиафайлы не переносятся между базами IndexedDB.`);
+                    } else {
+                        alert('Ошибка: Загруженный файл не является корректным файлом Initi (.db).');
+                    }
+                } catch (error) {
+                    alert('Ошибка при чтении файла: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 🖼️ Обои Корневой Папки ---
+        
+        function updateWallpaper() {
+            const fileSystemDiv = document.getElementById('fileSystem');
+            const root = getItemByPath('/');
+
+            if (root.wallpaper) {
+                fileSystemDiv.style.backgroundImage = `url('${root.wallpaper}')`;
+                fileSystemDiv.classList.add('has-wallpaper');
+            } else {
+                fileSystemDiv.style.backgroundImage = 'none';
+                fileSystemDiv.classList.remove('has-wallpaper');
+            }
+        }
+
+        function applyWallpaper() {
+            const url = document.getElementById('wallpaperInput').value.trim();
+            const root = getItemByPath('/');
+            if (url) {
+                root.wallpaper = url;
+                localStorage.setItem('initi_wallpaper', url);
+                alert('Обои установлены.');
+            } else {
+                alert('Пожалуйста, введите URL или Base64 изображения.');
+            }
+            saveState();
+            updateWallpaper();
+            closeSettingsModal();
+        }
+        
+        function removeWallpaper() {
+            const root = getItemByPath('/');
+            root.wallpaper = null;
+            localStorage.removeItem('initi_wallpaper');
+            alert('Обои удалены.');
+            saveState();
+            updateWallpaper();
+            closeSettingsModal();
+        }
+
+        // --- 📝 Управление содержимым файла-контейнера ---
+
+        function openFileContent(path) {
+            currentFile = getItemByPath(path);
+            if (!currentFile || currentFile.type !== 'file') return;
+
+            document.getElementById('fileContentHeader').textContent = currentFile.name;
+            document.getElementById('fileContentDate').textContent = 'Создан: ' + formatDate(currentFile.created);
+            
+            objectUrls.forEach(url => URL.revokeObjectURL(url));
+            objectUrls = [];
+
+            renderFileContent();
+            document.getElementById('fileContentModal').style.display = 'flex';
+        }
+
+        async function renderFileContent() {
+            const noteListDiv = document.getElementById('textNotesList');
+            const mediaListDiv = document.getElementById('mediaList');
+            mediaListDiv.innerHTML = 'Загрузка медиа...';
+
+            // 1. Рендерим заметки
+            noteListDiv.innerHTML = '';
+            currentFile.content.notes.forEach((note, index) => {
+                const div = document.createElement('div');
+                div.style.border = '1px solid #ccc';
+                div.style.padding = '5px';
+                div.style.marginBottom = '5px';
+                div.style.backgroundColor = '#f9f9f9';
+
+                const header = document.createElement('div');
+                header.textContent = `Заметка #${index + 1}` + (note.isHtml ? ' (HTML)' : ' (Текст)');
+                header.style.fontWeight = 'bold';
+                div.appendChild(header);
+
+                const contentPreview = document.createElement('p');
+                contentPreview.textContent = note.content.substring(0, 50) + '...';
+                contentPreview.style.margin = '4px 0';
+                div.appendChild(contentPreview);
+
+                const editBtn = document.createElement('button');
+                editBtn.textContent = '✍️ Редактировать';
+                editBtn.onclick = () => editTextNote(index);
+                div.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '❌ Удалить';
+                deleteBtn.onclick = () => deleteTextNote(index);
+                div.appendChild(deleteBtn);
+                
+                if (note.isHtml) {
+                    const runBtn = document.createElement('button');
+                    runBtn.textContent = '🌐 Запустить';
+                    runBtn.onclick = () => runHtmlDemo(note.content);
+                    div.appendChild(runBtn);
+                }
+
+                noteListDiv.appendChild(div);
+            });
+            
+            // 2. Загрузка и рендеринг медиа (Обновлено: добавлен <audio controls>)
+            mediaListDiv.innerHTML = '';
+            for (let index = 0; index < currentFile.content.media.length; index++) {
+                const media = currentFile.content.media[index];
+                try {
+                    const fileBlob = await getMediaFromDB(media.id);
+                    const objectURL = URL.createObjectURL(fileBlob);
+                    objectUrls.push(objectURL); 
+
+                    const div = document.createElement('div');
+                    div.style.position = 'relative';
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '❌';
+                    deleteBtn.style.position = 'absolute';
+                    deleteBtn.style.top = '0';
+                    deleteBtn.style.right = '0';
+                    deleteBtn.style.fontSize = '8px';
+                    deleteBtn.style.padding = '0 3px';
+                    deleteBtn.onclick = (e) => { e.stopPropagation(); deleteMediaItem(index); };
+                    div.appendChild(deleteBtn);
+
+                    if (media.type === 'photo') {
+                        div.style.width = '80px';
+                        div.style.height = '80px';
+                        div.style.overflow = 'hidden';
+                        
+                        const img = document.createElement('img');
+                        img.src = objectURL;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        img.onclick = () => openPhotoViewer(index);
+                        div.appendChild(img);
+                        mediaListDiv.appendChild(div);
+
+                    } else if (media.type === 'audio') {
+                        const audioWrapper = document.createElement('div');
+                        audioWrapper.className = 'audio-item-wrapper';
+                        
+                        const title = document.createElement('p');
+                        title.textContent = `Аудиофайл #${index + 1}`;
+                        audioWrapper.appendChild(title);
+                        
+                        const audio = document.createElement('audio');
+                        audio.controls = true; 
+                        audio.src = objectURL;
+                        audioWrapper.appendChild(audio);
+
+                        div.style.width = '100%';
+                        div.appendChild(audioWrapper);
+                        mediaListDiv.appendChild(div);
+                    }
+                    
+
+                } catch (error) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.textContent = `[Ошибка: ${media.type} не найдено]`;
+                    errorDiv.style.color = 'red';
+                    mediaListDiv.appendChild(errorDiv);
+                }
+            }
+        }
+
+        function closeFileContentModal() {
+            saveState();
+            objectUrls.forEach(url => URL.revokeObjectURL(url));
+            objectUrls = [];
+            currentFile = null;
+            document.getElementById('fileContentModal').style.display = 'none';
+        }
+
+        // --- Заметки ---
+
+        function createTextNote() {
+            currentNoteIndex = null;
+            document.getElementById('noteContent').value = '';
+            document.getElementById('isHtmlCheckbox').checked = false;
+            document.getElementById('textEditorHeader').textContent = 'Создание новой заметки';
+            document.getElementById('runHtmlButton').style.display = 'none';
+            document.getElementById('textEditorModal').style.display = 'flex';
+        }
+
+        function editTextNote(index) {
+            currentNoteIndex = index;
+            const note = currentFile.content.notes[index];
+            document.getElementById('noteContent').value = note.content;
+            document.getElementById('isHtmlCheckbox').checked = note.isHtml;
+            document.getElementById('textEditorHeader').textContent = `Редактирование заметки #${index + 1}`;
+            
+            const runButton = document.getElementById('runHtmlButton');
+            runButton.style.display = note.isHtml ? 'inline-block' : 'none';
+            runButton.onclick = () => runHtmlDemo(note.content);
+
+            document.getElementById('textEditorModal').style.display = 'flex';
+        }
+
+        function saveTextNote() {
+            const content = document.getElementById('noteContent').value;
+            const isHtml = document.getElementById('isHtmlCheckbox').checked;
+
+            if (content.trim() === '') {
+                alert('Содержимое заметки не может быть пустым.');
+                return;
+            }
+
+            const newNote = { content: content, isHtml: isHtml };
+
+            if (currentNoteIndex !== null) {
+                currentFile.content.notes[currentNoteIndex] = newNote;
+            } else {
+                currentFile.content.notes.push(newNote);
+            }
+            
+            closeTextEditorModal();
+            renderFileContent();
+            saveState(); 
+        }
+
+        function deleteTextNote(index) {
+            if (confirm(`Вы уверены, что хотите удалить заметку #${index + 1}?`)) {
+                currentFile.content.notes.splice(index, 1);
+                renderFileContent();
+                saveState(); 
+            }
+        }
+        
+        function closeTextEditorModal() {
+            document.getElementById('textEditorModal').style.display = 'none';
+        }
+        
+        // --- Запуск HTML ---
+        
+        function runHtmlDemo(htmlContent = null) {
+            const content = htmlContent || document.getElementById('noteContent').value;
+            const iframe = document.getElementById('htmlDemoIframe');
+            
+            const htmlDoc = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>HTML Demo</title>
+                </head>
+                <body>
+                    ${content}
+                </body>
+                </html>
+            `;
+
+            iframe.srcdoc = htmlDoc;
+            document.getElementById('htmlDemoModal').style.display = 'flex';
+            closeTextEditorModal();
+        }
+
+        function closeHtmlDemoModal() {
+            document.getElementById('htmlDemoModal').style.display = 'none';
+            if (currentNoteIndex !== null) {
+                 document.getElementById('textEditorModal').style.display = 'flex';
+            } else if (currentFile) {
+                 document.getElementById('fileContentModal').style.display = 'flex';
+            }
+        }
+
+
+        // --- 🖼️ Просмотр Фото с Свайпом ---
+
+        let photoIndex = 0;
+        let startX = 0;
+        let photoUrls = []; 
+        const photoViewerElement = document.getElementById('photoViewer');
+        const photoDisplayElement = document.getElementById('photoDisplay');
+        
+        async function openPhotoViewer(mediaIndex) {
+            photoUrls = [];
+            let startIndex = 0;
+            const allMedia = currentFile.content.media;
+            let currentPhotoCount = 0;
+            
+            // Сбор URL-ов только для фото
+            for (let i = 0; i < allMedia.length; i++) {
+                const media = allMedia[i];
+                if (media.type === 'photo') {
+                    try {
+                        // Используем getMediaFromDB для получения Blob
+                        const fileBlob = await getMediaFromDB(media.id);
+                        const url = URL.createObjectURL(fileBlob);
+                        objectUrls.push(url); // Добавляем во временный массив
+                        photoUrls.push(url);
+
+                        if (i === mediaIndex) {
+                            startIndex = currentPhotoCount;
+                        }
+                        currentPhotoCount++;
+                    } catch (e) {
+                        console.error("Не удалось загрузить фото для просмотра:", e);
+                    }
+                }
+            }
+            
+            if (photoUrls.length === 0) return;
+
+            photoIndex = startIndex;
+            photoDisplayElement.src = photoUrls[photoIndex];
+            photoViewerElement.style.display = 'flex';
+            photoViewerElement.focus();
+        }
+
+        function closePhotoViewer(event) {
+            // Если клик был по самой фотографии, которая имеет event.stopPropagation(), игнорируем
+            if (event && event.target === photoDisplayElement) return;
+            
+            // Предотвращаем "сквозной" клик
+            if (event) event.stopPropagation();
+            
+            photoViewerElement.style.display = 'none';
+        }
+
+        function showNextPhoto(direction) {
+            if (photoUrls.length <= 1) return;
+
+            photoIndex += direction;
+            if (photoIndex >= photoUrls.length) photoIndex = 0;
+            if (photoIndex < 0) photoIndex = photoUrls.length - 1;
+
+            photoDisplayElement.src = photoUrls[photoIndex];
+        }
+
+        function handleTouchStart(e) {
+            startX = e.touches[0].clientX;
+        }
+
+        function handleTouchMove(e) {
+            if (e.touches.length > 1) return;
+        }
+
+        function handleTouchEnd(e) {
+            const endX = e.changedTouches[0].clientX;
+            const diffX = endX - startX;
+            
+            if (Math.abs(diffX) > 50) {
+                if (diffX > 0) {
+                    showNextPhoto(-1);
+                } else {
+                    showNextPhoto(1);
+                }
+            } else if (e.target === photoDisplayElement) {
+                // Игнорируем тап по фото, так как закрытие теперь происходит через кнопку или тап по фону
+            }
+        }
+
+
+        // --- 🔍 Поиск ---
+
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            if (query.length > 0) {
+                renderCurrentFolder(query);
+            } else {
+                renderCurrentFolder();
+            }
+        });
+
+        // --- ⚙️ Управление Модальными Окнами ---
+        
+        function closeModal(event, id) {
+            if (event.target.id === id) {
+                document.getElementById(id).style.display = 'none';
+            }
+        }
+        
+        function showSettingsModal() {
+            const root = getItemByPath('/');
+            document.getElementById('wallpaperInput').value = root.wallpaper || '';
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function showSkinsModal() {
+            document.getElementById('skinsModal').style.display = 'flex';
+        }
+        
+        function closeSkinsModal() {
+            document.getElementById('skinsModal').style.display = 'none';
+        }
+
+        // --- 🚀 Запуск программы ---
+
+        window.onload = async () => {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            await openDB();
+            loadState();
+            document.getElementById('loadingIndicator').style.display = 'none';
+            
+            // Добавляем обработчики для свайпов
+            photoViewerElement.addEventListener('touchstart', handleTouchStart);
+            photoViewerElement.addEventListener('touchmove', handleTouchMove);
+            photoViewerElement.addEventListener('touchend', handleTouchEnd);
+        };
+
+    </script>
+</body>
+</html>
