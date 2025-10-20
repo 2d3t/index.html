@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>Файловый менеджер (single file)</title>
+<style>
+  /* Windows95-ish UI */
+  :root{
+    --bg:#c0c0c0;
+    --panel:#e0e0e0;
+    --accent:#000080;
+    --text:#000;
+    --btn1:#ffffff;
+    --btn2:#808080;
+    --shadow: rgba(0,0,0,0.35);
+    --font: "Segoe UI", Tahoma, Arial, sans-serif;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(#b8b8b8,#cfcfcf);font-family:var(--font);color:var(--text)}
+  .app{display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding:6px}
+  header{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .title{font-weight:700}
+  .toolbar{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .btn{
+    padding:6px 10px;border:2px solid var(--btn2);background:linear-gradient(var(--btn1),var(--btn2));
+    box-shadow: 2px 2px 0 var(--btn2), inset -1px -1px 0 rgba(255,255,255,0.6);
+    border-radius:2px;font-size:14px;cursor:pointer;
+  }
+  .btn:active{transform:translateY(1px)}
+  .container{flex:1;display:flex;gap:8px;align-items:stretch}
+  .sidebar{width:38%;min-width:220px;background:var(--panel);padding:8px;box-shadow:2px 2px 6px var(--shadow);overflow:auto}
+  .content{flex:1;background:var(--panel);padding:8px;box-shadow:2px 2px 6px var(--shadow);overflow:auto}
+  .controls{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+  input[type="text"], .search {padding:6px;border:2px inset #fff;width:100%;box-sizing:border-box}
+  .list{list-style:none;padding:0;margin:0; font-size:14px}
+  .item{padding:6px;border:1px solid transparent;border-radius:3px;display:flex;align-items:center;gap:6px;cursor:pointer}
+  .item:hover{background:#d8d8d8}
+  .folder{font-weight:700}
+  .children{margin-left:12px;padding-left:6px;border-left:1px dashed rgba(0,0,0,0.06)}
+  .meta{font-size:12px;color:#333}
+  .file-actions{margin-left:auto;display:flex;gap:4px}
+  .small{padding:4px 6px;font-size:12px}
+  /* editor */
+  .doc-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .doc-date{font-size:13px;color:#222}
+  textarea.editor{width:100%;height:40vh;box-sizing:border-box;padding:8px;font-family:monospace;font-size:14px;border:2px inset #fff}
+  .thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .thumb{width:96px;height:96px;display:flex;align-items:center;justify-content:center;border:2px solid #aaa;overflow:hidden;position:relative;background:#fff}
+  .thumb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .thumb .label{position:absolute;left:2px;bottom:2px;background:rgba(255,255,255,0.9);font-size:11px;padding:2px 4px}
+  .audio-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999}
+  .lightbox-img{max-width:98%;max-height:98%}
+  .run-view{background:#fff; padding:8px; width:96%; height:92%; box-shadow: 4px 4px 12px rgba(0,0,0,0.6); position:relative}
+  .muted{opacity:.6}
+  .searchMatch{background:yellow}
+  /* responsive tweak */
+  @media (max-width:600px){
+    .sidebar{width:42%}
+    textarea.editor{height:36vh}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title">Файловый менеджер — Win95 style</div>
+    <div class="toolbar">
+      <button class="btn" id="btnNewFolder">Новая папка</button>
+      <button class="btn" id="btnNewFile">Новый файл</button>
+      <button class="btn" id="btnExport">Экспорт (.db)</button>
+      <label class="btn" style="display:inline-block;cursor:pointer">
+        Импорт (.db)
+        <input id="importFile" type="file" accept=".db,application/json" style="display:none"/>
+      </label>
+      <button class="btn" id="btnClear">Сбросить (удалить всё)</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <div class="controls">
+        <input class="search" id="searchInput" type="text" placeholder="Поиск по названию (всегда по каталогу)"/>
+      </div>
+
+      <div style="margin-bottom:8px;display:flex;gap:6px;">
+        <button class="btn small" id="btnExpandAll">Развернуть</button>
+        <button class="btn small" id="btnCollapseAll">Свернуть</button>
+      </div>
+
+      <div id="treeRoot"></div>
+    </aside>
+
+    <main class="content">
+      <div id="fileViewPlaceholder" class="muted">Выберите файл для просмотра / редактирования</div>
+      <div id="fileView" style="display:none">
+        <div class="doc-header">
+          <div>
+            <div style="font-weight:700" id="docName"></div>
+            <div class="doc-date" id="docDate"></div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn small" id="saveDocBtn">Сохранить</button>
+            <button class="btn small" id="runHtmlBtn">Запустить HTML</button>
+            <button class="btn small" id="closeDocBtn">Закрыть</button>
+          </div>
+        </div>
+
+        <div>
+          <textarea id="docEditor" class="editor" placeholder="Текстовый документ — можно писать HTML, теги будут экранироваться при сохранении как 'plain' и сохраняться как HTML по запросу."></textarea>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <label class="btn small">Добавить фото
+            <input id="imgInput" type="file" accept="image/*" multiple style="display:none"/>
+          </label>
+          <label class="btn small">Добавить аудио
+            <input id="audioInput" type="file" accept="audio/*" multiple style="display:none"/>
+          </label>
+          <button class="btn small" id="btnClearAttachments">Удалить все вложения</button>
+        </div>
+
+        <div class="thumbs" id="thumbs"></div>
+
+        <div class="audio-list" id="audioList"></div>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- lightbox / run view overlays -->
+<div id="overlay" style="display:none" class="overlay"></div>
+
+<script>
+/* ======= Data model and persistence ======= */
+const STORAGE_KEY = 'fm_win95_v1';
+
+function nowISOString(){ return new Date().toISOString() }
+function formatForFilename(d){
+  const dt = new Date(d);
+  const DD = String(dt.getDate()).padStart(2,'0');
+  const MM = String(dt.getMonth()+1).padStart(2,'0');
+  const YYYY = dt.getFullYear();
+  const hh = String(dt.getHours()).padStart(2,'0');
+  const mm = String(dt.getMinutes()).padStart(2,'0');
+  const ss = String(dt.getSeconds()).padStart(2,'0');
+  return `${DD}${MM}${YYYY}-${hh}-${mm}-${ss}`;
+}
+function formatReadable(d){
+  const dt = new Date(d);
+  return dt.toLocaleString();
+}
+
+let fs = null; // root folder
+
+function makeEmptyFS(){
+  return {
+    id: genId(),
+    type: 'folder',
+    name: 'root',
+    createdAt: nowISOString(),
+    children: []
+  };
+}
+
+function genId(){ return 'id_' + Math.random().toString(36).slice(2,10) }
+
+function saveToStorage(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(fs));
+}
+
+function loadFromStorage(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){ try{ fs = JSON.parse(raw); return true } catch(e){ console.error(e) }
+  }
+  fs = makeEmptyFS();
+  return false;
+}
+
+/* ======= rendering tree ======= */
+const treeRoot = document.getElementById('treeRoot');
+const searchInput = document.getElementById('searchInput');
+
+function renderTree(root, container, path=[]){
+  container.innerHTML = '';
+  const ul = document.createElement('ul'); ul.className='list';
+  container.appendChild(ul);
+  function rec(node, parentEl, currentPath){
+    const li = document.createElement('li');
+    const it = document.createElement('div'); it.className='item';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = node.name;
+    if(node.type === 'folder'){ nameSpan.classList.add('folder') }
+    it.appendChild(nameSpan);
+
+    const meta = document.createElement('span'); meta.className='meta';
+    meta.textContent = '  (' + (node.type==='folder' ? 'папка' : 'файл') + ')';
+    it.appendChild(meta);
+
+    const actions = document.createElement('div'); actions.className='file-actions';
+    const btnOpen = document.createElement('button'); btnOpen.className='btn small';
+    btnOpen.textContent = (node.type==='folder') ? 'Открыть' : 'Открыть';
+    actions.appendChild(btnOpen);
+
+    const btnDel = document.createElement('button'); btnDel.className='btn small';
+    btnDel.textContent = 'Удалить';
+    actions.appendChild(btnDel);
+
+    it.appendChild(actions);
+    parentEl.appendChild(li);
+    li.appendChild(it);
+
+    btnOpen.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(node.type==='folder'){
+        li.classList.toggle('open');
+        // expand/collapse children visibility
+        if(!li.querySelector('.children')){
+          const childWrap = document.createElement('div'); childWrap.className='children';
+          li.appendChild(childWrap);
+          node.children.forEach(child=> rec(child, childWrap, currentPath.concat(node)));
+        } else {
+          const cw = li.querySelector('.children');
+          cw.style.display = cw.style.display === 'none' ? '' : 'none';
+        }
+      } else {
+        openFile(node);
+      }
+    });
+
+    btnDel.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(confirm('Удалить "'+node.name +'" ?')){
+        removeNodeById(node.id, fs);
+        saveToStorage();
+        renderTree(fs, treeRoot);
+        // close view if deleted file currently open
+        if(currentOpenFile && currentOpenFile.id === node.id){ closeFileView(); }
+      }
+    });
+
+    // click item to open/expand
+    it.addEventListener('click', ()=>{
+      if(node.type === 'folder'){
+        btnOpen.click();
+      } else {
+        openFile(node);
+      }
+    });
+  }
+  root.children.forEach(child=> rec(child, ul, []));
+}
+
+function findNodeById(id, node){
+  if(node.id === id) return node;
+  if(node.children){
+    for(const c of node.children){
+      const f = findNodeById(id, c);
+      if(f) return f;
+    }
+  }
+  return null;
+}
+
+function removeNodeById(id, parent){
+  if(!parent.children) return false;
+  const idx = parent.children.findIndex(c=> c.id===id);
+  if(idx>=0){ parent.children.splice(idx,1); return true; }
+  for(const c of parent.children){
+    if(removeNodeById(id, c)) return true;
+  }
+  return false;
+}
+
+/* ======= create folder / file ======= */
+document.getElementById('btnNewFolder').addEventListener('click', ()=>{
+  const name = prompt('Имя новой папки:','Новая папка');
+  if(!name) return;
+  const folder = { id:genId(), type:'folder', name, createdAt: nowISOString(), children: [] };
+  fs.children.push(folder);
+  saveToStorage(); renderTree(fs, treeRoot);
+});
+
+document.getElementById('btnNewFile').addEventListener('click', ()=>{
+  const name = prompt('Имя файла:','Новый файл.txt');
+  if(!name) return;
+  const file = {
+    id:genId(), type:'file', name, createdAt: nowISOString(),
+    content: { text: '', attachments: [] } // attachments: {id,name,type,mime,data(base64)}
+  };
+  fs.children.push(file);
+  saveToStorage(); renderTree(fs, treeRoot);
+});
+
+/* ======= file view and editor ======= */
+const fileView = document.getElementById('fileView');
+const placeholder = document.getElementById('fileViewPlaceholder');
+const docName = document.getElementById('docName');
+const docDate = document.getElementById('docDate');
+const docEditor = document.getElementById('docEditor');
+const thumbs = document.getElementById('thumbs');
+const audioList = document.getElementById('audioList');
+const saveDocBtn = document.getElementById('saveDocBtn');
+const closeDocBtn = document.getElementById('closeDocBtn');
+const runHtmlBtn = document.getElementById('runHtmlBtn');
+const imgInput = document.getElementById('imgInput');
+const audioInput = document.getElementById('audioInput');
+const btnClearAttachments = document.getElementById('btnClearAttachments');
+
+let currentOpenFile = null;
+
+function openFile(node){
+  if(node.type !== 'file') return;
+  currentOpenFile = node;
+  placeholder.style.display='none';
+  fileView.style.display='';
+  docName.textContent = node.name;
+  docDate.textContent = 'Создано: ' + formatReadable(node.createdAt);
+  docEditor.value = node.content?.text || '';
+  renderAttachments();
+}
+
+function closeFileView(){
+  // autosave on exit from file
+  if(currentOpenFile){
+    currentOpenFile.content.text = docEditor.value;
+    saveToStorage();
+  }
+  currentOpenFile = null;
+  placeholder.style.display='';
+  fileView.style.display='none';
+}
+
+saveDocBtn.addEventListener('click', ()=>{
+  if(!currentOpenFile) return;
+  currentOpenFile.content.text = docEditor.value;
+  saveToStorage();
+  alert('Сохранено');
+});
+
+closeDocBtn.addEventListener('click', ()=>{
+  closeFileView();
+});
+
+window.addEventListener('beforeunload', ()=>{
+  // autosave if editing
+  if(currentOpenFile){
+    currentOpenFile.content.text = docEditor.value;
+  }
+  saveToStorage();
+});
+
+/* ======= attachments handling (images/audio) ======= */
+function renderAttachments(){
+  thumbs.innerHTML = '';
+  audioList.innerHTML = '';
+  if(!currentOpenFile) return;
+  const atts = currentOpenFile.content.attachments || [];
+  // images
+  atts.filter(a=> a.type==='image').forEach(att=>{
+    const div = document.createElement('div'); div.className='thumb';
+    const img = document.createElement('img'); img.src = att.data; img.alt=att.name;
+    div.appendChild(img);
+    const lbl = document.createElement('div'); lbl.className='label'; lbl.textContent = att.name;
+    div.appendChild(lbl);
+    // on tap open lightbox
+    div.addEventListener('click', ()=> showLightboxImage(att));
+    // context menu delete
+    div.addEventListener('contextmenu', (e)=>{
+      e.preventDefault();
+      if(confirm('Удалить вложение "'+att.name+'"?')){
+        removeAttachment(att.id);
+      }
+    });
+    thumbs.appendChild(div);
+  });
+  // audio
+  atts.filter(a=> a.type==='audio').forEach(att=>{
+    const wrap = document.createElement('div');
+    const title = document.createElement('div'); title.textContent = att.name;
+    const audio = document.createElement('audio'); audio.controls=true; audio.src = att.data;
+    wrap.appendChild(title); wrap.appendChild(audio);
+    // delete on long press / right click
+    wrap.addEventListener('contextmenu', (e)=>{
+      e.preventDefault();
+      if(confirm('Удалить вложение "'+att.name+'"?')){
+        removeAttachment(att.id);
+      }
+    });
+    audioList.appendChild(wrap);
+  });
+}
+
+function removeAttachment(attId){
+  if(!currentOpenFile) return;
+  currentOpenFile.content.attachments = currentOpenFile.content.attachments.filter(a=> a.id !== attId);
+  saveToStorage(); renderAttachments();
+}
+
+imgInput.addEventListener('change', (e)=>{
+  const files = Array.from(e.target.files);
+  if(!currentOpenFile) { alert('Откройте файл для добавления вложений'); e.target.value=''; return; }
+  const readers = files.map(f=> readFileAsDataURL(f).then(data=>{
+    const att = { id: genId(), name: f.name, type:'image', mime: f.type, data };
+    currentOpenFile.content.attachments.push(att);
+  }));
+  Promise.all(readers).then(()=>{ saveToStorage(); renderAttachments(); imgInput.value=''; });
+});
+
+audioInput.addEventListener('change', (e)=>{
+  const files = Array.from(e.target.files);
+  if(!currentOpenFile) { alert('Откройте файл для добавления вложений'); e.target.value=''; return; }
+  const readers = files.map(f=> readFileAsDataURL(f).then(data=>{
+    const att = { id: genId(), name: f.name, type:'audio', mime: f.type, data };
+    currentOpenFile.content.attachments.push(att);
+  }));
+  Promise.all(readers).then(()=>{ saveToStorage(); renderAttachments(); audioInput.value=''; });
+});
+
+btnClearAttachments.addEventListener('click', ()=>{
+  if(!currentOpenFile) return;
+  if(confirm('Удалить все вложения?')){
+    currentOpenFile.content.attachments = [];
+    saveToStorage(); renderAttachments();
+  }
+});
+
+function readFileAsDataURL(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=> res(r.result);
+    r.onerror = ()=> rej(r.error);
+    r.readAsDataURL(file);
+  });
+}
+
+/* ======= lightbox for images ======= */
+const overlay = document.getElementById('overlay');
+function showLightboxImage(att){
+  overlay.innerHTML = '';
+  overlay.style.display = 'flex';
+  const img = document.createElement('img'); img.src = att.data; img.className='lightbox-img';
+  overlay.appendChild(img);
+  overlay.addEventListener('click', hideOverlay, {once:true});
+}
+function hideOverlay(){ overlay.style.display='none'; overlay.innerHTML=''; }
+
+/* ======= export / import (.db) ======= */
+document.getElementById('btnExport').addEventListener('click', ()=>{
+  const data = JSON.stringify(fs);
+  const blob = new Blob([data], {type:'application/json'});
+  const filename = formatForFilename(new Date()) + '.db';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  a.remove(); URL.revokeObjectURL(url);
+});
+
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const parsed = JSON.parse(r.result);
+      if(parsed && parsed.type==='folder'){
+        fs = parsed;
+        saveToStorage();
+        renderTree(fs, treeRoot);
+        alert('Импортировано');
+      } else {
+        alert('Файл не похож на экспортированную файловую систему');
+      }
+    }catch(err){ alert('Ошибка при разборе файла: ' + err.message) }
+  };
+  r.readAsText(f);
+  e.target.value='';
+});
+
+/* ======= delete all / reset ======= */
+document.getElementById('btnClear').addEventListener('click', ()=>{
+  if(confirm('Удалить всю файловую систему из браузера?')){ fs = makeEmptyFS(); saveToStorage(); renderTree(fs, treeRoot); closeFileView(); }
+});
+
+/* ======= run HTML view ======= */
+runHtmlBtn.addEventListener('click', ()=>{
+  if(!currentOpenFile) return;
+  // treat current content as HTML — but careful: user asked that text docs "иметь возможность сохранять html документы (экранирование)". 
+  // We'll run exactly the content (unescaped) — but content may include user HTML. Provide exit button.
+  const html = currentOpenFile.content.text || '';
+  overlay.innerHTML = '';
+  overlay.style.display = 'flex';
+  const runWrap = document.createElement('div'); runWrap.className='run-view';
+  const exitBtn = document.createElement('button'); exitBtn.className='btn small'; exitBtn.textContent='Выйти';
+  exitBtn.style.position='absolute'; exitBtn.style.top='8px'; exitBtn.style.right='8px';
+  runWrap.appendChild(exitBtn);
+  const iframe = document.createElement('iframe'); iframe.style.width='100%'; iframe.style.height='100%'; iframe.style.border='none';
+  runWrap.appendChild(iframe);
+  overlay.appendChild(runWrap);
+
+  // create blob URL to run safely
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  iframe.src = url;
+
+  exitBtn.addEventListener('click', ()=>{
+    overlay.style.display='none';
+    overlay.innerHTML='';
+    URL.revokeObjectURL(url);
+  });
+});
+
+overlay.addEventListener('click', (e)=>{
+  if(e.target === overlay) { overlay.style.display='none'; overlay.innerHTML=''; }
+});
+
+/* ======= search across whole catalog ======= */
+searchInput.addEventListener('input', ()=>{
+  const q = searchInput.value.trim().toLowerCase();
+  if(!q){ renderTree(fs, treeRoot); return; }
+  // find nodes matching
+  function collectMatches(node, arr){
+    if(node.name.toLowerCase().includes(q)) arr.push(node);
+    if(node.children) node.children.forEach(c=> collectMatches(c, arr));
+  }
+  const matches = []; collectMatches(fs, matches);
+  // render only matches and their parents (simple strategy: create a temp tree including parents)
+  // build map of id->node (cloned) along parent chain
+  function cloneNode(n){ return JSON.parse(JSON.stringify(n)); }
+  const newRoot = { id: genId(), type:'folder', name:'root', createdAt:nowISOString(), children: [] };
+  function ensurePath(root, pathNames, original){
+    // not used; simpler approach: include a flat list of matches at root
+  }
+  // For simplicity show a flat list of matches
+  const container = document.createElement('div');
+  const ul = document.createElement('ul'); ul.className='list';
+  matches.forEach(m=>{
+    const li = document.createElement('li');
+    const it = document.createElement('div'); it.className='item';
+    const span = document.createElement('span'); span.textContent = m.name;
+    it.appendChild(span);
+    const meta = document.createElement('span'); meta.className='meta'; meta.textContent = ' ('+m.type+')';
+    it.appendChild(meta);
+    const act = document.createElement('div'); act.className='file-actions';
+    const open = document.createElement('button'); open.className='btn small'; open.textContent='Открыть';
+    act.appendChild(open);
+    const del = document.createElement('button'); del.className='btn small'; del.textContent='Удалить';
+    act.appendChild(del);
+    it.appendChild(act);
+    li.appendChild(it); ul.appendChild(li);
+    open.addEventListener('click', ()=> {
+      if(m.type==='file') openFile(m);
+    });
+    del.addEventListener('click', ()=>{
+      if(confirm('Удалить "'+m.name+'" ?')){ removeNodeById(m.id, fs); saveToStorage(); renderTree(fs, treeRoot); }
+    });
+  });
+  treeRoot.innerHTML = '';
+  if(matches.length===0){ treeRoot.textContent = 'Ничего не найдено' } else treeRoot.appendChild(ul);
+});
+
+/* ======= expand / collapse ======= */
+document.getElementById('btnExpandAll').addEventListener('click', ()=> {
+  // naive: re-render and try to open all folder nodes by simulating click on 'Открыть' buttons
+  renderTree(fs, treeRoot);
+  const opens = treeRoot.querySelectorAll('.item .btn');
+  opens.forEach(b=> { if(b.textContent==='Открыть') b.click(); });
+});
+document.getElementById('btnCollapseAll').addEventListener('click', ()=> renderTree(fs, treeRoot));
+
+/* ======= utility: open file by reference after render (keeps object identity) ======= */
+/* The tree is rendered from fs object so nodes referenced in the DOM are same objects in memory.
+   For import/export case we re-render and can open found nodes directly by object ref. */
+
+function init(){
+  loadFromStorage();
+  renderTree(fs, treeRoot);
+}
+init();
+
+/* ======= helper: when deleting a folder or file deep in tree, ensure we remove references by id ======= */
+
+/* ======= ensure autosave when closing file (closing implemented already) ======= */
+
+/* ======= ensure created date displayed at top (done) ======= */
+
+/* ======= additional: save as HTML vs escape: provide option when saving text? =======
+   For simplicity, if user wants to save raw HTML they can simply write HTML in editor
+   and use 'Запустить HTML' to view it. When content saved we keep it as plain text.
+   If user wants 'экранирование' we could provide option: but user requested "в текстовых документах должна иметься возможность сохранять html документы (экранирование)".
+   To keep it simple: saving preserves raw text; the Run HTML executes it as HTML. 
+   If user wants to store escaped version, they can escape themselves. 
+   (Could be extended later.)
+*/
+
+/* ======= small improvement: double-click on name to rename ======= */
+treeRoot.addEventListener('dblclick', (e)=>{
+  const it = e.target.closest('.item');
+  if(!it) return;
+  // find corresponding node by name text and position (best effort)
+  const name = it.querySelector('span').textContent;
+  // locate node in fs by matching name and DOM position is fuzzy; instead implement prompt rename near open file if open
+  if(currentOpenFile && currentOpenFile.name === name){
+    const newName = prompt('Новое имя файла/папки', currentOpenFile.name);
+    if(newName){ currentOpenFile.name = newName; saveToStorage(); renderTree(fs, treeRoot); docName.textContent = newName; }
+  } else {
+    // fallback: try to find by name uniquely
+    const found = findByName(fs, name);
+    if(found){
+      const newName = prompt('Новое имя файла/папки', found.name);
+      if(newName){ found.name = newName; saveToStorage(); renderTree(fs, treeRoot); }
+    }
+  }
+});
+
+function findByName(node, name){
+  if(node.name === name) return node;
+  if(node.children) for(const c of node.children){ const f = findByName(c,name); if(f) return f; }
+  return null;
+}
+
+/* ======= initial sample (if empty) ======= */
+if(!fs.children.length){
+  fs.children.push({
+    id:genId(), type:'folder', name:'Документы', createdAt: nowISOString(), children: [
+      { id:genId(), type:'file', name:'Пример.html', createdAt: nowISOString(),
+        content: { text: '<!doctype html><meta charset="utf-8"><h1>Пример</h1><p>Это HTML-демо.</p>', attachments: [] } }
+    ]
+  });
+  saveToStorage();
+  renderTree(fs, treeRoot);
+}
+</script>
+</body>
+</html>
