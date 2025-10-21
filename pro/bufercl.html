@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Очистка буфера обмена</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+        .success {
+            color: green;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            margin-top: 15px;
+        }
+        .info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Очистка буфера обмена</h1>
+        
+        <div class="info">
+            <p><strong>Как это работает:</strong></p>
+            <p>Программа записывает в буфер обмена пустую строку, заменяя любое предыдущее содержимое.</p>
+            <p>Для работы необходимо разрешить доступ к буферу обмена при запросе браузера.</p>
+        </div>
+
+        <button onclick="clearClipboard()">Очистить буфер обмена</button>
+        <button onclick="clearClipboardAdvanced()">Расширенная очистка</button>
+        
+        <div id="message"></div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #666;">
+            <p>После нажатия кнопки буфер обмена будет полностью очищен.</p>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(text, isError = false) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = text;
+            messageDiv.className = isError ? 'error' : 'success';
+        }
+
+        // Основная функция очистки
+        async function clearClipboard() {
+            try {
+                // Современный API для работы с буфером обмена
+                await navigator.clipboard.writeText('');
+                showMessage('✓ Буфер обмена успешно очищен!');
+            } catch (err) {
+                // Если современный API не поддерживается, используем старый метод
+                fallbackClearClipboard();
+            }
+        }
+
+        // Расширенная функция очистки с несколькими методами
+        async function clearClipboardAdvanced() {
+            try {
+                // Метод 1: Современный API
+                await navigator.clipboard.writeText('');
+                showMessage('✓ Буфер обмена очищен (современный метод)');
+                return;
+            } catch (err) {
+                console.log('Современный метод не сработал, пробуем альтернативные...');
+            }
+
+            // Метод 2: Используем textarea (старый метод)
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = '';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showMessage('✓ Буфер обмена очищен (альтернативный метод)');
+            } catch (err) {
+                // Метод 3: Пытаемся скопировать небольшой текст
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = ' ';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showMessage('✓ Буфер обмена очищен (метод замены)');
+                } catch (err) {
+                    showMessage('❌ Не удалось очистить буфер обмена. Возможно, браузер блокирует доступ.', true);
+                }
+            }
+        }
+
+        // Функция для старых браузеров
+        function fallbackClearClipboard() {
+            try {
+                // Создаем временный textarea
+                const textArea = document.createElement('textarea');
+                textArea.value = '';
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                // Пытаемся выполнить команду копирования
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    showMessage('✓ Буфер обмена успешно очищен!');
+                } else {
+                    showMessage('❌ Не удалось очистить буфер обмена. Попробуйте расширенную очистку.', true);
+                }
+            } catch (err) {
+                showMessage('❌ Ошибка при очистке: ' + err.message, true);
+            }
+        }
+
+        // Автоматическая очистка при загрузке (опционально)
+        // window.addEventListener('load', function() {
+        //     setTimeout(clearClipboard, 1000);
+        // });
+    </script>
+</body>
+</html>
