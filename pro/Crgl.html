@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Продвинутый эффект разбитого экрана</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            background-color: #111; /* Тёмный фон */
+            color: #fff;
+            font-family: sans-serif;
+        }
+
+        #screen-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            padding-top: 50px;
+            box-sizing: border-box;
+        }
+        
+        #screen-canvas {
+            display: block;
+            cursor: pointer;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2; /* Холст поверх иконок */
+            background: transparent; /* Холст прозрачный */
+        }
+
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 15px;
+            text-align: center;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+            position: relative;
+            z-index: 1; /* Иконки под холстом */
+        }
+
+        .icon:hover {
+            opacity: 1;
+        }
+
+        .icon-image {
+            width: 50px;
+            height: 50px;
+            background-color: #333;
+            border-radius: 12px;
+            margin-bottom: 5px;
+            display: inline-block;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .icon-label {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        #controls {
+            position: fixed; /* Используем fixed для фиксации кнопок */
+            bottom: 20px;
+            right: 20px;
+            z-index: 3; /* Кнопки поверх всего */
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #222;
+            color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-container">
+        <div class="icon">
+            <div class="icon-image"></div>
+            <div class="icon-label">Галерея</div>
+        </div>
+        <div class="icon">
+            <div class="icon-image"></div>
+            <div class="icon-label">Настройки</div>
+        </div>
+        <div class="icon">
+            <div class="icon-image"></div>
+            <div class="icon-label">Карты</div>
+        </div>
+        <div class="icon">
+            <div class="icon-image"></div>
+            <div class="icon-label">Сообщения</div>
+        </div>
+        <!-- Здесь можно добавить больше иконок -->
+    </div>
+
+    <canvas id="screen-canvas"></canvas>
+
+    <div id="controls">
+        <button id="reset-button">Сброс</button>
+        <button id="exit-button">Выход</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('screen-canvas');
+        const ctx = canvas.getContext('2d');
+        const resetButton = document.getElementById('reset-button');
+        const exitButton = document.getElementById('exit-button');
+        
+        let cracks = [];
+        const maxSegments = 4; // Количество трещин, отходящих от точки удара
+        const minCrackLength = 50;
+        const maxCrackLength = 250;
+        const crackColor = 'rgba(255, 255, 255, 0.7)';
+        const maxCrackComplexity = 10; // Глубина ветвления трещин
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawCracks();
+        }
+
+        function drawCracks() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            cracks.forEach(crack => {
+                crack.forEach(segment => {
+                    ctx.beginPath();
+                    ctx.moveTo(segment.startX, segment.startY);
+                    ctx.lineTo(segment.endX, segment.endY);
+                    ctx.lineWidth = segment.width;
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 - segment.complexity * 0.05})`;
+                    ctx.stroke();
+                });
+            });
+        }
+
+        function generateComplexCrack(x, y, complexity = 0) {
+            if (complexity > maxCrackComplexity) return;
+
+            const numSegments = Math.floor(Math.random() * maxSegments) + 2;
+            const newCrack = [];
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = Math.random() * 2 * Math.PI;
+                const length = minCrackLength + Math.random() * (maxCrackLength - minCrackLength);
+                const endX = x + Math.cos(angle) * length;
+                const endY = y + Math.sin(angle) * length;
+                
+                newCrack.push({
+                    startX: x,
+                    startY: y,
+                    endX: endX,
+                    endY: endY,
+                    width: (maxCrackComplexity - complexity) * 0.5,
+                    complexity: complexity
+                });
+
+                // Рекурсивно генерируем новые трещины от конца текущей
+                if (Math.random() > 0.5 && complexity < maxCrackComplexity) {
+                    generateComplexCrack(endX, endY, complexity + 1);
+                }
+            }
+            cracks.push(newCrack);
+        }
+        
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            generateComplexCrack(x, y);
+            drawCracks();
+        });
+
+        resetButton.addEventListener('click', () => {
+            cracks = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        exitButton.addEventListener('click', () => {
+            if (confirm("Вы уверены, что хотите выйти?")) {
+                window.close();
+            }
+        });
+
+        // Инициализация
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
