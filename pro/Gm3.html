@@ -219,7 +219,7 @@
 
         /* Стиль для кнопки закрытия фото */
         #photoViewerCloseBtn {
-            position: absolute;
+            position: fixed;
             top: 10px;
             right: 10px;
             background-color: var(--color-header-bg);
@@ -243,6 +243,21 @@
             width: 100%;
             max-width: 300px;
             margin-top: 5px;
+        }
+
+        /* Стили для заметок с заголовками */
+        .note-item {
+            border: 1px solid #ccc;
+            padding: 5px;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+        }
+        .note-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .note-content {
+            margin: 4px 0;
         }
 
         @media (max-width: 600px) {
@@ -304,7 +319,7 @@
                 <hr>
                 <div id="mediaSection">
                     <h3>Медиа (Фото/Аудио) 🖼️🎧</h3>
-                    <input type="file" id="mediaFileInput" style="display: none;" onchange="handleFileSelection(event)">
+                    <input type="file" id="mediaFileInput" style="display: none;" onchange="handleFileSelection(event)" multiple>
                     <button onclick="document.getElementById('mediaFileInput').accept='image/*'; document.getElementById('mediaFileInput').click()">🖼️ Прикрепить фото</button>
                     <button onclick="document.getElementById('mediaFileInput').accept='audio/*'; document.getElementById('mediaFileInput').click()">🎧 Прикрепить аудио</button>
                     <div id="mediaList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
@@ -320,6 +335,7 @@
         <div class="modal-content window" onclick="event.stopPropagation()">
             <div class="header" id="textEditorHeader">Редактирование заметки</div>
             <div id="textEditor" style="padding: 8px;">
+                <input type="text" id="noteTitle" placeholder="Название заметки" style="width: 100%; box-sizing: border-box; margin-bottom: 8px;">
                 <textarea id="noteContent" placeholder="Введите текст или HTML-код..."></textarea>
                 <input type="checkbox" id="isHtmlCheckbox"> <label for="isHtmlCheckbox">Сохранить как HTML</label>
                 <div class="control-panel" style="justify-content: space-between;">
@@ -491,30 +507,34 @@
         // --- 🖼️ Media Management with IndexedDB ---
 
         function handleFileSelection(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
 
-            const mediaType = file.type.startsWith('image/') ? 'photo' : (file.type.startsWith('audio/') ? 'audio' : 'unknown');
+            // Обрабатываем все выбранные файлы
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const mediaType = file.type.startsWith('image/') ? 'photo' : (file.type.startsWith('audio/') ? 'audio' : 'unknown');
 
-            if (mediaType === 'unknown') {
-                alert('Поддерживаются только форматы изображений и аудио.');
-                return;
-            }
+                if (mediaType === 'unknown') {
+                    alert('Поддерживаются только форматы изображений и аудио.');
+                    continue;
+                }
 
-            const mediaId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
-            
-            saveMediaToDB(mediaId, file)
-                .then(() => {
-                    currentFile.content.media.push({
-                        type: mediaType,
-                        id: mediaId
+                const mediaId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+                
+                saveMediaToDB(mediaId, file)
+                    .then(() => {
+                        currentFile.content.media.push({
+                            type: mediaType,
+                            id: mediaId
+                        });
+                        renderFileContent();
+                        saveState();
+                    })
+                    .catch(error => {
+                        alert(`Не удалось сохранить файл: ${error.message}. Возможно, превышен лимит браузера.`);
                     });
-                    renderFileContent();
-                    saveState();
-                })
-                .catch(error => {
-                    alert(`Не удалось сохранить файл: ${error.message}. Возможно, превышен лимит браузера.`);
-                });
+            }
             
             event.target.value = '';
         }
@@ -707,7 +727,7 @@
             selectedItem = itemElement;
             selectedItem.classList.add('selected');
 
-            if (event.detail === 2 || event.type === 'click' && window.innerWidth <= 600) { 
+            if (event.detail === 2 || (event.type === 'click' && window.innerWidth <= 600)) { 
                 const path = itemElement.dataset.path;
                 const type = itemElement.dataset.type;
                 
@@ -935,19 +955,16 @@
             noteListDiv.innerHTML = '';
             currentFile.content.notes.forEach((note, index) => {
                 const div = document.createElement('div');
-                div.style.border = '1px solid #ccc';
-                div.style.padding = '5px';
-                div.style.marginBottom = '5px';
-                div.style.backgroundColor = '#f9f9f9';
+                div.className = 'note-item';
 
                 const header = document.createElement('div');
-                header.textContent = `Заметка #${index + 1}` + (note.isHtml ? ' (HTML)' : ' (Текст)');
-                header.style.fontWeight = 'bold';
+                header.className = 'note-header';
+                header.textContent = note.title || `Заметка #${index + 1}` + (note.isHtml ? ' (HTML)' : ' (Текст)');
                 div.appendChild(header);
 
-                const contentPreview = document.createElement('p');
-                contentPreview.textContent = note.content.substring(0, 50) + '...';
-                contentPreview.style.margin = '4px 0';
+                const contentPreview = document.createElement('div');
+                contentPreview.className = 'note-content';
+                contentPreview.textContent = note.content.substring(0, 50) + (note.content.length > 50 ? '...' : '');
                 div.appendChild(contentPreview);
 
                 const editBtn = document.createElement('button');
@@ -970,7 +987,7 @@
                 noteListDiv.appendChild(div);
             });
             
-            // 2. Загрузка и рендеринг медиа (Обновлено: добавлен <audio controls>)
+            // 2. Загрузка и рендеринг медиа
             mediaListDiv.innerHTML = '';
             for (let index = 0; index < currentFile.content.media.length; index++) {
                 const media = currentFile.content.media[index];
@@ -1046,6 +1063,7 @@
 
         function createTextNote() {
             currentNoteIndex = null;
+            document.getElementById('noteTitle').value = '';
             document.getElementById('noteContent').value = '';
             document.getElementById('isHtmlCheckbox').checked = false;
             document.getElementById('textEditorHeader').textContent = 'Создание новой заметки';
@@ -1056,6 +1074,7 @@
         function editTextNote(index) {
             currentNoteIndex = index;
             const note = currentFile.content.notes[index];
+            document.getElementById('noteTitle').value = note.title || '';
             document.getElementById('noteContent').value = note.content;
             document.getElementById('isHtmlCheckbox').checked = note.isHtml;
             document.getElementById('textEditorHeader').textContent = `Редактирование заметки #${index + 1}`;
@@ -1068,6 +1087,7 @@
         }
 
         function saveTextNote() {
+            const title = document.getElementById('noteTitle').value.trim();
             const content = document.getElementById('noteContent').value;
             const isHtml = document.getElementById('isHtmlCheckbox').checked;
 
@@ -1076,7 +1096,11 @@
                 return;
             }
 
-            const newNote = { content: content, isHtml: isHtml };
+            const newNote = { 
+                title: title || `Заметка #${currentFile.content.notes.length + 1}`,
+                content: content, 
+                isHtml: isHtml 
+            };
 
             if (currentNoteIndex !== null) {
                 currentFile.content.notes[currentNoteIndex] = newNote;
