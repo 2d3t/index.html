@@ -16,6 +16,21 @@
             background-color: #c0c0c0;
             padding: 5px;
             font-size: 14px;
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        /* Рабочий стол с фоном */
+        .desktop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
         
         /* Темы оформления */
@@ -35,6 +50,8 @@
             border: 2px outset #c0c0c0;
             background-color: #c0c0c0;
             margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
         }
         
         .winxp .window {
@@ -582,9 +599,48 @@
             background-color: #000080;
             color: white;
         }
+        
+        /* HTML Preview */
+        .html-preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: white;
+        }
+        
+        .html-preview-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        /* Desktop Background Settings */
+        .desktop-settings {
+            position: absolute;
+            top: 30px;
+            left: 150px;
+            background-color: #c0c0c0;
+            border: 2px outset #c0c0c0;
+            padding: 5px;
+            z-index: 10;
+        }
+        
+        .desktop-option {
+            padding: 5px 10px;
+            cursor: pointer;
+            margin-bottom: 2px;
+        }
+        
+        .desktop-option:hover {
+            background-color: #000080;
+            color: white;
+        }
     </style>
 </head>
 <body class="win95">
+    <!-- Рабочий стол с фоном -->
+    <div class="desktop" id="desktop"></div>
+    
     <div class="window">
         <div class="title-bar">
             <div class="title-bar-text">Файловый менеджер</div>
@@ -598,6 +654,7 @@
             <div class="menu-item">Файл</div>
             <div class="menu-item">Правка</div>
             <div class="menu-item" id="view-menu">Вид</div>
+            <div class="menu-item" id="desktop-menu">Рабочий стол</div>
             <div class="menu-item">Справка</div>
         </div>
         <div class="toolbar">
@@ -752,6 +809,27 @@
         </div>
     </div>
 
+    <!-- Модальное окно просмотра HTML -->
+    <div class="modal hidden" id="html-preview-modal">
+        <div class="modal-content" style="width: 95%; height: 95%;">
+            <div class="title-bar">
+                <div class="title-bar-text" id="html-preview-title">Просмотр HTML</div>
+                <div class="title-bar-controls">
+                    <button class="title-bar-button" id="close-html-preview-modal">×</button>
+                </div>
+            </div>
+            <div class="toolbar">
+                <button class="button" id="btn-refresh-html">Обновить</button>
+                <button class="button" id="btn-open-html-external">Открыть в новой вкладке</button>
+            </div>
+            <div class="modal-body" style="height: calc(100% - 60px); padding: 0;">
+                <div class="html-preview-container">
+                    <iframe class="html-preview-frame" id="html-preview-frame" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Контекстное меню -->
     <div class="context-menu hidden" id="context-menu">
         <div class="context-menu-item" id="context-rename">Переименовать</div>
@@ -763,6 +841,12 @@
         <div class="theme-option" data-theme="win95">Windows 95</div>
         <div class="theme-option" data-theme="winxp">Windows XP</div>
         <div class="theme-option" data-theme="win7">Windows 7</div>
+    </div>
+
+    <!-- Меню рабочего стола -->
+    <div class="desktop-settings hidden" id="desktop-settings">
+        <div class="desktop-option" id="set-desktop-bg">Установить фон рабочего стола</div>
+        <div class="desktop-option" id="clear-desktop-bg">Убрать фон</div>
     </div>
 
     <script>
@@ -790,6 +874,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeFileSystem();
             loadTheme();
+            loadDesktopBackground();
             renderFileExplorer();
             setupEventListeners();
         });
@@ -805,7 +890,29 @@
             examplesFolder.children.push(textFile);
             
             const htmlFile = createFile("пример.html", "text");
-            htmlFile.content = "<h1>Привет, мир!</h1>\n<p>Это пример HTML документа.</p>";
+            htmlFile.content = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Пример HTML</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px; margin: 5px; }
+        .container { max-width: 600px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Демонстрация HTML</h1>
+        <p>Это пример HTML документа, который можно редактировать и тестировать.</p>
+        <button onclick="alert('Привет, мир!')">Нажми меня</button>
+        <button onclick="document.getElementById('demo').innerHTML = 'Текст изменен!'">Изменить текст</button>
+        <p id="demo">Исходный текст</p>
+        <input type="text" id="inputField" placeholder="Введите текст">
+        <button onclick="document.getElementById('output').innerHTML = document.getElementById('inputField').value">Показать введенный текст</button>
+        <p id="output"></p>
+    </div>
+</body>
+</html>`;
             examplesFolder.children.push(htmlFile);
             
             updateFileCount();
@@ -1223,6 +1330,82 @@
             document.getElementById('image-viewer-title').textContent = `Изображение ${currentImageIndex + 1} из ${currentImages.length}`;
         }
 
+        // Открытие HTML в полнофункциональном просмотрщике
+        function openHtmlPreview() {
+            if (!selectedItem) return;
+            
+            const htmlPreviewModal = document.getElementById('html-preview-modal');
+            const htmlPreviewFrame = document.getElementById('html-preview-frame');
+            
+            document.getElementById('html-preview-title').textContent = `Просмотр: ${selectedItem.name}`;
+            
+            // Создаем Blob из HTML содержимого
+            const blob = new Blob([selectedItem.content], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            
+            htmlPreviewFrame.src = url;
+            htmlPreviewModal.classList.remove('hidden');
+        }
+
+        // Обновление HTML просмотра
+        function refreshHtmlPreview() {
+            const htmlPreviewFrame = document.getElementById('html-preview-frame');
+            if (selectedItem) {
+                const blob = new Blob([selectedItem.content], {type: 'text/html'});
+                const url = URL.createObjectURL(blob);
+                htmlPreviewFrame.src = url;
+            }
+        }
+
+        // Открытие HTML во внешней вкладке
+        function openHtmlExternal() {
+            if (selectedItem) {
+                const blob = new Blob([selectedItem.content], {type: 'text/html'});
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            }
+        }
+
+        // Установка фона рабочего стола
+        function setDesktopBackground() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const desktop = document.getElementById('desktop');
+                    desktop.style.backgroundImage = `url(${e.target.result})`;
+                    
+                    // Сохраняем фон в localStorage
+                    localStorage.setItem('fileManagerDesktopBg', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            input.click();
+        }
+
+        // Очистка фона рабочего стола
+        function clearDesktopBackground() {
+            const desktop = document.getElementById('desktop');
+            desktop.style.backgroundImage = 'none';
+            localStorage.removeItem('fileManagerDesktopBg');
+        }
+
+        // Загрузка фона рабочего стола
+        function loadDesktopBackground() {
+            const savedBg = localStorage.getItem('fileManagerDesktopBg');
+            if (savedBg) {
+                const desktop = document.getElementById('desktop');
+                desktop.style.backgroundImage = `url(${savedBg})`;
+            }
+        }
+
         // Открытие в редакторе
         function openInEditor() {
             if (selectedItem) {
@@ -1452,8 +1635,16 @@
                 e.stopPropagation();
             });
             
+            // Меню рабочего стола
+            document.getElementById('desktop-menu').addEventListener('click', function(e) {
+                const desktopSettings = document.getElementById('desktop-settings');
+                desktopSettings.classList.toggle('hidden');
+                e.stopPropagation();
+            });
+            
             document.addEventListener('click', function() {
                 document.getElementById('theme-selector').classList.add('hidden');
+                document.getElementById('desktop-settings').classList.add('hidden');
             });
             
             // Выбор темы
@@ -1463,6 +1654,10 @@
                     document.getElementById('theme-selector').classList.add('hidden');
                 });
             });
+            
+            // Настройки рабочего стола
+            document.getElementById('set-desktop-bg').addEventListener('click', setDesktopBackground);
+            document.getElementById('clear-desktop-bg').addEventListener('click', clearDesktopBackground);
             
             // Модальное окно папки
             document.getElementById('close-folder-modal').addEventListener('click', function() {
@@ -1605,19 +1800,7 @@
                 document.getElementById('text-doc-name').focus();
             });
             
-            document.getElementById('btn-preview-html').addEventListener('click', function() {
-                const editor = document.getElementById('file-editor');
-                const contentView = document.getElementById('file-content');
-                const previewBtn = document.getElementById('btn-preview-html');
-                const exitPreviewBtn = document.getElementById('btn-exit-preview');
-                
-                editor.classList.add('hidden');
-                contentView.classList.remove('hidden');
-                previewBtn.classList.add('hidden');
-                exitPreviewBtn.classList.remove('hidden');
-                
-                contentView.innerHTML = editor.value;
-            });
+            document.getElementById('btn-preview-html').addEventListener('click', openHtmlPreview);
             
             document.getElementById('btn-exit-preview').addEventListener('click', function() {
                 const editor = document.getElementById('file-editor');
@@ -1662,6 +1845,15 @@
             document.getElementById('close-image-viewer-modal').addEventListener('click', function() {
                 document.getElementById('image-viewer-modal').classList.add('hidden');
             });
+            
+            // Модальное окно просмотра HTML
+            document.getElementById('close-html-preview-modal').addEventListener('click', function() {
+                document.getElementById('html-preview-modal').classList.add('hidden');
+            });
+            
+            document.getElementById('btn-refresh-html').addEventListener('click', refreshHtmlPreview);
+            
+            document.getElementById('btn-open-html-external').addEventListener('click', openHtmlExternal);
             
             // Контекстное меню
             document.getElementById('context-rename').addEventListener('click', renameItem);
