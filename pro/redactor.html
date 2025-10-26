@@ -325,6 +325,24 @@
       font-size: 0.9rem;
       color: #6c757d;
     }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--success-color);
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      z-index: 1000;
+      transform: translateX(150%);
+      transition: transform 0.3s ease;
+    }
+    
+    .notification.show {
+      transform: translateX(0);
+    }
     
     @media (max-width: 480px) {
       .toolbar {
@@ -348,6 +366,17 @@
       
       .editor-container {
         margin: 10px;
+      }
+      
+      .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        transform: translateY(-100px);
+      }
+      
+      .notification.show {
+        transform: translateY(0);
       }
     }
     
@@ -393,12 +422,13 @@
             <button onclick="undo()" title="Отменить"><i class="fas fa-undo"></i></button>
             <button onclick="redo()" title="Повторить"><i class="fas fa-redo"></i></button>
             <button onclick="shareCode()" title="Скачать"><i class="fas fa-download"></i></button>
+            <button onclick="pasteFromClipboard()" title="Вставить из буфера"><i class="fas fa-paste"></i></button>
           </div>
         </div>
         
         <div class="editor">
           <div class="line-numbers" id="lineNumbers"></div>
-          <textarea id="codeArea" placeholder="Начните писать код здесь..." oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
+          <textarea id="codeArea" placeholder="Начните писать код здесь... Нажмите кнопку 'Вставить из буфера' или разрешите автоматическую вставку при загрузке." oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
         </div>
       </div>
       
@@ -422,8 +452,12 @@
       <button id="editorBtn" class="active" onclick="showEditor()"><i class="fas fa-edit"></i></button>
       <button id="previewBtn" onclick="runCode()"><i class="fas fa-eye"></i></button>
       <button onclick="shareCode()"><i class="fas fa-download"></i></button>
+      <button onclick="pasteFromClipboard()"><i class="fas fa-paste"></i></button>
       <button onclick="window.location.href='https://2d3t.github.io/index.html/'"><i class="fas fa-home"></i></button>
-      <button onclick="window.location.href='https://2d3t.github.io/index.html/pro/www.html'"><i class="fas fa-folder"></i></button>
+    </div>
+
+    <div class="notification" id="notification">
+      <i class="fas fa-check-circle"></i> Текст из буфера обмена успешно вставлен!
     </div>
   </div>
 
@@ -438,6 +472,7 @@
     const searchResults = document.getElementById('searchResults');
     const editorBtn = document.getElementById('editorBtn');
     const previewBtn = document.getElementById('previewBtn');
+    const notification = document.getElementById('notification');
 
     let history = [];
     let redoStack = [];
@@ -445,6 +480,94 @@
     let currentResult = -1;
     let lastSearch = "";
 
+    // Функция для вставки из буфера обмена
+    async function pasteFromClipboard() {
+      try {
+        // Запрашиваем разрешение на доступ к буферу обмена
+        const permission = await navigator.permissions.query({ name: 'clipboard-read' });
+        
+        if (permission.state === 'denied') {
+          showNotification('Доступ к буферу обмена запрещен. Разрешите доступ в настройках браузера.', 'error');
+          return;
+        }
+
+        // Читаем текст из буфера обмена
+        const text = await navigator.clipboard.readText();
+        
+        if (text) {
+          // Если в редакторе уже есть текст, добавляем с новой строки
+          if (textarea.value.trim()) {
+            textarea.value += '\n\n' + text;
+          } else {
+            textarea.value = text;
+          }
+          
+          updateLineNumbers();
+          showNotification('Текст из буфера обмена успешно вставлен!');
+          
+          // Прокручиваем к началу вставленного текста
+          setTimeout(() => {
+            textarea.scrollTop = textarea.scrollHeight;
+          }, 100);
+        } else {
+          showNotification('Буфер обмена пуст', 'warning');
+        }
+      } catch (err) {
+        console.error('Ошибка при чтении из буфера:', err);
+        
+        // Fallback для старых браузеров или если API недоступно
+        showNotification('Используется альтернативный метод вставки. Вставьте текст вручную (Ctrl+V).', 'warning');
+        textarea.focus();
+        
+        // Показываем инструкцию
+        setTimeout(() => {
+          if (confirm('Автоматическая вставка не сработала. Хотите вставить текст вручную?')) {
+            textarea.focus();
+          }
+        }, 500);
+      }
+    }
+
+    // Функция для автоматической вставки при загрузке
+    async function autoPasteOnLoad() {
+      // Проверяем, пуст ли редактор
+      if (!textarea.value.trim()) {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text && text.length > 10) { // Вставляем только если текст достаточно длинный
+            // Спрашиваем пользователя, хочет ли он вставить
+            setTimeout(() => {
+              if (confirm('Обнаружен текст в буфере обмена. Хотите вставить его в редактор?')) {
+                textarea.value = text;
+                updateLineNumbers();
+                showNotification('Текст из буфера обмена автоматически вставлен!');
+              }
+            }, 1000);
+          }
+        } catch (err) {
+          // Молча игнорируем ошибки при автоматической вставке
+          console.log('Автоматическая вставка не удалась:', err);
+        }
+      }
+    }
+
+    // Функция показа уведомлений
+    function showNotification(message, type = 'success') {
+      notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+      
+      // Устанавливаем цвет в зависимости от типа
+      notification.style.background = type === 'success' ? 
+        'var(--success-color)' : type === 'error' ? 
+        'var(--danger-color)' : 'var(--warning-color)';
+      
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+
+    // Остальные функции остаются без изменений
     function updateLineNumbers() {
       const lines = textarea.value.split('\n').length;
       const extraLines = Math.ceil(lines * 0.5);
@@ -593,7 +716,6 @@
         index = text.indexOf(term, index + term.length);
       }
       
-      // Обновляем отображение результатов
       if (searchResultsArray.length > 0) {
         searchResults.textContent = `Найдено совпадений: ${searchResultsArray.length}`;
       } else {
@@ -615,7 +737,6 @@
       const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2;
       textarea.scrollTop = Math.max(0, scrollPos);
       
-      // Обновляем отображение текущего результата
       searchResults.textContent = `Найдено совпадений: ${searchResultsArray.length} | Текущее: ${currentResult + 1}`;
     }
 
@@ -681,11 +802,18 @@
       }
     });
 
-    // Инициализация
+    // Инициализация при загрузке
     updateLineNumbers();
     
-    // Добавляем пример кода при первой загрузке
-    if (!textarea.value) {
+    // Автоматическая вставка при загрузке (с задержкой)
+    window.addEventListener('load', function() {
+      setTimeout(() => {
+        autoPasteOnLoad();
+      }, 500);
+    });
+
+    // Добавляем пример кода только если редактор пуст
+    if (!textarea.value.trim()) {
       textarea.value = `<!DOCTYPE html>
 <html>
 <head>
@@ -705,6 +833,7 @@
 <body>
   <h1>Добро пожаловать в KlikEdit!</h1>
   <p>Начните редактировать код и нажмите "Просмотр" для результата.</p>
+  <p>Используйте кнопку "Вставить из буфера" для быстрой вставки скопированного текста.</p>
 </body>
 </html>`;
       updateLineNumbers();
