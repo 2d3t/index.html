@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Игра: Поймай шары</title>
+    <title>Игра: Tap Me Now</title>
     <style>
         body, html {
             margin: 0;
@@ -24,6 +24,7 @@
             overflow: hidden;
             touch-action: none;
             box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+            display: none;
         }
         .ball {
             position: absolute;
@@ -67,14 +68,176 @@
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             display: none;
+            z-index: 100;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #startScreen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        #rules {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-width: 600px;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.4;
+            width: 90%;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        #rules h2 {
+            margin-top: 0;
+            font-size: 24px;
+        }
+        #rules p {
+            margin: 8px 0;
+        }
+        #startButton {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(to bottom, #ff7f50, #ff4500);
+            border: none;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-top: 10px;
+        }
+        #startButton:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+        #saveResultForm {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 200;
+            width: 300px;
+        }
+        #playerName {
+            padding: 10px;
+            font-size: 18px;
+            margin-bottom: 20px;
+            width: 100%;
+            border-radius: 5px;
+            border: none;
+            box-sizing: border-box;
+        }
+        #saveButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: linear-gradient(to bottom, #ff7f50, #ff4500);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        #cancelButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            background: #666;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Адаптивность для мобильных устройств */
+        @media (max-height: 700px) {
+            #startScreen h1 {
+                font-size: 36px;
+                margin-bottom: 15px;
+            }
+            #rules {
+                font-size: 14px;
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            #rules h2 {
+                font-size: 20px;
+            }
+            #startButton {
+                padding: 12px 30px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-height: 500px) {
+            #startScreen h1 {
+                font-size: 28px;
+                margin-bottom: 10px;
+            }
+            #rules {
+                font-size: 12px;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            #rules h2 {
+                font-size: 18px;
+            }
+            #startButton {
+                padding: 10px 25px;
+                font-size: 16px;
+            }
         }
     </style>
 </head>
 <body>
+    <div id="startScreen">
+        <h1>Игра Tap Me Now!</h1>
+        <div id="rules">
+            <h2>Правила игры:</h2>
+            <p>1. На каждом уровне появляется определенное количество шаров</p>
+            <p>2. Кликайте по шарам, чтобы их поймать</p>
+            <p>3. У вас есть 10 секунд, чтобы поймать все шары</p>
+            <p>4. Если успеете - переходите на следующий уровень</p>
+            <p>5. Если не успеете - игра закончится</p>
+            <p>6. С каждым уровнем количество шаров увеличивается</p>
+            <p>7. Удачи! Постарайтесь пройти как можно больше уровней!</p>
+        </div>
+        <button id="startButton">Начать игру</button>
+    </div>
+
     <div id="gameContainer">
         <div id="timer">10</div>
         <div id="level">Уровень: 1</div>
         <div id="gameOverMessage">Время вышло!<br>Попробуйте снова.</div>
+    </div>
+
+    <div id="saveResultForm">
+        <h2>Сохранить результат</h2>
+        <input type="text" id="playerName" placeholder="Введите ваше имя" maxlength="20">
+        <br>
+        <button id="saveButton">Сохранить</button>
+        <button id="cancelButton">Отмена</button>
     </div>
 
     <script>
@@ -82,6 +245,12 @@
         const timerDisplay = document.getElementById('timer');
         const levelDisplay = document.getElementById('level');
         const gameOverMessage = document.getElementById('gameOverMessage');
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
+        const saveResultForm = document.getElementById('saveResultForm');
+        const playerNameInput = document.getElementById('playerName');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
 
         let level = 1;
         let timeLeft = 10;
@@ -89,17 +258,30 @@
         let interval;
         let countdown;
 
+        startButton.addEventListener('click', () => {
+            startScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            startLevel();
+        });
+
         function startLevel() {
             gameOverMessage.style.display = 'none';
+            saveResultForm.style.display = 'none';
             levelDisplay.innerText = `Уровень: ${level}`;
             timeLeft = 10;
             timerDisplay.innerText = timeLeft;
             clearInterval(interval);
             clearInterval(countdown);
 
-            balls.forEach(ball => ball.remove());
+            // Удаляем все шары
+            balls.forEach(ball => {
+                if (ball.parentNode) {
+                    ball.parentNode.removeChild(ball);
+                }
+            });
             balls = [];
 
+            // Создаем новые шары
             for (let i = 0; i < level; i++) {
                 createBall();
             }
@@ -114,7 +296,9 @@
             ball.style.top = `${Math.random() * (gameContainer.clientHeight - 50)}px`;
             ball.style.left = `${Math.random() * (gameContainer.clientWidth - 50)}px`;
             ball.addEventListener('click', () => {
-                ball.remove();
+                if (ball.parentNode) {
+                    ball.parentNode.removeChild(ball);
+                }
                 balls = balls.filter(b => b !== ball);
                 if (balls.length === 0) {
                     clearInterval(interval);
@@ -129,15 +313,18 @@
 
         function moveBalls() {
             balls.forEach(ball => {
-                const x = parseInt(ball.style.left);
-                const y = parseInt(ball.style.top);
-                const dx = (Math.random() * 4 - 2) * 2;
-                const dy = (Math.random() * 4 - 2) * 2;
+                const x = parseInt(ball.style.left) || 0;
+                const y = parseInt(ball.style.top) || 0;
+                const dx = (Math.random() * 4 - 2);
+                const dy = (Math.random() * 4 - 2);
                 let newX = x + dx;
                 let newY = y + dy;
 
-                if (newX < 0 || newX > gameContainer.clientWidth - 50) newX = x - dx;
-                if (newY < 0 || newY > gameContainer.clientHeight - 50) newY = y - dy;
+                // Ограничиваем движение в пределах контейнера
+                if (newX < 0) newX = 0;
+                if (newX > gameContainer.clientWidth - 50) newX = gameContainer.clientWidth - 50;
+                if (newY < 0) newY = 0;
+                if (newY > gameContainer.clientHeight - 50) newY = gameContainer.clientHeight - 50;
 
                 ball.style.left = `${newX}px`;
                 ball.style.top = `${newY}px`;
@@ -147,16 +334,146 @@
         function updateTimer() {
             timeLeft--;
             timerDisplay.innerText = timeLeft;
-            if (timeLeft === 0) {
+            if (timeLeft <= 0) {
                 clearInterval(interval);
                 clearInterval(countdown);
                 gameOverMessage.style.display = 'block';
-                level = 1;
-                setTimeout(startLevel, 2000);
+                setTimeout(() => {
+                    showSaveResultForm();
+                }, 1000);
             }
         }
 
-        startLevel();
+        function showSaveResultForm() {
+            saveResultForm.style.display = 'block';
+        }
+
+        saveButton.addEventListener('click', () => {
+            const playerName = playerNameInput.value.trim() || 'Аноним';
+            saveResult(playerName);
+        });
+
+        cancelButton.addEventListener('click', () => {
+            saveResultForm.style.display = 'none';
+            level = 1;
+            startScreen.style.display = 'flex';
+            gameContainer.style.display = 'none';
+        });
+
+        function saveResult(playerName) {
+            // Создаем временный элемент для отображения результата
+            const resultContainer = document.createElement('div');
+            resultContainer.style.position = 'fixed';
+            resultContainer.style.top = '0';
+            resultContainer.style.left = '0';
+            resultContainer.style.width = '800px';
+            resultContainer.style.height = '600px';
+            resultContainer.style.background = 'linear-gradient(to bottom, #1e3c72, #2a5298)';
+            resultContainer.style.color = 'white';
+            resultContainer.style.fontFamily = 'Arial, sans-serif';
+            resultContainer.style.padding = '40px';
+            resultContainer.style.boxSizing = 'border-box';
+            resultContainer.style.display = 'flex';
+            resultContainer.style.flexDirection = 'column';
+            resultContainer.style.justifyContent = 'center';
+            resultContainer.style.alignItems = 'center';
+            resultContainer.style.zIndex = '10000';
+            
+            const gameTitle = document.createElement('h1');
+            gameTitle.textContent = 'Поймай шары!';
+            gameTitle.style.fontSize = '48px';
+            gameTitle.style.marginBottom = '30px';
+            gameTitle.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+            
+            const resultText = document.createElement('h2');
+            resultText.textContent = 'Результат игры';
+            resultText.style.fontSize = '36px';
+            resultText.style.marginBottom = '20px';
+            
+            const playerInfo = document.createElement('p');
+            playerInfo.textContent = `Игрок: ${playerName}`;
+            playerInfo.style.fontSize = '24px';
+            playerInfo.style.marginBottom = '10px';
+            
+            const levelInfo = document.createElement('p');
+            levelInfo.textContent = `Достигнутый уровень: ${level}`;
+            levelInfo.style.fontSize = '24px';
+            levelInfo.style.marginBottom = '10px';
+            
+            const dateInfo = document.createElement('p');
+            const now = new Date();
+            dateInfo.textContent = `Дата: ${now.toLocaleDateString('ru-RU')}`;
+            dateInfo.style.fontSize = '24px';
+            dateInfo.style.marginBottom = '30px';
+            
+            const message = document.createElement('p');
+            message.textContent = 'Попробуйте снова и улучшите свой результат!';
+            message.style.fontSize = '20px';
+            message.style.fontStyle = 'italic';
+            
+            resultContainer.appendChild(gameTitle);
+            resultContainer.appendChild(resultText);
+            resultContainer.appendChild(playerInfo);
+            resultContainer.appendChild(levelInfo);
+            resultContainer.appendChild(dateInfo);
+            resultContainer.appendChild(message);
+            
+            document.body.appendChild(resultContainer);
+            
+            // Используем встроенный метод для создания скриншота
+            setTimeout(() => {
+                // Создаем canvas для скриншота
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 800;
+                canvas.height = 600;
+                
+                // Заполняем фон
+                ctx.fillStyle = '#1e3c72';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Добавляем градиент
+                const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+                gradient.addColorStop(0, '#1e3c72');
+                gradient.addColorStop(1, '#2a5298');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 800, 600);
+                
+                // Добавляем текст
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Поймай шары!', 400, 100);
+                
+                ctx.font = 'bold 36px Arial';
+                ctx.fillText('Результат игры', 400, 160);
+                
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`Игрок: ${playerName}`, 200, 220);
+                ctx.fillText(`Достигнутый уровень: ${level}`, 200, 260);
+                ctx.fillText(`Дата: ${now.toLocaleDateString('ru-RU')}`, 200, 300);
+                
+                ctx.font = 'italic 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Попробуйте снова и улучшите свой результат!', 400, 400);
+                
+                // Создаем ссылку для скачивания
+                const link = document.createElement('a');
+                link.download = `Поймай шары - ${playerName} - ${now.toLocaleDateString('ru-RU')}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+                
+                // Удаляем временный элемент
+                document.body.removeChild(resultContainer);
+                
+                // Возвращаемся к начальному экрану
+                saveResultForm.style.display = 'none';
+                level = 1;
+                startScreen.style.display = 'flex';
+                gameContainer.style.display = 'none';
+            }, 100);
+        }
     </script>
 </body>
 </html>
