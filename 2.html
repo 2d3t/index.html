@@ -18,7 +18,7 @@
             margin: 20px auto;
             border: 2px solid #333;
         }
-        button, #nameInput {
+        button, #nameInput, #difficultySelect {
             display: block;
             margin: 10px auto;
             padding: 10px 20px;
@@ -33,7 +33,7 @@
         button:hover {
             background-color: #007bb5; /* Darker shade on hover */
         }
-        #nameInput {
+        #nameInput, #difficultySelect {
             width: 200px;
             text-align: center;
         }
@@ -42,16 +42,54 @@
             font-size: 36px; /* Adjust font size for the title */
             font-weight: bold;
         }
+        #instructions {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 15px;
+            background-color: rgba(0, 31, 63, 0.8);
+            border-radius: 10px;
+            display: none;
+        }
+        #difficultyContainer {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div id="logo">Anty Batty</div>
 <button id="startButton">Начать игру</button>
+<button id="instructionsButton">Инструкция</button>
+<div id="difficultyContainer">
+    <select id="difficultySelect">
+        <option value="1">Уровень 1 (Легкий)</option>
+        <option value="2">Уровень 2</option>
+        <option value="3">Уровень 3 (Средний)</option>
+        <option value="4">Уровень 4</option>
+        <option value="5">Уровень 5 (Сложный)</option>
+    </select>
+    <button id="confirmDifficulty">Подтвердить уровень</button>
+</div>
 <input type="text" id="nameInput" placeholder="Введите имя" style="display: none;">
 <button id="saveButton" style="display: none;">Сохранить результат</button>
 <button id="restartButton" style="display: none;">Начать заново</button>
+<button id="pauseButton" style="display: none;">Пауза</button>
+<button id="exitButton" style="display: none;">Выход</button>
 <canvas id="gameCanvas" width="320" height="480"></canvas>
+
+<div id="instructions">
+    <h3>Как играть в Anty Batty</h3>
+    <p>Ваша цель - ловить падающие блоки платформой внизу экрана.</p>
+    <p><strong>Управление:</strong></p>
+    <ul style="text-align: left;">
+        <li>Используйте клавиши ← и → для перемещения платформы</li>
+        <li>На мобильных устройствах: касайтесь левой или правой части экрана</li>
+        <li>Каждый пойманный блок приносит 1 очко</li>
+        <li>Если блок упадет мимо платформы - игра окончена</li>
+    </ul>
+    <p>Выберите уровень сложности перед началом игры. Чем выше уровень, тем быстрее падают блоки!</p>
+    <button id="closeInstructions">Закрыть</button>
+</div>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
@@ -59,16 +97,28 @@ const ctx = canvas.getContext("2d");
 const startButton = document.getElementById("startButton");
 const saveButton = document.getElementById("saveButton");
 const restartButton = document.getElementById("restartButton");
+const pauseButton = document.getElementById("pauseButton");
+const exitButton = document.getElementById("exitButton");
 const nameInput = document.getElementById("nameInput");
+const difficultySelect = document.getElementById("difficultySelect");
+const difficultyContainer = document.getElementById("difficultyContainer");
+const confirmDifficulty = document.getElementById("confirmDifficulty");
+const instructionsButton = document.getElementById("instructionsButton");
+const instructions = document.getElementById("instructions");
+const closeInstructions = document.getElementById("closeInstructions");
 
 let platformWidth = 80, platformHeight = 10, platformX = (canvas.width - platformWidth) / 2;
 let blockWidth = 20, blockHeight = 20;
 let blocks = [];
-let speed = 2;
+let baseSpeed = 2;
+let speed = baseSpeed;
 let rightPressed = false, leftPressed = false;
 let gameStarted = false;
 let gameOver = false;
+let gamePaused = false;
 let score = 0;
+let blockInterval;
+let animationId;
 
 // Обновление платформы
 function drawPlatform() {
@@ -137,33 +187,77 @@ function draw() {
     ctx.fillStyle = "#FFD700"; // Жёлтый текст
     ctx.fillText(`Очки: ${score}`, 10, 30);
 
+    // Отображение уровня сложности
+    ctx.fillText(`Уровень: ${difficultySelect.value}`, canvas.width - 120, 30);
+
     if (gameOver) {
         ctx.font = "30px Arial";
         ctx.fillStyle = "#FF0000"; // Красный текст
         ctx.fillText("Игра окончена", 60, canvas.height / 2 - 20);
         startButton.style.display = "none";
+        pauseButton.style.display = "none";
         nameInput.style.display = "block";
         saveButton.style.display = "block";
         restartButton.style.display = "block";
+        exitButton.style.display = "block";
+        clearInterval(blockInterval);
+        cancelAnimationFrame(animationId);
         return;
     }
 
-    requestAnimationFrame(draw);
+    if (!gamePaused) {
+        animationId = requestAnimationFrame(draw);
+    }
 }
 
 // Сброс игры
 function resetGame() {
     platformX = (canvas.width - platformWidth) / 2;
     blocks = [];
-    speed = 2;
     gameOver = false;
     gameStarted = true;
+    gamePaused = false;
     score = 0;
     nameInput.style.display = "none";
     saveButton.style.display = "none";
     restartButton.style.display = "none";
-    startButton.style.display = "block";
+    pauseButton.style.display = "block";
+    exitButton.style.display = "block";
+    startButton.style.display = "none";
+    difficultyContainer.style.display = "none";
+    pauseButton.textContent = "Пауза";
+    
+    // Установка скорости в зависимости от уровня сложности
+    const difficulty = parseInt(difficultySelect.value);
+    // Для уровня 1: speed = 2 * 2^0 = 2
+    // Для уровня 2: speed = 2 * 2^1 = 4
+    // Для уровня 3: speed = 2 * 2^2 = 8 и т.д.
+    speed = baseSpeed * Math.pow(2, difficulty - 1);
+    
+    // Очистка предыдущего интервала
+    if (blockInterval) {
+        clearInterval(blockInterval);
+    }
+    
+    // Установка нового интервала спавна блоков
+    const spawnInterval = Math.max(300, 1000 - (difficulty - 1) * 150); // Минимальный интервал 300мс
+    blockInterval = setInterval(spawnBlock, spawnInterval);
+    
+    // Запуск игрового цикла
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
     draw();
+}
+
+// Функция паузы
+function togglePause() {
+    gamePaused = !gamePaused;
+    pauseButton.textContent = gamePaused ? "Продолжить" : "Пауза";
+    
+    if (!gamePaused && !gameOver) {
+        draw();
+    }
 }
 
 function wrapText(context, text, x, y, maxWidth, lineHeight) {
@@ -214,6 +308,7 @@ function saveResult() {
 
 // Управление через касания
 document.addEventListener("touchstart", (e) => {
+    if (!gameStarted || gamePaused || gameOver) return;
     const touchX = e.touches[0].clientX;
     if (touchX > window.innerWidth / 2) {
         rightPressed = true;
@@ -226,14 +321,67 @@ document.addEventListener("touchend", () => {
     leftPressed = false;
 });
 
-// Кнопки
-startButton.addEventListener("click", () => {
-    resetGame();
-    setInterval(spawnBlock, 1000); // Спавн блоков каждую секунду
+// Управление с клавиатуры
+document.addEventListener("keydown", (e) => {
+    if (!gameStarted || gamePaused || gameOver) return;
+    if (e.key === "ArrowRight") {
+        rightPressed = true;
+    } else if (e.key === "ArrowLeft") {
+        leftPressed = true;
+    }
+});
+document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowRight") {
+        rightPressed = false;
+    } else if (e.key === "ArrowLeft") {
+        leftPressed = false;
+    }
 });
 
-restartButton.addEventListener("click", resetGame);
+// Кнопки
+startButton.addEventListener("click", () => {
+    difficultyContainer.style.display = "block";
+    startButton.style.display = "none";
+});
+
+confirmDifficulty.addEventListener("click", resetGame);
+
+pauseButton.addEventListener("click", togglePause);
+
+restartButton.addEventListener("click", () => {
+    // Сброс и показ выбора уровня
+    difficultyContainer.style.display = "block";
+    restartButton.style.display = "none";
+    saveButton.style.display = "none";
+    exitButton.style.display = "none";
+    pauseButton.style.display = "none";
+    nameInput.style.display = "none";
+    
+    // Очистка игрового состояния
+    if (blockInterval) {
+        clearInterval(blockInterval);
+    }
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+    }
+    gameStarted = false;
+    gameOver = false;
+    gamePaused = false;
+});
+
 saveButton.addEventListener("click", saveResult);
+
+exitButton.addEventListener("click", () => {
+    window.location.href = "https://2d3t.github.io/index.html/";
+});
+
+instructionsButton.addEventListener("click", () => {
+    instructions.style.display = "block";
+});
+
+closeInstructions.addEventListener("click", () => {
+    instructions.style.display = "none";
+});
 
 </script>
 </body>
