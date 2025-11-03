@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PDF Reader для Android</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --primary-color: #bb86fc;
+            --secondary-color: #03dac6;
+            --error-color: #cf6679;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background-color: var(--surface-color);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        
+        .logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            background-color: transparent;
+            border: none;
+            color: var(--text-color);
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: #000;
+        }
+        
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background-color: var(--surface-color);
+            padding: 16px;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+        
+        .viewer-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .toolbar {
+            background-color: var(--surface-color);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .zoom-value {
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .page-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .page-input {
+            width: 50px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .viewer {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            background-color: #2d2d2d;
+        }
+        
+        .canvas-container {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+        
+        .search-panel {
+            background-color: var(--surface-color);
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-input {
+            flex: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        
+        .search-results {
+            margin-top: 16px;
+        }
+        
+        .search-result {
+            padding: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+        
+        .search-result:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .search-result.active {
+            background-color: rgba(187, 134, 252, 0.2);
+        }
+        
+        .section {
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-label {
+            display: block;
+            background-color: var(--primary-color);
+            color: #000;
+            padding: 10px 16px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+        
+        .recent-files {
+            list-style-type: none;
+        }
+        
+        .recent-file {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+        
+        .recent-file:hover {
+            color: var(--primary-color);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-color);
+            font-size: 1.2rem;
+        }
+        
+        .no-document {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-color);
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                height: 100%;
+                z-index: 20;
+            }
+            
+            .toolbar {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            
+            .zoom-controls, .page-controls {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">PDF Reader</div>
+        <div class="controls">
+            <button class="btn" id="toggle-sidebar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                </svg>
+            </button>
+            <button class="btn" id="toggle-search">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
+    <div class="main">
+        <div class="sidebar" id="sidebar">
+            <div class="section">
+                <div class="section-title">Открыть PDF</div>
+                <input type="file" id="file-input" class="file-input" accept=".pdf">
+                <label for="file-input" class="file-label">Выбрать файл</label>
+                
+                <div class="section-title">Недавние файлы</div>
+                <ul class="recent-files" id="recent-files">
+                    <!-- Будет заполнено JavaScript -->
+                </ul>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Настройки</div>
+                <div class="setting">
+                    <label for="fit-to-screen">Подгонять под экран</label>
+                    <input type="checkbox" id="fit-to-screen" checked>
+                </div>
+            </div>
+        </div>
+        
+        <div class="viewer-container">
+            <div class="search-panel hidden" id="search-panel">
+                <form class="search-form" id="search-form">
+                    <input type="text" class="search-input" id="search-input" placeholder="Поиск по документу...">
+                    <button type="submit" class="btn btn-primary">Найти</button>
+                </form>
+                <div class="search-results" id="search-results">
+                    <!-- Результаты поиска будут здесь -->
+                </div>
+            </div>
+            
+            <div class="toolbar">
+                <div class="zoom-controls">
+                    <button class="btn" id="zoom-out">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13H5v-2h14v2z"/>
+                        </svg>
+                    </button>
+                    <span class="zoom-value" id="zoom-value">100%</span>
+                    <button class="btn" id="zoom-in">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="page-controls">
+                    <button class="btn" id="prev-page">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                        </svg>
+                    </button>
+                    <span>Страница</span>
+                    <input type="number" class="page-input" id="page-input" min="1" value="1">
+                    <span id="page-count">из 0</span>
+                    <button class="btn" id="next-page">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="viewer" id="viewer">
+                <div class="no-document" id="no-document">
+                    <h2>PDF Reader</h2>
+                    <p>Выберите PDF-файл для просмотра</p>
+                </div>
+                <div class="loading hidden" id="loading">Загрузка...</div>
+                <div id="canvas-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        // Переменные состояния
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.0;
+        let fitToScreen = true;
+        let searchResults = [];
+        let currentSearchIndex = -1;
+        
+        // Элементы DOM
+        const viewer = document.getElementById('viewer');
+        const canvasContainer = document.getElementById('canvas-container');
+        const pageInput = document.getElementById('page-input');
+        const pageCount = document.getElementById('page-count');
+        const zoomValue = document.getElementById('zoom-value');
+        const zoomInBtn = document.getElementById('zoom-in');
+        const zoomOutBtn = document.getElementById('zoom-out');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const fileInput = document.getElementById('file-input');
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+        const sidebar = document.getElementById('sidebar');
+        const toggleSearchBtn = document.getElementById('toggle-search');
+        const searchPanel = document.getElementById('search-panel');
+        const searchForm = document.getElementById('search-form');
+        const searchInput = document.getElementById('search-input');
+        const searchResultsContainer = document.getElementById('search-results');
+        const fitToScreenCheckbox = document.getElementById('fit-to-screen');
+        const noDocument = document.getElementById('no-document');
+        const loading = document.getElementById('loading');
+        const recentFilesList = document.getElementById('recent-files');
+        
+        // Загрузка PDF
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type === 'application/pdf') {
+                loadPDF(file);
+                addToRecentFiles(file.name, URL.createObjectURL(file));
+            }
+        });
+        
+        // Загрузка PDF из URL
+        function loadPDF(file) {
+            noDocument.classList.add('hidden');
+            loading.classList.remove('hidden');
+            canvasContainer.innerHTML = '';
+            
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                
+                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    pdfDoc = pdf;
+                    pageCount.textContent = `из ${pdf.numPages}`;
+                    pageInput.max = pdf.numPages;
+                    
+                    // Отображение первой страницы
+                    pageNum = 1;
+                    pageInput.value = pageNum;
+                    renderPage(pageNum);
+                    
+                    loading.classList.add('hidden');
+                }).catch(function(error) {
+                    console.error('Ошибка загрузки PDF:', error);
+                    loading.classList.add('hidden');
+                    noDocument.classList.remove('hidden');
+                });
+            };
+            
+            fileReader.readAsArrayBuffer(file);
+        }
+        
+        // Рендеринг страницы
+        function renderPage(num) {
+            pageRendering = true;
+            
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({ scale: scale });
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                const renderTask = page.render(renderContext);
+                
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                    
+                    // Очистка контейнера и добавление нового canvas
+                    canvasContainer.innerHTML = '';
+                    const canvasWrapper = document.createElement('div');
+                    canvasWrapper.className = 'canvas-container';
+                    canvasWrapper.appendChild(canvas);
+                    canvasContainer.appendChild(canvasWrapper);
+                    
+                    // Подгонка под экран, если включено
+                    if (fitToScreen) {
+                        fitToScreen();
+                    }
+                });
+            });
+        }
+        
+        // Очередь рендеринга страниц
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+        
+        // Навигация по страницам
+        function showPrevPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            pageInput.value = pageNum;
+            queueRenderPage(pageNum);
+        }
+        
+        function showNextPage() {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            pageInput.value = pageNum;
+            queueRenderPage(pageNum);
+        }
+        
+        // Масштабирование
+        function zoomIn() {
+            if (scale >= 3.0) return;
+            scale += 0.1;
+            zoomValue.textContent = `${Math.round(scale * 100)}%`;
+            fitToScreen = false;
+            fitToScreenCheckbox.checked = false;
+            queueRenderPage(pageNum);
+        }
+        
+        function zoomOut() {
+            if (scale <= 0.5) return;
+            scale -= 0.1;
+            zoomValue.textContent = `${Math.round(scale * 100)}%`;
+            fitToScreen = false;
+            fitToScreenCheckbox.checked = false;
+            queueRenderPage(pageNum);
+        }
+        
+        // Подгонка под экран
+        function fitToScreen() {
+            if (!pdfDoc) return;
+            
+            pdfDoc.getPage(pageNum).then(function(page) {
+                const containerWidth = viewer.clientWidth - 40; // Учитываем отступы
+                const containerHeight = viewer.clientHeight - 40;
+                
+                const pageWidth = page.getViewport({ scale: 1 }).width;
+                const pageHeight = page.getViewport({ scale: 1 }).height;
+                
+                const scaleX = containerWidth / pageWidth;
+                const scaleY = containerHeight / pageHeight;
+                
+                scale = Math.min(scaleX, scaleY, 1.5); // Ограничиваем максимальный масштаб
+                zoomValue.textContent = `${Math.round(scale * 100)}%`;
+                
+                queueRenderPage(pageNum);
+            });
+        }
+        
+        // Поиск по документу
+        function searchText(query) {
+            if (!pdfDoc || !query.trim()) return;
+            
+            searchResults = [];
+            currentSearchIndex = -1;
+            searchResultsContainer.innerHTML = '';
+            
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                pdfDoc.getPage(i).then(function(page) {
+                    return page.getTextContent();
+                }).then(function(textContent) {
+                    const textItems = textContent.items;
+                    let fullText = '';
+                    
+                    for (let j = 0; j < textItems.length; j++) {
+                        fullText += textItems[j].str + ' ';
+                    }
+                    
+                    const regex = new RegExp(query, 'gi');
+                    let match;
+                    
+                    while ((match = regex.exec(fullText)) !== null) {
+                        searchResults.push({
+                            page: i,
+                            text: getContext(fullText, match.index, 50),
+                            index: match.index
+                        });
+                    }
+                    
+                    // Обновление результатов поиска
+                    updateSearchResults();
+                });
+            });
+        }
+        
+        // Получение контекста для результата поиска
+        function getContext(text, index, contextLength) {
+            const start = Math.max(0, index - contextLength);
+            const end = Math.min(text.length, index + contextLength);
+            return '...' + text.substring(start, end) + '...';
+        }
+        
+        // Обновление отображения результатов поиска
+        function updateSearchResults() {
+            searchResultsContainer.innerHTML = '';
+            
+            if (searchResults.length === 0) {
+                searchResultsContainer.innerHTML = '<div class="search-result">Ничего не найдено</div>';
+                return;
+            }
+            
+            searchResults.forEach((result, index) => {
+                const resultElement = document.createElement('div');
+                resultElement.className = 'search-result';
+                if (index === currentSearchIndex) {
+                    resultElement.classList.add('active');
+                }
+                
+                resultElement.innerHTML = `
+                    <div><strong>Страница ${result.page}</strong></div>
+                    <div>${highlightText(result.text, searchInput.value)}</div>
+                `;
+                
+                resultElement.addEventListener('click', function() {
+                    goToSearchResult(index);
+                });
+                
+                searchResultsContainer.appendChild(resultElement);
+            });
+        }
+        
+        // Подсветка текста в результатах поиска
+        function highlightText(text, query) {
+            const regex = new RegExp(`(${query})`, 'gi');
+            return text.replace(regex, '<mark>$1</mark>');
+        }
+        
+        // Переход к результату поиска
+        function goToSearchResult(index) {
+            if (index < 0 || index >= searchResults.length) return;
+            
+            currentSearchIndex = index;
+            const result = searchResults[index];
+            
+            pageNum = result.page;
+            pageInput.value = pageNum;
+            queueRenderPage(pageNum);
+            
+            updateSearchResults();
+        }
+        
+        // Переход к следующему/предыдущему результату поиска
+        function nextSearchResult() {
+            if (searchResults.length === 0) return;
+            
+            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+            goToSearchResult(currentSearchIndex);
+        }
+        
+        function prevSearchResult() {
+            if (searchResults.length === 0) return;
+            
+            currentSearchIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+            goToSearchResult(currentSearchIndex);
+        }
+        
+        // Добавление файла в список недавних
+        function addToRecentFiles(name, url) {
+            let recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+            
+            // Удаляем файл, если он уже есть в списке
+            recentFiles = recentFiles.filter(file => file.name !== name);
+            
+            // Добавляем файл в начало списка
+            recentFiles.unshift({ name, url, date: new Date().toISOString() });
+            
+            // Ограничиваем список 5 файлами
+            recentFiles = recentFiles.slice(0, 5);
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('recentFiles', JSON.stringify(recentFiles));
+            
+            // Обновляем отображение
+            updateRecentFilesList();
+        }
+        
+        // Обновление списка недавних файлов
+        function updateRecentFilesList() {
+            const recentFiles = JSON.parse(localStorage.getItem('recentFiles') || '[]');
+            recentFilesList.innerHTML = '';
+            
+            recentFiles.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.className = 'recent-file';
+                listItem.textContent = file.name;
+                listItem.addEventListener('click', function() {
+                    // Загрузка PDF из URL (в реальном приложении нужно реализовать загрузку)
+                    alert(`Загрузка файла: ${file.name}`);
+                });
+                
+                recentFilesList.appendChild(listItem);
+            });
+        }
+        
+        // Обработчики событий
+        prevPageBtn.addEventListener('click', showPrevPage);
+        nextPageBtn.addEventListener('click', showNextPage);
+        zoomInBtn.addEventListener('click', zoomIn);
+        zoomOutBtn.addEventListener('click', zoomOut);
+        
+        pageInput.addEventListener('change', function() {
+            const newPageNum = parseInt(this.value);
+            if (newPageNum >= 1 && newPageNum <= pdfDoc.numPages) {
+                pageNum = newPageNum;
+                queueRenderPage(pageNum);
+            } else {
+                this.value = pageNum;
+            }
+        });
+        
+        toggleSidebarBtn.addEventListener('click', function() {
+            sidebar.classList.toggle('hidden');
+        });
+        
+        toggleSearchBtn.addEventListener('click', function() {
+            searchPanel.classList.toggle('hidden');
+            if (!searchPanel.classList.contains('hidden')) {
+                searchInput.focus();
+            }
+        });
+        
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            searchText(searchInput.value);
+        });
+        
+        fitToScreenCheckbox.addEventListener('change', function() {
+            fitToScreen = this.checked;
+            if (fitToScreen && pdfDoc) {
+                fitToScreen();
+            }
+        });
+        
+        // Обработка изменения размера окна
+        window.addEventListener('resize', function() {
+            if (fitToScreen && pdfDoc) {
+                fitToScreen();
+            }
+        });
+        
+        // Инициализация при загрузке
+        updateRecentFilesList();
+        
+        // Добавление обработчиков для навигации по результатам поиска с клавиатуры
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F3' || (e.ctrlKey && e.key === 'f')) {
+                e.preventDefault();
+                searchPanel.classList.remove('hidden');
+                searchInput.focus();
+            }
+            
+            if (e.key === 'Escape' && !searchPanel.classList.contains('hidden')) {
+                searchPanel.classList.add('hidden');
+            }
+            
+            if (e.ctrlKey && e.key === 'ArrowDown') {
+                nextSearchResult();
+            }
+            
+            if (e.ctrlKey && e.key === 'ArrowUp') {
+                prevSearchResult();
+            }
+        });
+    </script>
+</body>
+</html>
