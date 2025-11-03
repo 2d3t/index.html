@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Проекты Eugene Klik</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      width: 100%;
+      padding: 16px;
+      background: #1e1e1e;
+      text-align: center;
+      font-size: 1.4em;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    }
+    #projects {
+      width: 95%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px 0;
+    }
+    .project {
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.5);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .project:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 12px rgba(255,255,255,0.1);
+    }
+    .project h2 {
+      color: #fff;
+      margin-bottom: 8px;
+      font-size: 1.2em;
+    }
+    .project p {
+      color: #bbb;
+      font-size: 0.95em;
+      margin-bottom: 12px;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tag {
+      background: #2a2a2a;
+      color: #90caf9;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.8em;
+    }
+    a.open-btn {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background-color: #2196f3;
+      color: #fff;
+      text-decoration: none;
+      transition: background 0.2s ease;
+    }
+    a.open-btn:hover {
+      background-color: #42a5f5;
+    }
+  </style>
+</head>
+<body>
+  <header>Проекты Eugene Klik</header>
+  <div id="projects">Загрузка...</div>
+
+  <script>
+    async function loadProjects() {
+      try {
+        const response = await fetch('projects.json');
+        const data = await response.json();
+        const container = document.getElementById('projects');
+        container.innerHTML = '';
+
+        data.projects.forEach(p => {
+          const div = document.createElement('div');
+          div.className = 'project';
+          div.innerHTML = `
+            <h2>${p.title}</h2>
+            <p>${p.description}</p>
+            <div class="tags">${p.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+            <a href="${p.url}" target="_blank" class="open-btn">Открыть</a>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById('projects').innerHTML = 'Ошибка загрузки данных.';
+        console.error(err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadProjects);
+  </script>
+</body>
+</html>
