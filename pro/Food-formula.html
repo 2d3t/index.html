@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Узнать новый рецепт</title>
+    <title>Случайные рецепты</title>
     <style>
         body {
             background-image: url('https://2d3t.github.io/index.html/images/sky.png');
@@ -16,9 +16,10 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            flex-direction: column;
         }
         button {
-            background-color: #ff4081; /* Яркий цвет кнопки */
+            background-color: #4CAF50; /* Зеленый цвет для кулинарной темы */
             color: #ffffff;
             border: none;
             border-radius: 25px;
@@ -26,14 +27,24 @@
             font-size: 18px;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin-bottom: 20px;
         }
         button:hover {
-            background-color: #f50057; /* Более темный цвет при наведении */
+            background-color: #45a049; /* Более темный зеленый при наведении */
+        }
+        #country-display {
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
-    <button id="fetch-videos">Рецепты из случайной страны</button>
+    <div id="country-display">Нажмите кнопку для получения рецепта</div>
+    <button id="fetch-recipes">Найти рецепт из случайной страны</button>
 
     <script>
         const countries = [
@@ -56,13 +67,38 @@
             "Южная Африка", "Южная Корея", "Япония"
         ];
 
-        document.getElementById('fetch-videos').addEventListener('click', () => {
+        // Типичные блюда для разных стран (для разнообразия поиска)
+        const countryDishes = {
+            "Италия": ["паста", "пицца", "ризотто", "лазанья"],
+            "Мексика": ["тако", "буррито", "кесадилья", "эчноладас"],
+            "Япония": ["суши", "рамен", "темпура", "удон"],
+            "Индия": ["карри", "бирьяни", "самоса", "тикка масала"],
+            "Франция": ["круассан", "рататуй", "буйабес", "крем-брюле"],
+            "Китай": ["курица гунбао", "утка по-пекински", "димсам", "чоу-мейн"],
+            "Таиланд": ["том ям", "пад тай", "зеленое карри", "сом там"],
+            "Греция": ["мусака", "гирос", "долма", "гаридес"]
+        };
+
+        document.getElementById('fetch-recipes').addEventListener('click', () => {
             const randomCountry = countries[Math.floor(Math.random() * countries.length)];
-            const query = delicious food recipe from ${randomCountry}`;
-            const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}+site:youtube.com`;
+            const countryDisplay = document.getElementById('country-display');
+            countryDisplay.textContent = `Рецепты из: ${randomCountry}`;
+
+            // Получаем типичные блюда для страны или используем общий запрос
+            let dishQuery = "";
+            if (countryDishes[randomCountry]) {
+                const dishes = countryDishes[randomCountry];
+                dishQuery = dishes[Math.floor(Math.random() * dishes.length)];
+            } else {
+                // Общий запрос для стран без специфических блюд
+                dishQuery = "традиционные блюда";
+            }
+
+            const query = `${dishQuery} ${randomCountry} рецепт`;
+            const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 
             // Открываем несколько вкладок с результатами поиска
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 3; i++) {
                 window.open(googleSearchUrl, '_blank');
             }
         });
