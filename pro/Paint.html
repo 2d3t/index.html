@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простое рисование</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 12px;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: #333;
+            color: #e0e0e0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #444;
+        }
+        
+        button:active {
+            background-color: #555;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            background-color: #000;
+            cursor: crosshair;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .toolbar {
+            padding: 12px;
+            background-color: #1e1e1e;
+            border-top: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .color-option {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+        
+        .color-option.active {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+        
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .size-preview {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #333;
+            border-radius: 50%;
+        }
+        
+        .size-indicator {
+            background-color: #e0e0e0;
+            border-radius: 50%;
+        }
+        
+        input[type="range"] {
+            width: 100px;
+            -webkit-appearance: none;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            cursor: pointer;
+        }
+        
+        .tool-options {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background-color: #333;
+            cursor: pointer;
+        }
+        
+        .tool-btn.active {
+            background-color: #555;
+        }
+        
+        .tool-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #e0e0e0;
+        }
+        
+        .notification {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(30, 30, 30, 0.9);
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Простое рисование</div>
+        <div class="controls">
+            <button id="clearBtn">Очистить</button>
+            <button id="saveBtn">Сохранить</button>
+        </div>
+    </div>
+    
+    <div class="canvas-container">
+        <canvas id="drawingCanvas"></canvas>
+        <div class="notification" id="notification">Рисунок сохранен!</div>
+    </div>
+    
+    <div class="toolbar">
+        <div class="color-picker">
+            <div class="color-option active" style="background-color: #ffffff;" data-color="#ffffff"></div>
+            <div class="color-option" style="background-color: #ff3b30;" data-color="#ff3b30"></div>
+            <div class="color-option" style="background-color: #4cd964;" data-color="#4cd964"></div>
+            <div class="color-option" style="background-color: #007aff;" data-color="#007aff"></div>
+            <div class="color-option" style="background-color: #5856d6;" data-color="#5856d6"></div>
+            <div class="color-option" style="background-color: #ff9500;" data-color="#ff9500"></div>
+        </div>
+        
+        <div class="brush-size">
+            <div class="size-preview">
+                <div class="size-indicator" id="sizeIndicator"></div>
+            </div>
+            <input type="range" id="brushSize" min="1" max="30" value="5">
+        </div>
+        
+        <div class="tool-options">
+            <div class="tool-btn active" id="brushTool" data-tool="brush">
+                <svg viewBox="0 0 24 24">
+                    <path d="M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3zm13.71-9.37l-1.34-1.34c-.39-.39-1.02-.39-1.41 0L9 12.25 11.75 15l8.96-8.96c.39-.39.39-1.02 0-1.41z"/>
+                </svg>
+            </div>
+            <div class="tool-btn" id="eraserTool" data-tool="eraser">
+                <svg viewBox="0 0 24 24">
+                    <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0zM4.22 15.58l3.54 3.53c.78.79 2.04.79 2.83 0l3.53-3.53-4.95-4.95-4.95 4.95z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d');
+            const clearBtn = document.getElementById('clearBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const brushSize = document.getElementById('brushSize');
+            const sizeIndicator = document.getElementById('sizeIndicator');
+            const colorOptions = document.querySelectorAll('.color-option');
+            const brushTool = document.getElementById('brushTool');
+            const eraserTool = document.getElementById('eraserTool');
+            const notification = document.getElementById('notification');
+            
+            let isDrawing = false;
+            let lastX = 0;
+            let lastY = 0;
+            let currentColor = '#ffffff';
+            let currentTool = 'brush';
+            let currentSize = 5;
+            
+            // Установка размера холста
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                
+                // Очистка и установка черного фона
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Инициализация приложения
+            function init() {
+                resizeCanvas();
+                updateSizeIndicator();
+                
+                // События для мыши
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDrawing);
+                canvas.addEventListener('mouseout', stopDrawing);
+                
+                // События для касаний
+                canvas.addEventListener('touchstart', handleTouch);
+                canvas.addEventListener('touchmove', handleTouch);
+                canvas.addEventListener('touchend', stopDrawing);
+                
+                // Обработчики кнопок
+                clearBtn.addEventListener('click', clearCanvas);
+                saveBtn.addEventListener('click', saveCanvas);
+                brushSize.addEventListener('input', updateBrushSize);
+                
+                // Обработчики выбора цвета
+                colorOptions.forEach(option => {
+                    option.addEventListener('click', selectColor);
+                });
+                
+                // Обработчики инструментов
+                brushTool.addEventListener('click', selectTool);
+                eraserTool.addEventListener('click', selectTool);
+            }
+            
+            // Начало рисования
+            function startDrawing(e) {
+                isDrawing = true;
+                [lastX, lastY] = getCoordinates(e);
+            }
+            
+            // Рисование
+            function draw(e) {
+                if (!isDrawing) return;
+                
+                e.preventDefault();
+                
+                const [x, y] = getCoordinates(e);
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                
+                if (currentTool === 'brush') {
+                    ctx.strokeStyle = currentColor;
+                } else if (currentTool === 'eraser') {
+                    ctx.strokeStyle = '#000000';
+                }
+                
+                ctx.lineWidth = currentSize;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+                
+                [lastX, lastY] = [x, y];
+            }
+            
+            // Остановка рисования
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            // Получение координат
+            function getCoordinates(e) {
+                let x, y;
+                
+                if (e.type.includes('touch')) {
+                    const touch = e.touches[0];
+                    const rect = canvas.getBoundingClientRect();
+                    x = touch.clientX - rect.left;
+                    y = touch.clientY - rect.top;
+                } else {
+                    x = e.offsetX;
+                    y = e.offsetY;
+                }
+                
+                return [x, y];
+            }
+            
+            // Обработка касаний
+            function handleTouch(e) {
+                if (e.type === 'touchstart') {
+                    startDrawing(e);
+                } else if (e.type === 'touchmove') {
+                    draw(e);
+                }
+            }
+            
+            // Очистка холста
+            function clearCanvas() {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Сохранение рисунка
+            function saveCanvas() {
+                const link = document.createElement('a');
+                link.download = 'рисунок.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // Показать уведомление
+                notification.textContent = 'Рисунок сохранен!';
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            }
+            
+            // Обновление размера кисти
+            function updateBrushSize() {
+                currentSize = brushSize.value;
+                updateSizeIndicator();
+            }
+            
+            // Обновление индикатора размера
+            function updateSizeIndicator() {
+                const size = currentSize;
+                sizeIndicator.style.width = `${size}px`;
+                sizeIndicator.style.height = `${size}px`;
+            }
+            
+            // Выбор цвета
+            function selectColor(e) {
+                colorOptions.forEach(option => {
+                    option.classList.remove('active');
+                });
+                
+                e.target.classList.add('active');
+                currentColor = e.target.dataset.color;
+            }
+            
+            // Выбор инструмента
+            function selectTool(e) {
+                brushTool.classList.remove('active');
+                eraserTool.classList.remove('active');
+                
+                e.target.classList.add('active');
+                currentTool = e.target.dataset.tool;
+            }
+            
+            // Запуск приложения
+            init();
+            
+            // Обработка изменения размера окна
+            window.addEventListener('resize', resizeCanvas);
+        });
+    </script>
+</body>
+</html>
