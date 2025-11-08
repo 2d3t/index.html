@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер WebP в JPEG</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #ffffff;
+            font-size: 1.8rem;
+        }
+
+        .description {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #b0b0b0;
+            font-size: 0.9rem;
+        }
+
+        .upload-area {
+            width: 100%;
+            max-width: 400px;
+            height: 200px;
+            border: 2px dashed #555;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #1e1e1e;
+        }
+
+        .upload-area:hover, .upload-area.drag-over {
+            border-color: #4a90e2;
+            background-color: #252525;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: #4a90e2;
+        }
+
+        .upload-text {
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .upload-hint {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .preview-container {
+            width: 100%;
+            max-width: 400px;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preview-title {
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .preview-images {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .preview-box {
+            flex: 1;
+            text-align: center;
+        }
+
+        .preview-label {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            color: #b0b0b0;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            background-color: #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .preview-img img {
+            max-width: 100%;
+            max-height: 150px;
+            object-fit: contain;
+        }
+
+        .quality-control {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .quality-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .quality-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #333;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .quality-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4a90e2;
+            cursor: pointer;
+        }
+
+        .convert-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+
+        .convert-btn:hover {
+            background-color: #3a7bc8;
+        }
+
+        .convert-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background-color: #27ae60;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(231, 76, 60, 0.1);
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #4a90e2;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .file-info {
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        footer {
+            margin-top: auto;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Конвертер WebP в JPEG</h1>
+        <p class="description">Загрузите изображение в формате WebP и конвертируйте его в JPEG</p>
+        
+        <div class="upload-area" id="upload-area">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">Нажмите для загрузки или перетащите файл</p>
+            <p class="upload-hint">Поддерживается только формат WebP</p>
+            <input type="file" id="file-input" accept=".webp,image/webp">
+        </div>
+        
+        <div class="preview-container" id="preview-container">
+            <h3 class="preview-title">Предпросмотр</h3>
+            <div class="preview-images">
+                <div class="preview-box">
+                    <div class="preview-label">Исходное (WebP)</div>
+                    <div class="preview-img">
+                        <img id="original-preview" alt="Предпросмотр исходного изображения">
+                    </div>
+                </div>
+                <div class="preview-box">
+                    <div class="preview-label">Результат (JPEG)</div>
+                    <div class="preview-img">
+                        <img id="converted-preview" alt="Предпросмотр конвертированного изображения">
+                    </div>
+                </div>
+            </div>
+            <div class="file-info" id="file-info"></div>
+            
+            <div class="quality-control">
+                <div class="quality-label">
+                    <span>Качество JPEG:</span>
+                    <span id="quality-value">85%</span>
+                </div>
+                <input type="range" min="10" max="100" value="85" class="quality-slider" id="quality-slider">
+            </div>
+            
+            <button class="convert-btn" id="convert-btn" disabled>Конвертировать</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Конвертация...</p>
+            </div>
+            
+            <button class="download-btn" id="download-btn">Скачать JPEG</button>
+        </div>
+        
+        <div class="error-message" id="error-message"></div>
+    </div>
+    
+    <footer>
+        <p>Конвертер WebP в JPEG &copy; 2023</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('file-input');
+            const uploadArea = document.getElementById('upload-area');
+            const previewContainer = document.getElementById('preview-container');
+            const originalPreview = document.getElementById('original-preview');
+            const convertedPreview = document.getElementById('converted-preview');
+            const convertBtn = document.getElementById('convert-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const qualitySlider = document.getElementById('quality-slider');
+            const qualityValue = document.getElementById('quality-value');
+            const errorMessage = document.getElementById('error-message');
+            const loading = document.getElementById('loading');
+            const fileInfo = document.getElementById('file-info');
+            
+            let originalFile = null;
+            let convertedBlob = null;
+            
+            // Обработчики для области загрузки
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+            
+            // Обработчик изменения качества
+            qualitySlider.addEventListener('input', () => {
+                qualityValue.textContent = `${qualitySlider.value}%`;
+            });
+            
+            // Обработчик конвертации
+            convertBtn.addEventListener('click', convertImage);
+            
+            // Обработчик скачивания
+            downloadBtn.addEventListener('click', () => {
+                if (convertedBlob) {
+                    const url = URL.createObjectURL(convertedBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = originalFile.name.replace('.webp', '.jpg') || 'converted-image.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            });
+            
+            function handleFile(file) {
+                // Проверка типа файла
+                if (!file.type.includes('webp')) {
+                    showError('Пожалуйста, выберите файл в формате WebP');
+                    return;
+                }
+                
+                originalFile = file;
+                
+                // Показать информацию о файле
+                const fileSize = (file.size / 1024).toFixed(2);
+                fileInfo.textContent = `Файл: ${file.name} (${fileSize} KB)`;
+                
+                // Показать превью исходного изображения
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    originalPreview.src = e.target.result;
+                    previewContainer.style.display = 'flex';
+                    convertBtn.disabled = false;
+                    hideError();
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            function convertImage() {
+                if (!originalFile) return;
+                
+                showLoading();
+                hideError();
+                
+                // Создаем изображение для конвертации
+                const img = new Image();
+                img.onload = () => {
+                    // Создаем canvas для конвертации
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // Конвертируем в JPEG с выбранным качеством
+                    const quality = parseInt(qualitySlider.value) / 100;
+                    canvas.toBlob((blob) => {
+                        convertedBlob = blob;
+                        
+                        // Показываем превью конвертированного изображения
+                        const url = URL.createObjectURL(blob);
+                        convertedPreview.src = url;
+                        
+                        // Показываем кнопку скачивания
+                        downloadBtn.style.display = 'block';
+                        
+                        hideLoading();
+                    }, 'image/jpeg', quality);
+                };
+                
+                img.onerror = () => {
+                    hideLoading();
+                    showError('Ошибка при загрузке изображения');
+                };
+                
+                img.src = URL.createObjectURL(originalFile);
+            }
+            
+            function showLoading() {
+                loading.style.display = 'block';
+                convertBtn.disabled = true;
+            }
+            
+            function hideLoading() {
+                loading.style.display = 'none';
+                convertBtn.disabled = false;
+            }
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            function hideError() {
+                errorMessage.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
