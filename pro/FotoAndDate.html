@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фото с подписью</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #121212;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #e0e0e0;
+        }
+
+        .camera-section {
+            margin-bottom: 20px;
+        }
+
+        #startCamera {
+            width: 100%;
+            padding: 15px;
+            background: #bb86fc;
+            color: #000000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border-radius: 10px;
+            display: none;
+            margin: 0 auto 15px;
+        }
+
+        .camera-controls {
+            display: none;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .camera-controls button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        #capture {
+            background: #4caf50;
+            color: white;
+        }
+
+        #cancelCapture {
+            background: #f44336;
+            color: white;
+        }
+
+        .preview-section {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        #preview {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            margin: 0 auto 15px;
+            display: block;
+        }
+
+        .caption-input {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 15px;
+        }
+
+        #caption {
+            width: 100%;
+            padding: 12px;
+            background: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        #caption::placeholder {
+            color: #888;
+        }
+
+        .download-section {
+            text-align: center;
+        }
+
+        #download {
+            padding: 15px 30px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        #newPhoto {
+            padding: 12px 25px;
+            background: #666;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .date-info {
+            text-align: center;
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Фото с подписью</h1>
+        
+        <div class="camera-section">
+            <button id="startCamera">📸 Включить камеру</button>
+            
+            <video id="video" autoplay playsinline></video>
+            
+            <div class="camera-controls">
+                <button id="capture">📷 Сделать снимок</button>
+                <button id="cancelCapture">❌ Отмена</button>
+            </div>
+        </div>
+
+        <div class="preview-section">
+            <img id="preview" alt="Предпросмотр">
+            
+            <div class="caption-input">
+                <textarea 
+                    id="caption" 
+                    placeholder="Введите подпись для фото..."
+                    maxlength="200"
+                ></textarea>
+            </div>
+
+            <div class="download-section">
+                <button id="download">💾 Скачать фото</button>
+                <button id="newPhoto">🔄 Новое фото</button>
+            </div>
+        </div>
+
+        <div class="date-info">
+            Дата снимка: <span id="captureDate">-</span>
+        </div>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const startCameraBtn = document.getElementById('startCamera');
+        const video = document.getElementById('video');
+        const cameraControls = document.querySelector('.camera-controls');
+        const captureBtn = document.getElementById('capture');
+        const cancelCaptureBtn = document.getElementById('cancelCapture');
+        const previewSection = document.querySelector('.preview-section');
+        const preview = document.getElementById('preview');
+        const captionInput = document.getElementById('caption');
+        const downloadBtn = document.getElementById('download');
+        const newPhotoBtn = document.getElementById('newPhoto');
+        const captureDate = document.getElementById('captureDate');
+
+        let stream = null;
+        let currentPhotoDate = null;
+
+        // Включение камеры
+        startCameraBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                video.style.display = 'block';
+                cameraControls.style.display = 'flex';
+                startCameraBtn.style.display = 'none';
+                
+            } catch (err) {
+                alert('Ошибка доступа к камере: ' + err.message);
+            }
+        });
+
+        // Сделать снимок
+        captureBtn.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Сохраняем дату снимка
+            currentPhotoDate = new Date();
+            const dateString = currentPhotoDate.toLocaleString('ru-RU');
+            captureDate.textContent = dateString;
+            
+            preview.src = canvas.toDataURL('image/jpeg');
+            
+            // Останавливаем камеру
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            previewSection.style.display = 'block';
+            cameraControls.style.display = 'none';
+            video.style.display = 'none';
+        });
+
+        // Отмена съёмки
+        cancelCaptureBtn.addEventListener('click', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            video.style.display = 'none';
+            cameraControls.style.display = 'none';
+            startCameraBtn.style.display = 'block';
+        });
+
+        // Создание нового фото
+        newPhotoBtn.addEventListener('click', () => {
+            previewSection.style.display = 'none';
+            captionInput.value = '';
+            captureDate.textContent = '-';
+            startCameraBtn.style.display = 'block';
+        });
+
+        // Скачивание фото
+        downloadBtn.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            // Создаем временное изображение для загрузки
+            const tempImg = new Image();
+            tempImg.onload = () => {
+                // Устанавливаем размеры canvas как у оригинального фото
+                canvas.width = tempImg.width;
+                canvas.height = tempImg.height + 120; // Добавляем место для текста
+                
+                // Рисуем оригинальное фото
+                context.drawImage(tempImg, 0, 0, canvas.width, tempImg.height);
+                
+                // Добавляем подпись
+                if (captionInput.value.trim()) {
+                    context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    context.fillRect(0, tempImg.height, canvas.width, 60);
+                    
+                    context.font = 'bold 24px Arial';
+                    context.fillStyle = 'white';
+                    context.textAlign = 'center';
+                    context.fillText(captionInput.value.trim(), canvas.width / 2, tempImg.height + 40);
+                }
+                
+                // Добавляем дату
+                context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                context.fillRect(0, tempImg.height + 60, canvas.width, 60);
+                
+                context.font = '18px Arial';
+                context.fillStyle = 'white';
+                context.textAlign = 'center';
+                
+                if (currentPhotoDate) {
+                    const dateText = `Снимок сделан: ${currentPhotoDate.toLocaleString('ru-RU')}`;
+                    context.fillText(dateText, canvas.width / 2, tempImg.height + 100);
+                }
+                
+                // Создаем ссылку для скачивания
+                const link = document.createElement('a');
+                link.download = `photo-with-caption-${Date.now()}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            };
+            
+            tempImg.src = preview.src;
+        });
+    </script>
+</body>
+</html>
