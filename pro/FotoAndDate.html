@@ -272,14 +272,14 @@
                 <div class="setting-group">
                     <label>Цвет текста:</label>
                     <div class="color-picker">
-                        <div class="color-option selected" style="background: #FFFFFF;" data-color="#FFFFFF" data-stroke="#000000"></div>
-                        <div class="color-option" style="background: #FF6B6B;" data-color="#FF6B6B" data-stroke="#000000"></div>
-                        <div class="color-option" style="background: #4ECDC4;" data-color="#4ECDC4" data-stroke="#000000"></div>
-                        <div class="color-option" style="background: #FFD166;" data-color="#FFD166" data-stroke="#000000"></div>
-                        <div class="color-option" style="background: #118AB2;" data-color="#118AB2" data-stroke="#FFFFFF"></div>
-                        <div class="color-option" style="background: #073B4C;" data-color="#073B4C" data-stroke="#FFFFFF"></div>
-                        <div class="color-option" style="background: #EF476F;" data-color="#EF476F" data-stroke="#FFFFFF"></div>
-                        <div class="color-option" style="background: #06D6A0;" data-color="#06D6A0" data-stroke="#000000"></div>
+                        <div class="color-option selected" style="background: #FFFFFF;" data-color="#FFFFFF"></div>
+                        <div class="color-option" style="background: #FF6B6B;" data-color="#FF6B6B"></div>
+                        <div class="color-option" style="background: #4ECDC4;" data-color="#4ECDC4"></div>
+                        <div class="color-option" style="background: #FFD166;" data-color="#FFD166"></div>
+                        <div class="color-option" style="background: #118AB2;" data-color="#118AB2"></div>
+                        <div class="color-option" style="background: #073B4C;" data-color="#073B4C"></div>
+                        <div class="color-option" style="background: #EF476F;" data-color="#EF476F"></div>
+                        <div class="color-option" style="background: #06D6A0;" data-color="#06D6A0"></div>
                     </div>
                 </div>
 
@@ -342,7 +342,6 @@
         let currentPhotoDate = null;
         let currentCameraType = 'back';
         let textColor = '#FFFFFF';
-        let strokeColor = '#000000';
         let fontSize = 24;
 
         // Цвета и их названия
@@ -356,6 +355,9 @@
             '#EF476F': 'Розовый',
             '#06D6A0': 'Зелёный'
         };
+
+        // Дни недели на русском
+        const daysOfWeek = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 
         // Включение задней камеры
         startBackCameraBtn.addEventListener('click', () => startCamera('environment'));
@@ -423,7 +425,8 @@
             // Сохраняем дату снимка
             currentPhotoDate = new Date();
             const dateString = currentPhotoDate.toLocaleString('ru-RU');
-            captureDate.textContent = dateString;
+            const dayOfWeek = daysOfWeek[currentPhotoDate.getDay()];
+            captureDate.textContent = `${dateString} (${dayOfWeek})`;
             
             preview.src = canvas.toDataURL('image/jpeg');
             
@@ -457,7 +460,6 @@
                 option.classList.add('selected');
                 
                 textColor = option.dataset.color;
-                strokeColor = option.dataset.stroke;
                 currentColorSpan.textContent = colorNames[textColor];
             });
         });
@@ -499,20 +501,13 @@
                     context.fillRect(0, tempImg.height, canvas.width, 60);
                     
                     context.font = `bold ${fontSize}px Arial`;
-                    
-                    // Добавляем обводку для лучшей читаемости
-                    context.strokeStyle = strokeColor;
-                    context.lineWidth = 3;
-                    context.strokeText(captionInput.value.trim(), canvas.width / 2, tempImg.height + 40);
-                    
-                    // Основной текст
                     context.fillStyle = textColor;
                     context.textAlign = 'center';
                     context.textBaseline = 'middle';
-                    context.fillText(captionInput.value.trim(), canvas.width / 2, tempImg.height + 40);
+                    context.fillText(captionInput.value.trim(), canvas.width / 2, tempImg.height + 30);
                 }
                 
-                // Добавляем дату
+                // Добавляем дату с днём недели
                 context.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 context.fillRect(0, tempImg.height + 60, canvas.width, 60);
                 
@@ -522,8 +517,14 @@
                 context.textBaseline = 'middle';
                 
                 if (currentPhotoDate) {
-                    const dateText = `Снимок сделан: ${currentPhotoDate.toLocaleString('ru-RU')}`;
-                    context.fillText(dateText, canvas.width / 2, tempImg.height + 90);
+                    const dateText = currentPhotoDate.toLocaleString('ru-RU');
+                    const dayOfWeek = daysOfWeek[currentPhotoDate.getDay()];
+                    const fullDateText = `${dateText} • ${dayOfWeek}`;
+                    
+                    // Разделяем на две строки для лучшей читаемости
+                    context.fillText(dateText, canvas.width / 2, tempImg.height + 80);
+                    context.font = 'bold 16px Arial';
+                    context.fillText(dayOfWeek, canvas.width / 2, tempImg.height + 105);
                 }
                 
                 // Создаем ссылку для скачивания
