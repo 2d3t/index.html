@@ -183,29 +183,54 @@
             }
         }
         
-        /* Специальные стили для скачивания */
-        .download-version {
+        /* Специальные стили для скачивания в светлой теме */
+        .download-version-light {
             background: white !important;
             color: #333 !important;
         }
-        .download-version .day {
+        .download-version-light .day {
             background: white !important;
             color: #333 !important;
             border-color: #ccc !important;
         }
-        .download-version .weekend {
+        .download-version-light .weekend {
             background: #ffcccc !important;
             color: #333 !important;
         }
-        .download-version .month-year {
+        .download-version-light .month-year {
             color: #333 !important;
         }
-        .download-version .day-name {
+        .download-version-light .day-name {
             color: #333 !important;
         }
-        .download-version .image-gallery {
+        .download-version-light .image-gallery {
             background: white !important;
             border-color: #ddd !important;
+        }
+        
+        /* Специальные стили для скачивания в тёмной теме */
+        .download-version-dark {
+            background: #2d2d2d !important;
+            color: #ffffff !important;
+        }
+        .download-version-dark .day {
+            background: #3d3d3d !important;
+            color: #ffffff !important;
+            border-color: #555 !important;
+        }
+        .download-version-dark .weekend {
+            background: #8b0000 !important;
+            color: #ffffff !important;
+        }
+        .download-version-dark .month-year {
+            color: #ffffff !important;
+        }
+        .download-version-dark .day-name {
+            color: #ffffff !important;
+        }
+        .download-version-dark .image-gallery {
+            background: #3d3d3d !important;
+            border-color: #444 !important;
         }
     </style>
 </head>
@@ -326,13 +351,23 @@
             
             // Создаем копию контейнера для скачивания
             const downloadContainer = originalContainer.cloneNode(true);
-            downloadContainer.classList.add('download-version');
             
-            // Применяем стили для скачивания ко всем элементам
-            const allElements = downloadContainer.querySelectorAll('*');
-            allElements.forEach(el => {
-                el.classList.add('download-version');
-            });
+            // Применяем стили для скачивания в зависимости от текущей темы
+            if (currentTheme === 'dark') {
+                downloadContainer.classList.add('download-version-dark');
+                // Применяем стили для скачивания ко всем элементам в тёмной теме
+                const allElements = downloadContainer.querySelectorAll('*');
+                allElements.forEach(el => {
+                    el.classList.add('download-version-dark');
+                });
+            } else {
+                downloadContainer.classList.add('download-version-light');
+                // Применяем стили для скачивания ко всем элементам в светлой теме
+                const allElements = downloadContainer.querySelectorAll('*');
+                allElements.forEach(el => {
+                    el.classList.add('download-version-light');
+                });
+            }
             
             // Временно добавляем в DOM для рендеринга
             downloadContainer.style.position = 'fixed';
@@ -352,14 +387,18 @@
             }
             
             function captureAndDownload(container) {
+                // Устанавливаем фон в зависимости от темы
+                const backgroundColor = currentTheme === 'dark' ? '#2d2d2d' : '#ffffff';
+                
                 html2canvas(container, {
                     scale: 2,
                     useCORS: true,
                     allowTaint: true,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: backgroundColor
                 }).then(canvas => {
+                    const themeSuffix = currentTheme === 'dark' ? '-тёмный' : '-светлый';
                     const link = document.createElement('a');
-                    link.download = `календарь-${document.getElementById('monthSelector').value}-${document.getElementById('yearSelector').value}.png`;
+                    link.download = `календарь-${document.getElementById('monthSelector').value}-${document.getElementById('yearSelector').value}${themeSuffix}.png`;
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                     
