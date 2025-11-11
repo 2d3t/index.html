@@ -3,34 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Календарь на месяц</title>
+    <title>Календарь с фотографиями</title>
     <style>
+        :root {
+            --bg-color: #f0f0f0;
+            --container-bg: white;
+            --text-color: #333;
+            --day-bg: white;
+            --day-border: #ccc;
+            --weekend-bg: #ffcccc;
+            --header-bg: #2196F3;
+            --button-bg: #4CAF50;
+            --button-hover: #45a049;
+            --gallery-border: #ddd;
+            --gallery-bg: white;
+        }
+
+        .theme-dark {
+            --bg-color: #1a1a1a;
+            --container-bg: #2d2d2d;
+            --text-color: #ffffff;
+            --day-bg: #3d3d3d;
+            --day-border: #555;
+            --weekend-bg: #8b0000;
+            --header-bg: #1565C0;
+            --button-bg: #388E3C;
+            --button-hover: #2E7D32;
+            --gallery-border: #444;
+            --gallery-bg: #3d3d3d;
+        }
+
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            background-color: #f0f0f0;
+            background-color: var(--bg-color);
             margin: 0;
             padding: 20px;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        .header {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
         }
         .calendar-container {
             display: inline-block;
-            background: white;
-            padding: 10px;
+            background: var(--container-bg);
+            padding: 15px;
             border-radius: 10px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
+            color: var(--text-color);
+            transition: all 0.3s ease;
         }
         .image-gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 5px;
             margin-bottom: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 5px;
+            border: 1px solid var(--gallery-border);
+            border-radius: 5px;
+            background: var(--gallery-bg);
+            transition: all 0.3s ease;
         }
         .image-gallery img {
             width: 100%;
             height: auto;
             border-radius: 5px;
+            object-fit: cover;
         }
         .calendar {
             display: grid;
@@ -39,35 +87,142 @@
             margin-top: 10px;
         }
         .day {
-            border: 1px solid #ccc;
-            background-color: white;
+            border: 1px solid var(--day-border);
+            background-color: var(--day-bg);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2em;
+            font-size: 1.2em;
             aspect-ratio: 1;
             height: 10vw;
+            max-height: 50px;
+            color: var(--text-color);
+            transition: all 0.3s ease;
         }
         .weekend {
-            background-color: #ffcccc;
+            background-color: var(--weekend-bg);
+            color: var(--text-color);
         }
         .month-year {
             font-size: 1.5em;
             margin-bottom: 10px;
+            font-weight: bold;
+            color: var(--text-color);
         }
-        @media (max-width: 400px) {
+        .day-name {
+            font-weight: bold;
+            margin: 0;
+            color: var(--text-color);
+        }
+        select, button {
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid var(--day-border);
+            background-color: var(--container-bg);
+            font-size: 1em;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        button {
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: var(--button-hover);
+        }
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-container input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: var(--header-bg);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .theme-toggle {
+            background: var(--container-bg);
+            border: 2px solid var(--day-border);
+            color: var(--text-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        .theme-toggle:hover {
+            background: var(--day-bg);
+        }
+        .theme-icon {
+            font-size: 1.2em;
+        }
+        @media (max-width: 500px) {
             .day {
-                font-size: 1.5em;
+                font-size: 1em;
             }
+            .header {
+                flex-direction: column;
+            }
+        }
+        
+        /* Специальные стили для скачивания */
+        .download-version {
+            background: white !important;
+            color: #333 !important;
+        }
+        .download-version .day {
+            background: white !important;
+            color: #333 !important;
+            border-color: #ccc !important;
+        }
+        .download-version .weekend {
+            background: #ffcccc !important;
+            color: #333 !important;
+        }
+        .download-version .month-year {
+            color: #333 !important;
+        }
+        .download-version .day-name {
+            color: #333 !important;
+        }
+        .download-version .image-gallery {
+            background: white !important;
+            border-color: #ddd !important;
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <input type="file" id="imageInput" accept="image/*" multiple onchange="loadImages()">
+        <div class="file-input-container">
+            <input type="file" id="imageInput" accept="image/*" multiple onchange="loadImages()">
+            <label for="imageInput" class="file-input-label">Выбрать фото</label>
+        </div>
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
+        <button onclick="downloadCalendar()">Скачать календарь</button>
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <span class="theme-icon">🌙</span>
+            <span id="themeText">Тёмная</span>
+        </button>
     </div>
 
     <div id="calendarContainer" class="calendar-container">
@@ -77,6 +232,9 @@
     </div>
 
     <script>
+        let uploadedImages = [];
+        let currentTheme = 'light';
+
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
             const currentYear = new Date().getFullYear();
@@ -93,14 +251,14 @@
             const input = document.getElementById('imageInput');
             const files = Array.from(input.files);
             const imageGallery = document.getElementById('imageGallery');
-            imageGallery.innerHTML = ''; // Clear existing images
-
+            
             files.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     imageGallery.appendChild(img);
+                    uploadedImages.push(e.target.result);
                 }
                 reader.readAsDataURL(file);
             });
@@ -135,6 +293,82 @@
             }
         }
 
+        function toggleTheme() {
+            const body = document.body;
+            const themeText = document.getElementById('themeText');
+            const themeIcon = document.querySelector('.theme-icon');
+            
+            if (currentTheme === 'light') {
+                body.classList.add('theme-dark');
+                themeText.textContent = 'Светлая';
+                themeIcon.textContent = '☀️';
+                currentTheme = 'dark';
+            } else {
+                body.classList.remove('theme-dark');
+                themeText.textContent = 'Тёмная';
+                themeIcon.textContent = '🌙';
+                currentTheme = 'light';
+            }
+            
+            // Сохраняем тему в localStorage
+            localStorage.setItem('calendarTheme', currentTheme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('calendarTheme');
+            if (savedTheme === 'dark') {
+                toggleTheme(); // Переключаем на тёмную тему
+            }
+        }
+
+        function downloadCalendar() {
+            const originalContainer = document.getElementById('calendarContainer');
+            
+            // Создаем копию контейнера для скачивания
+            const downloadContainer = originalContainer.cloneNode(true);
+            downloadContainer.classList.add('download-version');
+            
+            // Применяем стили для скачивания ко всем элементам
+            const allElements = downloadContainer.querySelectorAll('*');
+            allElements.forEach(el => {
+                el.classList.add('download-version');
+            });
+            
+            // Временно добавляем в DOM для рендеринга
+            downloadContainer.style.position = 'fixed';
+            downloadContainer.style.left = '-9999px';
+            downloadContainer.style.top = '0';
+            document.body.appendChild(downloadContainer);
+            
+            if (typeof html2canvas === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                script.onload = function() {
+                    captureAndDownload(downloadContainer);
+                };
+                document.head.appendChild(script);
+            } else {
+                captureAndDownload(downloadContainer);
+            }
+            
+            function captureAndDownload(container) {
+                html2canvas(container, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `календарь-${document.getElementById('monthSelector').value}-${document.getElementById('yearSelector').value}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    // Удаляем временный контейнер
+                    document.body.removeChild(container);
+                });
+            }
+        }
+
         window.onload = function() {
             initYearSelector();
             const monthSelector = document.getElementById('monthSelector');
@@ -146,6 +380,7 @@
             }
             monthSelector.value = new Date().getMonth();
             generateCalendar();
+            loadTheme(); // Загружаем сохранённую тему
         };
     </script>
 </body>
