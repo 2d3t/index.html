@@ -35,17 +35,30 @@
             margin-bottom: 20px;
         }
 
-        #startCamera {
-            width: 100%;
+        .camera-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .camera-buttons button {
+            flex: 1;
             padding: 15px;
-            background: #bb86fc;
-            color: #000000;
             border: none;
             border-radius: 10px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            margin-bottom: 15px;
+        }
+
+        #startBackCamera {
+            background: #bb86fc;
+            color: #000000;
+        }
+
+        #startFrontCamera {
+            background: #03dac6;
+            color: #000000;
         }
 
         #video {
@@ -56,6 +69,8 @@
             border-radius: 10px;
             display: none;
             margin: 0 auto 15px;
+            transform: rotateY(0deg);
+            transition: transform 0.3s;
         }
 
         .camera-controls {
@@ -96,17 +111,31 @@
             display: block;
         }
 
-        .caption-input {
+        .settings-panel {
             width: 100%;
             max-width: 400px;
             margin: 0 auto 15px;
+            padding: 15px;
+            background: #1e1e1e;
+            border-radius: 10px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #e0e0e0;
         }
 
         #caption {
             width: 100%;
             padding: 12px;
-            background: #1e1e1e;
-            border: 1px solid #333;
+            background: #2d2d2d;
+            border: 1px solid #444;
             border-radius: 8px;
             color: white;
             font-size: 1rem;
@@ -116,6 +145,46 @@
 
         #caption::placeholder {
             color: #888;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #fontSize {
+            flex: 1;
+            height: 8px;
+            background: #444;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .font-size-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
         }
 
         .download-section {
@@ -153,6 +222,20 @@
         .hidden {
             display: none;
         }
+
+        .current-settings {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -160,12 +243,15 @@
         <h1>📷 Фото с подписью</h1>
         
         <div class="camera-section">
-            <button id="startCamera">📸 Включить камеру</button>
+            <div class="camera-buttons">
+                <button id="startBackCamera">📷 Основная камера</button>
+                <button id="startFrontCamera">🤳 Селфи камера</button>
+            </div>
             
             <video id="video" autoplay playsinline></video>
             
             <div class="camera-controls">
-                <button id="capture">📷 Сделать снимок</button>
+                <button id="capture">📸 Сделать снимок</button>
                 <button id="cancelCapture">❌ Отмена</button>
             </div>
         </div>
@@ -173,12 +259,52 @@
         <div class="preview-section">
             <img id="preview" alt="Предпросмотр">
             
-            <div class="caption-input">
-                <textarea 
-                    id="caption" 
-                    placeholder="Введите подпись для фото..."
-                    maxlength="200"
-                ></textarea>
+            <div class="settings-panel">
+                <div class="setting-group">
+                    <label for="caption">Подпись на фото:</label>
+                    <textarea 
+                        id="caption" 
+                        placeholder="Введите подпись для фото..."
+                        maxlength="200"
+                    ></textarea>
+                </div>
+
+                <div class="setting-group">
+                    <label>Цвет текста:</label>
+                    <div class="color-picker">
+                        <div class="color-option selected" style="background: #FFFFFF;" data-color="#FFFFFF" data-stroke="#000000"></div>
+                        <div class="color-option" style="background: #FF6B6B;" data-color="#FF6B6B" data-stroke="#000000"></div>
+                        <div class="color-option" style="background: #4ECDC4;" data-color="#4ECDC4" data-stroke="#000000"></div>
+                        <div class="color-option" style="background: #FFD166;" data-color="#FFD166" data-stroke="#000000"></div>
+                        <div class="color-option" style="background: #118AB2;" data-color="#118AB2" data-stroke="#FFFFFF"></div>
+                        <div class="color-option" style="background: #073B4C;" data-color="#073B4C" data-stroke="#FFFFFF"></div>
+                        <div class="color-option" style="background: #EF476F;" data-color="#EF476F" data-stroke="#FFFFFF"></div>
+                        <div class="color-option" style="background: #06D6A0;" data-color="#06D6A0" data-stroke="#000000"></div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Размер шрифта:</label>
+                    <div class="font-size-control">
+                        <span>Аа</span>
+                        <input type="range" id="fontSize" min="16" max="48" value="24">
+                        <span class="font-size-value">24px</span>
+                    </div>
+                </div>
+
+                <div class="current-settings">
+                    <div class="setting-item">
+                        <span>Текущие настройки:</span>
+                    </div>
+                    <div class="setting-item">
+                        <span>Цвет текста:</span>
+                        <span id="currentColor">Белый</span>
+                    </div>
+                    <div class="setting-item">
+                        <span>Размер шрифта:</span>
+                        <span id="currentSize">24px</span>
+                    </div>
+                </div>
             </div>
 
             <div class="download-section">
@@ -194,7 +320,8 @@
 
     <script>
         // Элементы DOM
-        const startCameraBtn = document.getElementById('startCamera');
+        const startBackCameraBtn = document.getElementById('startBackCamera');
+        const startFrontCameraBtn = document.getElementById('startFrontCamera');
         const video = document.getElementById('video');
         const cameraControls = document.querySelector('.camera-controls');
         const captureBtn = document.getElementById('capture');
@@ -205,16 +332,47 @@
         const downloadBtn = document.getElementById('download');
         const newPhotoBtn = document.getElementById('newPhoto');
         const captureDate = document.getElementById('captureDate');
+        const colorOptions = document.querySelectorAll('.color-option');
+        const fontSizeSlider = document.getElementById('fontSize');
+        const fontSizeValue = document.querySelector('.font-size-value');
+        const currentColorSpan = document.getElementById('currentColor');
+        const currentSizeSpan = document.getElementById('currentSize');
 
         let stream = null;
         let currentPhotoDate = null;
+        let currentCameraType = 'back';
+        let textColor = '#FFFFFF';
+        let strokeColor = '#000000';
+        let fontSize = 24;
 
-        // Включение камеры
-        startCameraBtn.addEventListener('click', async () => {
+        // Цвета и их названия
+        const colorNames = {
+            '#FFFFFF': 'Белый',
+            '#FF6B6B': 'Красный',
+            '#4ECDC4': 'Бирюзовый',
+            '#FFD166': 'Жёлтый',
+            '#118AB2': 'Синий',
+            '#073B4C': 'Тёмно-синий',
+            '#EF476F': 'Розовый',
+            '#06D6A0': 'Зелёный'
+        };
+
+        // Включение задней камеры
+        startBackCameraBtn.addEventListener('click', () => startCamera('environment'));
+
+        // Включение фронтальной камеры
+        startFrontCameraBtn.addEventListener('click', () => startCamera('user'));
+
+        // Функция запуска камеры
+        async function startCamera(facingMode) {
             try {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
-                        facingMode: 'environment',
+                        facingMode: facingMode,
                         width: { ideal: 1920 },
                         height: { ideal: 1080 }
                     } 
@@ -222,13 +380,24 @@
                 
                 video.srcObject = stream;
                 video.style.display = 'block';
+                
+                // Для фронтальной камеры зеркалим изображение
+                if (facingMode === 'user') {
+                    video.style.transform = 'rotateY(180deg)';
+                    currentCameraType = 'front';
+                } else {
+                    video.style.transform = 'rotateY(0deg)';
+                    currentCameraType = 'back';
+                }
+                
                 cameraControls.style.display = 'flex';
-                startCameraBtn.style.display = 'none';
+                startBackCameraBtn.style.display = 'none';
+                startFrontCameraBtn.style.display = 'none';
                 
             } catch (err) {
                 alert('Ошибка доступа к камере: ' + err.message);
             }
-        });
+        }
 
         // Сделать снимок
         captureBtn.addEventListener('click', () => {
@@ -238,7 +407,18 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
+            // Для фронтальной камеры зеркалим изображение при сохранении
+            if (currentCameraType === 'front') {
+                context.translate(canvas.width, 0);
+                context.scale(-1, 1);
+            }
+            
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Сбрасываем трансформации
+            if (currentCameraType === 'front') {
+                context.setTransform(1, 0, 0, 1, 0, 0);
+            }
             
             // Сохраняем дату снимка
             currentPhotoDate = new Date();
@@ -266,7 +446,27 @@
             
             video.style.display = 'none';
             cameraControls.style.display = 'none';
-            startCameraBtn.style.display = 'block';
+            startBackCameraBtn.style.display = 'block';
+            startFrontCameraBtn.style.display = 'block';
+        });
+
+        // Выбор цвета текста
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                colorOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                
+                textColor = option.dataset.color;
+                strokeColor = option.dataset.stroke;
+                currentColorSpan.textContent = colorNames[textColor];
+            });
+        });
+
+        // Изменение размера шрифта
+        fontSizeSlider.addEventListener('input', (e) => {
+            fontSize = parseInt(e.target.value);
+            fontSizeValue.textContent = fontSize + 'px';
+            currentSizeSpan.textContent = fontSize + 'px';
         });
 
         // Создание нового фото
@@ -274,7 +474,8 @@
             previewSection.style.display = 'none';
             captionInput.value = '';
             captureDate.textContent = '-';
-            startCameraBtn.style.display = 'block';
+            startBackCameraBtn.style.display = 'block';
+            startFrontCameraBtn.style.display = 'block';
         });
 
         // Скачивание фото
@@ -297,9 +498,17 @@
                     context.fillStyle = 'rgba(0, 0, 0, 0.7)';
                     context.fillRect(0, tempImg.height, canvas.width, 60);
                     
-                    context.font = 'bold 24px Arial';
-                    context.fillStyle = 'white';
+                    context.font = `bold ${fontSize}px Arial`;
+                    
+                    // Добавляем обводку для лучшей читаемости
+                    context.strokeStyle = strokeColor;
+                    context.lineWidth = 3;
+                    context.strokeText(captionInput.value.trim(), canvas.width / 2, tempImg.height + 40);
+                    
+                    // Основной текст
+                    context.fillStyle = textColor;
                     context.textAlign = 'center';
+                    context.textBaseline = 'middle';
                     context.fillText(captionInput.value.trim(), canvas.width / 2, tempImg.height + 40);
                 }
                 
@@ -310,10 +519,11 @@
                 context.font = '18px Arial';
                 context.fillStyle = 'white';
                 context.textAlign = 'center';
+                context.textBaseline = 'middle';
                 
                 if (currentPhotoDate) {
                     const dateText = `Снимок сделан: ${currentPhotoDate.toLocaleString('ru-RU')}`;
-                    context.fillText(dateText, canvas.width / 2, tempImg.height + 100);
+                    context.fillText(dateText, canvas.width / 2, tempImg.height + 90);
                 }
                 
                 // Создаем ссылку для скачивания
