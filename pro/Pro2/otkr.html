@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создатель открыток</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #121212;
+            --surface: #1e1e1e;
+            --surface-light: #2d2d2d;
+            --primary: #bb86fc;
+            --primary-variant: #3700b3;
+            --text: #e0e0e0;
+            --text-secondary: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text);
+            padding: 10px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .card-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--surface);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            aspect-ratio: 4/3;
+        }
+
+        #cardCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: var(--surface-light);
+        }
+
+        .controls {
+            background-color: var(--surface);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        input, select, button {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--surface-light);
+            background-color: var(--surface-light);
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        input[type="color"] {
+            height: 45px;
+            padding: 5px;
+        }
+
+        input[type="range"] {
+            padding: 0;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: var(--bg-dark);
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-variant);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-upload {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .upload-btn {
+            background-color: var(--surface-light);
+            color: var(--text);
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px dashed var(--text-secondary);
+        }
+
+        .effect-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .effect-controls button {
+            flex: 1;
+        }
+
+        .position-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .position-btn {
+            background-color: var(--surface-light);
+            color: var(--text);
+        }
+
+        .position-btn.active {
+            background-color: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 500px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Создатель открыток</h1>
+        
+        <div class="card-container">
+            <canvas id="cardCanvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="file-upload">
+                <label for="fileInput" class="upload-btn">Загрузить изображение</label>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+            
+            <div class="control-group">
+                <label for="textInput">Текст открытки</label>
+                <input type="text" id="textInput" placeholder="Введите ваш текст">
+            </div>
+            
+            <div class="control-group">
+                <label>Позиция текста</label>
+                <div class="position-controls">
+                    <button class="position-btn active" data-position="top">Верх</button>
+                    <button class="position-btn" data-position="middle">Середина</button>
+                    <button class="position-btn" data-position="bottom">Низ</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="fontSelect">Шрифт</label>
+                <select id="fontSelect">
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="'Times New Roman'">Times New Roman</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="'Courier New'">Courier New</option>
+                    <option value="Impact">Impact</option>
+                    <option value="'Comic Sans MS'">Comic Sans</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="fontSize">Размер текста: <span id="fontSizeValue">24</span>px</label>
+                <input type="range" id="fontSize" min="10" max="72" value="24">
+            </div>
+            
+            <div class="control-group">
+                <label for="textColor">Цвет текста</label>
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+            
+            <div class="control-group">
+                <label for="opacity">Прозрачность: <span id="opacityValue">100</span>%</label>
+                <input type="range" id="opacity" min="0" max="100" value="100">
+            </div>
+            
+            <div class="control-group">
+                <label>Эффекты для открытки</label>
+                <div class="effect-controls">
+                    <button id="vignetteBtn">Добавить виньетку</button>
+                    <button id="roundedBtn">Закруглить углы</button>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="resetBtn">Сбросить</button>
+                <button id="downloadBtn">Скачать открытку</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Получаем элементы DOM
+        const canvas = document.getElementById('cardCanvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('fileInput');
+        const textInput = document.getElementById('textInput');
+        const fontSelect = document.getElementById('fontSelect');
+        const fontSize = document.getElementById('fontSize');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        const textColor = document.getElementById('textColor');
+        const opacity = document.getElementById('opacity');
+        const opacityValue = document.getElementById('opacityValue');
+        const vignetteBtn = document.getElementById('vignetteBtn');
+        const roundedBtn = document.getElementById('roundedBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const positionBtns = document.querySelectorAll('.position-btn');
+        
+        // Переменные состояния
+        let originalImage = null;
+        let currentImage = null;
+        let textPosition = 'top'; // top, middle, bottom
+        let effects = {
+            vignette: false,
+            rounded: false
+        };
+        
+        // Установка размеров canvas
+        function setupCanvas() {
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            canvas.width = containerWidth;
+            canvas.height = containerHeight;
+            
+            // Перерисовываем если есть изображение
+            if (currentImage) {
+                redrawCanvas();
+            }
+        }
+        
+        // Загрузка изображения
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    currentImage = img;
+                    redrawCanvas();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        // Обработчики позиции текста
+        positionBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                positionBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                textPosition = this.dataset.position;
+                redrawCanvas();
+            });
+        });
+        
+        // Обработчики изменений текста и стилей
+        textInput.addEventListener('input', redrawCanvas);
+        fontSelect.addEventListener('change', redrawCanvas);
+        fontSize.addEventListener('input', function() {
+            fontSizeValue.textContent = this.value;
+            redrawCanvas();
+        });
+        textColor.addEventListener('input', redrawCanvas);
+        opacity.addEventListener('input', function() {
+            opacityValue.textContent = this.value;
+            redrawCanvas();
+        });
+        
+        // Обработчики эффектов
+        vignetteBtn.addEventListener('click', function() {
+            effects.vignette = !effects.vignette;
+            this.style.backgroundColor = effects.vignette ? '#3700b3' : '';
+            redrawCanvas();
+        });
+        
+        roundedBtn.addEventListener('click', function() {
+            effects.rounded = !effects.rounded;
+            this.style.backgroundColor = effects.rounded ? '#3700b3' : '';
+            redrawCanvas();
+        });
+        
+        // Сброс
+        resetBtn.addEventListener('click', function() {
+            originalImage = null;
+            currentImage = null;
+            textInput.value = '';
+            fontSize.value = 24;
+            fontSizeValue.textContent = '24';
+            textColor.value = '#ffffff';
+            opacity.value = 100;
+            opacityValue.textContent = '100';
+            effects.vignette = false;
+            effects.rounded = false;
+            textPosition = 'top';
+            
+            // Сбрасываем кнопки позиции
+            positionBtns.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.position === 'top') {
+                    btn.classList.add('active');
+                }
+            });
+            
+            vignetteBtn.style.backgroundColor = '';
+            roundedBtn.style.backgroundColor = '';
+            
+            // Очищаем canvas
+            ctx.fillStyle = '#2d2d2d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1e1e1e';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Загрузите изображение для начала', canvas.width / 2, canvas.height / 2);
+        });
+        
+        // Скачивание открытки
+        downloadBtn.addEventListener('click', function() {
+            if (!currentImage) {
+                alert('Пожалуйста, сначала загрузите изображение');
+                return;
+            }
+            
+            const link = document.createElement('a');
+            link.download = 'открытка.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+        
+        // Функция для правильного отображения изображения
+        function drawImageProperly(img) {
+            const canvasAspect = canvas.width / canvas.height;
+            const imgAspect = img.width / img.height;
+            
+            let renderableWidth, renderableHeight, xStart, yStart;
+            
+            // Если изображение шире чем canvas
+            if (imgAspect > canvasAspect) {
+                renderableHeight = canvas.height;
+                renderableWidth = img.width * (renderableHeight / img.height);
+                xStart = (canvas.width - renderableWidth) / 2;
+                yStart = 0;
+            } 
+            // Если изображение выше чем canvas
+            else {
+                renderableWidth = canvas.width;
+                renderableHeight = img.height * (renderableWidth / img.width);
+                xStart = 0;
+                yStart = (canvas.height - renderableHeight) / 2;
+            }
+            
+            ctx.drawImage(img, xStart, yStart, renderableWidth, renderableHeight);
+            
+            return { xStart, yStart, renderableWidth, renderableHeight };
+        }
+        
+        // Функция перерисовки canvas
+        function redrawCanvas() {
+            if (!currentImage) {
+                // Если изображение не загружено, показываем placeholder
+                ctx.fillStyle = '#2d2d2d';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#1e1e1e';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Загрузите изображение для начала', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            // Очищаем canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем изображение с эффектами
+            drawImageWithEffects();
+            
+            // Рисуем текст, если он есть
+            if (textInput.value) {
+                drawText();
+            }
+        }
+        
+        // Рисуем изображение с применёнными эффектами
+        function drawImageWithEffects() {
+            ctx.save();
+            
+            // Применяем эффект закругленных углов
+            if (effects.rounded) {
+                ctx.beginPath();
+                const radius = 20;
+                ctx.moveTo(radius, 0);
+                ctx.lineTo(canvas.width - radius, 0);
+                ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+                ctx.lineTo(canvas.width, canvas.height - radius);
+                ctx.quadraticCurveTo(canvas.width, canvas.height, canvas.width - radius, canvas.height);
+                ctx.lineTo(radius, canvas.height);
+                ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+                ctx.lineTo(0, radius);
+                ctx.quadraticCurveTo(0, 0, radius, 0);
+                ctx.closePath();
+                ctx.clip();
+            }
+            
+            // Рисуем изображение с правильными пропорциями
+            drawImageProperly(currentImage);
+            
+            // Применяем эффект виньетки
+            if (effects.vignette) {
+                const gradient = ctx.createRadialGradient(
+                    canvas.width / 2, canvas.height / 2, 0,
+                    canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.5
+                );
+                gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.4)');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            ctx.restore();
+        }
+        
+        // Рисуем текст на открытке
+        function drawText() {
+            const text = textInput.value;
+            const font = fontSelect.value;
+            const size = parseInt(fontSize.value);
+            const color = textColor.value;
+            const alpha = parseInt(opacity.value) / 100;
+            
+            ctx.save();
+            ctx.font = `${size}px ${font}`;
+            ctx.fillStyle = color;
+            ctx.globalAlpha = alpha;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Добавляем тень для лучшей читаемости
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            // Разбиваем текст на строки, если он слишком длинный
+            const words = text.split(' ');
+            let line = '';
+            const lines = [];
+            const maxWidth = canvas.width * 0.8;
+            
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                
+                if (testWidth > maxWidth && i > 0) {
+                    lines.push(line);
+                    line = words[i] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+            
+            // Определяем позицию текста
+            let textY;
+            const padding = 30;
+            const lineHeight = size * 1.2;
+            const totalTextHeight = lines.length * lineHeight;
+            
+            switch (textPosition) {
+                case 'top':
+                    textY = padding + totalTextHeight / 2;
+                    break;
+                case 'middle':
+                    textY = canvas.height / 2;
+                    break;
+                case 'bottom':
+                    textY = canvas.height - padding - totalTextHeight / 2;
+                    break;
+            }
+            
+            // Рисуем строки текста
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(
+                    lines[i], 
+                    canvas.width / 2, 
+                    textY + (i - (lines.length - 1) / 2) * lineHeight
+                );
+            }
+            
+            ctx.restore();
+        }
+        
+        // Инициализация
+        window.addEventListener('load', function() {
+            setupCanvas();
+            redrawCanvas();
+        });
+        
+        window.addEventListener('resize', setupCanvas);
+    </script>
+</body>
+</html>
