@@ -79,6 +79,15 @@
             pointer-events: none;
         }
 
+        #previewCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
         .text-input-section {
             background: #1e1e1e;
             padding: 15px;
@@ -207,6 +216,17 @@
         .instructions li {
             margin-bottom: 5px;
         }
+
+        .preview-info {
+            background: #2d2d2d;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #4CAF50;
+            text-align: center;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -224,6 +244,8 @@
         <div class="canvas-container">
             <canvas id="mainCanvas"></canvas>
             <canvas id="selectionCanvas"></canvas>
+            <canvas id="previewCanvas"></canvas>
+            <div class="preview-info" id="previewInfo">Предпросмотр текста - нажмите "Подтвердить" для сохранения</div>
         </div>
 
         <div class="text-input-section">
@@ -257,10 +279,10 @@
             <h3>Инструкция:</h3>
             <ul>
                 <li>Загрузите изображение или PDF</li>
-                <li>Масштабируйте двумя пальцами</li>
-                <li>Проведите пальцем для выделения области</li>
-                <li>Выберите цвет текста и введите текст</li>
-                <li>Нажмите "Подтвердить" для вставки</li>
+                <li><strong>Двумя пальцами</strong> - масштабирование и перемещение</li>
+                <li><strong>Одним пальцем</strong> - выделение области для текста</li>
+                <li>Введите текст - увидите предпросмотр в реальном времени</li>
+                <li>Нажмите "Подтвердить" для сохранения текста</li>
                 <li>Скачайте готовый документ</li>
             </ul>
         </div>
@@ -271,15 +293,18 @@
         const fileInput = document.getElementById('fileInput');
         const mainCanvas = document.getElementById('mainCanvas');
         const selectionCanvas = document.getElementById('selectionCanvas');
+        const previewCanvas = document.getElementById('previewCanvas');
         const textInput = document.getElementById('textInput');
         const confirmBtn = document.getElementById('confirmBtn');
         const resetBtn = document.getElementById('resetBtn');
         const downloadBtn = document.getElementById('downloadBtn');
         const status = document.getElementById('status');
+        const previewInfo = document.getElementById('previewInfo');
         const colorOptions = document.querySelectorAll('.color-option');
 
         const mainCtx = mainCanvas.getContext('2d');
         const selectionCtx = selectionCanvas.getContext('2d');
+        const previewCtx = previewCanvas.getContext('2d');
 
         let originalImage = null;
         let isDrawing = false;
@@ -292,6 +317,7 @@
         let offsetY = 0;
         let isDragging = false;
         let lastTouchDistance = null;
+        let lastTouchCenter = null;
         let currentSelection = null;
         let selectedColor = '#000000';
         let addedTexts = []; // Массив для хранения добавленных текстов
@@ -302,6 +328,7 @@
                 colorOptions.forEach(opt => opt.classList.remove('active'));
                 this.classList.add('active');
                 selectedColor = this.getAttribute('data-color');
+                updateTextPreview();
             });
         });
 
@@ -312,6 +339,8 @@
             mainCanvas.height = container.clientHeight;
             selectionCanvas.width = container.clientWidth;
             selectionCanvas.height = container.clientHeight;
+            previewCanvas.width = container.clientWidth;
+            previewCanvas.height = container.clientHeight;
         }
 
         // Загрузка файла
@@ -385,13 +414,13 @@
         // Перерисовка всех текстов
         function redrawAllTexts() {
             addedTexts.forEach(textObj => {
-                drawSingleText(textObj);
+                drawSingleText(textObj, mainCtx);
             });
         }
 
         // Рисование одного текстового объекта
-        function drawSingleText(textObj) {
-            mainCtx.save();
+        function drawSingleText(textObj, context) {
+            context.save();
             
             const realX = textObj.realX;
             const realY = textObj.realY;
@@ -400,26 +429,53 @@
             const text = textObj.text;
             const color = textObj.color;
 
-            mainCtx.fillStyle = color;
-            mainCtx.textAlign = 'center';
-            mainCtx.textBaseline = 'middle';
+            context.fillStyle = color;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
 
             // Автоподбор размера шрифта
-            let fontSize = Math.min(realHeight * 0.8, realWidth / text.length * 2);
-            fontSize = Math.max(8, Math.min(72, fontSize));
-            
-            mainCtx.font = `bold ${fontSize}px Arial`;
+            let fontSize = calculateOptimalFontSize(context, text, realWidth, realHeight);
+            context.font = `bold ${fontSize}px Arial`;
             
             // Разбиваем текст на строки
+            const lines = wrapText(context, text, realWidth * 0.9);
+            
+            // Рисуем строки
+            const lineHeight = fontSize * 1.2;
+            const totalHeight = lines.length * lineHeight;
+            let y = realY + realHeight / 2 - totalHeight / 2 + lineHeight / 2;
+
+            lines.forEach(line => {
+                context.fillText(
+                    line,
+                    realX + realWidth / 2,
+                    y
+                );
+                y += lineHeight;
+            });
+
+            context.restore();
+        }
+
+        // Расчет оптимального размера шрифта
+        function calculateOptimalFontSize(context, text, maxWidth, maxHeight) {
+            let fontSize = Math.min(maxHeight * 0.8, maxWidth / text.length * 2);
+            fontSize = Math.max(8, Math.min(72, fontSize));
+            return fontSize;
+        }
+
+        // Перенос текста на несколько строк
+        function wrapText(context, text, maxWidth) {
             const words = text.split(' ');
             let lines = [];
             let currentLine = words[0];
 
             for (let i = 1; i < words.length; i++) {
                 const testLine = currentLine + ' ' + words[i];
-                const testWidth = mainCtx.measureText(testLine).width;
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
                 
-                if (testWidth <= realWidth * 0.9) {
+                if (testWidth <= maxWidth) {
                     currentLine = testLine;
                 } else {
                     lines.push(currentLine);
@@ -427,23 +483,7 @@
                 }
             }
             lines.push(currentLine);
-
-            // Рисуем строки
-            const lineHeight = fontSize * 1.2;
-            const totalHeight = lines.length * lineHeight;
-            let y = realY + realHeight / 2 - totalHeight / 2 + lineHeight / 2;
-
-            lines.forEach(line => {
-                mainCtx.fillText(
-                    line,
-                    realX + realWidth / 2,
-                    y,
-                    realWidth * 0.9
-                );
-                y += lineHeight;
-            });
-
-            mainCtx.restore();
+            return lines;
         }
 
         // Сброс вида
@@ -460,6 +500,7 @@
             
             currentSelection = null;
             clearSelection();
+            clearPreview();
         }
 
         // Обработчики жестов
@@ -476,6 +517,7 @@
             e.preventDefault();
             
             if (e.touches.length === 1) {
+                // Начало выделения
                 const touch = e.touches[0];
                 const rect = mainCanvas.getBoundingClientRect();
                 startX = touch.clientX - rect.left;
@@ -484,11 +526,14 @@
                 currentY = startY;
                 isDrawing = true;
                 clearSelection();
+                clearPreview();
             } else if (e.touches.length === 2) {
+                // Начало масштабирования/перемещения
                 isDragging = false;
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 lastTouchDistance = getTouchDistance(touch1, touch2);
+                lastTouchCenter = getTouchCenter(touch1, touch2);
             }
         }
 
@@ -496,42 +541,51 @@
             e.preventDefault();
             
             if (e.touches.length === 1 && isDrawing) {
+                // Продолжение выделения
                 const touch = e.touches[0];
                 const rect = mainCanvas.getBoundingClientRect();
                 currentX = touch.clientX - rect.left;
                 currentY = touch.clientY - rect.top;
                 drawSelection();
             } else if (e.touches.length === 2) {
+                // Масштабирование и перемещение
                 const touch1 = e.touches[0];
                 const touch2 = e.touches[1];
                 const touchDistance = getTouchDistance(touch1, touch2);
+                const touchCenter = getTouchCenter(touch1, touch2);
                 
-                if (lastTouchDistance !== null) {
+                if (lastTouchDistance !== null && lastTouchCenter !== null) {
+                    // Масштабирование
                     const scaleChange = touchDistance / lastTouchDistance;
                     scale *= scaleChange;
                     scale = Math.max(0.1, Math.min(5, scale));
                     
+                    // Перемещение
                     const rect = mainCanvas.getBoundingClientRect();
-                    const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
-                    const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+                    const deltaX = touchCenter.x - lastTouchCenter.x;
+                    const deltaY = touchCenter.y - lastTouchCenter.y;
                     
-                    offsetX = centerX - (centerX - offsetX) * scaleChange;
-                    offsetY = centerY - (centerY - offsetY) * scaleChange;
+                    offsetX += deltaX;
+                    offsetY += deltaY;
                     
                     drawImage();
+                    updateTextPreview();
                 }
                 
                 lastTouchDistance = touchDistance;
+                lastTouchCenter = touchCenter;
                 isDragging = true;
             }
         }
 
         function handleTouchEnd(e) {
             if (e.touches.length === 0 && isDrawing && !isDragging) {
+                // Завершение выделения
                 isDrawing = false;
                 finalizeSelection();
             }
             lastTouchDistance = null;
+            lastTouchCenter = null;
             isDragging = false;
         }
 
@@ -543,6 +597,7 @@
             currentY = startY;
             isDrawing = true;
             clearSelection();
+            clearPreview();
         }
 
         function handleMouseMove(e) {
@@ -561,10 +616,19 @@
             }
         }
 
+        // Вспомогательные функции для жестов
         function getTouchDistance(touch1, touch2) {
             const dx = touch1.clientX - touch2.clientX;
             const dy = touch1.clientY - touch2.clientY;
             return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function getTouchCenter(touch1, touch2) {
+            const rect = mainCanvas.getBoundingClientRect();
+            return {
+                x: (touch1.clientX + touch2.clientX) / 2 - rect.left,
+                y: (touch1.clientY + touch2.clientY) / 2 - rect.top
+            };
         }
 
         function drawSelection() {
@@ -584,6 +648,11 @@
             selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
         }
 
+        function clearPreview() {
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            previewInfo.style.display = 'none';
+        }
+
         function finalizeSelection() {
             const width = Math.abs(currentX - startX);
             const height = Math.abs(currentY - startY);
@@ -598,11 +667,56 @@
                 
                 confirmBtn.disabled = false;
                 status.textContent = 'Область выделена. Введите текст.';
+                // Включаем предпросмотр при вводе текста
+                textInput.addEventListener('input', updateTextPreview);
             } else {
                 currentSelection = null;
                 confirmBtn.disabled = true;
                 status.textContent = 'Выделите область для текста.';
+                textInput.removeEventListener('input', updateTextPreview);
+                clearPreview();
             }
+        }
+
+        // Обновление предпросмотра текста
+        function updateTextPreview() {
+            if (!currentSelection || !textInput.value.trim()) {
+                clearPreview();
+                return;
+            }
+
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            
+            const text = textInput.value.trim();
+            
+            // Вычисляем реальные координаты на изображении
+            const realX = (currentSelection.x - offsetX) / scale;
+            const realY = (currentSelection.y - offsetY) / scale;
+            const realWidth = currentSelection.width / scale;
+            const realHeight = currentSelection.height / scale;
+
+            const previewTextObj = {
+                realX: realX,
+                realY: realY,
+                realWidth: realWidth,
+                realHeight: realHeight,
+                text: text,
+                color: selectedColor
+            };
+
+            // Рисуем полупрозрачный фон для предпросмотра
+            previewCtx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+            previewCtx.fillRect(
+                currentSelection.x,
+                currentSelection.y,
+                currentSelection.width,
+                currentSelection.height
+            );
+
+            // Рисуем текст предпросмотра
+            drawSingleText(previewTextObj, previewCtx);
+            
+            previewInfo.style.display = 'block';
         }
 
         // Добавление текста
@@ -632,14 +746,16 @@
 
             addedTexts.push(textObj);
 
-            // Рисуем текст
-            drawSingleText(textObj);
+            // Перерисовываем изображение с новым текстом
+            drawImage();
             
             // Сброс для следующего текста
             textInput.value = '';
             confirmBtn.disabled = true;
             clearSelection();
+            clearPreview();
             currentSelection = null;
+            textInput.removeEventListener('input', updateTextPreview);
             
             status.textContent = 'Текст добавлен. Выделите новую область или скачайте результат.';
         }
@@ -647,8 +763,10 @@
         function resetSelection() {
             currentSelection = null;
             clearSelection();
+            clearPreview();
             confirmBtn.disabled = true;
             textInput.value = '';
+            textInput.removeEventListener('input', updateTextPreview);
             status.textContent = 'Выделение сброшено. Выделите новую область.';
         }
 
@@ -666,48 +784,7 @@
                 
                 // Рисуем все тексты
                 addedTexts.forEach(textObj => {
-                    tempCtx.save();
-                    tempCtx.fillStyle = textObj.color;
-                    tempCtx.textAlign = 'center';
-                    tempCtx.textBaseline = 'middle';
-
-                    let fontSize = Math.min(textObj.realHeight * 0.8, textObj.realWidth / textObj.text.length * 2);
-                    fontSize = Math.max(8, Math.min(72, fontSize));
-                    
-                    tempCtx.font = `bold ${fontSize}px Arial`;
-                    
-                    const words = textObj.text.split(' ');
-                    let lines = [];
-                    let currentLine = words[0];
-
-                    for (let i = 1; i < words.length; i++) {
-                        const testLine = currentLine + ' ' + words[i];
-                        const testWidth = tempCtx.measureText(testLine).width;
-                        
-                        if (testWidth <= textObj.realWidth * 0.9) {
-                            currentLine = testLine;
-                        } else {
-                            lines.push(currentLine);
-                            currentLine = words[i];
-                        }
-                    }
-                    lines.push(currentLine);
-
-                    const lineHeight = fontSize * 1.2;
-                    const totalHeight = lines.length * lineHeight;
-                    let y = textObj.realY + textObj.realHeight / 2 - totalHeight / 2 + lineHeight / 2;
-
-                    lines.forEach(line => {
-                        tempCtx.fillText(
-                            line,
-                            textObj.realX + textObj.realWidth / 2,
-                            y,
-                            textObj.realWidth * 0.9
-                        );
-                        y += lineHeight;
-                    });
-
-                    tempCtx.restore();
+                    drawSingleText(textObj, tempCtx);
                 });
             }
 
@@ -723,6 +800,7 @@
         window.addEventListener('resize', () => {
             initCanvasSize();
             drawImage();
+            updateTextPreview();
         });
     </script>
 </body>
