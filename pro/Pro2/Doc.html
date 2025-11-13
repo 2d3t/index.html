@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заполнение документов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 10px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            color: #ffffff;
+        }
+
+        .upload-section {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #e0e0e0;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 50vh;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            touch-action: none;
+        }
+
+        #mainCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #selectionCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .text-input-section {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 16px;
+            margin-bottom: 10px;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .color-picker {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #2d2d2d;
+            border-radius: 5px;
+        }
+
+        .color-label {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.active {
+            border-color: #fff;
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .confirm-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .confirm-btn:disabled {
+            background: #2d4a2f;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .download-btn {
+            background: #2196F3;
+            color: white;
+        }
+
+        .reset-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #2d2d2d;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .instructions {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #aaa;
+            border: 1px solid #333;
+        }
+
+        .instructions h3 {
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .instructions ul {
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Заполнение документов</h1>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf">
+        </div>
+
+        <div class="status" id="status">
+            Загрузите изображение или PDF документ
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="mainCanvas"></canvas>
+            <canvas id="selectionCanvas"></canvas>
+        </div>
+
+        <div class="text-input-section">
+            <textarea 
+                id="textInput" 
+                class="text-input" 
+                placeholder="Введите текст для вставки..."
+                disabled
+            ></textarea>
+            
+            <div class="color-picker">
+                <div class="color-label">Цвет текста:</div>
+                <div class="color-options">
+                    <div class="color-option active" style="background: #000000;" data-color="#000000" title="Черный"></div>
+                    <div class="color-option" style="background: #ffffff;" data-color="#ffffff" title="Белый"></div>
+                    <div class="color-option" style="background: #ff0000;" data-color="#ff0000" title="Красный"></div>
+                    <div class="color-option" style="background: #0000ff;" data-color="#0000ff" title="Синий"></div>
+                    <div class="color-option" style="background: #008000;" data-color="#008000" title="Зеленый"></div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="confirmBtn" class="confirm-btn" disabled>Подтвердить текст</button>
+                <button id="resetBtn" class="reset-btn">Сбросить выделение</button>
+            </div>
+            
+            <button id="downloadBtn" class="download-btn">Скачать результат</button>
+        </div>
+
+        <div class="instructions">
+            <h3>Инструкция:</h3>
+            <ul>
+                <li>Загрузите изображение или PDF</li>
+                <li>Масштабируйте двумя пальцами</li>
+                <li>Проведите пальцем для выделения области</li>
+                <li>Выберите цвет текста и введите текст</li>
+                <li>Нажмите "Подтвердить" для вставки</li>
+                <li>Скачайте готовый документ</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Основные переменные
+        const fileInput = document.getElementById('fileInput');
+        const mainCanvas = document.getElementById('mainCanvas');
+        const selectionCanvas = document.getElementById('selectionCanvas');
+        const textInput = document.getElementById('textInput');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const status = document.getElementById('status');
+        const colorOptions = document.querySelectorAll('.color-option');
+
+        const mainCtx = mainCanvas.getContext('2d');
+        const selectionCtx = selectionCanvas.getContext('2d');
+
+        let originalImage = null;
+        let isDrawing = false;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+        let isDragging = false;
+        let lastTouchDistance = null;
+        let currentSelection = null;
+        let selectedColor = '#000000';
+        let addedTexts = []; // Массив для хранения добавленных текстов
+
+        // Инициализация цветов
+        colorOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                colorOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                selectedColor = this.getAttribute('data-color');
+            });
+        });
+
+        // Инициализация размеров canvas
+        function initCanvasSize() {
+            const container = mainCanvas.parentElement;
+            mainCanvas.width = container.clientWidth;
+            mainCanvas.height = container.clientHeight;
+            selectionCanvas.width = container.clientWidth;
+            selectionCanvas.height = container.clientHeight;
+        }
+
+        // Загрузка файла
+        fileInput.addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            status.textContent = 'Загрузка...';
+
+            if (file.type === 'application/pdf') {
+                loadPDFPlaceholder();
+            } else {
+                loadImageFile(file);
+            }
+        }
+
+        function loadImageFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    originalImage = img;
+                    resetView();
+                    drawImage();
+                    status.textContent = 'Изображение загружено. Выделите область для текста.';
+                    textInput.disabled = false;
+                    addedTexts = []; // Очищаем предыдущие тексты
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function loadPDFPlaceholder() {
+            originalImage = null;
+            mainCtx.fillStyle = '#2d2d2d';
+            mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+            mainCtx.fillStyle = '#ffffff';
+            mainCtx.font = '20px Arial';
+            mainCtx.textAlign = 'center';
+            mainCtx.fillText('PDF Документ', mainCanvas.width / 2, mainCanvas.height / 2 - 20);
+            mainCtx.font = '16px Arial';
+            mainCtx.fillText('(Для демонстрации)', mainCanvas.width / 2, mainCanvas.height / 2 + 20);
+            
+            status.textContent = 'PDF загружен. Выделите область для текста.';
+            textInput.disabled = false;
+            addedTexts = []; // Очищаем предыдущие тексты
+        }
+
+        // Рисование изображения
+        function drawImage() {
+            if (!originalImage) return;
+
+            mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            
+            const scaledWidth = originalImage.width * scale;
+            const scaledHeight = originalImage.height * scale;
+            
+            mainCtx.drawImage(
+                originalImage,
+                offsetX, offsetY,
+                scaledWidth, scaledHeight
+            );
+
+            // Перерисовываем все добавленные тексты
+            redrawAllTexts();
+        }
+
+        // Перерисовка всех текстов
+        function redrawAllTexts() {
+            addedTexts.forEach(textObj => {
+                drawSingleText(textObj);
+            });
+        }
+
+        // Рисование одного текстового объекта
+        function drawSingleText(textObj) {
+            mainCtx.save();
+            
+            const realX = textObj.realX;
+            const realY = textObj.realY;
+            const realWidth = textObj.realWidth;
+            const realHeight = textObj.realHeight;
+            const text = textObj.text;
+            const color = textObj.color;
+
+            mainCtx.fillStyle = color;
+            mainCtx.textAlign = 'center';
+            mainCtx.textBaseline = 'middle';
+
+            // Автоподбор размера шрифта
+            let fontSize = Math.min(realHeight * 0.8, realWidth / text.length * 2);
+            fontSize = Math.max(8, Math.min(72, fontSize));
+            
+            mainCtx.font = `bold ${fontSize}px Arial`;
+            
+            // Разбиваем текст на строки
+            const words = text.split(' ');
+            let lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const testLine = currentLine + ' ' + words[i];
+                const testWidth = mainCtx.measureText(testLine).width;
+                
+                if (testWidth <= realWidth * 0.9) {
+                    currentLine = testLine;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+
+            // Рисуем строки
+            const lineHeight = fontSize * 1.2;
+            const totalHeight = lines.length * lineHeight;
+            let y = realY + realHeight / 2 - totalHeight / 2 + lineHeight / 2;
+
+            lines.forEach(line => {
+                mainCtx.fillText(
+                    line,
+                    realX + realWidth / 2,
+                    y,
+                    realWidth * 0.9
+                );
+                y += lineHeight;
+            });
+
+            mainCtx.restore();
+        }
+
+        // Сброс вида
+        function resetView() {
+            if (!originalImage) return;
+
+            scale = Math.min(
+                mainCanvas.width / originalImage.width,
+                mainCanvas.height / originalImage.height
+            ) * 0.9;
+            
+            offsetX = (mainCanvas.width - originalImage.width * scale) / 2;
+            offsetY = (mainCanvas.height - originalImage.height * scale) / 2;
+            
+            currentSelection = null;
+            clearSelection();
+        }
+
+        // Обработчики жестов
+        mainCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        mainCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        mainCanvas.addEventListener('touchend', handleTouchEnd);
+
+        mainCanvas.addEventListener('mousedown', handleMouseDown);
+        mainCanvas.addEventListener('mousemove', handleMouseMove);
+        mainCanvas.addEventListener('mouseup', handleMouseUp);
+        mainCanvas.addEventListener('mouseleave', handleMouseUp);
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const rect = mainCanvas.getBoundingClientRect();
+                startX = touch.clientX - rect.left;
+                startY = touch.clientY - rect.top;
+                currentX = startX;
+                currentY = startY;
+                isDrawing = true;
+                clearSelection();
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                lastTouchDistance = getTouchDistance(touch1, touch2);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            
+            if (e.touches.length === 1 && isDrawing) {
+                const touch = e.touches[0];
+                const rect = mainCanvas.getBoundingClientRect();
+                currentX = touch.clientX - rect.left;
+                currentY = touch.clientY - rect.top;
+                drawSelection();
+            } else if (e.touches.length === 2) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const touchDistance = getTouchDistance(touch1, touch2);
+                
+                if (lastTouchDistance !== null) {
+                    const scaleChange = touchDistance / lastTouchDistance;
+                    scale *= scaleChange;
+                    scale = Math.max(0.1, Math.min(5, scale));
+                    
+                    const rect = mainCanvas.getBoundingClientRect();
+                    const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+                    const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+                    
+                    offsetX = centerX - (centerX - offsetX) * scaleChange;
+                    offsetY = centerY - (centerY - offsetY) * scaleChange;
+                    
+                    drawImage();
+                }
+                
+                lastTouchDistance = touchDistance;
+                isDragging = true;
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (e.touches.length === 0 && isDrawing && !isDragging) {
+                isDrawing = false;
+                finalizeSelection();
+            }
+            lastTouchDistance = null;
+            isDragging = false;
+        }
+
+        function handleMouseDown(e) {
+            const rect = mainCanvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            currentX = startX;
+            currentY = startY;
+            isDrawing = true;
+            clearSelection();
+        }
+
+        function handleMouseMove(e) {
+            if (!isDrawing) return;
+            
+            const rect = mainCanvas.getBoundingClientRect();
+            currentX = e.clientX - rect.left;
+            currentY = e.clientY - rect.top;
+            drawSelection();
+        }
+
+        function handleMouseUp() {
+            if (isDrawing) {
+                isDrawing = false;
+                finalizeSelection();
+            }
+        }
+
+        function getTouchDistance(touch1, touch2) {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function drawSelection() {
+            selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+            selectionCtx.strokeStyle = '#4CAF50';
+            selectionCtx.lineWidth = 2;
+            selectionCtx.setLineDash([5, 5]);
+            selectionCtx.strokeRect(
+                Math.min(startX, currentX),
+                Math.min(startY, currentY),
+                Math.abs(currentX - startX),
+                Math.abs(currentY - startY)
+            );
+        }
+
+        function clearSelection() {
+            selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
+        }
+
+        function finalizeSelection() {
+            const width = Math.abs(currentX - startX);
+            const height = Math.abs(currentY - startY);
+            
+            if (width > 10 && height > 10) {
+                currentSelection = {
+                    x: Math.min(startX, currentX),
+                    y: Math.min(startY, currentY),
+                    width: width,
+                    height: height
+                };
+                
+                confirmBtn.disabled = false;
+                status.textContent = 'Область выделена. Введите текст.';
+            } else {
+                currentSelection = null;
+                confirmBtn.disabled = true;
+                status.textContent = 'Выделите область для текста.';
+            }
+        }
+
+        // Добавление текста
+        confirmBtn.addEventListener('click', addTextToCanvas);
+        resetBtn.addEventListener('click', resetSelection);
+        downloadBtn.addEventListener('click', downloadResult);
+
+        function addTextToCanvas() {
+            const text = textInput.value.trim();
+            if (!text || !currentSelection) return;
+
+            // Вычисляем реальные координаты на изображении
+            const realX = (currentSelection.x - offsetX) / scale;
+            const realY = (currentSelection.y - offsetY) / scale;
+            const realWidth = currentSelection.width / scale;
+            const realHeight = currentSelection.height / scale;
+
+            // Сохраняем текст в массив
+            const textObj = {
+                realX: realX,
+                realY: realY,
+                realWidth: realWidth,
+                realHeight: realHeight,
+                text: text,
+                color: selectedColor
+            };
+
+            addedTexts.push(textObj);
+
+            // Рисуем текст
+            drawSingleText(textObj);
+            
+            // Сброс для следующего текста
+            textInput.value = '';
+            confirmBtn.disabled = true;
+            clearSelection();
+            currentSelection = null;
+            
+            status.textContent = 'Текст добавлен. Выделите новую область или скачайте результат.';
+        }
+
+        function resetSelection() {
+            currentSelection = null;
+            clearSelection();
+            confirmBtn.disabled = true;
+            textInput.value = '';
+            status.textContent = 'Выделение сброшено. Выделите новую область.';
+        }
+
+        function downloadResult() {
+            // Создаем временный canvas для скачивания
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            if (originalImage) {
+                tempCanvas.width = originalImage.width;
+                tempCanvas.height = originalImage.height;
+                
+                // Рисуем оригинальное изображение
+                tempCtx.drawImage(originalImage, 0, 0);
+                
+                // Рисуем все тексты
+                addedTexts.forEach(textObj => {
+                    tempCtx.save();
+                    tempCtx.fillStyle = textObj.color;
+                    tempCtx.textAlign = 'center';
+                    tempCtx.textBaseline = 'middle';
+
+                    let fontSize = Math.min(textObj.realHeight * 0.8, textObj.realWidth / textObj.text.length * 2);
+                    fontSize = Math.max(8, Math.min(72, fontSize));
+                    
+                    tempCtx.font = `bold ${fontSize}px Arial`;
+                    
+                    const words = textObj.text.split(' ');
+                    let lines = [];
+                    let currentLine = words[0];
+
+                    for (let i = 1; i < words.length; i++) {
+                        const testLine = currentLine + ' ' + words[i];
+                        const testWidth = tempCtx.measureText(testLine).width;
+                        
+                        if (testWidth <= textObj.realWidth * 0.9) {
+                            currentLine = testLine;
+                        } else {
+                            lines.push(currentLine);
+                            currentLine = words[i];
+                        }
+                    }
+                    lines.push(currentLine);
+
+                    const lineHeight = fontSize * 1.2;
+                    const totalHeight = lines.length * lineHeight;
+                    let y = textObj.realY + textObj.realHeight / 2 - totalHeight / 2 + lineHeight / 2;
+
+                    lines.forEach(line => {
+                        tempCtx.fillText(
+                            line,
+                            textObj.realX + textObj.realWidth / 2,
+                            y,
+                            textObj.realWidth * 0.9
+                        );
+                        y += lineHeight;
+                    });
+
+                    tempCtx.restore();
+                });
+            }
+
+            const link = document.createElement('a');
+            link.download = 'document-with-text.png';
+            link.href = tempCanvas.toDataURL();
+            link.click();
+            status.textContent = 'Изображение сохранено!';
+        }
+
+        // Инициализация
+        window.addEventListener('load', initCanvasSize);
+        window.addEventListener('resize', () => {
+            initCanvasSize();
+            drawImage();
+        });
+    </script>
+</body>
+</html>
