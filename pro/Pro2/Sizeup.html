@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Увеличение изображений</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 15px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #bb86fc;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed #bb86fc;
+            border-radius: 8px;
+            padding: 25px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+        }
+
+        .upload-area:hover {
+            background-color: #252525;
+        }
+
+        .upload-area p {
+            margin: 10px 0;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            color: #bb86fc;
+            margin-bottom: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #bb86fc;
+        }
+
+        select, button {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: #bb86fc;
+            color: #121212;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #9a67ea;
+        }
+
+        button:disabled {
+            background-color: #3e3e3e;
+            color: #6d6d6d;
+            cursor: not-allowed;
+        }
+
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preview-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .preview-label {
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            border-radius: 8px;
+            background-color: #2d2d2d;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .size-info {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: #a0a0a0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #2d2d2d;
+            border-top: 3px solid #bb86fc;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .algorithm-info {
+            font-size: 0.85rem;
+            color: #a0a0a0;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Увеличение изображений</h1>
+        
+        <div class="card">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <p>Нажмите для загрузки изображения</p>
+                <p class="algorithm-info">Поддерживаются JPG, PNG, GIF</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="card controls hidden" id="controls">
+            <div class="control-group">
+                <label for="scaleSelect">Коэффициент увеличения:</label>
+                <select id="scaleSelect">
+                    <option value="2">2x (в 2 раза)</option>
+                    <option value="3">3x (в 3 раза)</option>
+                    <option value="4">4x (в 4 раза)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="algorithmSelect">Алгоритм масштабирования:</label>
+                <select id="algorithmSelect">
+                    <option value="pixelated">Пиксельный (четкие края)</option>
+                    <option value="smooth">Сглаженный (бикубический)</option>
+                    <option value="crisp">Четкий (билинейный)</option>
+                </select>
+                <p class="algorithm-info">Пиксельный лучше для пиксель-арта, сглаженный для фото</p>
+            </div>
+            
+            <button id="processBtn">Увеличить изображение</button>
+        </div>
+
+        <div class="card preview-container hidden" id="previewContainer">
+            <div class="preview-box">
+                <div class="preview-label">Исходное изображение</div>
+                <canvas id="originalCanvas"></canvas>
+                <div class="size-info" id="originalSize"></div>
+            </div>
+            
+            <div class="preview-box">
+                <div class="preview-label">Увеличенное изображение</div>
+                <canvas id="resultCanvas"></canvas>
+                <div class="size-info" id="resultSize"></div>
+            </div>
+            
+            <button id="downloadBtn">Скачать увеличенное изображение</button>
+        </div>
+
+        <div class="card loading hidden" id="loading">
+            <div class="spinner"></div>
+            <p>Обработка изображения...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Элементы DOM
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const controls = document.getElementById('controls');
+            const previewContainer = document.getElementById('previewContainer');
+            const loading = document.getElementById('loading');
+            const originalCanvas = document.getElementById('originalCanvas');
+            const resultCanvas = document.getElementById('resultCanvas');
+            const originalSize = document.getElementById('originalSize');
+            const resultSize = document.getElementById('resultSize');
+            const scaleSelect = document.getElementById('scaleSelect');
+            const algorithmSelect = document.getElementById('algorithmSelect');
+            const processBtn = document.getElementById('processBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            let originalImage = null;
+            
+            // Обработчики событий
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleImageUpload);
+            processBtn.addEventListener('click', processImage);
+            downloadBtn.addEventListener('click', downloadImage);
+            
+            // Загрузка изображения
+            function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                if (!file.type.match('image.*')) {
+                    alert('Пожалуйста, выберите файл изображения');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    originalImage = new Image();
+                    originalImage.onload = function() {
+                        displayOriginalImage();
+                        controls.classList.remove('hidden');
+                    };
+                    originalImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // Отображение исходного изображения
+            function displayOriginalImage() {
+                const maxWidth = Math.min(originalImage.width, 300);
+                const scaleFactor = maxWidth / originalImage.width;
+                const displayHeight = originalImage.height * scaleFactor;
+                
+                originalCanvas.width = maxWidth;
+                originalCanvas.height = displayHeight;
+                
+                const ctx = originalCanvas.getContext('2d');
+                ctx.drawImage(originalImage, 0, 0, maxWidth, displayHeight);
+                
+                originalSize.textContent = `${originalImage.width} × ${originalImage.height} пикселей`;
+            }
+            
+            // Обработка изображения
+            function processImage() {
+                if (!originalImage) return;
+                
+                loading.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                
+                // Используем setTimeout чтобы дать интерфейсу обновиться
+                setTimeout(() => {
+                    const scale = parseInt(scaleSelect.value);
+                    const algorithm = algorithmSelect.value;
+                    
+                    const originalWidth = originalImage.width;
+                    const originalHeight = originalImage.height;
+                    const newWidth = originalWidth * scale;
+                    const newHeight = originalHeight * scale;
+                    
+                    // Устанавливаем размер canvas для результата
+                    const maxDisplayWidth = Math.min(newWidth, 300);
+                    const scaleFactor = maxDisplayWidth / newWidth;
+                    const displayHeight = newHeight * scaleFactor;
+                    
+                    resultCanvas.width = maxDisplayWidth;
+                    resultCanvas.height = displayHeight;
+                    
+                    // Создаем временный canvas для увеличения
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = newWidth;
+                    tempCanvas.height = newHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    // Применяем выбранный алгоритм масштабирования
+                    if (algorithm === 'pixelated') {
+                        // Пиксельный алгоритм (ближайший сосед)
+                        tempCtx.imageSmoothingEnabled = false;
+                        tempCtx.mozImageSmoothingEnabled = false;
+                        tempCtx.webkitImageSmoothingEnabled = false;
+                        tempCtx.msImageSmoothingEnabled = false;
+                    } else if (algorithm === 'smooth') {
+                        // Сглаженный алгоритм (бикубический)
+                        tempCtx.imageSmoothingEnabled = true;
+                        tempCtx.imageSmoothingQuality = 'high';
+                    } else {
+                        // Четкий алгоритм (билинейный)
+                        tempCtx.imageSmoothingEnabled = true;
+                        tempCtx.imageSmoothingQuality = 'medium';
+                    }
+                    
+                    // Рисуем увеличенное изображение
+                    tempCtx.drawImage(originalImage, 0, 0, newWidth, newHeight);
+                    
+                    // Отображаем результат
+                    const resultCtx = resultCanvas.getContext('2d');
+                    resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+                    resultCtx.drawImage(tempCanvas, 0, 0, resultCanvas.width, resultCanvas.height);
+                    
+                    resultSize.textContent = `${newWidth} × ${newHeight} пикселей`;
+                    
+                    loading.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                }, 100);
+            }
+            
+            // Скачивание изображения
+            function downloadImage() {
+                if (!originalImage) return;
+                
+                const scale = parseInt(scaleSelect.value);
+                const originalWidth = originalImage.width;
+                const originalHeight = originalImage.height;
+                const newWidth = originalWidth * scale;
+                const newHeight = originalHeight * scale;
+                
+                // Создаем canvas в полном размере
+                const downloadCanvas = document.createElement('canvas');
+                downloadCanvas.width = newWidth;
+                downloadCanvas.height = newHeight;
+                const downloadCtx = downloadCanvas.getContext('2d');
+                
+                // Применяем те же настройки сглаживания
+                const algorithm = algorithmSelect.value;
+                if (algorithm === 'pixelated') {
+                    downloadCtx.imageSmoothingEnabled = false;
+                    downloadCtx.mozImageSmoothingEnabled = false;
+                    downloadCtx.webkitImageSmoothingEnabled = false;
+                    downloadCtx.msImageSmoothingEnabled = false;
+                } else if (algorithm === 'smooth') {
+                    downloadCtx.imageSmoothingEnabled = true;
+                    downloadCtx.imageSmoothingQuality = 'high';
+                } else {
+                    downloadCtx.imageSmoothingEnabled = true;
+                    downloadCtx.imageSmoothingQuality = 'medium';
+                }
+                
+                // Рисуем изображение в полном размере
+                downloadCtx.drawImage(originalImage, 0, 0, newWidth, newHeight);
+                
+                // Создаем ссылку для скачивания
+                const link = document.createElement('a');
+                link.download = `upscaled-image-${scale}x.png`;
+                link.href = downloadCanvas.toDataURL('image/png');
+                link.click();
+            }
+        });
+    </script>
+</body>
+</html>
