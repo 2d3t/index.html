@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Календарь с фотографиями</title>
+    <title>Календарь с фотографиями и отметками</title>
     <style>
         :root {
             --bg-color: #f0f0f0;
@@ -17,6 +17,8 @@
             --button-hover: #45a049;
             --gallery-border: #ddd;
             --gallery-bg: white;
+            --marked-day-bg: #4CAF50;
+            --today-bg: #2196F3;
         }
 
         .theme-dark {
@@ -31,6 +33,8 @@
             --button-hover: #2E7D32;
             --gallery-border: #444;
             --gallery-bg: #3d3d3d;
+            --marked-day-bg: #388E3C;
+            --today-bg: #1565C0;
         }
 
         body {
@@ -98,10 +102,27 @@
             max-height: 50px;
             color: var(--text-color);
             transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
         }
         .weekend {
             background-color: var(--weekend-bg);
             color: var(--text-color);
+        }
+        .marked {
+            background-color: var(--marked-day-bg);
+            color: white;
+        }
+        .today {
+            background-color: var(--today-bg);
+            color: white;
+        }
+        .mark-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.7em;
+            color: white;
         }
         .month-year {
             font-size: 1.5em;
@@ -197,6 +218,14 @@
             background: #ffcccc !important;
             color: #333 !important;
         }
+        .download-version-light .marked {
+            background: #4CAF50 !important;
+            color: white !important;
+        }
+        .download-version-light .today {
+            background: #2196F3 !important;
+            color: white !important;
+        }
         .download-version-light .month-year {
             color: #333 !important;
         }
@@ -222,6 +251,14 @@
             background: #8b0000 !important;
             color: #ffffff !important;
         }
+        .download-version-dark .marked {
+            background: #388E3C !important;
+            color: white !important;
+        }
+        .download-version-dark .today {
+            background: #1565C0 !important;
+            color: white !important;
+        }
         .download-version-dark .month-year {
             color: #ffffff !important;
         }
@@ -243,6 +280,7 @@
         </div>
         <select id="yearSelector" onchange="generateCalendar()"></select>
         <select id="monthSelector" onchange="generateCalendar()"></select>
+        <button onclick="markToday()">Отметить сегодня</button>
         <button onclick="downloadCalendar()">Скачать календарь</button>
         <button class="theme-toggle" onclick="toggleTheme()">
             <span class="theme-icon">🌙</span>
@@ -259,6 +297,7 @@
     <script>
         let uploadedImages = [];
         let currentTheme = 'light';
+        let markedDays = JSON.parse(localStorage.getItem('markedDays')) || {};
 
         function initYearSelector() {
             const yearSelector = document.getElementById('yearSelector');
@@ -312,10 +351,79 @@
                 calendar.innerHTML += '<div class="day"></div>';
             }
 
+            const today = new Date();
+            const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+
             for (let day = 1; day <= daysInMonth; day++) {
-                const dayClass = (firstDay + day) % 7 === 0 || (firstDay + day) % 7 === 6 ? 'day weekend' : 'day';
-                calendar.innerHTML += `<div class="${dayClass}">${day}</div>`;
+                let dayClass = (firstDay + day) % 7 === 0 || (firstDay + day) % 7 === 6 ? 'day weekend' : 'day';
+                
+                // Проверяем, является ли день сегодняшним
+                if (isCurrentMonth && day === today.getDate()) {
+                    dayClass += ' today';
+                }
+                
+                // Проверяем, отмечен ли день
+                const dayKey = `${year}-${month}-${day}`;
+                if (markedDays[dayKey]) {
+                    dayClass += ' marked';
+                }
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = dayClass;
+                dayDiv.textContent = day;
+                
+                // Добавляем индикатор отметки, если день отмечен
+                if (markedDays[dayKey]) {
+                    const markIndicator = document.createElement('div');
+                    markIndicator.className = 'mark-indicator';
+                    markIndicator.textContent = '✓';
+                    dayDiv.appendChild(markIndicator);
+                }
+                
+                // Добавляем обработчик клика для отметки/снятия отметки
+                dayDiv.addEventListener('click', function() {
+                    toggleDayMark(year, month, day);
+                });
+                
+                calendar.appendChild(dayDiv);
             }
+        }
+
+        function toggleDayMark(year, month, day) {
+            const dayKey = `${year}-${month}-${day}`;
+            
+            if (markedDays[dayKey]) {
+                delete markedDays[dayKey];
+            } else {
+                markedDays[dayKey] = true;
+            }
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('markedDays', JSON.stringify(markedDays));
+            
+            // Перерисовываем календарь
+            generateCalendar();
+        }
+
+        function markToday() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            const day = today.getDate();
+            
+            // Устанавливаем выбранные месяц и год
+            document.getElementById('yearSelector').value = year;
+            document.getElementById('monthSelector').value = month;
+            
+            // Отмечаем сегодняшний день
+            const dayKey = `${year}-${month}-${day}`;
+            markedDays[dayKey] = true;
+            
+            // Сохраняем в localStorage
+            localStorage.setItem('markedDays', JSON.stringify(markedDays));
+            
+            // Перерисовываем календарь
+            generateCalendar();
         }
 
         function toggleTheme() {
