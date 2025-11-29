@@ -17,6 +17,7 @@
             --border: #333333;
             --success: #4caf50;
             --danger: #f44336;
+            --warning: #ff9800;
         }
 
         * {
@@ -136,6 +137,22 @@
             background-color: #d32f2f;
         }
 
+        button.success {
+            background-color: var(--success);
+        }
+
+        button.success:hover {
+            background-color: #388e3c;
+        }
+
+        button.warning {
+            background-color: var(--warning);
+        }
+
+        button.warning:hover {
+            background-color: #f57c00;
+        }
+
         .playlist-list {
             flex: 1;
             overflow-y: auto;
@@ -203,6 +220,10 @@
             background-color: var(--primary-dark);
         }
 
+        .track-item .track-info {
+            flex: 1;
+        }
+
         .track-item .title {
             font-weight: 500;
             margin-bottom: 3px;
@@ -215,6 +236,17 @@
 
         .track-item .duration {
             color: var(--text-muted);
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .track-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .track-actions button {
+            padding: 4px 8px;
             font-size: 12px;
         }
 
@@ -312,6 +344,23 @@
             border-radius: 50%;
             background: var(--primary);
             cursor: pointer;
+        }
+
+        .player-mode-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .player-mode-controls button {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        .player-mode-controls button.active {
+            background-color: var(--primary-dark);
+            border: 1px solid var(--primary);
         }
 
         .modal {
@@ -418,6 +467,16 @@
             button {
                 justify-content: center;
             }
+            
+            .track-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .track-actions {
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
@@ -478,6 +537,11 @@
                     <button id="playPauseBtn" class="play-pause">▶</button>
                     <button id="nextBtn">⏭</button>
                 </div>
+
+                <div class="player-mode-controls">
+                    <button id="shuffleBtn" class="secondary">🔀 Случайный порядок: Выкл</button>
+                    <button id="repeatBtn" class="secondary">🔁 Повтор: Выкл</button>
+                </div>
                 
                 <div class="volume-control">
                     <span>🔊</span>
@@ -524,6 +588,9 @@
         let currentTrackIndex = -1;
         let audio = new Audio();
         let isPlaying = false;
+        let isShuffle = false;
+        let isRepeat = false;
+        let playedTracks = []; // Для отслеживания воспроизведенных треков в режиме shuffle
         
         // Элементы DOM
         const playlistList = document.getElementById('playlistList');
@@ -536,6 +603,8 @@
         const playPauseBtn = document.getElementById('playPauseBtn');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const repeatBtn = document.getElementById('repeatBtn');
         const progressBar = document.getElementById('progressBar');
         const progress = document.getElementById('progress');
         const currentTimeEl = document.getElementById('currentTime');
@@ -568,11 +637,13 @@
             playPauseBtn.addEventListener('click', togglePlayPause);
             prevBtn.addEventListener('click', playPreviousTrack);
             nextBtn.addEventListener('click', playNextTrack);
+            shuffleBtn.addEventListener('click', toggleShuffle);
+            repeatBtn.addEventListener('click', toggleRepeat);
             progressBar.addEventListener('click', seek);
             volumeSlider.addEventListener('input', setVolume);
             audio.addEventListener('timeupdate', updateProgress);
             audio.addEventListener('loadedmetadata', setDuration);
-            audio.addEventListener('ended', playNextTrack);
+            audio.addEventListener('ended', handleTrackEnd);
             
             // Модальные окна
             confirmCreatePlaylist.addEventListener('click', createNewPlaylist);
@@ -583,6 +654,7 @@
             // Обновление интерфейса
             updatePlaylistList();
             updateTrackList();
+            updateModeButtons();
         }
         
         // Функции для работы с плейлистами
@@ -649,6 +721,7 @@
         function selectPlaylist(index) {
             currentPlaylistIndex = index;
             currentTrackIndex = -1;
+            playedTracks = []; // Сбрасываем историю воспроизведения
             audio.pause();
             isPlaying = false;
             updatePlayPauseButton();
@@ -663,6 +736,7 @@
                 if (currentPlaylistIndex === index) {
                     currentPlaylistIndex = -1;
                     currentTrackIndex = -1;
+                    playedTracks = [];
                     audio.pause();
                     isPlaying = false;
                     updatePlayPauseButton();
@@ -728,19 +802,59 @@
                 const trackItem = document.createElement('div');
                 trackItem.className = `track-item ${index === currentTrackIndex ? 'playing' : ''}`;
                 trackItem.innerHTML = `
-                    <div>
+                    <div class="track-info">
                         <div class="title">${track.title}</div>
                         <div class="artist">${track.artist}</div>
                     </div>
-                    <div class="duration">${track.duration}</div>
+                    <div class="track-actions">
+                        <div class="duration">${track.duration}</div>
+                        <button class="danger delete-track" data-index="${index}">✕</button>
+                    </div>
                 `;
                 
-                trackItem.addEventListener('click', () => {
-                    playTrack(index);
+                trackItem.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('delete-track')) {
+                        playTrack(index);
+                    }
+                });
+                
+                const deleteBtn = trackItem.querySelector('.delete-track');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteTrack(index);
                 });
                 
                 trackList.appendChild(trackItem);
             });
+        }
+        
+        function deleteTrack(index) {
+            if (currentPlaylistIndex === -1) return;
+            
+            const trackName = playlists[currentPlaylistIndex].tracks[index].title;
+            if (confirm(`Удалить трек "${trackName}" из плейлиста?`)) {
+                // Если удаляется текущий трек, останавливаем воспроизведение
+                if (index === currentTrackIndex) {
+                    audio.pause();
+                    isPlaying = false;
+                    updatePlayPauseButton();
+                    currentTrackIndex = -1;
+                    updateCurrentTrackInfo();
+                } else if (index < currentTrackIndex) {
+                    // Корректируем индекс текущего трека если нужно
+                    currentTrackIndex--;
+                }
+                
+                // Удаляем трек из плейлиста
+                playlists[currentPlaylistIndex].tracks.splice(index, 1);
+                
+                // Обновляем playedTracks
+                playedTracks = playedTracks.filter(trackIdx => trackIdx !== index);
+                playedTracks = playedTracks.map(trackIdx => trackIdx > index ? trackIdx - 1 : trackIdx);
+                
+                updateTrackList();
+                savePlaylistsToStorage();
+            }
         }
         
         function playTrack(index) {
@@ -749,6 +863,11 @@
             const track = playlists[currentPlaylistIndex].tracks[index];
             audio.src = track.url;
             currentTrackIndex = index;
+            
+            // Добавляем трек в историю воспроизведения для режима shuffle
+            if (isShuffle && !playedTracks.includes(index)) {
+                playedTracks.push(index);
+            }
             
             audio.play().then(() => {
                 isPlaying = true;
@@ -783,23 +902,101 @@
         function playPreviousTrack() {
             if (currentPlaylistIndex === -1 || currentTrackIndex === -1) return;
             
-            const tracks = playlists[currentPlaylistIndex].tracks;
-            let newIndex = currentTrackIndex - 1;
-            if (newIndex < 0) {
-                newIndex = tracks.length - 1;
+            if (isShuffle) {
+                // В режиме shuffle возвращаемся к предыдущему треку из истории
+                const currentIndexInHistory = playedTracks.indexOf(currentTrackIndex);
+                if (currentIndexInHistory > 0) {
+                    const prevIndex = playedTracks[currentIndexInHistory - 1];
+                    playTrack(prevIndex);
+                } else {
+                    // Если это первый трек в истории, выбираем случайный
+                    playRandomTrack();
+                }
+            } else {
+                // Обычный режим - предыдущий по порядку
+                const tracks = playlists[currentPlaylistIndex].tracks;
+                let newIndex = currentTrackIndex - 1;
+                if (newIndex < 0) {
+                    newIndex = tracks.length - 1;
+                }
+                playTrack(newIndex);
             }
-            playTrack(newIndex);
         }
         
         function playNextTrack() {
             if (currentPlaylistIndex === -1 || currentTrackIndex === -1) return;
             
-            const tracks = playlists[currentPlaylistIndex].tracks;
-            let newIndex = currentTrackIndex + 1;
-            if (newIndex >= tracks.length) {
-                newIndex = 0;
+            if (isShuffle) {
+                playRandomTrack();
+            } else {
+                const tracks = playlists[currentPlaylistIndex].tracks;
+                let newIndex = currentTrackIndex + 1;
+                if (newIndex >= tracks.length) {
+                    newIndex = 0;
+                }
+                playTrack(newIndex);
             }
-            playTrack(newIndex);
+        }
+        
+        function playRandomTrack() {
+            if (currentPlaylistIndex === -1) return;
+            
+            const tracks = playlists[currentPlaylistIndex].tracks;
+            if (tracks.length === 0) return;
+            
+            // Если все треки уже были воспроизведены, сбрасываем историю
+            if (playedTracks.length >= tracks.length) {
+                playedTracks = [];
+            }
+            
+            // Выбираем случайный трек из тех, что еще не воспроизводились
+            let availableTracks = [];
+            for (let i = 0; i < tracks.length; i++) {
+                if (!playedTracks.includes(i)) {
+                    availableTracks.push(i);
+                }
+            }
+            
+            if (availableTracks.length > 0) {
+                const randomIndex = Math.floor(Math.random() * availableTracks.length);
+                playTrack(availableTracks[randomIndex]);
+            } else {
+                // На всякий случай, если что-то пошло не так
+                const randomIndex = Math.floor(Math.random() * tracks.length);
+                playTrack(randomIndex);
+            }
+        }
+        
+        function handleTrackEnd() {
+            if (isRepeat) {
+                // Повтор текущего трека
+                audio.currentTime = 0;
+                audio.play();
+            } else {
+                playNextTrack();
+            }
+        }
+        
+        function toggleShuffle() {
+            isShuffle = !isShuffle;
+            playedTracks = []; // Сбрасываем историю при включении/выключении shuffle
+            if (isShuffle && currentTrackIndex !== -1) {
+                playedTracks.push(currentTrackIndex); // Добавляем текущий трек в историю
+            }
+            updateModeButtons();
+        }
+        
+        function toggleRepeat() {
+            isRepeat = !isRepeat;
+            updateModeButtons();
+        }
+        
+        function updateModeButtons() {
+            shuffleBtn.textContent = `🔀 Случайный порядок: ${isShuffle ? 'Вкл' : 'Выкл'}`;
+            shuffleBtn.classList.toggle('active', isShuffle);
+            
+            repeatBtn.textContent = `🔁 Повтор: ${isRepeat ? 'Вкл' : 'Выкл'}`;
+            repeatBtn.classList.toggle('active', isRepeat);
         }
         
         function updatePlayPauseButton() {
@@ -943,6 +1140,7 @@
                     playlists = loadedPlaylists;
                     currentPlaylistIndex = -1;
                     currentTrackIndex = -1;
+                    playedTracks = [];
                     audio.pause();
                     isPlaying = false;
                     updatePlayPauseButton();
