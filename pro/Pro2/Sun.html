@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Динамическое солнце</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+        }
+
+        .sky {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d); /* Синее небо с градиентом */
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to bottom, #2e7d32, #1b5e20); /* Зелёная земля */
+            border-radius: 0 0 20px 20px;
+        }
+
+        .horizon {
+            position: absolute;
+            bottom: 50px; /* Высота земли */
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            z-index: 2;
+        }
+
+        .sun-path {
+            position: absolute;
+            bottom: 50px; /* Высота земли */
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 1;
+            transform-origin: bottom center;
+            transform: rotate(180deg);
+        }
+
+        .sun {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle at 30% 30%, #ffec6b, #ff9a44, #ff6b6b);
+            border-radius: 50%;
+            box-shadow: 0 0 30px #ffec6b, 0 0 60px #ff9a44;
+            transition: all 0.5s ease;
+            z-index: 3;
+        }
+
+        .time-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .time-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .time-info p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 480px) {
+            .sun {
+                width: 60px;
+                height: 60px;
+            }
+
+            .time-info h2 {
+                font-size: 1.2rem;
+            }
+
+            .time-info p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sky">
+            <div class="ground"></div>
+            <div class="horizon"></div>
+            <div class="sun-path"></div>
+            <div class="sun" id="sun"></div>
+        </div>
+
+        <div class="time-info">
+            <h2>Текущее время</h2>
+            <p id="current-time"></p>
+        </div>
+    </div>
+
+    <script>
+        function updateSunPosition() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            // Обновляем отображение времени
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('current-time').textContent = timeString;
+
+            // Рассчитываем позицию солнца (от 6:00 до 18:00)
+            const skyElement = document.querySelector('.sky');
+            const sunElement = document.getElementById('sun');
+            const skyWidth = skyElement.offsetWidth;
+            const skyHeight = skyElement.offsetHeight - 50; // Учитываем высоту земли
+
+            // Нормализуем время в диапазон 0-1
+            let timeRatio;
+            if (hours < 6 || hours >= 18) {
+                // Ночь - солнце скрыто
+                sunElement.style.opacity = '0';
+                return;
+            } else {
+                sunElement.style.opacity = '1';
+                timeRatio = (hours + minutes/60 + seconds/3600 - 6) / 12;
+            }
+
+            // Рассчитываем позицию X (лево-право)
+            const sunX = timeRatio * skyWidth;
+
+            // Рассчитываем позицию Y (высота над горизонтом)
+            // Используем параболу для более естественного движения
+            const sunY = skyHeight - (Math.pow(2 * timeRatio - 1, 2) * skyHeight * 0.8 + skyHeight * 0.2);
+
+            // Применяем позицию
+            sunElement.style.left = `${sunX - sunElement.offsetWidth/2}px`;
+            sunElement.style.top = `${sunY - sunElement.offsetHeight/2}px`;
+
+            // Меняем цвет неба в зависимости от времени
+            if (hours >= 6 && hours < 9) {
+                // Утро (синее небо с оранжевым закатом)
+                skyElement.style.background = 'linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d)';
+            } else if (hours >= 9 && hours < 15) {
+                // День (светло-синее небо)
+                skyElement.style.background = 'linear-gradient(to bottom, #1a2a6c, #2a5298, #4a8abf)';
+            } else if (hours >= 15 && hours < 18) {
+                // Вечер (оранжевый закат)
+                skyElement.style.background = 'linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d)';
+            }
+        }
+
+        // Обновляем каждую секунду
+        setInterval(updateSunPosition, 1000);
+
+        // Первоначальное обновление
+        updateSunPosition();
+    </script>
+</body>
+</html>
