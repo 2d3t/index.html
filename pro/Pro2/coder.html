@@ -3,556 +3,720 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Устойчивый PNG Кодер/Декодер</title>
+    <title>Кодер текста в JPG изображение</title>
     <style>
-        /* Стили остаются такими же, как в предыдущей версии */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body { background: linear-gradient(135deg, #1a2a6c, #3a7bd5); color: #333; padding: 15px; min-height: 100vh; }
-        .container { max-width: 100%; margin: 0 auto; }
-        header { text-align: center; color: white; margin-bottom: 20px; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.2); }
-        h1 { font-size: 1.5rem; margin-bottom: 8px; }
-        .app-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin-bottom: 20px; }
-        .tab-buttons { display: flex; margin-bottom: 20px; border-radius: 12px; overflow: hidden; background: #f0f0f0; }
-        .tab-button { flex: 1; padding: 12px 5px; border: none; background: none; font-weight: 600; cursor: pointer; }
-        .tab-button.active { background: #3a7bd5; color: white; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; }
-        textarea, input[type="text"] { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; resize: vertical; min-height: 120px; }
-        input[type="file"] { width: 100%; padding: 12px; border: 2px dashed #e0e0e0; border-radius: 10px; background: #f9f9f9; }
-        .button-group { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; }
-        button { padding: 14px; border: none; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: all 0.3s; }
-        .encode-btn { background: linear-gradient(to right, #3a7bd5, #00d2ff); color: white; }
-        .decode-btn { background: linear-gradient(to right, #f46b45, #eea849); color: white; }
-        .convert-btn { background: linear-gradient(to right, #56ab2f, #a8e063); color: white; }
-        .result-container { margin-top: 25px; padding: 20px; border-radius: 12px; background: #f8f9fa; border: 2px solid #e9ecef; display: none; }
-        .result-container.active { display: block; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .image-preview { max-width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid #ddd; display: block; }
-        .text-result { background: white; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #e0e0e0; word-wrap: break-word; }
-        .download-btn { display: inline-block; margin-top: 15px; padding: 12px 20px; background: #3a7bd5; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; text-align: center; }
-        .info-box { background: #e8f4fd; border-left: 4px solid #3a7bd5; padding: 12px; margin: 20px 0; border-radius: 0 8px 8px 0; font-size: 0.9rem; line-height: 1.5; }
-        .loading { display: none; text-align: center; margin: 15px 0; }
-        .loading.active { display: block; }
-        .spinner { border: 4px solid rgba(0,0,0,0.1); border-radius: 50%; border-top: 4px solid #3a7bd5; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        footer { text-align: center; color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 20px; padding: 15px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         
-        /* Новые стили для настроек */
-        .settings-group { display: flex; flex-wrap: wrap; gap: 15px; margin: 15px 0; }
-        .setting-item { flex: 1; min-width: 150px; }
-        .setting-item label { font-size: 0.9rem; }
-        .setting-item select, .setting-item input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #f1f1f1;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
         
-        /* Адаптивные стили */
-        @media (max-width: 480px) {
-            .settings-group { flex-direction: column; }
-            .setting-item { min-width: 100%; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #4cc9f0;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            color: #4cc9f0;
+            text-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a9a9a9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .app-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(30, 30, 46, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid #2a2a3e;
+        }
+        
+        .panel h2 {
+            color: #72efdd;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #3a3a5e;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #b0b0d0;
+            font-weight: 500;
+        }
+        
+        textarea, input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(20, 20, 35, 0.8);
+            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            color: #f1f1f1;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #4cc9f0;
+            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .range-container input[type="range"] {
+            flex: 1;
+        }
+        
+        .range-value {
+            min-width: 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #4cc9f0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px 20px;
+            background: linear-gradient(45deg, #4361ee, #4cc9f0);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 160px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.decode {
+            background: linear-gradient(45deg, #7209b7, #b5179e);
+        }
+        
+        button.decode:hover {
+            box-shadow: 0 5px 15px rgba(182, 23, 158, 0.4);
+        }
+        
+        .image-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(20, 20, 35, 0.5);
+            border-radius: 10px;
+            border: 2px dashed #3a3a5e;
+        }
+        
+        .image-container img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .image-placeholder {
+            padding: 40px 20px;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(20, 20, 35, 0.8);
+            border-radius: 8px;
+            border-left: 4px solid #4361ee;
+            word-wrap: break-word;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .info-box {
+            background: rgba(20, 20, 35, 0.8);
+            border-radius: 10px;
+            padding: 25px;
+            margin-top: 40px;
+            border-left: 5px solid #4cc9f0;
+        }
+        
+        .info-box h3 {
+            color: #72efdd;
+            margin-bottom: 15px;
+        }
+        
+        .info-box ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .info-box li {
+            margin-bottom: 8px;
+        }
+        
+        .info-box code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #ff9e64;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid #4caf50;
+        }
+        
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #3a3a5e;
+            color: #a9a9a9;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Устойчивый PNG Стеганограф</h1>
-            <p class="description">Кодируйте текст в изображение с защитой от конвертации в JPG</p>
+            <h1>Стеганографический кодер</h1>
+            <p class="subtitle">Веб-приложение для кодирования текста в JPG изображение с использованием RGB смещения и декодирования текста из изображений</p>
         </header>
         
-        <main class="app-card">
-            <div class="tab-buttons">
-                <button class="tab-button active" data-tab="encode">Кодировать</button>
-                <button class="tab-button" data-tab="decode">Декодировать</button>
-                <button class="tab-button" data-tab="settings">Настройки</button>
-            </div>
-            
-            <!-- Вкладка кодирования -->
-            <div id="encode" class="tab-content active">
-                <div class="input-group">
-                    <label for="encode-text">Текст для кодирования:</label>
-                    <textarea id="encode-text" placeholder="Введите текст для сокрытия в изображении..."></textarea>
+        <div class="app-container">
+            <div class="panel">
+                <h2>Кодирование текста в изображение</h2>
+                
+                <div class="form-group">
+                    <label for="textInput">Текст для кодирования:</label>
+                    <textarea id="textInput" placeholder="Введите текст, который хотите скрыть в изображении..."></textarea>
                 </div>
                 
-                <div class="input-group">
-                    <label for="encode-image">Изображение-контейнер:</label>
-                    <input type="file" id="encode-image" accept="image/*">
+                <div class="form-group">
+                    <label for="imageUpload">Исходное изображение (JPG/PNG):</label>
+                    <input type="file" id="imageUpload" accept="image/*">
                 </div>
                 
-                <div class="info-box">
-                    <strong>Улучшенный алгоритм:</strong> Данные кодируются в младшие биты RGB-каналов с коррекцией ошибок. Даже после конвертации в JPG текст может быть восстановлен (с некоторыми ограничениями).
+                <div class="form-group">
+                    <label for="rgbOffset">RGB смещение (значение от 1 до 10):</label>
+                    <div class="range-container">
+                        <input type="range" id="rgbOffset" min="1" max="10" value="3">
+                        <span class="range-value" id="offsetValue">3</span>
+                    </div>
+                    <small>Чем выше значение, тем меньше заметны изменения, но меньше вместимость</small>
                 </div>
                 
                 <div class="button-group">
-                    <button id="encode-btn" class="encode-btn">Зашифровать текст в изображение</button>
-                </div>
-            </div>
-            
-            <!-- Вкладка декодирования -->
-            <div id="decode" class="tab-content">
-                <div class="input-group">
-                    <label for="decode-image">Изображение для декодирования:</label>
-                    <input type="file" id="decode-image" accept="image/*">
+                    <button id="encodeBtn">Закодировать текст в изображение</button>
                 </div>
                 
-                <div class="info-box">
-                    <strong>Важно:</strong> Можно декодировать как PNG, так и JPG/WebP изображения, полученные после пересылки. Однако при сильном сжатии часть данных может быть потеряна.
+                <div id="encodeStatus" class="status hidden"></div>
+                
+                <div class="image-container">
+                    <div id="originalImageContainer" class="image-placeholder">
+                        Исходное изображение появится здесь
+                    </div>
+                    <img id="originalImage" class="hidden" alt="Исходное изображение">
+                </div>
+                
+                <div class="image-container">
+                    <div id="encodedImageContainer" class="image-placeholder">
+                        Закодированное изображение появится здесь
+                    </div>
+                    <img id="encodedImage" class="hidden" alt="Закодированное изображение">
                 </div>
                 
                 <div class="button-group">
-                    <button id="decode-btn" class="decode-btn">Извлечь текст из изображения</button>
+                    <button id="downloadBtn" class="hidden">Скачать закодированное изображение</button>
                 </div>
             </div>
             
-            <!-- Вкладка настроек -->
-            <div id="settings" class="tab-content">
-                <div class="settings-group">
-                    <div class="setting-item">
-                        <label for="robustness">Устойчивость:</label>
-                        <select id="robustness">
-                            <option value="1">Низкая (больше текста)</option>
-                            <option value="2" selected>Средняя</option>
-                            <option value="3">Высокая (меньше текста)</option>
-                            <option value="4">Максимальная</option>
-                        </select>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <label for="bits-per-channel">Бит на канал:</label>
-                        <select id="bits-per-channel">
-                            <option value="1">1 бит (наименее заметно)</option>
-                            <option value="2" selected>2 бита (рекомендуется)</option>
-                            <option value="3">3 бита (устойчивее)</option>
-                        </select>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <label for="error-correction">Коррекция ошибок:</label>
-                        <select id="error-correction">
-                            <option value="none">Нет</option>
-                            <option value="low" selected>Низкая</option>
-                            <option value="medium">Средняя</option>
-                            <option value="high">Высокая</option>
-                        </select>
+            <div class="panel">
+                <h2>Декодирование текста из изображения</h2>
+                
+                <div class="form-group">
+                    <label for="encodedImageUpload">Загрузите закодированное изображение:</label>
+                    <input type="file" id="encodedImageUpload" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <label for="decodeOffset">RGB смещение (должно совпадать с кодированием):</label>
+                    <div class="range-container">
+                        <input type="range" id="decodeOffset" min="1" max="10" value="3">
+                        <span class="range-value" id="decodeOffsetValue">3</span>
                     </div>
                 </div>
                 
-                <div class="info-box">
-                    <strong>Рекомендации:</strong><br>
-                    • Для пересылки через Telegram используйте "Высокую" устойчивость<br>
-                    • 2 бита на канал - оптимальный баланс между вместимостью и устойчивостью<br>
-                    • Коррекция ошибок увеличивает размер данных, но повышает надежность
+                <div class="button-group">
+                    <button id="decodeBtn" class="decode">Декодировать текст из изображения</button>
+                </div>
+                
+                <div id="decodeStatus" class="status hidden"></div>
+                
+                <div class="image-container">
+                    <div id="uploadedImageContainer" class="image-placeholder">
+                        Загруженное изображение появится здесь
+                    </div>
+                    <img id="uploadedImage" class="hidden" alt="Загруженное изображение">
+                </div>
+                
+                <div class="result hidden" id="decodedResult">
+                    <strong>Декодированный текст:</strong>
+                    <div id="decodedText"></div>
                 </div>
             </div>
-            
-            <!-- Индикатор загрузки -->
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p id="loading-text">Обработка...</p>
-            </div>
-            
-            <!-- Результаты -->
-            <div class="result-container" id="result-container">
-                <h3 class="result-title" id="result-title">Результат</h3>
-                <div id="result-content"></div>
-            </div>
-        </main>
+        </div>
+        
+        <div class="info-box">
+            <h3>Как работает это приложение</h3>
+            <p>Это приложение использует метод стеганографии для скрытия текста в изображениях путем изменения значений RGB пикселей:</p>
+            <ul>
+                <li><strong>Кодирование:</strong> Текст разбивается на символы, каждый символ преобразуется в ASCII код, который затем кодируется в младших битах значений RGB пикселей.</li>
+                <li><strong>RGB смещение:</strong> Определяет, сколько бит используется для кодирования (от 1 до 3). Меньшие значения делают изменения менее заметными.</li>
+                <li><strong>Маркер окончания:</strong> В конец данных добавляется специальная последовательность для определения конца текста.</li>
+                <li><strong>Декодирование:</strong> Извлекаются младшие биты из значений RGB, собираются в ASCII коды и преобразуются обратно в текст.</li>
+            </ul>
+            <p><strong>Важно:</strong> Используйте одинаковое значение смещения для кодирования и декодирования. Изображение в формате JPG может вносить небольшие искажения из-за сжатия.</p>
+        </div>
         
         <footer>
-            <p>Устойчивый стеганограф © 2023 | Защищено от конвертации в JPG</p>
+            <p>Web-приложение для кодирования/декодирования текста в JPG изображения &copy; 2023</p>
         </footer>
     </div>
 
     <script>
-        // Конфигурация
-        const config = {
-            robustness: 2,          // Устойчивость к сжатию
-            bitsPerChannel: 2,      // Сколько бит использовать на канал
-            errorCorrection: 'low'  // Уровень коррекции ошибок
-        };
-        
         // Элементы DOM
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
-        const encodeText = document.getElementById('encode-text');
-        const encodeImageInput = document.getElementById('encode-image');
-        const decodeImageInput = document.getElementById('decode-image');
-        const robustnessSelect = document.getElementById('robustness');
-        const bitsPerChannelSelect = document.getElementById('bits-per-channel');
-        const errorCorrectionSelect = document.getElementById('error-correction');
-        const encodeBtn = document.getElementById('encode-btn');
-        const decodeBtn = document.getElementById('decode-btn');
-        const loading = document.getElementById('loading');
-        const loadingText = document.getElementById('loading-text');
-        const resultContainer = document.getElementById('result-container');
-        const resultTitle = document.getElementById('result-title');
-        const resultContent = document.getElementById('result-content');
+        const textInput = document.getElementById('textInput');
+        const imageUpload = document.getElementById('imageUpload');
+        const rgbOffset = document.getElementById('rgbOffset');
+        const offsetValue = document.getElementById('offsetValue');
+        const encodeBtn = document.getElementById('encodeBtn');
+        const encodeStatus = document.getElementById('encodeStatus');
+        const originalImage = document.getElementById('originalImage');
+        const originalImageContainer = document.getElementById('originalImageContainer');
+        const encodedImage = document.getElementById('encodedImage');
+        const encodedImageContainer = document.getElementById('encodedImageContainer');
+        const downloadBtn = document.getElementById('downloadBtn');
         
-        // Инициализация настроек
-        robustnessSelect.value = config.robustness;
-        bitsPerChannelSelect.value = config.bitsPerChannel;
-        errorCorrectionSelect.value = config.errorCorrection;
+        const encodedImageUpload = document.getElementById('encodedImageUpload');
+        const decodeOffset = document.getElementById('decodeOffset');
+        const decodeOffsetValue = document.getElementById('decodeOffsetValue');
+        const decodeBtn = document.getElementById('decodeBtn');
+        const decodeStatus = document.getElementById('decodeStatus');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const uploadedImageContainer = document.getElementById('uploadedImageContainer');
+        const decodedResult = document.getElementById('decodedResult');
+        const decodedText = document.getElementById('decodedText');
         
-        // Обновление конфигурации
-        robustnessSelect.addEventListener('change', (e) => {
-            config.robustness = parseInt(e.target.value);
+        // Переменные
+        let originalCanvas, encodedCanvas;
+        let originalImageData;
+        
+        // Обновление значений смещения
+        rgbOffset.addEventListener('input', () => {
+            offsetValue.textContent = rgbOffset.value;
         });
         
-        bitsPerChannelSelect.addEventListener('change', (e) => {
-            config.bitsPerChannel = parseInt(e.target.value);
+        decodeOffset.addEventListener('input', () => {
+            decodeOffsetValue.textContent = decodeOffset.value;
         });
         
-        errorCorrectionSelect.addEventListener('change', (e) => {
-            config.errorCorrection = e.target.value;
-        });
-        
-        // Переключение вкладок
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.getAttribute('data-tab');
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                button.classList.add('active');
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                    if (content.id === tabId) content.classList.add('active');
-                });
-                resultContainer.classList.remove('active');
-            });
-        });
-        
-        // Показать результаты
-        function showResult(title, content) {
-            resultTitle.textContent = title;
-            resultContent.innerHTML = content;
-            resultContainer.classList.add('active');
-            resultContainer.scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // Функция добавления коррекции ошибок (упрощенный Reed-Solomon)
-        function addErrorCorrection(data, level) {
-            if (level === 'none') return data;
+        // Загрузка исходного изображения
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
             
-            // Простое дублирование данных в зависимости от уровня
-            const repetitions = {
-                'low': 2,
-                'medium': 3,
-                'high': 4
-            }[level] || 1;
-            
-            let result = new Uint8Array(data.length * repetitions);
-            for (let i = 0; i < repetitions; i++) {
-                result.set(data, i * data.length);
-            }
-            
-            return result;
-        }
-        
-        // Функция исправления ошибок
-        function correctErrors(dataWithEC, level) {
-            if (level === 'none') return dataWithEC;
-            
-            const repetitions = {
-                'low': 2,
-                'medium': 3,
-                'high': 4
-            }[level] || 1;
-            
-            const chunkSize = dataWithEC.length / repetitions;
-            let result = new Uint8Array(chunkSize);
-            
-            // Простейшая коррекция: выбираем наиболее часто встречающееся значение
-            for (let i = 0; i < chunkSize; i++) {
-                const counts = new Map();
-                for (let r = 0; r < repetitions; r++) {
-                    const value = dataWithEC[r * chunkSize + i];
-                    counts.set(value, (counts.get(value) || 0) + 1);
-                }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                originalImage.src = event.target.result;
+                originalImage.classList.remove('hidden');
+                originalImageContainer.classList.add('hidden');
                 
-                // Находим значение с максимальным количеством повторений
-                let maxCount = 0;
-                let bestValue = 0;
-                for (const [value, count] of counts.entries()) {
-                    if (count > maxCount) {
-                        maxCount = count;
-                        bestValue = value;
-                    }
-                }
-                result[i] = bestValue;
-            }
-            
-            return result;
-        }
-        
-        // Улучшенное кодирование в RGB-каналы
-        async function robustEncode() {
-            const text = encodeText.value.trim();
-            if (!text) {
-                alert('Введите текст для кодирования');
-                return;
-            }
-            
-            loadingText.textContent = 'Кодирование текста...';
-            loading.classList.add('active');
-            
-            try {
-                // Подготовка текста
-                const textEncoder = new TextEncoder();
-                const textBytes = textEncoder.encode(text);
-                
-                // Добавляем контрольную сумму и метку
-                const metadata = new Uint8Array(8);
-                const textLength = textBytes.length;
-                
-                // Сохраняем длину текста
-                metadata[0] = (textLength >> 24) & 0xFF;
-                metadata[1] = (textLength >> 16) & 0xFF;
-                metadata[2] = (textLength >> 8) & 0xFF;
-                metadata[3] = textLength & 0xFF;
-                
-                // Добавляем сигнатуру для идентификации
-                metadata[4] = 0x53; // 'S'
-                metadata[5] = 0x54; // 'T'
-                metadata[6] = 0x45; // 'E'
-                metadata[7] = 0x47; // 'G'
-                
-                // Объединяем метаданные и текст
-                const dataToEncode = new Uint8Array(8 + textBytes.length);
-                dataToEncode.set(metadata);
-                dataToEncode.set(textBytes, 8);
-                
-                // Применяем коррекцию ошибок
-                const dataWithEC = addErrorCorrection(dataToEncode, config.errorCorrection);
-                
-                // Конвертируем в биты
-                const bits = [];
-                for (let byte of dataWithEC) {
-                    for (let i = 7; i >= 0; i--) {
-                        bits.push((byte >> i) & 1);
-                    }
-                }
-                
-                // Создаем или загружаем изображение
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                if (encodeImageInput.files && encodeImageInput.files[0]) {
-                    const imageFile = encodeImageInput.files[0];
-                    const imageBitmap = await createImageBitmap(imageFile);
-                    canvas.width = imageBitmap.width;
-                    canvas.height = imageBitmap.height;
-                    ctx.drawImage(imageBitmap, 0, 0);
-                } else {
-                    // Создаем изображение с градиентом
-                    canvas.width = 800;
-                    canvas.height = 600;
-                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                    gradient.addColorStop(0, '#3a7bd5');
-                    gradient.addColorStop(0.5, '#00d2ff');
-                    gradient.addColorStop(1, '#56ab2f');
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                const img = new Image();
+                img.onload = () => {
+                    originalCanvas = document.createElement('canvas');
+                    originalCanvas.width = img.width;
+                    originalCanvas.height = img.height;
+                    const ctx = originalCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    originalImageData = ctx.getImageData(0, 0, img.width, img.height);
                     
-                    // Добавляем видимый текст
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.font = 'bold 20px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Изображение содержит скрытые данные', canvas.width / 2, 40);
-                    ctx.font = '14px Arial';
-                    ctx.fillText('Для извлечения текста используйте декодер', canvas.width / 2, canvas.height - 20);
-                }
-                
-                // Получаем данные изображения
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
-                
-                // Проверяем, достаточно ли места
-                const availableBits = (data.length / 4) * 3 * config.bitsPerChannel;
-                if (bits.length > availableBits) {
-                    loading.classList.remove('active');
-                    const maxChars = Math.floor((availableBits / 8) * 0.7); // С учетом коррекции ошибок
-                    alert(`Текст слишком длинный. Максимум для этого изображения: ~${maxChars} символов`);
-                    return;
-                }
-                
-                // Кодируем биты в изображение
-                let bitIndex = 0;
-                const mask = (1 << config.bitsPerChannel) - 1;
-                
-                for (let i = 0; i < data.length && bitIndex < bits.length; i += 4) {
-                    // Пропускаем альфа-канал для совместимости с JPG
-                    for (let channel = 0; channel < 3 && bitIndex < bits.length; channel++) {
-                        if (bitIndex < bits.length) {
-                            // Извлекаем биты для этого канала
-                            let value = 0;
-                            for (let b = 0; b < config.bitsPerChannel && bitIndex < bits.length; b++) {
-                                value = (value << 1) | bits[bitIndex++];
-                            }
-                            
-                            // Встраиваем биты в канал
-                            const pixelValue = data[i + channel];
-                            // Очищаем младшие биты и добавляем наши данные
-                            const newValue = (pixelValue & ~mask) | value;
-                            data[i + channel] = newValue;
-                        }
-                    }
-                }
-                
-                // Возвращаем данные на холст
-                ctx.putImageData(imageData, 0, 0);
-                
-                // Создаем PNG
-                const pngUrl = canvas.toDataURL('image/png');
-                const timestamp = new Date().getTime();
-                const downloadLink = `<a href="${pngUrl}" download="stego_${timestamp}.png" class="download-btn">Скачать изображение со скрытым текстом</a>`;
-                
-                // Показываем результат
-                loading.classList.remove('active');
-                showResult('Текст успешно зашифрован!', `
-                    <p>Текст скрыт в RGB-каналах изображения с устойчивостью к конвертации.</p>
-                    <p>Длина текста: ${text.length} символов</p>
-                    <p>Уровень защиты: ${config.robustness === 1 ? 'Низкий' : config.robustness === 2 ? 'Средний' : config.robustness === 3 ? 'Высокий' : 'Максимальный'}</p>
-                    <img src="${pngUrl}" alt="Изображение со скрытым текстом" class="image-preview">
-                    ${downloadLink}
-                    <div class="info-box">
-                        <strong>Советы для пересылки через Telegram:</strong><br>
-                        1. Отправляйте как "Файл" (не как "Фото")<br>
-                        2. Попросите получателя сохранить файл, а не переотправлять<br>
-                        3. Максимальный размер текста для надежной передачи: ~500 символов
-                    </div>
-                `);
-                
-            } catch (error) {
-                console.error('Ошибка кодирования:', error);
-                loading.classList.remove('active');
-                alert('Ошибка при кодировании текста');
-            }
-        }
-        
-        // Улучшенное декодирование
-        async function robustDecode() {
-            if (!decodeImageInput.files || !decodeImageInput.files[0]) {
-                alert('Выберите изображение для декодирования');
-                return;
-            }
-            
-            loadingText.textContent = 'Декодирование текста...';
-            loading.classList.add('active');
-            
-            try {
-                const imageFile = decodeImageInput.files[0];
-                const imageBitmap = await createImageBitmap(imageFile);
-                
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = imageBitmap.width;
-                canvas.height = imageBitmap.height;
-                ctx.drawImage(imageBitmap, 0, 0);
-                
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
-                
-                // Извлекаем биты из изображения
-                const bits = [];
-                const mask = (1 << config.bitsPerChannel) - 1;
-                
-                for (let i = 0; i < data.length; i += 4) {
-                    for (let channel = 0; channel < 3; channel++) {
-                        const pixelValue = data[i + channel];
-                        // Извлекаем младшие биты
-                        for (let b = config.bitsPerChannel - 1; b >= 0; b--) {
-                            bits.push((pixelValue >> b) & 1);
-                        }
-                    }
-                }
-                
-                // Конвертируем биты в байты
-                const bytes = [];
-                for (let i = 0; i < bits.length; i += 8) {
-                    if (i + 8 > bits.length) break;
+                    // Расчет максимального объема текста
+                    const maxChars = calculateMaxChars(originalImageData, parseInt(rgbOffset.value));
+                    textInput.placeholder = `Максимум ${maxChars} символов для этого изображения`;
                     
-                    let byte = 0;
-                    for (let j = 0; j < 8; j++) {
-                        byte = (byte << 1) | bits[i + j];
-                    }
-                    bytes.push(byte);
-                }
-                
-                // Применяем коррекцию ошибок
-                const correctedBytes = correctErrors(new Uint8Array(bytes), config.errorCorrection);
-                
-                // Проверяем сигнатуру
-                if (correctedBytes[4] !== 0x53 || correctedBytes[5] !== 0x54 || 
-                    correctedBytes[6] !== 0x45 || correctedBytes[7] !== 0x47) {
-                    loading.classList.remove('active');
-                    alert('Не удалось найти скрытые данные в изображении');
-                    return;
-                }
-                
-                // Извлекаем длину текста
-                const textLength = (correctedBytes[0] << 24) | 
-                                  (correctedBytes[1] << 16) | 
-                                  (correctedBytes[2] << 8) | 
-                                  correctedBytes[3];
-                
-                if (textLength <= 0 || textLength > correctedBytes.length - 8) {
-                    loading.classList.remove('active');
-                    alert('Некорректные данные в изображении');
-                    return;
-                }
-                
-                // Извлекаем текст
-                const textBytes = correctedBytes.slice(8, 8 + textLength);
-                const textDecoder = new TextDecoder();
-                const decodedText = textDecoder.decode(textBytes);
-                
-                // Показываем результат
-                loading.classList.remove('active');
-                showResult('Текст успешно извлечен!', `
-                    <p>Из изображения извлечен следующий текст:</p>
-                    <div class="text-result">${decodedText}</div>
-                    <p>Длина текста: ${textLength} символов</p>
-                    <p>Формат изображения: ${imageFile.type || 'неизвестен'}</p>
-                    <div class="info-box">
-                        ${imageFile.type !== 'image/png' ? 
-                          '<strong>Внимание:</strong> Изображение было конвертировано в ' + imageFile.type + 
-                          '. Некоторые данные могли быть потеряны при сжатии.' : 
-                          '<strong>Отлично!</strong> Изображение в формате PNG, данные сохранены полностью.'}
-                    </div>
-                `);
-                
-            } catch (error) {
-                console.error('Ошибка декодирования:', error);
-                loading.classList.remove('active');
-                alert('Ошибка при декодировании текста. Попробуйте изменить настройки декодера.');
-            }
+                    showStatus(encodeStatus, `Изображение загружено: ${img.width}×${img.height} пикселей, можно скрыть до ${maxChars} символов`, 'success');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        // Загрузка изображения для декодирования
+        encodedImageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                uploadedImage.src = event.target.result;
+                uploadedImage.classList.remove('hidden');
+                uploadedImageContainer.classList.add('hidden');
+                decodedResult.classList.add('hidden');
+                decodeStatus.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        // Расчет максимального количества символов
+        function calculateMaxChars(imageData, offset) {
+            const bitsPerPixel = 3; // RGB каналы
+            const bitsPerChar = 8; // 8 бит на символ ASCII
+            
+            // Используем только 75% пикселей для надежности
+            const availablePixels = Math.floor(imageData.data.length / 4 * 0.75);
+            const bitsAvailable = availablePixels * bitsPerPixel * offset;
+            
+            return Math.floor(bitsAvailable / bitsPerChar);
         }
         
-        // Обработчики событий
-        encodeBtn.addEventListener('click', robustEncode);
-        decodeBtn.addEventListener('click', robustDecode);
-        
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', () => {
-            encodeText.placeholder = `Это текст будет скрыт в изображении.
-
-Улучшенный алгоритм кодирования позволяет сохранить данные даже после конвертации изображения в JPG (как это делает Telegram).
-
-Используйте настройки для оптимизации под конкретные условия передачи.`;
+        // Показать статус
+        function showStatus(element, message, type) {
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.classList.remove('hidden');
             
-            // Показываем подсказку
             setTimeout(() => {
-                showResult('Добро пожаловать!', `
-                    <p>Это улучшенный стеганограф с защитой от конвертации в JPG.</p>
-                    <div class="info-box">
-                        <strong>Как использовать:</strong><br>
-                        1. Введите текст на вкладке "Кодировать"<br>
-                        2. Настройте параметры на вкладке "Настройки"<br>
-                        3. Полученное изображение можно отправлять через Telegram<br>
-                        4. Для извлечения текста используйте вкладку "Декодировать"
-                    </div>
-                    <p>Алгоритм кодирует данные в младшие биты RGB-каналов, что делает их более устойчивыми к сжатию.</p>
-                `);
-            }, 1000);
+                element.classList.add('hidden');
+            }, 5000);
+        }
+        
+        // Кодирование текста в изображение
+        encodeBtn.addEventListener('click', () => {
+            const text = textInput.value;
+            if (!text) {
+                showStatus(encodeStatus, 'Введите текст для кодирования', 'error');
+                return;
+            }
+            
+            if (!originalImageData) {
+                showStatus(encodeStatus, 'Сначала загрузите изображение', 'error');
+                return;
+            }
+            
+            const offset = parseInt(rgbOffset.value);
+            const maxChars = calculateMaxChars(originalImageData, offset);
+            
+            if (text.length > maxChars) {
+                showStatus(encodeStatus, `Текст слишком длинный. Максимум ${maxChars} символов для этого изображения`, 'error');
+                return;
+            }
+            
+            // Создаем копию изображения
+            encodedCanvas = document.createElement('canvas');
+            encodedCanvas.width = originalCanvas.width;
+            encodedCanvas.height = originalCanvas.height;
+            const encodedCtx = encodedCanvas.getContext('2d');
+            encodedCtx.drawImage(originalImage, 0, 0);
+            
+            const imageData = encodedCtx.getImageData(0, 0, encodedCanvas.width, encodedCanvas.height);
+            const data = imageData.data;
+            
+            // Добавляем маркер начала и конца сообщения
+            const fullText = `[START]${text}[END]`;
+            let dataIndex = 0;
+            let textIndex = 0;
+            
+            // Кодируем каждый символ
+            for (let i = 0; i < fullText.length; i++) {
+                const charCode = fullText.charCodeAt(i);
+                
+                // Кодируем 8 бит символа
+                for (let bit = 0; bit < 8; bit++) {
+                    if (dataIndex >= data.length - 4) {
+                        showStatus(encodeStatus, 'Недостаточно места в изображении', 'error');
+                        return;
+                    }
+                    
+                    // Получаем бит (0 или 1)
+                    const bitValue = (charCode >> bit) & 1;
+                    
+                    // Встраиваем бит в значение канала
+                    for (let channel = 0; channel < 3; channel++) {
+                        if (dataIndex >= data.length) break;
+                        
+                        // Модифицируем только младшие offset бит
+                        const originalValue = data[dataIndex];
+                        const modifiedValue = (originalValue & ~((1 << offset) - 1)) | 
+                                             ((originalValue + bitValue) & ((1 << offset) - 1));
+                        data[dataIndex] = modifiedValue;
+                        dataIndex++;
+                    }
+                    
+                    dataIndex++; // Пропускаем альфа-канал
+                }
+            }
+            
+            // Применяем изменения
+            encodedCtx.putImageData(imageData, 0, 0);
+            
+            // Отображаем результат
+            encodedImage.src = encodedCanvas.toDataURL('image/jpeg', 1.0); // Максимальное качество
+            encodedImage.classList.remove('hidden');
+            encodedImageContainer.classList.add('hidden');
+            
+            // Показываем кнопку скачивания
+            downloadBtn.classList.remove('hidden');
+            
+            showStatus(encodeStatus, `Текст успешно закодирован в изображение! Длина текста: ${text.length} символов`, 'success');
         });
+        
+        // Скачивание закодированного изображения
+        downloadBtn.addEventListener('click', () => {
+            if (!encodedCanvas) return;
+            
+            const link = document.createElement('a');
+            link.download = 'encoded-image.jpg';
+            link.href = encodedCanvas.toDataURL('image/jpeg', 1.0);
+            link.click();
+            
+            showStatus(encodeStatus, 'Изображение скачивается...', 'success');
+        });
+        
+        // Декодирование текста из изображения
+        decodeBtn.addEventListener('click', () => {
+            if (!encodedImageUpload.files[0]) {
+                showStatus(decodeStatus, 'Загрузите изображение для декодирования', 'error');
+                return;
+            }
+            
+            const offset = parseInt(decodeOffset.value);
+            
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                let dataIndex = 0;
+                let decodedChars = [];
+                let currentChar = 0;
+                let bitCount = 0;
+                let text = '';
+                let foundStart = false;
+                let foundEnd = false;
+                
+                // Декодируем данные
+                while (dataIndex < data.length - 4 && !foundEnd) {
+                    // Собираем 8 бит для одного символа
+                    currentChar = 0;
+                    
+                    for (let bit = 0; bit < 8; bit++) {
+                        if (dataIndex >= data.length - 4) break;
+                        
+                        // Извлекаем бит из каналов RGB
+                        let extractedBit = 0;
+                        for (let channel = 0; channel < 3; channel++) {
+                            if (dataIndex >= data.length) break;
+                            
+                            extractedBit ^= (data[dataIndex] & ((1 << offset) - 1));
+                            dataIndex++;
+                        }
+                        
+                        // Усредняем и получаем бит
+                        extractedBit = Math.round(extractedBit / 3) & 1;
+                        currentChar |= (extractedBit << bit);
+                        
+                        dataIndex++; // Пропускаем альфа-канал
+                    }
+                    
+                    // Добавляем символ
+                    const char = String.fromCharCode(currentChar);
+                    text += char;
+                    
+                    // Проверяем маркеры
+                    if (!foundStart && text.includes('[START]')) {
+                        foundStart = true;
+                        text = '';
+                    }
+                    
+                    if (foundStart && text.includes('[END]')) {
+                        foundEnd = true;
+                        text = text.replace('[END]', '');
+                        break;
+                    }
+                }
+                
+                if (foundStart && foundEnd) {
+                    decodedText.textContent = text;
+                    decodedResult.classList.remove('hidden');
+                    showStatus(decodeStatus, `Текст успешно декодирован! Длина: ${text.length} символов`, 'success');
+                } else {
+                    decodedText.textContent = 'Не удалось декодировать текст. Возможно, неверное значение смещения или изображение не содержит скрытого текста.';
+                    decodedResult.classList.remove('hidden');
+                    showStatus(decodeStatus, 'Декодирование не удалось', 'error');
+                }
+            };
+            
+            img.src = URL.createObjectURL(encodedImageUpload.files[0]);
+        });
+        
+        // Инициализация примера
+        window.addEventListener('DOMContentLoaded', () => {
+            textInput.value = "Привет! Это секретное сообщение, скрытое в изображении с помощью стеганографии. Сообщение успешно декодируется!";
+            
+            // Создаем тестовое изображение
+            setTimeout(() => {
+                if (!originalImageData) {
+                    createTestImage();
+                }
+            }, 500);
+        });
+        
+        // Создание тестового изображения
+        function createTestImage() {
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 600;
+            testCanvas.height = 400;
+            const ctx = testCanvas.getContext('2d');
+            
+            // Градиентный фон
+            const gradient = ctx.createLinearGradient(0, 0, 600, 400);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(0.3, '#16213e');
+            gradient.addColorStop(0.7, '#0f3460');
+            gradient.addColorStop(1, '#1a1a2e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 600, 400);
+            
+            // Добавляем некоторые детали
+            ctx.fillStyle = 'rgba(76, 201, 240, 0.1)';
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * 600;
+                const y = Math.random() * 400;
+                const radius = Math.random() * 20 + 5;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Текст на изображении (видимый)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Тестовое изображение', 300, 180);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = '18px Arial';
+            ctx.fillText('Используется для кодирования текста', 300, 220);
+            
+            // Устанавливаем как исходное изображение
+            originalImage.src = testCanvas.toDataURL('image/jpeg');
+            originalImage.classList.remove('hidden');
+            originalImageContainer.classList.add('hidden');
+            
+            // Сохраняем данные
+            originalCanvas = testCanvas;
+            originalImageData = ctx.getImageData(0, 0, 600, 400);
+            
+            // Расчет максимального объема текста
+            const maxChars = calculateMaxChars(originalImageData, parseInt(rgbOffset.value));
+            textInput.placeholder = `Максимум ${maxChars} символов для этого изображения`;
+            
+            showStatus(encodeStatus, `Тестовое изображение создано: 600×400 пикселей, можно скрыть до ${maxChars} символов`, 'success');
+        }
     </script>
 </body>
 </html>
