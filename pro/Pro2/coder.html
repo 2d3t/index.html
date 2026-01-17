@@ -2,721 +2,1059 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кодер текста в JPG изображение</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alpha Channel PNG Кодер/Декодер</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
         }
         
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #f1f1f1;
+            background: linear-gradient(135deg, #1a2a6c, #3a7bd5);
+            color: #333;
+            padding: 15px;
             min-height: 100vh;
-            padding: 20px;
-            line-height: 1.6;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 20px;
         }
         
         header {
             text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #4cc9f0;
+            color: white;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
         h1 {
-            font-size: 2.8rem;
-            margin-bottom: 10px;
-            color: #4cc9f0;
-            text-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+            font-size: 1.5rem;
+            margin-bottom: 8px;
         }
         
-        .subtitle {
-            font-size: 1.2rem;
-            color: #a9a9a9;
-            max-width: 800px;
-            margin: 0 auto;
+        .description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            line-height: 1.4;
         }
         
-        .app-container {
+        .app-card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
+        }
+        
+        .tab-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        
-        .panel {
-            flex: 1;
-            min-width: 300px;
-            background: rgba(30, 30, 46, 0.8);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border: 1px solid #2a2a3e;
-        }
-        
-        .panel h2 {
-            color: #72efdd;
             margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #3a3a5e;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #f0f0f0;
         }
         
-        .form-group {
+        .tab-button {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 5px;
+            border: none;
+            background: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            background-color: #3a7bd5;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-group {
             margin-bottom: 20px;
         }
         
         label {
             display: block;
             margin-bottom: 8px;
-            color: #b0b0d0;
-            font-weight: 500;
+            font-weight: 600;
+            color: #444;
         }
         
-        textarea, input[type="number"], input[type="file"] {
+        textarea, input[type="text"] {
             width: 100%;
-            padding: 12px 15px;
-            background: rgba(20, 20, 35, 0.8);
-            border: 1px solid #3a3a5e;
-            border-radius: 8px;
-            color: #f1f1f1;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        textarea:focus, input:focus {
-            outline: none;
-            border-color: #4cc9f0;
-            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
-        }
-        
-        textarea {
-            min-height: 120px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
             resize: vertical;
+            min-height: 120px;
         }
         
-        .range-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 10px;
+            background-color: #f9f9f9;
         }
         
-        .range-container input[type="range"] {
-            flex: 1;
-        }
-        
-        .range-value {
-            min-width: 40px;
-            text-align: center;
-            font-weight: bold;
-            color: #4cc9f0;
+        .audio-preview {
+            margin-top: 10px;
+            width: 100%;
         }
         
         .button-group {
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 25px;
         }
         
         button {
-            flex: 1;
-            padding: 14px 20px;
-            background: linear-gradient(45deg, #4361ee, #4cc9f0);
-            color: white;
+            padding: 14px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
+            border-radius: 10px;
             font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s;
-            min-width: 160px;
         }
         
-        button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(76, 201, 240, 0.4);
+        .encode-btn {
+            background: linear-gradient(to right, #3a7bd5, #00d2ff);
+            color: white;
         }
         
-        button:active {
-            transform: translateY(0);
+        .decode-btn {
+            background: linear-gradient(to right, #f46b45, #eea849);
+            color: white;
         }
         
-        button.decode {
-            background: linear-gradient(45deg, #7209b7, #b5179e);
+        .convert-btn {
+            background: linear-gradient(to right, #56ab2f, #a8e063);
+            color: white;
         }
         
-        button.decode:hover {
-            box-shadow: 0 5px 15px rgba(182, 23, 158, 0.4);
+        .audio-encode-btn {
+            background: linear-gradient(to right, #9C27B0, #E91E63);
+            color: white;
         }
         
-        .image-container {
-            text-align: center;
-            margin-top: 20px;
+        .audio-decode-btn {
+            background: linear-gradient(to right, #FF9800, #FF5722);
+            color: white;
+        }
+        
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(2px);
+        }
+        
+        .result-container {
+            margin-top: 25px;
             padding: 20px;
-            background: rgba(20, 20, 35, 0.5);
-            border-radius: 10px;
-            border: 2px dashed #3a3a5e;
+            border-radius: 12px;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            display: none;
         }
         
-        .image-container img {
+        .result-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #3a7bd5;
+        }
+        
+        .image-preview {
             max-width: 100%;
-            max-height: 400px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            display: block;
         }
         
-        .image-placeholder {
-            padding: 40px 20px;
-            color: #888;
-            font-style: italic;
-        }
-        
-        .result {
-            margin-top: 20px;
+        .text-result {
+            background-color: white;
             padding: 15px;
-            background: rgba(20, 20, 35, 0.8);
             border-radius: 8px;
-            border-left: 4px solid #4361ee;
+            margin-top: 10px;
+            border: 1px solid #e0e0e0;
             word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 20px;
+            background-color: #3a7bd5;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .audio-download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 20px;
+            background-color: #9C27B0;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .info-box {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3a7bd5;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .audio-info-box {
+            background-color: #f3e5f5;
+            border-left: 4px solid #9C27B0;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
         
         .hidden {
             display: none;
         }
         
-        .info-box {
-            background: rgba(20, 20, 35, 0.8);
-            border-radius: 10px;
-            padding: 25px;
-            margin-top: 40px;
-            border-left: 5px solid #4cc9f0;
-        }
-        
-        .info-box h3 {
-            color: #72efdd;
-            margin-bottom: 15px;
-        }
-        
-        .info-box ul {
-            padding-left: 20px;
-            margin-bottom: 15px;
-        }
-        
-        .info-box li {
-            margin-bottom: 8px;
-        }
-        
-        .info-box code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-            color: #ff9e64;
-        }
-        
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
+        .loading {
+            display: none;
             text-align: center;
-            font-weight: bold;
+            margin: 15px 0;
         }
         
-        .status.success {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4caf50;
-            border: 1px solid #4caf50;
+        .loading.active {
+            display: block;
         }
         
-        .status.error {
-            background: rgba(244, 67, 54, 0.2);
-            color: #f44336;
-            border: 1px solid #f44336;
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3a7bd5;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .audio-controls button {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .format-select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 1rem;
         }
         
         footer {
             text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #3a3a5e;
-            color: #a9a9a9;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            margin-top: 20px;
+            padding: 15px;
+        }
+        
+        .file-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
             font-size: 0.9rem;
         }
         
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-            }
-            
-            h1 {
-                font-size: 2.2rem;
-            }
+        .status-bar {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Стеганографический кодер</h1>
-            <p class="subtitle">Веб-приложение для кодирования текста в JPG изображение с использованием RGB смещения и декодирования текста из изображений</p>
+            <h1>Alpha Channel PNG Кодер/Декодер</h1>
+            <p class="description">Кодируйте текст и аудио в альфа-канал PNG изображений, декодируйте скрытые сообщения и конвертируйте любые изображения в формат PNG</p>
         </header>
         
-        <div class="app-container">
-            <div class="panel">
-                <h2>Кодирование текста в изображение</h2>
-                
-                <div class="form-group">
-                    <label for="textInput">Текст для кодирования:</label>
-                    <textarea id="textInput" placeholder="Введите текст, который хотите скрыть в изображении..."></textarea>
+        <main class="app-card">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="encode">Кодировать текст</button>
+                <button class="tab-button" data-tab="decode">Декодировать текст</button>
+                <button class="tab-button" data-tab="encode-audio">Кодировать аудио</button>
+                <button class="tab-button" data-tab="decode-audio">Декодировать аудио</button>
+                <button class="tab-button" data-tab="convert">Конвертировать в PNG</button>
+            </div>
+            
+            <!-- Вкладка кодирования текста -->
+            <div id="encode" class="tab-content active">
+                <div class="input-group">
+                    <label for="encode-text">Текст для кодирования:</label>
+                    <textarea id="encode-text" placeholder="Введите текст, который хотите скрыть в изображении..."></textarea>
                 </div>
                 
-                <div class="form-group">
-                    <label for="imageUpload">Исходное изображение (JPG/PNG):</label>
-                    <input type="file" id="imageUpload" accept="image/*">
+                <div class="input-group">
+                    <label for="encode-image">Изображение для кодирования (если не выбрано, будет создано новое):</label>
+                    <input type="file" id="encode-image" accept="image/*">
                 </div>
                 
-                <div class="form-group">
-                    <label for="rgbOffset">RGB смещение (значение от 1 до 10):</label>
-                    <div class="range-container">
-                        <input type="range" id="rgbOffset" min="1" max="10" value="3">
-                        <span class="range-value" id="offsetValue">3</span>
-                    </div>
-                    <small>Чем выше значение, тем меньше заметны изменения, но меньше вместимость</small>
-                </div>
-                
-                <div class="button-group">
-                    <button id="encodeBtn">Закодировать текст в изображение</button>
-                </div>
-                
-                <div id="encodeStatus" class="status hidden"></div>
-                
-                <div class="image-container">
-                    <div id="originalImageContainer" class="image-placeholder">
-                        Исходное изображение появится здесь
-                    </div>
-                    <img id="originalImage" class="hidden" alt="Исходное изображение">
-                </div>
-                
-                <div class="image-container">
-                    <div id="encodedImageContainer" class="image-placeholder">
-                        Закодированное изображение появится здесь
-                    </div>
-                    <img id="encodedImage" class="hidden" alt="Закодированное изображение">
+                <div class="info-box">
+                    <strong>Как это работает:</strong> Ваш текст будет спрятан в альфа-канале (прозрачности) PNG изображения. Изображение будет выглядеть обычным, но будет содержать скрытое сообщение.
                 </div>
                 
                 <div class="button-group">
-                    <button id="downloadBtn" class="hidden">Скачать закодированное изображение</button>
+                    <button id="encode-btn" class="encode-btn">Закодировать текст в PNG</button>
                 </div>
             </div>
             
-            <div class="panel">
-                <h2>Декодирование текста из изображения</h2>
-                
-                <div class="form-group">
-                    <label for="encodedImageUpload">Загрузите закодированное изображение:</label>
-                    <input type="file" id="encodedImageUpload" accept="image/*">
+            <!-- Вкладка декодирования текста -->
+            <div id="decode" class="tab-content">
+                <div class="input-group">
+                    <label for="decode-image">Изображение PNG для декодирования:</label>
+                    <input type="file" id="decode-image" accept="image/png">
                 </div>
                 
-                <div class="form-group">
-                    <label for="decodeOffset">RGB смещение (должно совпадать с кодированием):</label>
-                    <div class="range-container">
-                        <input type="range" id="decodeOffset" min="1" max="10" value="3">
-                        <span class="range-value" id="decodeOffsetValue">3</span>
-                    </div>
+                <div class="info-box">
+                    <strong>Примечание:</strong> Для декодирования нужны PNG изображения, созданные этим приложением или содержащие данные в альфа-канале.
                 </div>
                 
                 <div class="button-group">
-                    <button id="decodeBtn" class="decode">Декодировать текст из изображения</button>
-                </div>
-                
-                <div id="decodeStatus" class="status hidden"></div>
-                
-                <div class="image-container">
-                    <div id="uploadedImageContainer" class="image-placeholder">
-                        Загруженное изображение появится здесь
-                    </div>
-                    <img id="uploadedImage" class="hidden" alt="Загруженное изображение">
-                </div>
-                
-                <div class="result hidden" id="decodedResult">
-                    <strong>Декодированный текст:</strong>
-                    <div id="decodedText"></div>
+                    <button id="decode-btn" class="decode-btn">Декодировать текст из PNG</button>
                 </div>
             </div>
-        </div>
-        
-        <div class="info-box">
-            <h3>Как работает это приложение</h3>
-            <p>Это приложение использует метод стеганографии для скрытия текста в изображениях путем изменения значений RGB пикселей:</p>
-            <ul>
-                <li><strong>Кодирование:</strong> Текст разбивается на символы, каждый символ преобразуется в ASCII код, который затем кодируется в младших битах значений RGB пикселей.</li>
-                <li><strong>RGB смещение:</strong> Определяет, сколько бит используется для кодирования (от 1 до 3). Меньшие значения делают изменения менее заметными.</li>
-                <li><strong>Маркер окончания:</strong> В конец данных добавляется специальная последовательность для определения конца текста.</li>
-                <li><strong>Декодирование:</strong> Извлекаются младшие биты из значений RGB, собираются в ASCII коды и преобразуются обратно в текст.</li>
-            </ul>
-            <p><strong>Важно:</strong> Используйте одинаковое значение смещения для кодирования и декодирования. Изображение в формате JPG может вносить небольшие искажения из-за сжатия.</p>
-        </div>
+            
+            <!-- Вкладка кодирования аудио -->
+            <div id="encode-audio" class="tab-content">
+                <div class="input-group">
+                    <label for="encode-audio-file">Аудиофайл для кодирования (MP3, WAV, OGG и др.):</label>
+                    <input type="file" id="encode-audio-file" accept="audio/*">
+                    <div class="file-info" id="encode-audio-info"></div>
+                </div>
+                
+                <div id="encode-audio-preview" class="hidden">
+                    <audio controls class="audio-preview" id="encode-audio-player"></audio>
+                </div>
+                
+                <div class="input-group">
+                    <label for="encode-audio-image">Изображение для кодирования аудио (если не выбрано, будет создано новое):</label>
+                    <input type="file" id="encode-audio-image" accept="image/*">
+                </div>
+                
+                <div class="audio-info-box">
+                    <strong>Как это работает:</strong> Аудиофайл будет преобразован в Base64 и спрятан в альфа-канале PNG изображения. Для экономии места рекомендуется использовать короткие аудиофайлы.
+                </div>
+                
+                <div class="button-group">
+                    <button id="encode-audio-btn" class="audio-encode-btn">Закодировать аудио в PNG</button>
+                </div>
+            </div>
+            
+            <!-- Вкладка декодирования аудио -->
+            <div id="decode-audio" class="tab-content">
+                <div class="input-group">
+                    <label for="decode-audio-image">Изображение PNG с закодированным аудио:</label>
+                    <input type="file" id="decode-audio-image" accept="image/png">
+                </div>
+                
+                <div class="audio-info-box">
+                    <strong>Примечание:</strong> Для декодирования нужны PNG изображения, созданные этим приложением с закодированными аудиоданными.
+                </div>
+                
+                <div class="button-group">
+                    <button id="decode-audio-btn" class="audio-decode-btn">Декодировать аудио из PNG</button>
+                </div>
+                
+                <div id="decode-audio-result" class="hidden">
+                    <audio controls class="audio-preview" id="decode-audio-player"></audio>
+                    <div class="audio-controls">
+                        <button id="play-audio-btn" class="audio-encode-btn">Воспроизвести</button>
+                        <button id="pause-audio-btn" class="audio-decode-btn">Пауза</button>
+                        <a id="download-audio-link" class="audio-download-btn" download="decoded_audio.mp3">Скачать аудио</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Вкладка конвертации -->
+            <div id="convert" class="tab-content">
+                <div class="input-group">
+                    <label for="convert-image">Изображение для конвертации в PNG:</label>
+                    <input type="file" id="convert-image" accept="image/*">
+                </div>
+                
+                <div class="info-box">
+                    <strong>Преобразование:</strong> Загрузите любое изображение (JPG, GIF, BMP, WebP и др.) для конвертации в формат PNG с сохранением качества.
+                </div>
+                
+                <div class="button-group">
+                    <button id="convert-btn" class="convert-btn">Конвертировать в PNG</button>
+                </div>
+            </div>
+            
+            <!-- Индикатор загрузки -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Обработка...</p>
+            </div>
+            
+            <!-- Результаты -->
+            <div class="result-container" id="result-container">
+                <h3 class="result-title" id="result-title">Результат</h3>
+                <div id="result-content"></div>
+            </div>
+        </main>
         
         <footer>
-            <p>Web-приложение для кодирования/декодирования текста в JPG изображения &copy; 2023</p>
+            <p>Alpha Channel PNG Кодер/Декодер © 2023 | Работает полностью в вашем браузере</p>
         </footer>
     </div>
 
     <script>
         // Элементы DOM
-        const textInput = document.getElementById('textInput');
-        const imageUpload = document.getElementById('imageUpload');
-        const rgbOffset = document.getElementById('rgbOffset');
-        const offsetValue = document.getElementById('offsetValue');
-        const encodeBtn = document.getElementById('encodeBtn');
-        const encodeStatus = document.getElementById('encodeStatus');
-        const originalImage = document.getElementById('originalImage');
-        const originalImageContainer = document.getElementById('originalImageContainer');
-        const encodedImage = document.getElementById('encodedImage');
-        const encodedImageContainer = document.getElementById('encodedImageContainer');
-        const downloadBtn = document.getElementById('downloadBtn');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const encodeText = document.getElementById('encode-text');
+        const encodeImageInput = document.getElementById('encode-image');
+        const decodeImageInput = document.getElementById('decode-image');
+        const convertImageInput = document.getElementById('convert-image');
+        const encodeBtn = document.getElementById('encode-btn');
+        const decodeBtn = document.getElementById('decode-btn');
+        const convertBtn = document.getElementById('convert-btn');
+        const loading = document.getElementById('loading');
+        const resultContainer = document.getElementById('result-container');
+        const resultTitle = document.getElementById('result-title');
+        const resultContent = document.getElementById('result-content');
         
-        const encodedImageUpload = document.getElementById('encodedImageUpload');
-        const decodeOffset = document.getElementById('decodeOffset');
-        const decodeOffsetValue = document.getElementById('decodeOffsetValue');
-        const decodeBtn = document.getElementById('decodeBtn');
-        const decodeStatus = document.getElementById('decodeStatus');
-        const uploadedImage = document.getElementById('uploadedImage');
-        const uploadedImageContainer = document.getElementById('uploadedImageContainer');
-        const decodedResult = document.getElementById('decodedResult');
-        const decodedText = document.getElementById('decodedText');
+        // Аудио элементы
+        const encodeAudioFileInput = document.getElementById('encode-audio-file');
+        const encodeAudioInfo = document.getElementById('encode-audio-info');
+        const encodeAudioPreview = document.getElementById('encode-audio-preview');
+        const encodeAudioPlayer = document.getElementById('encode-audio-player');
+        const encodeAudioImageInput = document.getElementById('encode-audio-image');
+        const encodeAudioBtn = document.getElementById('encode-audio-btn');
         
-        // Переменные
-        let originalCanvas, encodedCanvas;
-        let originalImageData;
+        const decodeAudioImageInput = document.getElementById('decode-audio-image');
+        const decodeAudioBtn = document.getElementById('decode-audio-btn');
+        const decodeAudioResult = document.getElementById('decode-audio-result');
+        const decodeAudioPlayer = document.getElementById('decode-audio-player');
+        const playAudioBtn = document.getElementById('play-audio-btn');
+        const pauseAudioBtn = document.getElementById('pause-audio-btn');
+        const downloadAudioLink = document.getElementById('download-audio-link');
         
-        // Обновление значений смещения
-        rgbOffset.addEventListener('input', () => {
-            offsetValue.textContent = rgbOffset.value;
-        });
-        
-        decodeOffset.addEventListener('input', () => {
-            decodeOffsetValue.textContent = decodeOffset.value;
-        });
-        
-        // Загрузка исходного изображения
-        imageUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                originalImage.src = event.target.result;
-                originalImage.classList.remove('hidden');
-                originalImageContainer.classList.add('hidden');
+        // Переключение вкладок
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
                 
-                const img = new Image();
-                img.onload = () => {
-                    originalCanvas = document.createElement('canvas');
-                    originalCanvas.width = img.width;
-                    originalCanvas.height = img.height;
-                    const ctx = originalCanvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    originalImageData = ctx.getImageData(0, 0, img.width, img.height);
-                    
-                    // Расчет максимального объема текста
-                    const maxChars = calculateMaxChars(originalImageData, parseInt(rgbOffset.value));
-                    textInput.placeholder = `Максимум ${maxChars} символов для этого изображения`;
-                    
-                    showStatus(encodeStatus, `Изображение загружено: ${img.width}×${img.height} пикселей, можно скрыть до ${maxChars} символов`, 'success');
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+                // Обновляем активную кнопку
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Показываем активный контент
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === tabId) {
+                        content.classList.add('active');
+                    }
+                });
+                
+                // Скрываем результаты при переключении вкладок
+                resultContainer.classList.remove('active');
+                decodeAudioResult.classList.add('hidden');
+            });
         });
         
-        // Загрузка изображения для декодирования
-        encodedImageUpload.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        // Просмотр аудиофайла перед кодированием
+        encodeAudioFileInput.addEventListener('change', function() {
+            if (!this.files || !this.files[0]) return;
             
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                uploadedImage.src = event.target.result;
-                uploadedImage.classList.remove('hidden');
-                uploadedImageContainer.classList.add('hidden');
-                decodedResult.classList.add('hidden');
-                decodeStatus.classList.add('hidden');
-            };
-            reader.readAsDataURL(file);
+            const file = this.files[0];
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            
+            // Показываем информацию о файле
+            encodeAudioInfo.innerHTML = `
+                <strong>Имя файла:</strong> ${file.name}<br>
+                <strong>Размер:</strong> ${fileSizeMB} МБ<br>
+                <strong>Тип:</strong> ${file.type || 'неизвестно'}
+            `;
+            
+            // Создаем URL для предпросмотра
+            const audioURL = URL.createObjectURL(file);
+            encodeAudioPlayer.src = audioURL;
+            encodeAudioPreview.classList.remove('hidden');
         });
         
-        // Расчет максимального количества символов
-        function calculateMaxChars(imageData, offset) {
-            const bitsPerPixel = 3; // RGB каналы
-            const bitsPerChar = 8; // 8 бит на символ ASCII
-            
-            // Используем только 75% пикселей для надежности
-            const availablePixels = Math.floor(imageData.data.length / 4 * 0.75);
-            const bitsAvailable = availablePixels * bitsPerPixel * offset;
-            
-            return Math.floor(bitsAvailable / bitsPerChar);
+        // Управление воспроизведением декодированного аудио
+        playAudioBtn.addEventListener('click', () => {
+            decodeAudioPlayer.play();
+        });
+        
+        pauseAudioBtn.addEventListener('click', () => {
+            decodeAudioPlayer.pause();
+        });
+        
+        // Функция показа результатов
+        function showResult(title, content) {
+            resultTitle.textContent = title;
+            resultContent.innerHTML = content;
+            resultContainer.classList.add('active');
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
         }
         
-        // Показать статус
-        function showStatus(element, message, type) {
-            element.textContent = message;
-            element.className = `status ${type}`;
-            element.classList.remove('hidden');
-            
-            setTimeout(() => {
-                element.classList.add('hidden');
-            }, 5000);
-        }
-        
-        // Кодирование текста в изображение
-        encodeBtn.addEventListener('click', () => {
-            const text = textInput.value;
+        // Функция кодирования текста в PNG
+        async function encodeTextToPng() {
+            const text = encodeText.value.trim();
             if (!text) {
-                showStatus(encodeStatus, 'Введите текст для кодирования', 'error');
+                alert('Введите текст для кодирования');
                 return;
             }
             
-            if (!originalImageData) {
-                showStatus(encodeStatus, 'Сначала загрузите изображение', 'error');
-                return;
-            }
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
             
-            const offset = parseInt(rgbOffset.value);
-            const maxChars = calculateMaxChars(originalImageData, offset);
-            
-            if (text.length > maxChars) {
-                showStatus(encodeStatus, `Текст слишком длинный. Максимум ${maxChars} символов для этого изображения`, 'error');
-                return;
-            }
-            
-            // Создаем копию изображения
-            encodedCanvas = document.createElement('canvas');
-            encodedCanvas.width = originalCanvas.width;
-            encodedCanvas.height = originalCanvas.height;
-            const encodedCtx = encodedCanvas.getContext('2d');
-            encodedCtx.drawImage(originalImage, 0, 0);
-            
-            const imageData = encodedCtx.getImageData(0, 0, encodedCanvas.width, encodedCanvas.height);
-            const data = imageData.data;
-            
-            // Добавляем маркер начала и конца сообщения
-            const fullText = `[START]${text}[END]`;
-            let dataIndex = 0;
-            let textIndex = 0;
-            
-            // Кодируем каждый символ
-            for (let i = 0; i < fullText.length; i++) {
-                const charCode = fullText.charCodeAt(i);
-                
-                // Кодируем 8 бит символа
-                for (let bit = 0; bit < 8; bit++) {
-                    if (dataIndex >= data.length - 4) {
-                        showStatus(encodeStatus, 'Недостаточно места в изображении', 'error');
-                        return;
-                    }
-                    
-                    // Получаем бит (0 или 1)
-                    const bitValue = (charCode >> bit) & 1;
-                    
-                    // Встраиваем бит в значение канала
-                    for (let channel = 0; channel < 3; channel++) {
-                        if (dataIndex >= data.length) break;
-                        
-                        // Модифицируем только младшие offset бит
-                        const originalValue = data[dataIndex];
-                        const modifiedValue = (originalValue & ~((1 << offset) - 1)) | 
-                                             ((originalValue + bitValue) & ((1 << offset) - 1));
-                        data[dataIndex] = modifiedValue;
-                        dataIndex++;
-                    }
-                    
-                    dataIndex++; // Пропускаем альфа-канал
-                }
-            }
-            
-            // Применяем изменения
-            encodedCtx.putImageData(imageData, 0, 0);
-            
-            // Отображаем результат
-            encodedImage.src = encodedCanvas.toDataURL('image/jpeg', 1.0); // Максимальное качество
-            encodedImage.classList.remove('hidden');
-            encodedImageContainer.classList.add('hidden');
-            
-            // Показываем кнопку скачивания
-            downloadBtn.classList.remove('hidden');
-            
-            showStatus(encodeStatus, `Текст успешно закодирован в изображение! Длина текста: ${text.length} символов`, 'success');
-        });
-        
-        // Скачивание закодированного изображения
-        downloadBtn.addEventListener('click', () => {
-            if (!encodedCanvas) return;
-            
-            const link = document.createElement('a');
-            link.download = 'encoded-image.jpg';
-            link.href = encodedCanvas.toDataURL('image/jpeg', 1.0);
-            link.click();
-            
-            showStatus(encodeStatus, 'Изображение скачивается...', 'success');
-        });
-        
-        // Декодирование текста из изображения
-        decodeBtn.addEventListener('click', () => {
-            if (!encodedImageUpload.files[0]) {
-                showStatus(decodeStatus, 'Загрузите изображение для декодирования', 'error');
-                return;
-            }
-            
-            const offset = parseInt(decodeOffset.value);
-            
-            const img = new Image();
-            img.onload = () => {
+            try {
+                // Создаем холст для изображения
                 const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
                 
+                // Если пользователь загрузил изображение
+                if (encodeImageInput.files && encodeImageInput.files[0]) {
+                    const imageFile = encodeImageInput.files[0];
+                    const imageBitmap = await createImageBitmap(imageFile);
+                    
+                    // Устанавливаем размер холста по размеру изображения
+                    canvas.width = imageBitmap.width;
+                    canvas.height = imageBitmap.height;
+                    
+                    // Рисуем изображение на холсте
+                    ctx.drawImage(imageBitmap, 0, 0);
+                } else {
+                    // Создаем новое изображение с цветным градиентом
+                    canvas.width = 800;
+                    canvas.height = 600;
+                    
+                    // Создаем градиентный фон
+                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, '#3a7bd5');
+                    gradient.addColorStop(0.5, '#00d2ff');
+                    gradient.addColorStop(1, '#56ab2f');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Добавляем текст на изображение
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Скрытое сообщение внутри', canvas.width / 2, 50);
+                    ctx.font = '16px Arial';
+                    ctx.fillText('Используйте декодер для извлечения текста', canvas.width / 2, canvas.height - 30);
+                }
+                
+                // Получаем данные изображения
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
                 
-                let dataIndex = 0;
-                let decodedChars = [];
-                let currentChar = 0;
-                let bitCount = 0;
-                let text = '';
-                let foundStart = false;
-                let foundEnd = false;
+                // Преобразуем текст в байты
+                const textEncoder = new TextEncoder();
+                const textBytes = textEncoder.encode(text);
+                const textLength = textBytes.length;
                 
-                // Декодируем данные
-                while (dataIndex < data.length - 4 && !foundEnd) {
-                    // Собираем 8 бит для одного символа
-                    currentChar = 0;
-                    
-                    for (let bit = 0; bit < 8; bit++) {
-                        if (dataIndex >= data.length - 4) break;
-                        
-                        // Извлекаем бит из каналов RGB
-                        let extractedBit = 0;
-                        for (let channel = 0; channel < 3; channel++) {
-                            if (dataIndex >= data.length) break;
-                            
-                            extractedBit ^= (data[dataIndex] & ((1 << offset) - 1));
-                            dataIndex++;
-                        }
-                        
-                        // Усредняем и получаем бит
-                        extractedBit = Math.round(extractedBit / 3) & 1;
-                        currentChar |= (extractedBit << bit);
-                        
-                        dataIndex++; // Пропускаем альфа-канал
-                    }
-                    
-                    // Добавляем символ
-                    const char = String.fromCharCode(currentChar);
-                    text += char;
-                    
-                    // Проверяем маркеры
-                    if (!foundStart && text.includes('[START]')) {
-                        foundStart = true;
-                        text = '';
-                    }
-                    
-                    if (foundStart && text.includes('[END]')) {
-                        foundEnd = true;
-                        text = text.replace('[END]', '');
-                        break;
-                    }
+                // Проверяем, достаточно ли места для текста в альфа-канале
+                const maxTextLength = data.length / 4;
+                if (textLength > maxTextLength - 4) {
+                    loading.classList.remove('active');
+                    alert(`Текст слишком длинный. Максимальная длина для этого изображения: ${Math.floor(maxTextLength - 4)} символов`);
+                    return;
                 }
                 
-                if (foundStart && foundEnd) {
-                    decodedText.textContent = text;
-                    decodedResult.classList.remove('hidden');
-                    showStatus(decodeStatus, `Текст успешно декодирован! Длина: ${text.length} символов`, 'success');
-                } else {
-                    decodedText.textContent = 'Не удалось декодировать текст. Возможно, неверное значение смещения или изображение не содержит скрытого текста.';
-                    decodedResult.classList.remove('hidden');
-                    showStatus(decodeStatus, 'Декодирование не удалось', 'error');
+                // Кодируем длину текста в первых 4 байтах альфа-канала
+                data[3] = (textLength >> 24) & 0xFF; // Байт 1: старшие 8 бит длины
+                data[7] = (textLength >> 16) & 0xFF; // Байт 2
+                data[11] = (textLength >> 8) & 0xFF;  // Байт 3
+                data[15] = textLength & 0xFF;         // Байт 4: младшие 8 бит длины
+                
+                // Кодируем текст в альфа-канал
+                for (let i = 0; i < textLength; i++) {
+                    // Каждый символ текста хранится в альфа-канале пикселя
+                    const dataIndex = (i + 4) * 4 + 3; // +4 чтобы пропустить первые 4 пикселя с длиной текста
+                    data[dataIndex] = textBytes[i];
                 }
-            };
-            
-            img.src = URL.createObjectURL(encodedImageUpload.files[0]);
-        });
+                
+                // Помещаем обработанные данные обратно на холст
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Конвертируем холст в PNG
+                const pngUrl = canvas.toDataURL('image/png');
+                
+                // Создаем ссылку для скачивания
+                const timestamp = new Date().getTime();
+                const downloadLink = `<a href="${pngUrl}" download="encoded_text_${timestamp}.png" class="download-btn">Скачать PNG с закодированным текстом</a>`;
+                
+                // Показываем результат
+                loading.classList.remove('active');
+                showResult('Текст успешно закодирован!', `
+                    <p>Ваш текст был скрыт в альфа-канале PNG изображения.</p>
+                    <p>Длина закодированного текста: ${textLength} символов</p>
+                    <p>Размер изображения: ${canvas.width} × ${canvas.height} пикселей</p>
+                    <img src="${pngUrl}" alt="Закодированное изображение" class="image-preview">
+                    ${downloadLink}
+                    <p class="info-box">Сохраните это изображение и используйте функцию декодирования для извлечения текста.</p>
+                `);
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при кодировании:', error);
+                alert('Произошла ошибка при кодировании текста');
+            }
+        }
         
-        // Инициализация примера
-        window.addEventListener('DOMContentLoaded', () => {
-            textInput.value = "Привет! Это секретное сообщение, скрытое в изображении с помощью стеганографии. Сообщение успешно декодируется!";
-            
-            // Создаем тестовое изображение
-            setTimeout(() => {
-                if (!originalImageData) {
-                    createTestImage();
-                }
-            }, 500);
-        });
-        
-        // Создание тестового изображения
-        function createTestImage() {
-            const testCanvas = document.createElement('canvas');
-            testCanvas.width = 600;
-            testCanvas.height = 400;
-            const ctx = testCanvas.getContext('2d');
-            
-            // Градиентный фон
-            const gradient = ctx.createLinearGradient(0, 0, 600, 400);
-            gradient.addColorStop(0, '#1a1a2e');
-            gradient.addColorStop(0.3, '#16213e');
-            gradient.addColorStop(0.7, '#0f3460');
-            gradient.addColorStop(1, '#1a1a2e');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 600, 400);
-            
-            // Добавляем некоторые детали
-            ctx.fillStyle = 'rgba(76, 201, 240, 0.1)';
-            for (let i = 0; i < 50; i++) {
-                const x = Math.random() * 600;
-                const y = Math.random() * 400;
-                const radius = Math.random() * 20 + 5;
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
+        // Функция декодирования текста из PNG
+        async function decodeTextFromPng() {
+            if (!decodeImageInput.files || !decodeImageInput.files[0]) {
+                alert('Выберите PNG изображение для декодирования');
+                return;
             }
             
-            // Текст на изображении (видимый)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.font = 'bold 28px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Тестовое изображение', 300, 180);
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
             
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.font = '18px Arial';
-            ctx.fillText('Используется для кодирования текста', 300, 220);
-            
-            // Устанавливаем как исходное изображение
-            originalImage.src = testCanvas.toDataURL('image/jpeg');
-            originalImage.classList.remove('hidden');
-            originalImageContainer.classList.add('hidden');
-            
-            // Сохраняем данные
-            originalCanvas = testCanvas;
-            originalImageData = ctx.getImageData(0, 0, 600, 400);
-            
-            // Расчет максимального объема текста
-            const maxChars = calculateMaxChars(originalImageData, parseInt(rgbOffset.value));
-            textInput.placeholder = `Максимум ${maxChars} символов для этого изображения`;
-            
-            showStatus(encodeStatus, `Тестовое изображение создано: 600×400 пикселей, можно скрыть до ${maxChars} символов`, 'success');
+            try {
+                const imageFile = decodeImageInput.files[0];
+                const imageBitmap = await createImageBitmap(imageFile);
+                
+                // Создаем холст для изображения
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                
+                // Рисуем изображение на холсте
+                ctx.drawImage(imageBitmap, 0, 0);
+                
+                // Получаем данные изображения
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Извлекаем длину текста из первых 4 байтов альфа-канала
+                const textLength = (data[3] << 24) | (data[7] << 16) | (data[11] << 8) | data[15];
+                
+                // Проверяем валидность длины текста
+                if (textLength <= 0 || textLength > (data.length / 4) - 4) {
+                    loading.classList.remove('active');
+                    alert('Не удалось извлечь текст. Возможно, изображение не содержит закодированных данных.');
+                    return;
+                }
+                
+                // Извлекаем текст из альфа-канала
+                const textBytes = new Uint8Array(textLength);
+                for (let i = 0; i < textLength; i++) {
+                    const dataIndex = (i + 4) * 4 + 3; // +4 чтобы пропустить первые 4 пикселя с длиной текста
+                    textBytes[i] = data[dataIndex];
+                }
+                
+                // Преобразуем байты в текст
+                const textDecoder = new TextDecoder();
+                const decodedText = textDecoder.decode(textBytes);
+                
+                // Показываем результат
+                loading.classList.remove('active');
+                showResult('Текст успешно декодирован!', `
+                    <p>Из изображения извлечен следующий текст:</p>
+                    <div class="text-result">${decodedText}</div>
+                    <p>Длина текста: ${textLength} символов</p>
+                    <p>Размер изображения: ${canvas.width} × ${canvas.height} пикселей</p>
+                `);
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при декодировании:', error);
+                alert('Произошла ошибка при декодировании текста. Убедитесь, что выбрано PNG изображение, созданное этим приложением.');
+            }
         }
+        
+        // Функция кодирования аудио в PNG
+        async function encodeAudioToPng() {
+            if (!encodeAudioFileInput.files || !encodeAudioFileInput.files[0]) {
+                alert('Выберите аудиофайл для кодирования');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
+            
+            try {
+                const audioFile = encodeAudioFileInput.files[0];
+                const fileSizeMB = (audioFile.size / (1024 * 1024)).toFixed(2);
+                
+                // Предупреждение о больших файлах
+                if (audioFile.size > 5 * 1024 * 1024) { // 5 MB
+                    const confirmEncode = confirm(`Внимание! Аудиофайл большой (${fileSizeMB} МБ). Кодирование может занять много времени и создать огромное изображение. Продолжить?`);
+                    if (!confirmEncode) {
+                        loading.classList.remove('active');
+                        return;
+                    }
+                }
+                
+                // Читаем аудиофайл как Base64
+                const reader = new FileReader();
+                
+                reader.onload = async function(e) {
+                    try {
+                        // Получаем Base64 строку (убираем префикс data URL)
+                        const base64String = e.target.result.split(',')[1];
+                        
+                        // Преобразуем Base64 в байты
+                        const binaryString = atob(base64String);
+                        const audioBytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            audioBytes[i] = binaryString.charCodeAt(i);
+                        }
+                        
+                        const audioLength = audioBytes.length;
+                        
+                        // Создаем холст для изображения
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Рассчитываем размер изображения, необходимое для хранения аудио
+                        // Каждый пиксель может хранить 1 байт в альфа-канале
+                        const pixelsNeeded = audioLength + 8; // +8 для метаданных (длина + тип)
+                        const imageSize = Math.ceil(Math.sqrt(pixelsNeeded));
+                        
+                        // Если пользователь загрузил изображение
+                        if (encodeAudioImageInput.files && encodeAudioImageInput.files[0]) {
+                            const imageFile = encodeAudioImageInput.files[0];
+                            const imageBitmap = await createImageBitmap(imageFile);
+                            
+                            // Проверяем, достаточно ли пикселей в изображении
+                            if (imageBitmap.width * imageBitmap.height < pixelsNeeded) {
+                                loading.classList.remove('active');
+                                alert(`Изображение слишком маленькое. Нужно минимум ${pixelsNeeded} пикселей (${imageSize}×${imageSize}), а у вас ${imageBitmap.width}×${imageBitmap.height} = ${imageBitmap.width * imageBitmap.height} пикселей.`);
+                                return;
+                            }
+                            
+                            canvas.width = imageBitmap.width;
+                            canvas.height = imageBitmap.height;
+                            ctx.drawImage(imageBitmap, 0, 0);
+                        } else {
+                            // Создаем новое изображение оптимального размера
+                            canvas.width = imageSize;
+                            canvas.height = imageSize;
+                            
+                            // Создаем градиентный фон
+                            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                            gradient.addColorStop(0, '#9C27B0');
+                            gradient.addColorStop(0.5, '#E91E63');
+                            gradient.addColorStop(1, '#FF9800');
+                            
+                            ctx.fillStyle = gradient;
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            
+                            // Добавляем подпись
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                            ctx.font = 'bold 16px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('Скрытое аудио внутри', canvas.width / 2, 30);
+                            ctx.font = '12px Arial';
+                            ctx.fillText('Используйте аудио декодер для извлечения', canvas.width / 2, canvas.height - 20);
+                        }
+                        
+                        // Получаем данные изображения
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        
+                        // Проверяем, достаточно ли места для аудио в альфа-канале
+                        const maxAudioLength = data.length / 4;
+                        if (audioLength > maxAudioLength - 8) {
+                            loading.classList.remove('active');
+                            alert(`Аудиофайл слишком большой. Максимальный размер для этого изображения: ${Math.floor((maxAudioLength - 8) / 1024)} КБ`);
+                            return;
+                        }
+                        
+                        // Кодируем тип файла в первые 4 байта (сигнатура "AUDI")
+                        data[3] = 'A'.charCodeAt(0);  // 'A'
+                        data[7] = 'U'.charCodeAt(0);  // 'U'
+                        data[11] = 'D'.charCodeAt(0); // 'D'
+                        data[15] = 'I'.charCodeAt(0); // 'I'
+                        
+                        // Кодируем длину аудио в следующие 4 байта
+                        data[19] = (audioLength >> 24) & 0xFF;
+                        data[23] = (audioLength >> 16) & 0xFF;
+                        data[27] = (audioLength >> 8) & 0xFF;
+                        data[31] = audioLength & 0xFF;
+                        
+                        // Кодируем аудио данные в альфа-канал
+                        for (let i = 0; i < audioLength; i++) {
+                            const dataIndex = (i + 8) * 4 + 3; // +8 чтобы пропустить первые 8 пикселей с метаданными
+                            data[dataIndex] = audioBytes[i];
+                        }
+                        
+                        // Помещаем обработанные данные обратно на холст
+                        ctx.putImageData(imageData, 0, 0);
+                        
+                        // Конвертируем холст в PNG
+                        const pngUrl = canvas.toDataURL('image/png');
+                        
+                        // Создаем ссылку для скачивания
+                        const timestamp = new Date().getTime();
+                        const downloadLink = `<a href="${pngUrl}" download="encoded_audio_${timestamp}.png" class="download-btn">Скачать PNG с закодированным аудио</a>`;
+                        
+                        // Показываем результат
+                        loading.classList.remove('active');
+                        showResult('Аудио успешно закодировано!', `
+                            <p>Ваш аудиофайл был скрыт в альфа-канале PNG изображения.</p>
+                            <p>Размер аудио: ${fileSizeMB} МБ (${audioLength} байт)</p>
+                            <p>Размер изображения: ${canvas.width} × ${canvas.height} пикселей</p>
+                            <img src="${pngUrl}" alt="Закодированное аудио изображение" class="image-preview">
+                            ${downloadLink}
+                            <p class="audio-info-box">Сохраните это изображение и используйте функцию аудио декодирования для извлечения аудиофайла.</p>
+                        `);
+                    } catch (error) {
+                        loading.classList.remove('active');
+                        console.error('Ошибка при кодировании аудио:', error);
+                        alert('Произошла ошибка при кодировании аудио');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    loading.classList.remove('active');
+                    alert('Ошибка при чтении аудиофайла');
+                };
+                
+                // Читаем файл как Data URL (Base64)
+                reader.readAsDataURL(audioFile);
+                
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при кодировании аудио:', error);
+                alert('Произошла ошибка при кодировании аудио');
+            }
+        }
+        
+        // Функция декодирования аудио из PNG
+        async function decodeAudioFromPng() {
+            if (!decodeAudioImageInput.files || !decodeAudioImageInput.files[0]) {
+                alert('Выберите PNG изображение с закодированным аудио');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
+            
+            try {
+                const imageFile = decodeAudioImageInput.files[0];
+                const imageBitmap = await createImageBitmap(imageFile);
+                
+                // Создаем холст для изображения
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                
+                // Рисуем изображение на холсте
+                ctx.drawImage(imageBitmap, 0, 0);
+                
+                // Получаем данные изображения
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Проверяем сигнатуру "AUDI" в первых 4 байтах
+                const signature = String.fromCharCode(data[3], data[7], data[11], data[15]);
+                
+                if (signature !== 'AUDI') {
+                    loading.classList.remove('active');
+                    alert('Не удалось извлечь аудио. Возможно, изображение не содержит закодированных аудиоданных.');
+                    return;
+                }
+                
+                // Извлекаем длину аудио из следующих 4 байтов
+                const audioLength = (data[19] << 24) | (data[23] << 16) | (data[27] << 8) | data[31];
+                
+                // Проверяем валидность длины аудио
+                if (audioLength <= 0 || audioLength > (data.length / 4) - 8) {
+                    loading.classList.remove('active');
+                    alert('Неверная длина аудио. Возможно, изображение повреждено.');
+                    return;
+                }
+                
+                // Извлекаем аудио данные из альфа-канала
+                const audioBytes = new Uint8Array(audioLength);
+                for (let i = 0; i < audioLength; i++) {
+                    const dataIndex = (i + 8) * 4 + 3; // +8 чтобы пропустить первые 8 пикселей с метаданными
+                    audioBytes[i] = data[dataIndex];
+                }
+                
+                // Преобразуем байты обратно в Base64
+                let binaryString = '';
+                for (let i = 0; i < audioBytes.length; i++) {
+                    binaryString += String.fromCharCode(audioBytes[i]);
+                }
+                
+                const base64String = btoa(binaryString);
+                
+                // Определяем MIME-тип (по умолчанию audio/mpeg)
+                // В реальном приложении можно было бы сохранить тип в метаданных
+                const mimeType = 'audio/mpeg';
+                const audioBlob = new Blob([audioBytes], { type: mimeType });
+                const audioURL = URL.createObjectURL(audioBlob);
+                
+                // Настраиваем аудиоплеер
+                decodeAudioPlayer.src = audioURL;
+                
+                // Настраиваем ссылку для скачивания
+                downloadAudioLink.href = audioURL;
+                downloadAudioLink.download = `decoded_audio_${new Date().getTime()}.mp3`;
+                
+                // Показываем результат
+                decodeAudioResult.classList.remove('hidden');
+                
+                // Показываем общий результат
+                const fileSizeMB = (audioLength / (1024 * 1024)).toFixed(2);
+                loading.classList.remove('active');
+                showResult('Аудио успешно декодировано!', `
+                    <p>Из изображения извлечен аудиофайл.</p>
+                    <p>Размер аудио: ${fileSizeMB} МБ (${audioLength} байт)</p>
+                    <p>Размер изображения: ${canvas.width} × ${canvas.height} пикселей</p>
+                    <p>Используйте элементы управления ниже для воспроизведения и скачивания аудио:</p>
+                `);
+                
+                // Прокручиваем к результатам
+                decodeAudioResult.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при декодировании аудио:', error);
+                alert('Произошла ошибка при декодировании аудио. Убедитесь, что выбрано PNG изображение с закодированным аудио.');
+            }
+        }
+        
+        // Функция конвертации изображения в PNG
+        async function convertImageToPng() {
+            if (!convertImageInput.files || !convertImageInput.files[0]) {
+                alert('Выберите изображение для конвертации');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
+            
+            try {
+                const imageFile = convertImageInput.files[0];
+                const imageBitmap = await createImageBitmap(imageFile);
+                
+                // Создаем холст для изображения
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                
+                // Рисуем изображение на холсте
+                ctx.drawImage(imageBitmap, 0, 0);
+                
+                // Конвертируем холст в PNG
+                const pngUrl = canvas.toDataURL('image/png');
+                
+                // Создаем ссылку для скачивания
+                const timestamp = new Date().getTime();
+                const originalFileName = imageFile.name.split('.').slice(0, -1).join('.') || 'converted';
+                const downloadLink = `<a href="${pngUrl}" download="${originalFileName}_${timestamp}.png" class="download-btn">Скачать PNG изображение</a>`;
+                
+                // Показываем результат
+                loading.classList.remove('active');
+                showResult('Изображение успешно конвертировано!', `
+                    <p>Ваше изображение было преобразовано в формат PNG.</p>
+                    <p>Размер: ${canvas.width} × ${canvas.height} пикселей</p>
+                    <img src="${pngUrl}" alt="Конвертированное изображение" class="image-preview">
+                    ${downloadLink}
+                `);
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при конвертации:', error);
+                alert('Произошла ошибка при конвертации изображения');
+            }
+        }
+        
+        // Обработчики событий
+        encodeBtn.addEventListener('click', encodeTextToPng);
+        decodeBtn.addEventListener('click', decodeTextFromPng);
+        convertBtn.addEventListener('click', convertImageToPng);
+        encodeAudioBtn.addEventListener('click', encodeAudioToPng);
+        decodeAudioBtn.addEventListener('click', decodeAudioFromPng);
+        
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            // Устанавливаем плейсхолдер текста
+            encodeText.placeholder = `Привет! Это секретное сообщение, которое будет скрыто в изображении.
+
+Вы можете скрыть любой текст в альфа-канале PNG изображения, и он будет невидим для обычного просмотра.
+
+Этот текст будет закодирован в прозрачности пикселей.`;
+            
+            // Автоматически активируем поле ввода текста
+            encodeText.focus();
+        });
     </script>
 </body>
 </html>
