@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Стеганография в тексте | Мобильное приложение</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --border-radius: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 15px;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        .app-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            margin-bottom: 20px;
+            background-color: #e9ecef;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            background: none;
+            border: none;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--gray);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tab-button.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.95rem;
+        }
+
+        textarea, input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            transition: var(--transition);
+        }
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        textarea {
+            min-height: 120px;
+            max-height: 200px;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        .button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 10px;
+        }
+
+        .button:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button-success {
+            background-color: var(--success);
+        }
+
+        .button-danger {
+            background-color: var(--danger);
+        }
+
+        .result-container {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+        }
+
+        .result-box {
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 16px;
+            word-break: break-word;
+            border: 1px dashed #adb5bd;
+            min-height: 60px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .result-actions .button {
+            flex: 1;
+            padding: 12px;
+            font-size: 0.95rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .info-box {
+            background-color: #e7f4ff;
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-top: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-text {
+            font-size: 0.9rem;
+            color: var(--dark);
+        }
+
+        .info-text ul {
+            padding-left: 20px;
+            margin-top: 8px;
+        }
+
+        .info-text li {
+            margin-bottom: 5px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background-color: #e9ecef;
+            z-index: 1;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+            position: relative;
+            flex: 1;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--gray);
+            margin-bottom: 8px;
+            transition: var(--transition);
+        }
+
+        .step.active .step-number {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .step-label {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--gray);
+        }
+
+        .step.active .step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--gray);
+            font-size: 0.85rem;
+            padding: 20px;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background-color: var(--primary);
+            color: white;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification-message {
+            flex: 1;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .app-card {
+                padding: 16px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .button {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-user-secret"></i> Текстовая стеганография</h1>
+            <p class="subtitle">Скрывайте сообщения в обычном тексте. Адаптировано для мобильных устройств</p>
+        </header>
+
+        <div class="step-indicator">
+            <div class="step active">
+                <div class="step-number">1</div>
+                <div class="step-label">Выберите режим</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-label">Введите данные</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-label">Получите результат</div>
+            </div>
+        </div>
+
+        <div class="app-card">
+            <div class="tab-buttons">
+                <button class="tab-button active" id="encodeTabBtn">
+                    <i class="fas fa-lock"></i> Шифровать
+                </button>
+                <button class="tab-button" id="decodeTabBtn">
+                    <i class="fas fa-lock-open"></i> Дешифровать
+                </button>
+            </div>
+
+            <div class="tab-content active" id="encodeTab">
+                <div class="input-group">
+                    <label for="publicText"><i class="fas fa-font"></i> Открытый текст (контейнер):</label>
+                    <textarea id="publicText" placeholder="Введите текст, в котором будет спрятано секретное сообщение..."></textarea>
+                    <div class="char-count" id="publicTextCount">0 символов</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="secretMessage"><i class="fas fa-key"></i> Секретное сообщение:</label>
+                    <textarea id="secretMessage" placeholder="Введите сообщение, которое нужно спрятать..."></textarea>
+                    <div class="char-count" id="secretMessageCount">0 символов</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="password"><i class="fas fa-unlock-alt"></i> Пароль (опционально):</label>
+                    <input type="text" id="password" placeholder="Введите пароль для дополнительной защиты...">
+                </div>
+
+                <button class="button" id="encodeBtn">
+                    <i class="fas fa-shield-alt"></i> Спрятать сообщение
+                </button>
+            </div>
+
+            <div class="tab-content" id="decodeTab">
+                <div class="input-group">
+                    <label for="encodedText"><i class="fas fa-file-alt"></i> Текст со скрытым сообщением:</label>
+                    <textarea id="encodedText" placeholder="Введите текст, в котором спрятано сообщение..."></textarea>
+                    <div class="char-count" id="encodedTextCount">0 символов</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="decodePassword"><i class="fas fa-unlock-alt"></i> Пароль (если нужен):</label>
+                    <input type="text" id="decodePassword" placeholder="Введите пароль, если использовали при шифровании...">
+                </div>
+
+                <button class="button button-success" id="decodeBtn">
+                    <i class="fas fa-search"></i> Найти скрытое сообщение
+                </button>
+            </div>
+
+            <div class="result-container" id="resultContainer">
+                <div class="result-title">
+                    <i class="fas fa-file-code"></i> Результат:
+                </div>
+                <div class="result-box" id="resultBox">
+                    <!-- Здесь будет результат -->
+                </div>
+                <div class="result-actions" id="resultActions">
+                    <button class="button button-success" id="copyBtn">
+                        <i class="fas fa-copy"></i> Копировать
+                    </button>
+                    <button class="button button-danger" id="clearBtn">
+                        <i class="fas fa-trash-alt"></i> Очистить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="info-title">
+                <i class="fas fa-info-circle"></i> Как это работает
+            </div>
+            <div class="info-text">
+                <p>Это приложение использует текстовую стеганографию - метод сокрытия информации в обычном тексте.</p>
+                <ul>
+                    <li><strong>Шифрование:</strong> Секретное сообщение преобразуется в двоичный код и прячется в тексте с помощью невидимых символов Unicode.</li>
+                    <li><strong>Дешифрование:</strong> Приложение находит скрытые символы в тексте и восстанавливает исходное сообщение.</li>
+                    <li><strong>Безопасность:</strong> Сообщение можно дополнительно защитить паролем. Без пароля извлечь его будет невозможно.</li>
+                </ul>
+                <p>Полученный текст выглядит обычным, но содержит ваше скрытое сообщение.</p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Текстовая стеганография | Адаптировано для мобильных устройств | 2023</p>
+        </footer>
+    </div>
+
+    <div class="notification" id="notification">
+        <div class="notification-message" id="notificationMessage">Текст скопирован в буфер обмена!</div>
+        <button class="notification-close" id="notificationClose">&times;</button>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const encodeTabBtn = document.getElementById('encodeTabBtn');
+        const decodeTabBtn = document.getElementById('decodeTabBtn');
+        const encodeTab = document.getElementById('encodeTab');
+        const decodeTab = document.getElementById('decodeTab');
+        const encodeBtn = document.getElementById('encodeBtn');
+        const decodeBtn = document.getElementById('decodeBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultBox = document.getElementById('resultBox');
+        const resultActions = document.getElementById('resultActions');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+        const notificationClose = document.getElementById('notificationClose');
+        
+        // Элементы для подсчета символов
+        const publicText = document.getElementById('publicText');
+        const secretMessage = document.getElementById('secretMessage');
+        const encodedText = document.getElementById('encodedText');
+        const publicTextCount = document.getElementById('publicTextCount');
+        const secretMessageCount = document.getElementById('secretMessageCount');
+        const encodedTextCount = document.getElementById('encodedTextCount');
+        
+        // Шаги процесса
+        const steps = document.querySelectorAll('.step');
+
+        // Невидимые символы Unicode для стеганографии
+        const ZERO_WIDTH_SPACE = '\u200B'; // нулевой пробел
+        const ZERO_WIDTH_NON_JOINER = '\u200C'; // нулевой не-соединитель
+        const ZERO_WIDTH_JOINER = '\u200D'; // нулевой соединитель
+        const LEFT_TO_RIGHT_MARK = '\u200E'; // маркер слева направо
+        const RIGHT_TO_LEFT_MARK = '\u200F'; // маркер справа налево
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharCounts();
+            resultContainer.classList.add('hidden');
+            
+            // Показать шаг 1 как активный
+            updateSteps(1);
+        });
+
+        // Переключение между вкладками
+        encodeTabBtn.addEventListener('click', function() {
+            encodeTabBtn.classList.add('active');
+            decodeTabBtn.classList.remove('active');
+            encodeTab.classList.add('active');
+            decodeTab.classList.remove('active');
+            resultContainer.classList.add('hidden');
+            updateSteps(1);
+        });
+
+        decodeTabBtn.addEventListener('click', function() {
+            decodeTabBtn.classList.add('active');
+            encodeTabBtn.classList.remove('active');
+            decodeTab.classList.add('active');
+            encodeTab.classList.remove('active');
+            resultContainer.classList.add('hidden');
+            updateSteps(1);
+        });
+
+        // Обновление счетчиков символов
+        publicText.addEventListener('input', updateCharCounts);
+        secretMessage.addEventListener('input', updateCharCounts);
+        encodedText.addEventListener('input', updateCharCounts);
+
+        function updateCharCounts() {
+            publicTextCount.textContent = `${publicText.value.length} символов`;
+            secretMessageCount.textContent = `${secretMessage.value.length} символов`;
+            encodedTextCount.textContent = `${encodedText.value.length} символов`;
+        }
+
+        // Обновление индикатора шагов
+        function updateSteps(activeStep) {
+            steps.forEach((step, index) => {
+                if (index < activeStep) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+        }
+
+        // Функция для отображения уведомлений
+        function showNotification(message, type = 'success') {
+            notificationMessage.textContent = message;
+            notification.className = 'notification';
+            notification.classList.add('show');
+            
+            if (type === 'error') {
+                notification.style.backgroundColor = '#f72585';
+            }
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Закрытие уведомления
+        notificationClose.addEventListener('click', function() {
+            notification.classList.remove('show');
+        });
+
+        // Кодирование сообщения
+        encodeBtn.addEventListener('click', function() {
+            const publicTextValue = publicText.value.trim();
+            const secretMessageValue = secretMessage.value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!publicTextValue) {
+                showNotification('Введите текст-контейнер!', 'error');
+                publicText.focus();
+                return;
+            }
+            
+            if (!secretMessageValue) {
+                showNotification('Введите секретное сообщение!', 'error');
+                secretMessage.focus();
+                return;
+            }
+            
+            // Показываем шаг 2
+            updateSteps(2);
+            
+            // Имитация обработки
+            setTimeout(() => {
+                // Шифруем сообщение
+                const encoded = encodeMessage(publicTextValue, secretMessageValue, password);
+                
+                // Показываем шаг 3
+                updateSteps(3);
+                
+                // Отображаем результат
+                resultBox.textContent = encoded;
+                resultContainer.classList.remove('hidden');
+                
+                // Прокручиваем к результату
+                resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                showNotification('Сообщение успешно спрятано в тексте!');
+            }, 800);
+        });
+
+        // Декодирование сообщения
+        decodeBtn.addEventListener('click', function() {
+            const encodedTextValue = encodedText.value.trim();
+            const password = document.getElementById('decodePassword').value;
+            
+            if (!encodedTextValue) {
+                showNotification('Введите текст со скрытым сообщением!', 'error');
+                encodedText.focus();
+                return;
+            }
+            
+            // Показываем шаг 2
+            updateSteps(2);
+            
+            // Имитация обработки
+            setTimeout(() => {
+                // Дешифруем сообщение
+                const decoded = decodeMessage(encodedTextValue, password);
+                
+                // Показываем шаг 3
+                updateSteps(3);
+                
+                if (decoded) {
+                    // Отображаем результат
+                    resultBox.textContent = decoded;
+                    resultContainer.classList.remove('hidden');
+                    
+                    // Прокручиваем к результату
+                    resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    
+                    showNotification('Скрытое сообщение успешно извлечено!');
+                } else {
+                    resultBox.textContent = 'Скрытое сообщение не найдено или неверный пароль!';
+                    resultContainer.classList.remove('hidden');
+                    showNotification('Не удалось извлечь сообщение. Проверьте пароль.', 'error');
+                }
+            }, 800);
+        });
+
+        // Копирование результата
+        copyBtn.addEventListener('click', function() {
+            if (!resultBox.textContent) return;
+            
+            // Используем Clipboard API
+            navigator.clipboard.writeText(resultBox.textContent)
+                .then(() => {
+                    showNotification('Текст скопирован в буфер обмена!');
+                })
+                .catch(err => {
+                    // Fallback для старых браузеров
+                    const textArea = document.createElement('textarea');
+                    textArea.value = resultBox.textContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('Текст скопирован в буфер обмена!');
+                });
+        });
+
+        // Очистка результата
+        clearBtn.addEventListener('click', function() {
+            resultBox.textContent = '';
+            resultContainer.classList.add('hidden');
+            updateSteps(1);
+            showNotification('Результат очищен');
+        });
+
+        // Функции стеганографии
+        function encodeMessage(publicText, secretMessage, password = '') {
+            // Если указан пароль, добавляем его к сообщению
+            let messageToHide = secretMessage;
+            if (password) {
+                // Простой метод "защиты" паролем - добавляем его как маркер
+                messageToHide = `[PWD:${password}]${secretMessage}`;
+            }
+            
+            // Конвертируем сообщение в бинарную строку
+            let binaryString = '';
+            for (let i = 0; i < messageToHide.length; i++) {
+                // Получаем код символа и преобразуем в двоичный формат
+                const binaryChar = messageToHide.charCodeAt(i).toString(2).padStart(16, '0');
+                binaryString += binaryChar;
+            }
+            
+            // Добавляем маркер конца сообщения
+            binaryString += '0000000000000000'; // 16 нулей как маркер конца
+            
+            // Вставляем бинарную строку в публичный текст
+            let encodedText = publicText;
+            let hiddenIndex = 0;
+            
+            // Ищем пробелы и знаки препинания, где можно спрятать данные
+            for (let i = 0; i < encodedText.length && hiddenIndex < binaryString.length; i++) {
+                // Каждые 3 символа текста проверяем возможность вставки
+                if (i % 3 === 0) {
+                    const bit = binaryString[hiddenIndex];
+                    
+                    // В зависимости от бита добавляем невидимый символ после текущего символа
+                    if (bit === '0') {
+                        // Вставляем нулевой пробел
+                        encodedText = encodedText.substring(0, i+1) + ZERO_WIDTH_SPACE + encodedText.substring(i+1);
+                        i++; // Учитываем добавленный символ
+                    } else {
+                        // Вставляем нулевой не-соединитель
+                        encodedText = encodedText.substring(0, i+1) + ZERO_WIDTH_NON_JOINER + encodedText.substring(i+1);
+                        i++; // Учитываем добавленный символ
+                    }
+                    
+                    hiddenIndex++;
+                }
+            }
+            
+            // Если не все биты поместились, добавляем в конец
+            if (hiddenIndex < binaryString.length) {
+                for (let i = hiddenIndex; i < binaryString.length; i++) {
+                    const bit = binaryString[i];
+                    if (bit === '0') {
+                        encodedText += ZERO_WIDTH_SPACE;
+                    } else {
+                        encodedText += ZERO_WIDTH_NON_JOINER;
+                    }
+                }
+            }
+            
+            return encodedText;
+        }
+
+        function decodeMessage(encodedText, password = '') {
+            // Извлекаем бинарную строку из текста
+            let binaryString = '';
+            
+            for (let i = 0; i < encodedText.length; i++) {
+                const char = encodedText[i];
+                
+                // Проверяем на невидимые символы
+                if (char === ZERO_WIDTH_SPACE) {
+                    binaryString += '0';
+                } else if (char === ZERO_WIDTH_NON_JOINER) {
+                    binaryString += '1';
+                }
+                // Игнорируем другие невидимые символы
+                else if (char === ZERO_WIDTH_JOINER || 
+                         char === LEFT_TO_RIGHT_MARK || 
+                         char === RIGHT_TO_LEFT_MARK) {
+                    // Эти символы игнорируем, они могут быть использованы для других целей
+                    continue;
+                }
+            }
+            
+            // Если бинарная строка пуста или не кратна 16, значит нет сообщения
+            if (binaryString.length === 0 || binaryString.length % 16 !== 0) {
+                return null;
+            }
+            
+            // Конвертируем бинарную строку обратно в текст
+            let decodedMessage = '';
+            let endMarkerFound = false;
+            
+            for (let i = 0; i < binaryString.length; i += 16) {
+                const binaryChar = binaryString.substring(i, i + 16);
+                
+                // Проверяем маркер конца сообщения
+                if (binaryChar === '0000000000000000') {
+                    endMarkerFound = true;
+                    break;
+                }
+                
+                // Конвертируем двоичный код в символ
+                const charCode = parseInt(binaryChar, 2);
+                decodedMessage += String.fromCharCode(charCode);
+            }
+            
+            if (!endMarkerFound) {
+                return null;
+            }
+            
+            // Проверяем наличие пароля
+            if (password) {
+                const passwordMarker = `[PWD:${password}]`;
+                if (decodedMessage.startsWith(passwordMarker)) {
+                    // Убираем маркер пароля из сообщения
+                    return decodedMessage.substring(passwordMarker.length);
+                } else {
+                    // Неверный пароль
+                    return null;
+                }
+            }
+            
+            // Если пароль не использовался, возвращаем как есть
+            // Но проверяем, не содержит ли сообщение маркер пароля
+            if (decodedMessage.match(/^\[PWD:[^\]]+\]/)) {
+                // Сообщение зашифровано паролем, но пароль не предоставлен
+                return null;
+            }
+            
+            return decodedMessage;
+        }
+
+        // Демонстрационные данные при первом запуске
+        window.addEventListener('load', function() {
+            // Заполняем демонстрационными данными только если поля пустые
+            if (!publicText.value && !secretMessage.value && !encodedText.value) {
+                publicText.value = "Стеганография — это искусство скрытия информации в других данных. Этот текст выглядит обычным, но в нем может быть спрятано секретное сообщение, которое не заметит обычный наблюдатель.";
+                secretMessage.value = "Встречаемся завтра в 15:00 у центрального фонтана. Принеси документы.";
+                
+                updateCharCounts();
+                showNotification("Демонстрационные данные загружены. Попробуйте спрятать сообщение!");
+            }
+        });
+    </script>
+</body>
+</html>
