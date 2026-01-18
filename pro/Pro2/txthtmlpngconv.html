@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alpha Channel PNG Кодер/Декодер</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #3a7bd5);
+            color: #333;
+            padding: 15px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .app-card {
+            background-color: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
+        }
+        
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 12px 5px;
+            border: none;
+            background: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            background-color: #3a7bd5;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        textarea, input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .html-input textarea {
+            min-height: 180px;
+        }
+        
+        input[type="file"] {
+            border: 2px dashed #e0e0e0;
+            background-color: #f9f9f9;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: normal;
+            margin-bottom: 0;
+        }
+        
+        .file-input-label:hover {
+            background: #e0e0e0;
+        }
+        
+        .file-name {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 25px;
+        }
+        
+        button {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .encode-btn {
+            background: linear-gradient(to right, #3a7bd5, #00d2ff);
+            color: white;
+        }
+        
+        .decode-btn {
+            background: linear-gradient(to right, #f46b45, #eea849);
+            color: white;
+        }
+        
+        .convert-btn {
+            background: linear-gradient(to right, #56ab2f, #a8e063);
+            color: white;
+        }
+        
+        .secondary-btn {
+            background: #6c757d;
+            color: white;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
+        
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(2px);
+        }
+        
+        .result-container {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            display: none;
+        }
+        
+        .result-container.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #3a7bd5;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            display: block;
+        }
+        
+        .text-result {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #e0e0e0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .html-preview {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid #e0e0e0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 20px;
+            background-color: #3a7bd5;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .info-box {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3a7bd5;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .input-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .input-type-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .input-type-btn.active {
+            border-color: #3a7bd5;
+            background-color: #e8f4fd;
+            color: #3a7bd5;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 15px 0;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3a7bd5;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            margin-top: 20px;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Alpha Channel PNG Кодер/Декодер</h1>
+            <p class="description">Кодируйте текст или HTML в альфа-канал PNG изображений, декодируйте скрытые сообщения и конвертируйте любые изображения в формат PNG</p>
+        </header>
+        
+        <main class="app-card">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="encode">Кодировать текст/HTML</button>
+                <button class="tab-button" data-tab="decode">Декодировать текст/HTML</button>
+                <button class="tab-button" data-tab="convert">Конвертировать в PNG</button>
+            </div>
+            
+            <!-- Вкладка кодирования -->
+            <div id="encode" class="tab-content active">
+                <div class="input-type-selector">
+                    <button class="input-type-btn active" data-input-type="text">Текст</button>
+                    <button class="input-type-btn" data-input-type="html">HTML</button>
+                    <button class="input-type-btn" data-input-type="file">Файл</button>
+                </div>
+                
+                <div id="text-input" class="input-group">
+                    <label for="encode-text">Текст для кодирования:</label>
+                    <textarea id="encode-text" placeholder="Введите текст, который хотите скрыть в изображении..."></textarea>
+                </div>
+                
+                <div id="html-input" class="input-group hidden">
+                    <label for="encode-html">HTML-код для кодирования:</label>
+                    <textarea id="encode-html" placeholder="Введите HTML-код, который хотите скрыть в изображении..."></textarea>
+                </div>
+                
+                <div id="file-input" class="input-group hidden">
+                    <label>Загрузите текстовый или HTML-файл:</label>
+                    <div class="input-row">
+                        <label class="file-input-label">
+                            <input type="file" id="encode-file" accept=".txt,.html,.htm,.css,.js,.json,.xml" style="display: none;">
+                            📁 Выбрать файл
+                        </label>
+                        <span id="file-name" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="encode-image">Изображение для кодирования (если не выбрано, будет создано новое):</label>
+                    <input type="file" id="encode-image" accept="image/*">
+                </div>
+                
+                <div class="info-box">
+                    <strong>Как это работает:</strong> Ваш текст или HTML будет спрятан в альфа-канале (прозрачности) PNG изображения. Изображение будет выглядеть обычным, но будет содержать скрытое сообщение.
+                </div>
+                
+                <div class="warning-box">
+                    <strong>Внимание:</strong> При использовании HTML сохраняются все теги, пробелы и форматирование. Максимальный размер данных зависит от размера изображения.
+                </div>
+                
+                <div class="button-group">
+                    <button id="encode-btn" class="encode-btn">Закодировать в PNG</button>
+                </div>
+            </div>
+            
+            <!-- Вкладка декодирования -->
+            <div id="decode" class="tab-content">
+                <div class="input-group">
+                    <label for="decode-image">Изображение PNG для декодирования:</label>
+                    <input type="file" id="decode-image" accept="image/png">
+                </div>
+                
+                <div class="info-box">
+                    <strong>Примечание:</strong> Для декодирования нужны PNG изображения, созданные этим приложением или содержащие данные в альфа-канале.
+                </div>
+                
+                <div class="button-group">
+                    <button id="decode-btn" class="decode-btn">Декодировать из PNG</button>
+                </div>
+            </div>
+            
+            <!-- Вкладка конвертации -->
+            <div id="convert" class="tab-content">
+                <div class="input-group">
+                    <label for="convert-image">Изображение для конвертации в PNG:</label>
+                    <input type="file" id="convert-image" accept="image/*">
+                </div>
+                
+                <div class="info-box">
+                    <strong>Преобразование:</strong> Загрузите любое изображение (JPG, GIF, BMP, WebP и др.) для конвертации в формат PNG с сохранением качества.
+                </div>
+                
+                <div class="button-group">
+                    <button id="convert-btn" class="convert-btn">Конвертировать в PNG</button>
+                </div>
+            </div>
+            
+            <!-- Индикатор загрузки -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Обработка...</p>
+            </div>
+            
+            <!-- Результаты -->
+            <div class="result-container" id="result-container">
+                <h3 class="result-title" id="result-title">Результат</h3>
+                <div id="result-content"></div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Alpha Channel PNG Кодер/Декодер © 2023 | Работает полностью в вашем браузере</p>
+        </footer>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const inputTypeBtns = document.querySelectorAll('.input-type-btn');
+        const encodeText = document.getElementById('encode-text');
+        const encodeHtml = document.getElementById('encode-html');
+        const encodeFileInput = document.getElementById('encode-file');
+        const encodeImageInput = document.getElementById('encode-image');
+        const decodeImageInput = document.getElementById('decode-image');
+        const convertImageInput = document.getElementById('convert-image');
+        const fileNameSpan = document.getElementById('file-name');
+        const encodeBtn = document.getElementById('encode-btn');
+        const decodeBtn = document.getElementById('decode-btn');
+        const convertBtn = document.getElementById('convert-btn');
+        const loading = document.getElementById('loading');
+        const resultContainer = document.getElementById('result-container');
+        const resultTitle = document.getElementById('result-title');
+        const resultContent = document.getElementById('result-content');
+        
+        // Переменные состояния
+        let currentInputType = 'text';
+        
+        // Переключение вкладок
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // Обновляем активную кнопку
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Показываем активный контент
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === tabId) {
+                        content.classList.add('active');
+                    }
+                });
+                
+                // Скрываем результаты при переключении вкладок
+                resultContainer.classList.remove('active');
+            });
+        });
+        
+        // Переключение типа ввода
+        inputTypeBtns.forEach(button => {
+            button.addEventListener('click', () => {
+                const inputType = button.getAttribute('data-input-type');
+                currentInputType = inputType;
+                
+                // Обновляем активную кнопку
+                inputTypeBtns.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // Показываем соответствующий input
+                document.getElementById('text-input').classList.toggle('hidden', inputType !== 'text');
+                document.getElementById('html-input').classList.toggle('hidden', inputType !== 'html');
+                document.getElementById('file-input').classList.toggle('hidden', inputType !== 'file');
+            });
+        });
+        
+        // Обработчик выбора файла
+        encodeFileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                fileNameSpan.textContent = this.files[0].name;
+            } else {
+                fileNameSpan.textContent = 'Файл не выбран';
+            }
+        });
+        
+        // Функция показа результатов
+        function showResult(title, content) {
+            resultTitle.textContent = title;
+            resultContent.innerHTML = content;
+            resultContainer.classList.add('active');
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Функция получения текста для кодирования
+        async function getTextToEncode() {
+            switch(currentInputType) {
+                case 'text':
+                    return encodeText.value.trim();
+                    
+                case 'html':
+                    return encodeHtml.value.trim();
+                    
+                case 'file':
+                    if (!encodeFileInput.files || !encodeFileInput.files[0]) {
+                        throw new Error('Выберите файл для кодирования');
+                    }
+                    const file = encodeFileInput.files[0];
+                    const text = await file.text();
+                    return text;
+                    
+                default:
+                    return '';
+            }
+        }
+        
+        // Функция определения типа контента
+        function detectContentType(text) {
+            // Проверяем, является ли текст HTML
+            const htmlRegex = /<[a-z][\s\S]*>/i;
+            const hasHtmlTags = htmlRegex.test(text);
+            
+            // Проверяем наличие распространенных HTML-тегов
+            const commonTags = ['<div', '<span', '<p', '<h1', '<h2', '<h3', '<h4', '<h5', '<h6', '<ul', '<ol', '<li', '<table', '<tr', '<td', '<th', '<a ', '<img', '<br', '<hr', '<meta', '<link', '<script', '<style'];
+            const hasCommonTags = commonTags.some(tag => text.includes(tag));
+            
+            return hasHtmlTags || hasCommonTags ? 'html' : 'text';
+        }
+        
+        // Функция кодирования текста/HTML в PNG
+        async function encodeToPng() {
+            let text;
+            try {
+                text = await getTextToEncode();
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
+            
+            if (!text) {
+                alert('Введите текст или HTML для кодирования');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
+            
+            try {
+                // Создаем холст для изображения
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Если пользователь загрузил изображение
+                if (encodeImageInput.files && encodeImageInput.files[0]) {
+                    const imageFile = encodeImageInput.files[0];
+                    const imageBitmap = await createImageBitmap(imageFile);
+                    
+                    // Устанавливаем размер холста по размеру изображения
+                    canvas.width = imageBitmap.width;
+                    canvas.height = imageBitmap.height;
+                    
+                    // Рисуем изображение на холсте
+                    ctx.drawImage(imageBitmap, 0, 0);
+                } else {
+                    // Создаем новое изображение с цветным градиентом
+                    canvas.width = 800;
+                    canvas.height = 600;
+                    
+                    // Создаем градиентный фон
+                    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                    gradient.addColorStop(0, '#3a7bd5');
+                    gradient.addColorStop(0.5, '#00d2ff');
+                    gradient.addColorStop(1, '#56ab2f');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Добавляем текст на изображение
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.font = 'bold 24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Скрытое сообщение внутри', canvas.width / 2, 50);
+                    
+                    // Добавляем информацию о типе контента
+                    const contentType = detectContentType(text);
+                    ctx.font = '16px Arial';
+                    ctx.fillText(`Содержит: ${contentType === 'html' ? 'HTML-код' : 'текст'}`, canvas.width / 2, 90);
+                    
+                    ctx.font = '14px Arial';
+                    ctx.fillText('Используйте декодер для извлечения', canvas.width / 2, canvas.height - 40);
+                }
+                
+                // Получаем данные изображения
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Добавляем метаданные в начало (тип контента + длина)
+                const contentType = detectContentType(text);
+                const contentTypeByte = contentType === 'html' ? 1 : 0; // 1 для HTML, 0 для текста
+                
+                // Преобразуем текст в байты
+                const textEncoder = new TextEncoder();
+                const textBytes = textEncoder.encode(text);
+                const textLength = textBytes.length;
+                
+                // Проверяем, достаточно ли места для текста в альфа-канале
+                const maxTextLength = data.length / 4 - 5; // -5 для метаданных
+                if (textLength > maxTextLength) {
+                    loading.classList.remove('active');
+                    alert(`Контент слишком большой. Максимальный размер для этого изображения: ${Math.floor(maxTextLength)} байт`);
+                    return;
+                }
+                
+                // Кодируем метаданные и текст в альфа-канал
+                // Первый пиксель: тип контента
+                data[3] = contentTypeByte;
+                
+                // Следующие 4 пикселя: длина текста
+                data[7] = (textLength >> 24) & 0xFF;
+                data[11] = (textLength >> 16) & 0xFF;
+                data[15] = (textLength >> 8) & 0xFF;
+                data[19] = textLength & 0xFF;
+                
+                // Остальные пиксели: сам текст
+                for (let i = 0; i < textLength; i++) {
+                    const dataIndex = (i + 5) * 4 + 3; // +5 чтобы пропустить пиксели с метаданными
+                    data[dataIndex] = textBytes[i];
+                }
+                
+                // Помещаем обработанные данные обратно на холст
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Конвертируем холст в PNG
+                const pngUrl = canvas.toDataURL('image/png');
+                
+                // Создаем ссылку для скачивания
+                const timestamp = new Date().getTime();
+                const typeLabel = contentType === 'html' ? 'html' : 'text';
+                const downloadLink = `<a href="${pngUrl}" download="encoded_${typeLabel}_${timestamp}.png" class="download-btn">Скачать PNG с закодированным ${typeLabel === 'html' ? 'HTML' : 'текстом'}</a>`;
+                
+                // Показываем результат
+                loading.classList.remove('active');
+                showResult('Контент успешно закодирован!', `
+                    <p>Ваш ${contentType === 'html' ? 'HTML-код' : 'текст'} был скрыт в альфа-канале PNG изображения.</p>
+                    <p>Тип контента: ${contentType === 'html' ? 'HTML' : 'Текст'}</p>
+                    <p>Размер данных: ${textLength} байт</p>
+                    <img src="${pngUrl}" alt="Закодированное изображение" class="image-preview">
+                    ${downloadLink}
+                    <p class="info-box">Сохраните это изображение и используйте функцию декодирования для извлечения контента.</p>
+                `);
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при кодировании:', error);
+                alert('Произошла ошибка при кодировании контента');
+            }
+        }
+        
+        // Функция декодирования текста/HTML из PNG
+        async function decodeFromPng() {
+            if (!decodeImageInput.files || !decodeImageInput.files[0]) {
+                alert('Выберите PNG изображение для декодирования');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
+            
+            try {
+                const imageFile = decodeImageInput.files[0];
+                const imageBitmap = await createImageBitmap(imageFile);
+                
+                // Создаем холст для изображения
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                
+                // Рисуем изображение на холсте
+                ctx.drawImage(imageBitmap, 0, 0);
+                
+                // Получаем данные изображения
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // Извлекаем метаданные из первых 5 пикселей
+                const contentTypeByte = data[3];
+                const contentType = contentTypeByte === 1 ? 'html' : 'text';
+                
+                // Извлекаем длину текста
+                const textLength = (data[7] << 24) | (data[11] << 16) | (data[15] << 8) | data[19];
+                
+                // Проверяем валидность длины текста
+                if (textLength <= 0 || textLength > (data.length / 4) - 5) {
+                    loading.classList.remove('active');
+                    alert('Не удалось извлечь данные. Возможно, изображение не содержит закодированных данных или повреждено.');
+                    return;
+                }
+                
+                // Извлекаем текст из альфа-канала
+                const textBytes = new Uint8Array(textLength);
+                for (let i = 0; i < textLength; i++) {
+                    const dataIndex = (i + 5) * 4 + 3; // +5 чтобы пропустить пиксели с метаданными
+                    textBytes[i] = data[dataIndex];
+                }
+                
+                // Преобразуем байты в текст
+                const textDecoder = new TextDecoder();
+                const decodedText = textDecoder.decode(textBytes);
+                
+                // Формируем результат в зависимости от типа контента
+                let resultContentHTML = '';
+                
+                if (contentType === 'html') {
+                    resultContentHTML = `
+                        <p>Из изображения извлечен HTML-код:</p>
+                        <div class="html-preview">${decodedText}</div>
+                        <div class="text-result">${decodedText}</div>
+                        <p>Тип контента: HTML</p>
+                        <p>Размер: ${textLength} байт</p>
+                        <button id="preview-html-btn" class="secondary-btn">Предпросмотр HTML</button>
+                        <button id="copy-html-btn" class="secondary-btn">Копировать HTML</button>
+                    `;
+                } else {
+                    resultContentHTML = `
+                        <p>Из изображения извлечен текст:</p>
+                        <div class="text-result">${decodedText}</div>
+                        <p>Тип контента: Текст</p>
+                        <p>Размер: ${textLength} байт</p>
+                        <button id="copy-text-btn" class="secondary-btn">Копировать текст</button>
+                    `;
+                }
+                
+                // Показываем результат
+                loading.classList.remove('active');
+                showResult('Контент успешно декодирован!', resultContentHTML);
+                
+                // Добавляем обработчики для кнопок в результате
+                if (contentType === 'html') {
+                    document.getElementById('preview-html-btn').addEventListener('click', function() {
+                        const newWindow = window.open();
+                        newWindow.document.write(decodedText);
+                        newWindow.document.close();
+                    });
+                    
+                    document.getElementById('copy-html-btn').addEventListener('click', function() {
+                        navigator.clipboard.writeText(decodedText).then(() => {
+                            alert('HTML скопирован в буфер обмена');
+                        });
+                    });
+                } else {
+                    document.getElementById('copy-text-btn').addEventListener('click', function() {
+                        navigator.clipboard.writeText(decodedText).then(() => {
+                            alert('Текст скопирован в буфер обмена');
+                        });
+                    });
+                }
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при декодировании:', error);
+                alert('Произошла ошибка при декодировании. Убедитесь, что выбрано PNG изображение, созданное этим приложением.');
+            }
+        }
+        
+        // Функция конвертации изображения в PNG
+        async function convertImageToPng() {
+            if (!convertImageInput.files || !convertImageInput.files[0]) {
+                alert('Выберите изображение для конвертации');
+                return;
+            }
+            
+            // Показываем индикатор загрузки
+            loading.classList.add('active');
+            
+            try {
+                const imageFile = convertImageInput.files[0];
+                const imageBitmap = await createImageBitmap(imageFile);
+                
+                // Создаем холст для изображения
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = imageBitmap.width;
+                canvas.height = imageBitmap.height;
+                
+                // Рисуем изображение на холсте
+                ctx.drawImage(imageBitmap, 0, 0);
+                
+                // Конвертируем холст в PNG
+                const pngUrl = canvas.toDataURL('image/png');
+                
+                // Создаем ссылку для скачивания
+                const timestamp = new Date().getTime();
+                const originalFileName = imageFile.name.split('.').slice(0, -1).join('.') || 'converted';
+                const downloadLink = `<a href="${pngUrl}" download="${originalFileName}_${timestamp}.png" class="download-btn">Скачать PNG изображение</a>`;
+                
+                // Показываем результат
+                loading.classList.remove('active');
+                showResult('Изображение успешно конвертировано!', `
+                    <p>Ваше изображение было преобразовано в формат PNG.</p>
+                    <p>Размер: ${canvas.width} × ${canvas.height} пикселей</p>
+                    <img src="${pngUrl}" alt="Конвертированное изображение" class="image-preview">
+                    ${downloadLink}
+                `);
+            } catch (error) {
+                loading.classList.remove('active');
+                console.error('Ошибка при конвертации:', error);
+                alert('Произошла ошибка при конвертации изображения');
+            }
+        }
+        
+        // Обработчики событий
+        encodeBtn.addEventListener('click', encodeToPng);
+        decodeBtn.addEventListener('click', decodeFromPng);
+        convertBtn.addEventListener('click', convertImageToPng);
+        
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            // Устанавливаем плейсхолдеры
+            encodeText.placeholder = `Привет! Это секретное сообщение, которое будет скрыто в изображении.
+
+Вы можете скрыть любой текст в альфа-канале PNG изображения, и он будет невидим для обычного просмотра.
+
+Этот текст будет закодирован в прозрачности пикселей.`;
+
+            encodeHtml.placeholder = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Секретная страница</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        h1 {
+            color: #3a7bd5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Секретное сообщение</h1>
+    <p>Это HTML-код, скрытый в изображении!</p>
+    <p>Все форматирование и теги сохранятся.</p>
+</body>
+</html>`;
+
+            // Автоматически активируем поле ввода текста
+            encodeText.focus();
+        });
+    </script>
+</body>
+</html>
