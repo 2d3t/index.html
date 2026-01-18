@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Детектор скрытых символов | Анализатор текста</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --primary: #2d3436;
+            --secondary: #0984e3;
+            --accent: #00cec9;
+            --danger: #d63031;
+            --light: #f9f9f9;
+            --gray: #b2bec3;
+            --border: #dfe6e9;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: var(--primary);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .subtitle {
+            color: var(--gray);
+            font-size: 1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-app {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        @media (min-width: 768px) {
+            .main-app {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        textarea {
+            width: 100%;
+            flex: 1;
+            min-height: 250px;
+            padding: 18px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: all 0.3s;
+            background: var(--light);
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 206, 201, 0.2);
+        }
+
+        #inputText {
+            color: var(--primary);
+        }
+
+        #outputText {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0870c1;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c02929;
+        }
+
+        .legend {
+            margin-top: 25px;
+            padding: 20px;
+            background: var(--light);
+            border-radius: var(--radius);
+            border-left: 4px solid var(--accent);
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .symbols-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .symbol-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .symbol-visual {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+        }
+
+        .symbol-info {
+            flex: 1;
+        }
+
+        .symbol-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .symbol-desc {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 2px;
+        }
+
+        .hidden-char {
+            background: #ff7675;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            margin: 0 1px;
+            font-size: 0.9em;
+        }
+
+        .tab {
+            background: #e17055;
+        }
+
+        .newline {
+            background: #00b894;
+        }
+
+        .space {
+            background: #74b9ff;
+        }
+
+        .zero-width {
+            background: #a29bfe;
+        }
+
+        .invisible {
+            background: #fd79a8;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--secondary);
+            color: white;
+            padding: 15px 25px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .tip {
+            background: #fff9db;
+            border: 1px solid #ffec99;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #5c3c00;
+        }
+
+        .tip strong {
+            color: #e67700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span>🔍</span> Детектор скрытых символов</h1>
+            <p class="subtitle">Визуализируйте все невидимые и непечатаемые символы в вашем тексте. Идеальный инструмент для отладки стеганографии и анализа текстовых данных.</p>
+        </header>
+
+        <div class="main-app">
+            <div class="card">
+                <div class="card-title">
+                    <span>📥</span> Исходный текст
+                </div>
+                <textarea id="inputText" placeholder="Вставьте сюда текст для анализа... 
+
+Пример текста со скрытыми символами: 
+Привет→мир↵
+Тайный→код:   ␣">Вставьте сюда текст для анализа... 
+
+Пример текста со скрытыми символами: 
+Привет→мир↵
+Тайный→код:   ␣</textarea>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="analyzeBtn">
+                        <span>🔬</span> Анализировать текст
+                    </button>
+                    <button class="btn btn-secondary" id="pasteBtn">
+                        <span>📋</span> Вставить из буфера
+                    </button>
+                    <button class="btn btn-danger" id="clearBtn">
+                        <span>🗑️</span> Очистить
+                    </button>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="stat">
+                        <div class="stat-value" id="totalChars">0</div>
+                        <div class="stat-label">Всего символов</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="hiddenChars">0</div>
+                        <div class="stat-label">Скрытых символов</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="visibleChars">0</div>
+                        <div class="stat-label">Видимых символов</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="uniqueHidden">0</div>
+                        <div class="stat-label">Уникальных типов</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span>🔍</span> Визуализация скрытых символов
+                </div>
+                <textarea id="outputText" readonly placeholder="Здесь будет показан текст с визуализированными скрытыми символами..."></textarea>
+                
+                <div class="tip">
+                    <strong>💡 Подсказка:</strong> Символы, помеченные цветом — это невидимые или специальные символы. Обычные буквы и цифры отображаются как есть.
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-title">
+                <span>📖</span> Легенда символов
+            </div>
+            <div class="symbols-grid" id="symbolLegend">
+                <!-- Легенда будет заполнена скриптом -->
+            </div>
+        </div>
+
+        <footer>
+            <p>Детектор скрытых символов | Инструмент для анализа текста и отладки стеганографии</p>
+            <p>Просто вставьте текст и увидите все невидимые символы!</p>
+        </footer>
+    </div>
+
+    <div class="notification" id="notification">
+        <span id="notificationMessage">Текст успешно проанализирован!</span>
+    </div>
+
+    <script>
+        // Основные DOM-элементы
+        const inputText = document.getElementById('inputText');
+        const outputText = document.getElementById('outputText');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+        const symbolLegend = document.getElementById('symbolLegend');
+        
+        // Элементы статистики
+        const totalCharsEl = document.getElementById('totalChars');
+        const hiddenCharsEl = document.getElementById('hiddenChars');
+        const visibleCharsEl = document.getElementById('visibleChars');
+        const uniqueHiddenEl = document.getElementById('uniqueHidden');
+        
+        // Карта символов для визуализации
+        const charMap = {
+            // Невидимые символы (Zero-width и другие)
+            '\u200B': { name: 'Zero-width Space', desc: 'Пробел нулевой ширины', visual: '[ZWSP]', class: 'zero-width' },
+            '\u200C': { name: 'Zero-width Non-joiner', desc: 'Нулевой не-соединитель', visual: '[ZWNJ]', class: 'zero-width' },
+            '\u200D': { name: 'Zero-width Joiner', desc: 'Нулевой соединитель', visual: '[ZWJ]', class: 'zero-width' },
+            '\u200E': { name: 'Left-to-right Mark', desc: 'Маркер слева направо', visual: '[LRM]', class: 'invisible' },
+            '\u200F': { name: 'Right-to-left Mark', desc: 'Маркер справа налево', visual: '[RLM]', class: 'invisible' },
+            '\uFEFF': { name: 'Byte Order Mark', desc: 'Маркер порядка байтов', visual: '[BOM]', class: 'invisible' },
+            '\u2060': { name: 'Word Joiner', desc: 'Соединитель слов', visual: '[WJ]', class: 'zero-width' },
+            '\u2061': { name: 'Function Application', desc: 'Применение функции', visual: '[FA]', class: 'invisible' },
+            
+            // Пробелы и отступы
+            ' ': { name: 'Space', desc: 'Обычный пробел', visual: '␣', class: 'space' },
+            '\t': { name: 'Tab', desc: 'Табуляция (горизонтальная)', visual: '→', class: 'tab' },
+            '\v': { name: 'Vertical Tab', desc: 'Вертикальная табуляция', visual: '↧', class: 'tab' },
+            '\f': { name: 'Form Feed', desc: 'Подача страницы', visual: '[FF]', class: 'tab' },
+            '\u00A0': { name: 'Non-breaking Space', desc: 'Неразрывный пробел', visual: '[NBSP]', class: 'space' },
+            '\u1680': { name: 'Ogham Space', desc: 'Пробел огамического письма', visual: '[OGHAM]', class: 'space' },
+            '\u180E': { name: 'Mongolian Vowel', desc: 'Монгольский разделитель', visual: '[MV]', class: 'space' },
+            '\u2000': { name: 'En Quad', desc: 'Пробел шириной в en', visual: '[EN]', class: 'space' },
+            '\u2001': { name: 'Em Quad', desc: 'Пробел шириной в em', visual: '[EM]', class: 'space' },
+            '\u2002': { name: 'En Space', desc: 'Пробел шириной в en', visual: '[ENSP]', class: 'space' },
+            '\u2003': { name: 'Em Space', desc: 'Пробел шириной в em', visual: '[EMSP]', class: 'space' },
+            '\u2004': { name: 'Three-per-em Space', desc: 'Пробел 1/3 em', visual: '[3/EM]', class: 'space' },
+            '\u2005': { name: 'Four-per-em Space', desc: 'Пробел 1/4 em', visual: '[4/EM]', class: 'space' },
+            '\u2006': { name: 'Six-per-em Space', desc: 'Пробел 1/6 em', visual: '[6/EM]', class: 'space' },
+            '\u2007': { name: 'Figure Space', desc: 'Цифровой пробел', visual: '[FIG]', class: 'space' },
+            '\u2008': { name: 'Punctuation Space', desc: 'Пунктуационный пробел', visual: '[PUNC]', class: 'space' },
+            '\u2009': { name: 'Thin Space', desc: 'Узкий пробел', visual: '[THIN]', class: 'space' },
+            '\u200A': { name: 'Hair Space', desc: 'Волосной пробел', visual: '[HAIR]', class: 'space' },
+            '\u202F': { name: 'Narrow No-break', desc: 'Узкий неразрывный пробел', visual: '[NNBSP]', class: 'space' },
+            '\u205F': { name: 'Medium Math Space', desc: 'Средний математический пробел', visual: '[MMSP]', class: 'space' },
+            '\u3000': { name: 'Ideographic Space', desc: 'Идеографический пробел', visual: '[IDEO]', class: 'space' },
+            
+            // Управляющие символы и переводы строк
+            '\n': { name: 'Line Feed', desc: 'Перевод строки (LF)', visual: '↵', class: 'newline' },
+            '\r': { name: 'Carriage Return', desc: 'Возврат каретки (CR)', visual: '↵', class: 'newline' },
+            '\r\n': { name: 'CR+LF', desc: 'Возврат каретки + перевод строки', visual: '↵', class: 'newline' },
+            '\u0085': { name: 'Next Line', desc: 'Следующая строка (NEL)', visual: '[NEL]', class: 'newline' },
+            '\u2028': { name: 'Line Separator', desc: 'Разделитель строк', visual: '[LS]', class: 'newline' },
+            '\u2029': { name: 'Paragraph Separator', desc: 'Разделитель параграфов', visual: '[PS]', class: 'newline' },
+            
+            // Другие специальные символы
+            '\u0000': { name: 'Null', desc: 'Символ NULL', visual: '[NUL]', class: 'invisible' },
+            '\u0007': { name: 'Bell', desc: 'Звонок (BEL)', visual: '[BEL]', class: 'invisible' },
+            '\u0008': { name: 'Backspace', desc: 'Возврат на шаг (BS)', visual: '[BS]', class: 'invisible' },
+            '\u001B': { name: 'Escape', desc: 'Символ Escape (ESC)', visual: '[ESC]', class: 'invisible' },
+            '\u007F': { name: 'Delete', desc: 'Символ Delete (DEL)', visual: '[DEL]', class: 'invisible' },
+        };
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Заполняем легенду символов
+            populateLegend();
+            
+            // Анализируем начальный пример
+            analyzeText();
+        });
+        
+        // Заполнение легенды символов
+        function populateLegend() {
+            // Группируем символы по категориям
+            const categories = {
+                'zero-width': [],
+                'space': [],
+                'tab': [],
+                'newline': [],
+                'invisible': []
+            };
+            
+            // Собираем символы по категориям
+            for (const [char, info] of Object.entries(charMap)) {
+                if (categories[info.class]) {
+                    categories[info.class].push({ char, ...info });
+                }
+            }
+            
+            // Очищаем легенду
+            symbolLegend.innerHTML = '';
+            
+            // Добавляем символы в легенду
+            for (const [category, symbols] of Object.entries(categories)) {
+                if (symbols.length > 0) {
+                    // Берем только несколько примеров из каждой категории
+                    const sampleSymbols = symbols.slice(0, 4);
+                    
+                    sampleSymbols.forEach(symbol => {
+                        const symbolItem = document.createElement('div');
+                        symbolItem.className = 'symbol-item';
+                        symbolItem.innerHTML = `
+                            <div class="symbol-visual ${symbol.class}">${symbol.visual}</div>
+                            <div class="symbol-info">
+                                <div class="symbol-name">${symbol.name}</div>
+                                <div class="symbol-desc">${symbol.desc}</div>
+                            </div>
+                        `;
+                        symbolLegend.appendChild(symbolItem);
+                    });
+                }
+            }
+        }
+        
+        // Функция анализа текста
+        function analyzeText() {
+            const text = inputText.value;
+            let output = '';
+            
+            let totalChars = 0;
+            let hiddenChars = 0;
+            let visibleChars = 0;
+            const uniqueHiddenSet = new Set();
+            
+            // Анализируем каждый символ
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                totalChars++;
+                
+                // Проверяем, является ли символ специальным
+                if (charMap[char]) {
+                    // Это специальный символ
+                    hiddenChars++;
+                    uniqueHiddenSet.add(char);
+                    
+                    // Добавляем визуализацию
+                    const charInfo = charMap[char];
+                    output += `<span class="hidden-char ${charInfo.class}" title="${charInfo.name}: ${charInfo.desc} (U+${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')})">${charInfo.visual}</span>`;
+                } else {
+                    // Это обычный видимый символ
+                    visibleChars++;
+                    output += char;
+                }
+            }
+            
+            // Обновляем выходное поле
+            outputText.innerHTML = output;
+            
+            // Обновляем статистику
+            totalCharsEl.textContent = totalChars;
+            hiddenCharsEl.textContent = hiddenChars;
+            visibleCharsEl.textContent = visibleChars;
+            uniqueHiddenEl.textContent = uniqueHiddenSet.size;
+            
+            // Показываем уведомление
+            showNotification(`Проанализировано ${totalChars} символов. Найдено ${hiddenChars} скрытых символов ${uniqueHiddenSet.size > 0 ? `(${uniqueHiddenSet.size} уникальных типов)` : ''}`);
+        }
+        
+        // Функция вставки из буфера обмена
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                inputText.value = text;
+                analyzeText();
+                showNotification('Текст успешно вставлен из буфера обмена!');
+            } catch (err) {
+                showNotification('Не удалось получить доступ к буферу обмена', true);
+                console.error('Ошибка при чтении из буфера:', err);
+            }
+        }
+        
+        // Функция очистки текста
+        function clearText() {
+            inputText.value = '';
+            outputText.innerHTML = '';
+            totalCharsEl.textContent = '0';
+            hiddenCharsEl.textContent = '0';
+            visibleCharsEl.textContent = '0';
+            uniqueHiddenEl.textContent = '0';
+            showNotification('Текст очищен');
+        }
+        
+        // Функция показа уведомлений
+        function showNotification(message, isError = false) {
+            notificationMessage.textContent = message;
+            
+            if (isError) {
+                notification.style.background = '#d63031';
+            } else {
+                notification.style.background = '#0984e3';
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Обработчики событий
+        analyzeBtn.addEventListener('click', analyzeText);
+        inputText.addEventListener('input', analyzeText);
+        
+        pasteBtn.addEventListener('click', pasteFromClipboard);
+        
+        clearBtn.addEventListener('click', clearText);
+        
+        // Поддержка горячих клавиш
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Enter для анализа
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                analyzeText();
+            }
+            
+            // Ctrl+V для вставки с фокусом на поле ввода
+            if (e.ctrlKey && e.key === 'v' && document.activeElement === inputText) {
+                // Даем время на вставку, затем анализируем
+                setTimeout(analyzeText, 50);
+            }
+            
+            // Ctrl+L для очистки
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                clearText();
+            }
+        });
+        
+        // Копирование визуализированного текста
+        outputText.addEventListener('click', function() {
+            // Создаем текстовую версию без HTML тегов
+            const textToCopy = outputText.innerText;
+            
+            navigator.clipboard.writeText(textToCopy)
+                .then(() => {
+                    showNotification('Визуализированный текст скопирован в буфер обмена');
+                })
+                .catch(err => {
+                    console.error('Ошибка при копировании:', err);
+                });
+        });
+    </script>
+</body>
+</html>
