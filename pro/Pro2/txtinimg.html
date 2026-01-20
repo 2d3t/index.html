@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Стеганография: Фото в тексте</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            margin: 0;
+            padding: 20px 15px;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+        
+        .description {
+            background-color: #e8f4fc;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            border-left: 4px solid #3498db;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 14px 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            color: #3498db;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-section, .output-section {
+            margin-bottom: 24px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 12px;
+            background-color: #f8f9fa;
+            text-align: center;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .file-input:hover {
+            border-color: #3498db;
+        }
+        
+        .file-input input {
+            display: none;
+        }
+        
+        .file-info {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .preview-container {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .image-preview {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        
+        .mono-info {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 8px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            resize: vertical;
+            background-color: #f8f9fa;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .primary-btn {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .primary-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .secondary-btn {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .secondary-btn:hover {
+            background-color: #d5dbdb;
+        }
+        
+        .success-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+        
+        .success-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 12px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            display: none;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .result-content {
+            max-height: 200px;
+            overflow-y: auto;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .actions button {
+            padding: 12px;
+            font-size: 0.9rem;
+        }
+        
+        .hint {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 8px;
+            text-align: center;
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 16px;
+            }
+            
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Скрытие фото в тексте</h1>
+        
+        <div class="description">
+            <p>Это приложение позволяет скрыть фотографию внутри обычного текста с помощью невидимых символов. Загрузите фото, оно будет автоматически преобразовано в чёрно-белый формат и сжато. Затем вы сможете скопировать текст со скрытым изображением и отправить его. Для восстановления фото загрузите текст обратно в приложение.</p>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="hide">Спрятать фото</button>
+            <button class="tab" data-tab="extract">Извлечь фото</button>
+        </div>
+        
+        <!-- Вкладка "Спрятать фото" -->
+        <div id="hide-tab" class="tab-content active">
+            <div class="input-section">
+                <label for="photo-input">1. Выберите фото для сокрытия:</label>
+                <div class="file-input" id="photo-dropzone">
+                    <input type="file" id="photo-input" accept="image/*">
+                    <div>📁 Нажмите или перетащите файл</div>
+                    <div style="font-size: 0.85rem; margin-top: 8px; color: #7f8c8d;">PNG, JPG, WEBP (до 5 МБ)</div>
+                </div>
+                <div class="file-info" id="file-info"></div>
+                
+                <div class="preview-container">
+                    <img id="image-preview" class="image-preview" alt="Предпросмотр">
+                    <div class="mono-info" id="mono-info"></div>
+                </div>
+                
+                <label for="cover-text">2. Введите текст для сокрытия (опционально):</label>
+                <textarea id="cover-text" placeholder="Введите текст, в котором будет спрятано фото. Если оставить пустым, будет сгенерирован случайный текст."></textarea>
+                
+                <div class="button-group">
+                    <button id="hide-btn" class="primary-btn">Спрятать фото в текст</button>
+                    <button id="clear-hide-btn" class="secondary-btn">Очистить</button>
+                </div>
+            </div>
+            
+            <div id="hide-result" class="result-container">
+                <div class="result-title">Текст со скрытым фото:</div>
+                <div id="hidden-text" class="result-content"></div>
+                <div class="actions">
+                    <button id="copy-text-btn" class="success-btn">Копировать текст</button>
+                    <button id="download-text-btn" class="secondary-btn">Скачать как файл</button>
+                </div>
+                <div class="hint">Скопируйте этот текст и отправьте получателю. Для извлечения фото вставьте этот текст во вкладку "Извлечь фото".</div>
+            </div>
+        </div>
+        
+        <!-- Вкладка "Извлечь фото" -->
+        <div id="extract-tab" class="tab-content">
+            <div class="input-section">
+                <label for="hidden-text-input">1. Введите или вставьте текст со скрытым фото:</label>
+                <textarea id="hidden-text-input" placeholder="Вставьте сюда текст, содержащий скрытое фото..."></textarea>
+                
+                <div class="button-group">
+                    <button id="extract-btn" class="primary-btn">Извлечь фото из текста</button>
+                    <button id="clear-extract-btn" class="secondary-btn">Очистить</button>
+                </div>
+            </div>
+            
+            <div id="extract-result" class="result-container">
+                <div class="result-title">Извлечённое фото:</div>
+                <div class="preview-container">
+                    <img id="extracted-image" class="image-preview" alt="Извлечённое фото">
+                </div>
+                <div class="actions">
+                    <button id="download-image-btn" class="success-btn">Скачать фото</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="hint">
+            🔒 Данные кодируются с помощью нулевых пробелов и других невидимых символов Unicode. Исходное изображение автоматически сжимается и преобразуется в чёрно-белый формат.
+        </div>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const photoInput = document.getElementById('photo-input');
+        const photoDropzone = document.getElementById('photo-dropzone');
+        const fileInfo = document.getElementById('file-info');
+        const imagePreview = document.getElementById('image-preview');
+        const monoInfo = document.getElementById('mono-info');
+        const coverText = document.getElementById('cover-text');
+        const hideBtn = document.getElementById('hide-btn');
+        const clearHideBtn = document.getElementById('clear-hide-btn');
+        const hideResult = document.getElementById('hide-result');
+        const hiddenText = document.getElementById('hidden-text');
+        const copyTextBtn = document.getElementById('copy-text-btn');
+        const downloadTextBtn = document.getElementById('download-text-btn');
+        const hiddenTextInput = document.getElementById('hidden-text-input');
+        const extractBtn = document.getElementById('extract-btn');
+        const clearExtractBtn = document.getElementById('clear-extract-btn');
+        const extractResult = document.getElementById('extract-result');
+        const extractedImage = document.getElementById('extracted-image');
+        const downloadImageBtn = document.getElementById('download-image-btn');
+        
+        // Текущее изображение в формате base64
+        let currentImageBase64 = null;
+        let currentImageSize = {width: 0, height: 0};
+        
+        // Система вкладок
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+                
+                // Активируем выбранную вкладку
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Показываем соответствующий контент
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === `${tabId}-tab`) {
+                        content.classList.add('active');
+                    }
+                });
+                
+                // Очищаем результаты при переключении вкладок
+                if (tabId === 'hide') {
+                    extractResult.style.display = 'none';
+                } else {
+                    hideResult.style.display = 'none';
+                }
+            });
+        });
+        
+        // Обработка загрузки файла
+        photoDropzone.addEventListener('click', () => photoInput.click());
+        
+        photoDropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            photoDropzone.style.borderColor = '#3498db';
+            photoDropzone.style.backgroundColor = '#e3f2fd';
+        });
+        
+        photoDropzone.addEventListener('dragleave', () => {
+            photoDropzone.style.borderColor = '#bdc3c7';
+            photoDropzone.style.backgroundColor = '#f8f9fa';
+        });
+        
+        photoDropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            photoDropzone.style.borderColor = '#bdc3c7';
+            photoDropzone.style.backgroundColor = '#f8f9fa';
+            
+            if (e.dataTransfer.files.length) {
+                photoInput.files = e.dataTransfer.files;
+                handleImageUpload(e.dataTransfer.files[0]);
+            }
+        });
+        
+        photoInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleImageUpload(e.target.files[0]);
+            }
+        });
+        
+        // Обработка загруженного изображения
+        function handleImageUpload(file) {
+            // Проверка типа файла
+            if (!file.type.match('image.*')) {
+                alert('Пожалуйста, выберите файл изображения (JPG, PNG, GIF и т.д.)');
+                return;
+            }
+            
+            // Проверка размера файла (до 5 МБ)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Файл слишком большой. Максимальный размер: 5 МБ');
+                return;
+            }
+            
+            // Обновление информации о файле
+            fileInfo.textContent = `Файл: ${file.name} (${formatFileSize(file.size)})`;
+            
+            // Загрузка и обработка изображения
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                processImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Обработка изображения: сжатие и монохром
+        function processImage(dataUrl) {
+            const img = new Image();
+            img.onload = function() {
+                // Определяем максимальный размер для телефона
+                const maxSize = 300;
+                let width = img.width;
+                let height = img.height;
+                
+                // Масштабируем изображение, если оно слишком большое
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = Math.round((height * maxSize) / width);
+                        width = maxSize;
+                    } else {
+                        width = Math.round((width * maxSize) / height);
+                        height = maxSize;
+                    }
+                }
+                
+                currentImageSize = {width, height};
+                
+                // Создаем canvas для обработки изображения
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                
+                // Рисуем изображение на canvas
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Преобразуем в монохром (черно-белое)
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    // Преобразование в оттенки серого
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    // Преобразование в черно-белое (без полутонов)
+                    const bw = avg > 128 ? 255 : 0;
+                    
+                    data[i] = bw;     // красный
+                    data[i + 1] = bw; // зеленый
+                    data[i + 2] = bw; // синий
+                    // Альфа-канал оставляем как есть (data[i + 3])
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+                
+                // Сохраняем обработанное изображение
+                currentImageBase64 = canvas.toDataURL('image/png', 0.8);
+                
+                // Показываем превью
+                imagePreview.src = currentImageBase64;
+                imagePreview.style.display = 'block';
+                
+                // Показываем информацию о размере
+                monoInfo.textContent = `Изображение сжато до ${width}x${height} пикселей и преобразовано в черно-белое`;
+                monoInfo.style.display = 'block';
+                
+                // Активируем кнопку
+                hideBtn.disabled = false;
+            };
+            
+            img.src = dataUrl;
+        }
+        
+        // Форматирование размера файла
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Байт';
+            const k = 1024;
+            const sizes = ['Байт', 'КБ', 'МБ', 'ГБ'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Кодирование изображения в текст с помощью невидимых символов
+        function encodeImageInText(imageBase64, coverTextContent) {
+            // Получаем base64 строку без префикса
+            const base64Data = imageBase64.split(',')[1];
+            
+            // Преобразуем base64 в бинарную строку
+            const binaryString = atob(base64Data);
+            
+            // Кодируем каждый байт с помощью невидимых символов
+            let encodedText = '';
+            const zeroWidthSpace = '\u200B'; // нулевой пробел
+            const zeroWidthJoiner = '\u200D'; // нулевой соединитель
+            const zeroWidthNonJoiner = '\u200C'; // нулевой несоединитель
+            
+            for (let i = 0; i < binaryString.length; i++) {
+                const charCode = binaryString.charCodeAt(i);
+                
+                // Преобразуем байт в 8-битное двоичное представление
+                let binary = charCode.toString(2).padStart(8, '0');
+                
+                // Кодируем каждый бит с помощью невидимых символов
+                for (let bit of binary) {
+                    if (bit === '0') {
+                        encodedText += zeroWidthSpace;
+                    } else {
+                        encodedText += zeroWidthJoiner;
+                    }
+                }
+                
+                // Добавляем разделитель между байтами
+                encodedText += zeroWidthNonJoiner;
+            }
+            
+            // Добавляем маркер начала и конца данных
+            const startMarker = '\u2060'; // невидимый символ WORD JOINER
+            const endMarker = '\u2061'; // невидимый символ FUNCTION APPLICATION
+            
+            // Если пользователь предоставил текст для сокрытия, используем его
+            if (coverTextContent && coverTextContent.trim() !== '') {
+                // Вставляем закодированные данные в середину текста
+                const textLength = coverTextContent.length;
+                const insertPosition = Math.floor(textLength / 2);
+                return coverTextContent.substring(0, insertPosition) + 
+                       startMarker + encodedText + endMarker + 
+                       coverTextContent.substring(insertPosition);
+            } else {
+                // Генерируем случайный текст, если пользователь не предоставил свой
+                const randomText = generateRandomText();
+                const insertPosition = Math.floor(randomText.length / 2);
+                return randomText.substring(0, insertPosition) + 
+                       startMarker + encodedText + endMarker + 
+                       randomText.substring(insertPosition);
+            }
+        }
+        
+        // Декодирование изображения из текста
+        function decodeImageFromText(textWithImage) {
+            // Ищем маркеры начала и конца данных
+            const startMarker = '\u2060';
+            const endMarker = '\u2061';
+            
+            const startIndex = textWithImage.indexOf(startMarker);
+            const endIndex = textWithImage.indexOf(endMarker);
+            
+            if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
+                throw new Error('В тексте не найдено скрытое изображение');
+            }
+            
+            // Извлекаем закодированные данные
+            const encodedData = textWithImage.substring(startIndex + 1, endIndex);
+            
+            // Невидимые символы для декодирования
+            const zeroWidthSpace = '\u200B';
+            const zeroWidthJoiner = '\u200D';
+            const zeroWidthNonJoiner = '\u200C';
+            
+            let binaryString = '';
+            let byteBits = '';
+            
+            for (let char of encodedData) {
+                if (char === zeroWidthSpace) {
+                    byteBits += '0';
+                } else if (char === zeroWidthJoiner) {
+                    byteBits += '1';
+                } else if (char === zeroWidthNonJoiner) {
+                    // Когда встречаем разделитель, преобразуем накопленные биты в символ
+                    if (byteBits.length === 8) {
+                        const charCode = parseInt(byteBits, 2);
+                        binaryString += String.fromCharCode(charCode);
+                        byteBits = '';
+                    }
+                }
+                
+                // Если накопилось 8 бит (без разделителя)
+                if (byteBits.length === 8) {
+                    const charCode = parseInt(byteBits, 2);
+                    binaryString += String.fromCharCode(charCode);
+                    byteBits = '';
+                }
+            }
+            
+            // Преобразуем бинарную строку обратно в base64
+            const base64Data = btoa(binaryString);
+            return 'data:image/png;base64,' + base64Data;
+        }
+        
+        // Генерация случайного текста для сокрытия
+        function generateRandomText() {
+            const paragraphs = [
+                "Солнце светило ярко, осветляя всё вокруг. Природа пробуждалась после долгой зимы, и птицы уже начинали свои утренние песни. Воздух был свеж и чист, наполнен ароматом весенних цветов.",
+                "Технологии постоянно развиваются, меняя нашу повседневную жизнь. Цифровые устройства стали неотъемлемой частью современного общества, обеспечивая связь, информацию и развлечения.",
+                "Искусство всегда отражало дух времени. Художники, музыканты и писатели через свои работы передавали эмоции, идеи и мировоззрение, влияя на культуру и общество.",
+                "Путешествия открывают новые горизонты и расширяют кругозор. Посещая разные страны и культуры, мы узнаем больше о мире и о себе, обогащая свой жизненный опыт.",
+                "Наука стремится раскрыть тайны вселенной. От мельчайших частиц до огромных галактик, исследователи пытаются понять законы, управляющие природой и космосом."
+            ];
+            
+            // Выбираем случайный параграф
+            const randomIndex = Math.floor(Math.random() * paragraphs.length);
+            return paragraphs[randomIndex];
+        }
+        
+        // Обработка кнопки "Спрятать фото в текст"
+        hideBtn.addEventListener('click', () => {
+            if (!currentImageBase64) {
+                alert('Пожалуйста, сначала загрузите фото');
+                return;
+            }
+            
+            try {
+                const coverTextContent = coverText.value;
+                const textWithHiddenImage = encodeImageInText(currentImageBase64, coverTextContent);
+                
+                // Показываем результат
+                hiddenText.textContent = textWithHiddenImage;
+                hideResult.style.display = 'block';
+                
+                // Прокручиваем к результату
+                hideResult.scrollIntoView({behavior: 'smooth'});
+            } catch (error) {
+                alert('Ошибка при сокрытии фото: ' + error.message);
+            }
+        });
+        
+        // Обработка кнопки "Копировать текст"
+        copyTextBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(hiddenText.textContent);
+                alert('Текст скопирован в буфер обмена!');
+            } catch (err) {
+                // Fallback для старых браузеров
+                const textArea = document.createElement('textarea');
+                textArea.value = hiddenText.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Текст скопирован в буфер обмена!');
+            }
+        });
+        
+        // Обработка кнопки "Скачать как файл"
+        downloadTextBtn.addEventListener('click', () => {
+            const text = hiddenText.textContent;
+            const blob = new Blob([text], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'скрытое_фото.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+        
+        // Обработка кнопки "Извлечь фото из текста"
+        extractBtn.addEventListener('click', () => {
+            const textWithImage = hiddenTextInput.value.trim();
+            
+            if (!textWithImage) {
+                alert('Пожалуйста, введите текст со скрытым фото');
+                return;
+            }
+            
+            try {
+                const imageBase64 = decodeImageFromText(textWithImage);
+                
+                // Показываем извлеченное изображение
+                extractedImage.src = imageBase64;
+                extractedImage.style.display = 'block';
+                extractResult.style.display = 'block';
+                
+                // Сохраняем изображение для скачивания
+                extractedImage.dataset.base64 = imageBase64;
+                
+                // Прокручиваем к результату
+                extractResult.scrollIntoView({behavior: 'smooth'});
+            } catch (error) {
+                alert('Ошибка при извлечении фото: ' + error.message);
+            }
+        });
+        
+        // Обработка кнопки "Скачать фото"
+        downloadImageBtn.addEventListener('click', () => {
+            const imageBase64 = extractedImage.dataset.base64;
+            if (!imageBase64) {
+                alert('Нет изображения для скачивания');
+                return;
+            }
+            
+            const a = document.createElement('a');
+            a.href = imageBase64;
+            a.download = 'извлеченное_фото.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+        
+        // Очистка формы "Спрятать фото"
+        clearHideBtn.addEventListener('click', () => {
+            photoInput.value = '';
+            fileInfo.textContent = '';
+            imagePreview.style.display = 'none';
+            monoInfo.style.display = 'none';
+            coverText.value = '';
+            hideResult.style.display = 'none';
+            currentImageBase64 = null;
+            hideBtn.disabled = true;
+        });
+        
+        // Очистка формы "Извлечь фото"
+        clearExtractBtn.addEventListener('click', () => {
+            hiddenTextInput.value = '';
+            extractResult.style.display = 'none';
+            extractedImage.style.display = 'none';
+        });
+        
+        // Инициализация
+        hideBtn.disabled = true;
+    </script>
+</body>
+</html>
