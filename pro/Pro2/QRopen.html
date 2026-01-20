@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR → Текст</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+    }
+    .card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    input[type=file] {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border: none;
+      border-radius: 12px;
+      background: #00c6ff;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .btn-visit {
+      background: linear-gradient(135deg, #00b09b, #96c93d);
+    }
+    .btn-copy {
+      background: linear-gradient(135deg, #8a2be2, #4b0082);
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      resize: vertical;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.1);
+      color: white;
+    }
+    .link-box {
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(0, 200, 83, 0.15);
+      border-radius: 12px;
+      border: 1px solid rgba(0, 200, 83, 0.3);
+    }
+    .link-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: #81c784;
+    }
+    .link-box a {
+      color: #4fc3f7;
+      text-decoration: none;
+      word-break: break-all;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .link-box a:hover {
+      text-decoration: underline;
+    }
+    .hint {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      text-align: center;
+      margin-top: 8px;
+    }
+    canvas {
+      display: none;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>📷 QR → Текст</h1>
+    <div class="card">
+      <input type="file" accept="image/*" id="fileInput" />
+      <button onclick="decodeQR()">🔍 Расшифровать QR</button>
+      <textarea id="result" placeholder="Здесь появится расшифрованный текст"></textarea>
+      
+      <div class="link-box hidden" id="linkBox">
+        <h3>🔗 Найдена ссылка:</h3>
+        <a id="detectedLink" href="#" target="_blank"></a>
+        <button class="btn-visit" onclick="visitLink()">🌐 Посетить сайт</button>
+      </div>
+      
+      <button class="btn-copy" onclick="copyText()">📋 Копировать текст</button>
+    </div>
+    <div class="hint">Работает полностью локально, без интернета</div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <!-- jsQR библиотека -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+  <script>
+    let detectedUrl = '';
+
+    function decodeQR() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('Выберите изображение с QR-кодом');
+        return;
+      }
+
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        img.src = e.target.result;
+      };
+
+      img.onload = function() {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+        const resultEl = document.getElementById('result');
+        const linkBox = document.getElementById('linkBox');
+        
+        if (code) {
+          resultEl.value = code.data;
+          detectedUrl = '';
+          
+          // Проверка на ссылку
+          if (isValidUrl(code.data)) {
+            try {
+              let url = code.data;
+              // Добавляем протокол если его нет
+              if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+              }
+              detectedUrl = url;
+              
+              const linkElement = document.getElementById('detectedLink');
+              linkElement.textContent = url;
+              linkElement.href = url;
+              linkBox.classList.remove('hidden');
+            } catch (e) {
+              linkBox.classList.add('hidden');
+            }
+          } else {
+            linkBox.classList.add('hidden');
+          }
+        } else {
+          resultEl.value = 'QR-код не распознан 😕';
+          linkBox.classList.add('hidden');
+        }
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    function isValidUrl(string) {
+      try {
+        // Проверяем, является ли строка URL
+        const urlPattern = new RegExp(
+          '^(https?:\\/\\/)?' + // протокол
+          '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // доменное имя
+          '((\\d{1,3}\\.){3}\\d{1,3}))' + // или IP (v4)
+          '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // порт и путь
+          '(\\?[;&a-z\\d%_.~+=-]*)?' + // строка запроса
+          '(\\#[-a-z\\d_]*)?$', 'i' // хэш
+        );
+        
+        // Дополнительная проверка на наличие точки в домене (для обычных сайтов)
+        if (string.includes('.') && 
+            (string.includes('http://') || 
+             string.includes('https://') || 
+             string.includes('www.') || 
+             /^[a-zA-Z0-9]+\.[a-zA-Z]{2,}/.test(string))) {
+          return urlPattern.test(string);
+        }
+        
+        return false;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function visitLink() {
+      if (detectedUrl) {
+        window.open(detectedUrl, '_blank');
+      } else {
+        alert('Ссылка не найдена');
+      }
+    }
+
+    function copyText() {
+      const textarea = document.getElementById('result');
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      alert('Текст скопирован в буфер обмена');
+    }
+    
+    // Автоматический запуск при выборе файла
+    document.getElementById('fileInput').addEventListener('change', decodeQR);
+  </script>
+</body>
+</html>
