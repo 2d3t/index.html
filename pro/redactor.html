@@ -21,7 +21,9 @@
     .toolbar input {
       padding: 5px;
     }
-    .toolbar button {
+    /* Общие стили для всех кнопок и кнопкообразных элементов */
+    .toolbar button,
+    .toolbar label[for="fileUpload"] {
       padding: 6px 10px;
       border: none;
       border-radius: 5px;
@@ -29,8 +31,18 @@
       color: white;
       cursor: pointer;
       transition: background 0.3s;
+      font-size: 14px;
+      font-family: inherit;
+      line-height: normal;
+      height: auto;
+      text-align: center;
+      box-sizing: border-box;
+      margin: 0;
+      display: inline-block;
+      text-decoration: none;
     }
-    .toolbar button:hover {
+    .toolbar button:hover,
+    .toolbar label[for="fileUpload"]:hover {
       background: #777;
     }
     .toolbar button.copied {
@@ -85,6 +97,10 @@
       opacity: 1;
       visibility: visible;
     }
+    /* Скрываем стандартный input file */
+    .file-input {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -105,7 +121,11 @@
   <button onclick="shareCode()">Скачать ⬇️</button>
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
-<button onclick="window.location.href='https://2d3t.github.io/index.html/pro/www.html'">Файлы 📂</button>
+  
+  
+  <!-- Новая кнопка для загрузки файлов -->
+  <label for="fileUpload" title="Открыть файл с телефона">Файлы 📂</label>
+  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt" onchange="loadFile(event)">
 </div>
   
 <div class="editor">
@@ -115,14 +135,13 @@
 
 <iframe class="preview" id="previewFrame"></iframe>
 
-
-
 <script>
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
   const previewFrame = document.getElementById('previewFrame');
   const copyButton = document.getElementById('copyButton');
   const searchInput = document.getElementById('searchInput');
+  const fileUpload = document.getElementById('fileUpload');
 
   let history = [];
   let redoStack = [];
@@ -200,7 +219,6 @@
     previewFrame.classList.add("active");
     document.querySelector('.editor').style.display = "none";
 
-    // 👇 Автопрокрутка кверху после запуска
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -222,7 +240,7 @@
 
   function saveState() {
     history.push(textarea.value);
-    redoStack = []; // Clear redo stack on new change
+    redoStack = [];
   }
 
   function undo() {
@@ -239,6 +257,45 @@
       textarea.value = redoStack.pop();
       updateLineNumbers();
     }
+  }
+
+  // ========== ФУНКЦИЯ ЗАГРУЗКИ ФАЙЛА ==========
+  function loadFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Проверяем расширение файла
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.html') && !fileName.endsWith('.htm') && !fileName.endsWith('.txt')) {
+      alert('Пожалуйста, выберите HTML или текстовый файл (.html, .htm, .txt)');
+      return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      const content = e.target.result;
+      textarea.value = content;
+      updateLineNumbers();
+      
+      // Показываем уведомление о успешной загрузке
+      alert(`Файл "${file.name}" успешно загружен!`);
+      
+      // Очищаем input, чтобы можно было загрузить тот же файл снова
+      event.target.value = '';
+    };
+    
+    reader.onerror = function() {
+      alert('Ошибка при чтении файла');
+      event.target.value = '';
+    };
+    
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  // ========== АЛЬТЕРНАТИВНАЯ КНОПКА (если нужно) ==========
+  function openFileExplorer() {
+    fileUpload.click();
   }
 
   textarea.addEventListener('input', saveState);
@@ -319,6 +376,14 @@
     if (e.key === 'Enter') {
       e.preventDefault();
       goToLine();
+    }
+  });
+
+  // Инициализация
+  window.addEventListener('DOMContentLoaded', () => {
+    // Проверяем поддержку File API
+    if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
+      alert('Ваш браузер не поддерживает загрузку файлов. Пожалуйста, обновите браузер.');
     }
   });
 </script>
