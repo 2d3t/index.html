@@ -101,6 +101,40 @@
     .file-input {
       display: none;
     }
+    /* Кнопка выхода из полноэкранного режима - внутри iframe */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 10000;
+      display: none;
+    }
+    .fullscreen-overlay.active {
+      display: block;
+    }
+    .fullscreen-exit-btn {
+      position: fixed;
+      top: 30px; /* Опустил ниже, было 20px */
+      right: 20px;
+      z-index: 10001;
+      padding: 12px 18px; /* Увеличил отступы для лучшей видимости */
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    .fullscreen-exit-btn:hover {
+      background: rgba(0, 0, 0, 0.95);
+      transform: scale(1.05);
+      transition: transform 0.2s;
+    }
   </style>
 </head>
 <body>
@@ -122,8 +156,10 @@
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
   
+  <!-- Кнопка для полноэкранного режима -->
+  <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
-  <!-- Новая кнопка для загрузки файлов -->
+  <!-- Кнопка для загрузки файлов -->
   <label for="fileUpload" title="Открыть файл с телефона">Файлы 📂</label>
   <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt" onchange="loadFile(event)">
 </div>
@@ -135,6 +171,12 @@
 
 <iframe class="preview" id="previewFrame"></iframe>
 
+<!-- Оверлей для полноэкранного режима -->
+<div class="fullscreen-overlay" id="fullscreenOverlay">
+  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти из полного экрана</button>
+  <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
 <script>
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
@@ -142,9 +184,13 @@
   const copyButton = document.getElementById('copyButton');
   const searchInput = document.getElementById('searchInput');
   const fileUpload = document.getElementById('fileUpload');
+  const fullscreenButton = document.getElementById('fullscreenButton');
+  const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+  const fullscreenFrame = document.getElementById('fullscreenFrame');
 
   let history = [];
   let redoStack = [];
+  let isFullscreen = false;
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
@@ -215,6 +261,9 @@
     const blob = new Blob([code], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
+    
+    // Также загружаем код в fullscreenFrame
+    fullscreenFrame.src = url;
 
     previewFrame.classList.add("active");
     document.querySelector('.editor').style.display = "none";
@@ -223,6 +272,11 @@
   }
 
   function showEditor() {
+    // Выход из полноэкранного режима если он был активен
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    
     previewFrame.classList.remove("active");
     setTimeout(() => {
       document.querySelector('.editor').style.display = "flex";
@@ -293,10 +347,74 @@
     reader.readAsText(file, 'UTF-8');
   }
 
-  // ========== АЛЬТЕРНАТИВНАЯ КНОПКА (если нужно) ==========
-  function openFileExplorer() {
-    fileUpload.click();
+  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
+  function toggleFullscreen() {
+    if (!previewFrame.classList.contains('active')) {
+      alert('Сначала запустите просмотр страницы!');
+      return;
+    }
+    
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      enterFullscreen();
+    }
   }
+
+  function enterFullscreen() {
+    if (!previewFrame.classList.contains('active')) return;
+    
+    fullscreenOverlay.classList.add('active');
+    isFullscreen = true;
+    fullscreenButton.textContent = 'Обычный экран ⛶';
+    fullscreenButton.style.background = '#4CAF50';
+    
+    // Скрываем обычный просмотр и тулбар
+    previewFrame.classList.remove('active');
+    document.querySelector('.toolbar').style.display = 'none';
+    
+    // Обработка клавиши ESC для выхода из полноэкранного режима
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    // Используем Fullscreen API если поддерживается
+    if (fullscreenOverlay.requestFullscreen) {
+      fullscreenOverlay.requestFullscreen().catch(err => {
+        console.log(`Ошибка полноэкранного режима: ${err.message}`);
+      });
+    }
+  }
+
+  function exitFullscreen() {
+    fullscreenOverlay.classList.remove('active');
+    isFullscreen = false;
+    fullscreenButton.textContent = 'Полный экран ⛶';
+    fullscreenButton.style.background = '';
+    
+    // Показываем обычный просмотр и тулбар
+    previewFrame.classList.add('active');
+    document.querySelector('.toolbar').style.display = 'flex';
+    
+    // Выход из Fullscreen API
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    
+    // Удаляем обработчик клавиши ESC
+    document.removeEventListener('keydown', handleEscapeKey);
+  }
+
+  function handleEscapeKey(event) {
+    if (event.key === 'Escape' && isFullscreen) {
+      exitFullscreen();
+    }
+  }
+
+  // Обработка выхода из полноэкранного режима через браузерные методы
+  document.addEventListener('fullscreenchange', function() {
+    if (!document.fullscreenElement && isFullscreen) {
+      exitFullscreen();
+    }
+  });
 
   textarea.addEventListener('input', saveState);
 
