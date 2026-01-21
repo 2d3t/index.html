@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Города Беларуси - мобильная игра</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0057b7, #ffd700);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            padding: 25px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eaeaea;
+        }
+
+        h1 {
+            color: #0057b7;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .flag {
+            display: inline-flex;
+            margin: 5px 0 10px;
+            height: 20px;
+            width: 120px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .flag-red {
+            background-color: #d22730;
+            flex: 1;
+        }
+
+        .flag-green {
+            background-color: #009739;
+            flex: 1;
+        }
+
+        .flag-white {
+            background-color: white;
+            flex: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flag-white::after {
+            content: "⚜";
+            color: #d22730;
+            font-size: 12px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .game-area {
+            margin: 20px 0;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            background-color: #f0f8ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .status-item {
+            text-align: center;
+            flex: 1;
+        }
+
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0057b7;
+        }
+
+        .status-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .current-city {
+            background-color: #e6f7ff;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-left: 5px solid #0057b7;
+        }
+
+        .current-city-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .current-city-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: #0057b7;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-area {
+            margin: 25px 0;
+        }
+
+        .last-letter {
+            background-color: #fff9e6;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .last-letter span {
+            font-weight: bold;
+            color: #d22730;
+            font-size: 24px;
+        }
+
+        .input-container {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 18px;
+            border: 2px solid #ddd;
+            border-radius: 12px 0 0 12px;
+            font-size: 18px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border-color: #0057b7;
+        }
+
+        button {
+            background-color: #0057b7;
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 0 12px 12px 0;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #ffd700;
+            color: #0057b7;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            color: white;
+        }
+
+        .hint-area {
+            background-color: #f9f9f9;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .hint-button {
+            background-color: #d22730;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .hint-button:hover {
+            background-color: #b01e26;
+        }
+
+        .hint-button:disabled {
+            background-color: #f0a0a5;
+            cursor: not-allowed;
+        }
+
+        .hint-text {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            font-size: 18px;
+            color: #0057b7;
+            font-weight: bold;
+            min-height: 30px;
+            display: none;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            display: none;
+        }
+
+        .success {
+            background-color: #d5f4e6;
+            color: #27ae60;
+            display: block;
+        }
+
+        .error {
+            background-color: #fadbd8;
+            color: #e74c3c;
+            display: block;
+        }
+
+        .history {
+            margin-top: 25px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 12px;
+        }
+
+        .history h3 {
+            color: #0057b7;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .history-list {
+            list-style-type: none;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .used-letter {
+            font-weight: bold;
+            color: #d22730;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #666;
+            font-size: 14px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .control-button {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .restart {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .rules {
+            background-color: #9b59b6;
+            color: white;
+        }
+
+        .rules-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .rules-content {
+            background-color: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .rules-content h2 {
+            color: #0057b7;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .rules-content p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .rules-content ul {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .rules-content li {
+            margin-bottom: 10px;
+        }
+
+        .close-rules {
+            background-color: #0057b7;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .current-city-name {
+                font-size: 28px;
+            }
+            
+            input, button {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Города Беларуси</h1>
+            <div class="flag">
+                <div class="flag-red"></div>
+                <div class="flag-green"></div>
+                <div class="flag-white"></div>
+            </div>
+            <div class="subtitle">Назови город на последнюю букву предыдущего</div>
+        </header>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-value" id="score">0</div>
+                <div class="status-label">Очки</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="hints">3</div>
+                <div class="status-label">Подсказки</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="cities-count">0</div>
+                <div class="status-label">Городов</div>
+            </div>
+        </div>
+        
+        <div class="current-city">
+            <div class="current-city-label">Текущий город:</div>
+            <div class="current-city-name" id="current-city">Минск</div>
+        </div>
+        
+        <div class="last-letter">
+            Назови город на букву: <span id="last-letter">К</span>
+        </div>
+        
+        <div class="input-area">
+            <div class="input-container">
+                <input type="text" id="city-input" placeholder="Введите название города" autocomplete="off" autocapitalize="off">
+                <button id="submit-button">Ответить</button>
+            </div>
+        </div>
+        
+        <div class="hint-area">
+            <button class="hint-button" id="hint-button">Взять подсказку</button>
+            <div class="hint-text" id="hint-text"></div>
+        </div>
+        
+        <div class="message" id="message"></div>
+        
+        <div class="history">
+            <h3>Названные города</h3>
+            <ul class="history-list" id="history-list"></ul>
+        </div>
+        
+        <div class="controls">
+            <button class="control-button restart" id="restart-button">Начать заново</button>
+            <button class="control-button rules" id="rules-button">Правила</button>
+        </div>
+        
+        <footer>
+            Игра "Города Беларуси" • Используйте только белорусские города
+        </footer>
+    </div>
+    
+    <div class="rules-overlay" id="rules-overlay">
+        <div class="rules-content">
+            <h2>Правила игры "Города Беларуси"</h2>
+            <p>Цель игры: называть города Беларуси на последнюю букву предыдущего города.</p>
+            <ul>
+                <li>Компьютер начинает игру, называя первый город</li>
+                <li>Вы должны назвать город, который начинается на последнюю букву предыдущего города</li>
+                <li>Используйте только существующие города Беларуси</li>
+                <li>Города не должны повторяться</li>
+                <li>Если город заканчивается на "ь", "ы", "й", то берется предпоследняя буква</li>
+                <li>За каждый правильный город вы получаете 10 очков</li>
+                <li>У вас есть 3 подсказки. Подсказка показывает возможный город для ответа</li>
+                <li>Игра продолжается до тех пор, пока вы не ошибетесь или не закончатся города</li>
+            </ul>
+            <p>Удачи в игре!</p>
+            <button class="close-rules" id="close-rules">Понятно</button>
+        </div>
+    </div>
+
+    <script>
+        // База данных городов Беларуси (более 150 городов)
+        const cities = [
+            // Областные центры и крупные города
+            "Минск", "Гомель", "Могилёв", "Витебск", "Гродно", "Брест",
+            "Бобруйск", "Барановичи", "Борисов", "Пинск", "Орша", "Мозырь",
+            "Солигорск", "Новополоцк", "Лида", "Молодечно", "Полоцк", "Жлобин",
+            "Светлогорск", "Речица", "Жодино", "Слуцк", "Кобрин", "Волковыск",
+            "Калинковичи", "Сморгонь", "Рогачёв", "Осиповичи", "Горки", "Новогрудок",
+            
+            // Средние города
+            "Берёза", "Лунинец", "Ивацевичи", "Поставы", "Дрогичин", "Жабинка",
+            "Иваново", "Дятлово", "Кореличи", "Ляховичи", "Несвиж", "Столбцы",
+            "Узда", "Червень", "Смолевичи", "Старые Дороги", "Копыль", "Клецк",
+            "Негорелое", "Фаниполь", "Заславль", "Марьина Горка", "Смольяны",
+            
+            // Малые города и городские поселки (север)
+            "Браслав", "Верхнедвинск", "Глубокое", "Докшицы", "Дубровно", "Лепель",
+            "Миоры", "Островец", "Толочин", "Ушачи", "Чашники", "Шарковщина",
+            "Шумилино", "Бешенковичи", "Вилейка", "Воложин", "Мядель", "Сенно",
+            
+            // Малые города и городские поселки (юг)
+            "Белоозёрск", "Большая Берестовица", "Василевичи", "Ветка", "Давид-Городок",
+            "Ельск", "Корма", "Лельчицы", "Лоев", "Наровля", "Октябрьский", "Петриков",
+            "Хойники", "Чечерск", "Щучин", "Коссово", "Микашевичи", "Мосты",
+            "Пружаны", "Скидель", "Слоним", "Волковыск", "Зельва", "Ивье",
+            
+            // Исторические города
+            "Городня", "Дисна", "Кричев", "Любань", "Мстиславль", "Пропойск",
+            "Россоны", "Холопеничи", "Чериков", "Шклов", "Юратишки", "Яновичи",
+            
+            // Города-спутники Минска
+            "Заводской", "Лошица", "Масюковщина", "Серебрянка", "Степянка",
+            "Сухарево", "Чижовка", "Шабаны", "Каменная Горка", "Кунцевщина",
+            
+            // Другие населенные пункты со статусом города
+            "Александрия", "Бегомль", "Белицк", "Березино", "Богушевск",
+            "Болбасово", "Боровуха", "Бытень", "Великие Луки", "Вертелишки",
+            "Видзы", "Вороново", "Высокое", "Гатово", "Городея", "Городище",
+            "Домачево", "Друя", "Дуниловичи", "Дукора", "Желудок", "Заря",
+            "Зеленый Бор", "Иваново", "Каменичи", "Квасовка", "Козловщина",
+            "Комарин", "Конюхи", "Королев Стан", "Коссово", "Красная Слобода",
+            "Красносельский", "Кривичи", "Круглое", "Куково", "Лапичи",
+            "Лельчицы", "Люсино", "Малеч", "Малорита", "Мачулищи", "Межево",
+            "Микашевичи", "Молчадь", "Мотоль", "Новая Мышь", "Новоельня",
+            "Новолукомль", "Новополоцк", "Оболь", "Озёрный", "Октябрь",
+            "Ореховск", "Острино", "Островец", "Ошмяны", "Паричи", "Плещеницы",
+            "Подсвилье", "Полесский", "Радошковичи", "Раков", "Россь", "Руба",
+            "Руденск", "Ружаны", "Свирь", "Селец", "Селище", "Синявка",
+            "Смолевичи", "Советская Белоруссия", "Сопоцкин", "Сосновый Бор",
+            "Старобин", "Старые Яриловичи", "Строитель", "Сураж", "Томашовка",
+            "Туров", "Уречье", "Хомск", "Цна", "Чемеры", "Чернавчицы",
+            "Черни", "Шерешево", "Юратишки", "Ямное", "Ярево"
+        ];
+        
+        // Игровые переменные
+        let usedCities = [];
+        let score = 0;
+        let hintsLeft = 3;
+        let currentCity = "";
+        let lastLetter = "";
+        
+        // DOM элементы
+        const scoreElement = document.getElementById('score');
+        const hintsElement = document.getElementById('hints');
+        const citiesCountElement = document.getElementById('cities-count');
+        const currentCityElement = document.getElementById('current-city');
+        const lastLetterElement = document.getElementById('last-letter');
+        const cityInput = document.getElementById('city-input');
+        const submitButton = document.getElementById('submit-button');
+        const hintButton = document.getElementById('hint-button');
+        const hintTextElement = document.getElementById('hint-text');
+        const messageElement = document.getElementById('message');
+        const historyList = document.getElementById('history-list');
+        const restartButton = document.getElementById('restart-button');
+        const rulesButton = document.getElementById('rules-button');
+        const rulesOverlay = document.getElementById('rules-overlay');
+        const closeRulesButton = document.getElementById('close-rules');
+        
+        // Инициализация игры
+        function initGame() {
+            usedCities = [];
+            score = 0;
+            hintsLeft = 3;
+            
+            // Выбираем случайный город для начала
+            const randomIndex = Math.floor(Math.random() * cities.length);
+            currentCity = cities[randomIndex];
+            usedCities.push(currentCity);
+            
+            // Определяем последнюю букву
+            lastLetter = getLastLetter(currentCity);
+            
+            updateUI();
+            clearMessage();
+            cityInput.value = "";
+            cityInput.focus();
+        }
+        
+        // Получить последнюю букву для игры
+        function getLastLetter(city) {
+            let letter = city.charAt(city.length - 1).toUpperCase();
+            
+            // Особые случаи: если город заканчивается на "ь", "ы", "й", "ъ", берем предпоследнюю букву
+            if (letter === 'Ь' || letter === 'Ы' || letter === 'Й' || letter === 'Ъ') {
+                letter = city.charAt(city.length - 2).toUpperCase();
+            }
+            
+            return letter;
+        }
+        
+        // Проверить правильность введенного города
+        function checkCity(inputCity) {
+            const normalizedInput = inputCity.trim().toLowerCase();
+            
+            // Проверяем, что город существует в базе
+            const foundCity = cities.find(city => city.toLowerCase() === normalizedInput);
+            if (!foundCity) {
+                showMessage("Такого города нет в списке!", "error");
+                return false;
+            }
+            
+            // Проверяем, что город еще не использовался
+            if (usedCities.some(city => city.toLowerCase() === normalizedInput)) {
+                showMessage("Этот город уже был назван!", "error");
+                return false;
+            }
+            
+            // Проверяем, что город начинается на нужную букву
+            if (foundCity.charAt(0).toUpperCase() !== lastLetter) {
+                showMessage(`Город должен начинаться на букву "${lastLetter}"!`, "error");
+                return false;
+            }
+            
+            // Все проверки пройдены
+            return foundCity;
+        }
+        
+        // Обработка правильного ответа
+        function processCorrectAnswer(city) {
+            // Добавляем город в список использованных
+            usedCities.push(city);
+            
+            // Обновляем текущий город
+            currentCity = city;
+            
+            // Обновляем последнюю букву
+            lastLetter = getLastLetter(city);
+            
+            // Добавляем очки
+            score += 10;
+            
+            // Обновляем интерфейс
+            updateUI();
+            clearMessage();
+            cityInput.value = "";
+            cityInput.focus();
+            
+            // Показываем сообщение об успехе
+            showMessage("Правильно! +10 очков", "success");
+        }
+        
+        // Получить подсказку
+        function getHint() {
+            if (hintsLeft <= 0) return null;
+            
+            // Находим города, которые начинаются на нужную букву и еще не использовались
+            const availableCities = cities.filter(city => {
+                return city.charAt(0).toUpperCase() === lastLetter && 
+                       !usedCities.some(used => used.toLowerCase() === city.toLowerCase());
+            });
+            
+            if (availableCities.length === 0) return null;
+            
+            // Выбираем случайный город из доступных
+            const randomIndex = Math.floor(Math.random() * availableCities.length);
+            return availableCities[randomIndex];
+        }
+        
+        // Обновление интерфейса
+        function updateUI() {
+            // Обновляем показатели
+            scoreElement.textContent = score;
+            hintsElement.textContent = hintsLeft;
+            citiesCountElement.textContent = usedCities.length;
+            
+            // Обновляем текущий город и последнюю букву
+            currentCityElement.textContent = currentCity;
+            lastLetterElement.textContent = lastLetter;
+            
+            // Обновляем историю
+            updateHistory();
+            
+            // Обновляем состояние кнопки подсказки
+            hintButton.disabled = hintsLeft <= 0;
+            
+            // Обновляем состояние кнопки отправки
+            submitButton.disabled = cityInput.value.trim() === "";
+        }
+        
+        // Обновление истории
+        function updateHistory() {
+            historyList.innerHTML = "";
+            
+            // Показываем последние 10 городов
+            const startIndex = Math.max(0, usedCities.length - 10);
+            const recentCities = usedCities.slice(startIndex);
+            
+            recentCities.forEach((city, index) => {
+                const listItem = document.createElement('li');
+                listItem.className = 'history-item';
+                
+                const cityElement = document.createElement('span');
+                cityElement.textContent = city;
+                
+                const letterElement = document.createElement('span');
+                letterElement.className = 'used-letter';
+                letterElement.textContent = `→ ${getLastLetter(city)}`;
+                
+                listItem.appendChild(cityElement);
+                listItem.appendChild(letterElement);
+                historyList.appendChild(listItem);
+            });
+        }
+        
+        // Показать сообщение
+        function showMessage(text, type) {
+            messageElement.textContent = text;
+            messageElement.className = `message ${type}`;
+            messageElement.style.display = 'block';
+            
+            // Автоматически скрыть сообщение через 3 секунды
+            setTimeout(clearMessage, 3000);
+        }
+        
+        // Очистить сообщение
+        function clearMessage() {
+            messageElement.style.display = 'none';
+            messageElement.textContent = "";
+        }
+        
+        // События
+        cityInput.addEventListener('input', function() {
+            submitButton.disabled = this.value.trim() === "";
+        });
+        
+        cityInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                submitButton.click();
+            }
+        });
+        
+        submitButton.addEventListener('click', function() {
+            const inputValue = cityInput.value.trim();
+            
+            if (inputValue === "") {
+                showMessage("Введите название города!", "error");
+                return;
+            }
+            
+            const validatedCity = checkCity(inputValue);
+            if (validatedCity) {
+                processCorrectAnswer(validatedCity);
+            }
+        });
+        
+        hintButton.addEventListener('click', function() {
+            if (hintsLeft <= 0) {
+                showMessage("У вас закончились подсказки!", "error");
+                return;
+            }
+            
+            const hintCity = getHint();
+            if (!hintCity) {
+                showMessage("Не осталось городов на эту букву!", "error");
+                return;
+            }
+            
+            // Используем подсказку
+            hintsLeft--;
+            
+            // Показываем подсказку
+            hintTextElement.textContent = `Попробуйте: ${hintCity}`;
+            hintTextElement.style.display = 'block';
+            
+            // Обновляем интерфейс
+            updateUI();
+            
+            // Скрываем подсказку через 5 секунд
+            setTimeout(() => {
+                hintTextElement.style.display = 'none';
+            }, 5000);
+        });
+        
+        restartButton.addEventListener('click', initGame);
+        
+        rulesButton.addEventListener('click', function() {
+            rulesOverlay.style.display = 'flex';
+        });
+        
+        closeRulesButton.addEventListener('click', function() {
+            rulesOverlay.style.display = 'none';
+        });
+        
+        rulesOverlay.addEventListener('click', function(e) {
+            if (e.target === rulesOverlay) {
+                rulesOverlay.style.display = 'none';
+            }
+        });
+        
+        // Инициализация при загрузке
+        window.addEventListener('DOMContentLoaded', initGame);
+        
+        // Функция для проверки уникальности городов в базе (для отладки)
+        function checkUniqueCities() {
+            const lowerCities = cities.map(c => c.toLowerCase());
+            const unique = new Set(lowerCities);
+            console.log(`Всего городов: ${cities.length}, уникальных: ${unique.size}`);
+            if (unique.size !== cities.length) {
+                console.log("Есть дубликаты!");
+            }
+        }
+        
+        // Проверяем при загрузке
+        window.addEventListener('load', checkUniqueCities);
+    </script>
+</body>
+</html>
