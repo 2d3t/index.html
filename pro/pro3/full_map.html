@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Everest Me - Полная карта</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; }
+        .info { padding: 6px 8px; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
+        .info h4 { margin: 0 0 5px; color: #777; }
+        .legend { line-height: 18px; color: #555; }
+        .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+        .popup-content { max-width: 300px; max-height: 400px; overflow-y: auto; }
+        .note-item { margin: 8px 0; padding: 8px; background: #f8f9fa; border-left: 3px solid #007bff; border-radius: 3px; }
+        .username { font-weight: bold; color: #007bff; }
+        .timestamp { font-size: 0.85em; color: #6c757d; }
+        .view-details-btn { 
+            display: block; width: 100%; padding: 8px; 
+            margin-top: 10px; background: #28a745; 
+            color: white; border: none; border-radius: 4px; 
+            cursor: pointer; text-align: center; 
+            text-decoration: none; 
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <script>
+        // Парсим данные из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedData = urlParams.get('data');
+        
+        if (!encodedData) {
+            document.getElementById('map').innerHTML = '<h2 style="padding: 20px;">Ошибка: данные не загружены</h2>';
+            throw new Error('No data provided');
+        }
+        
+        let mapData;
+        try {
+            mapData = JSON.parse(decodeURIComponent(encodedData));
+        } catch (e) {
+            document.getElementById('map').innerHTML = '<h2 style="padding: 20px;">Ошибка загрузки данных</h2>';
+            throw new Error('Invalid JSON data');
+        }
+        
+        // Инициализация карты
+        const map = L.map('map').setView([55.7558, 37.6176], 3);
+        
+        // Добавляем тайлы OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Создаем кластерную группу
+        const markers = L.markerClusterGroup({
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: true,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+        
+        // Функция для определения цвета метки по количеству записок
+        function getMarkerColor(count) {
+            if (count >= 10) return '#dc3545'; // red
+            if (count >= 5) return '#fd7e14';  // orange
+            if (count >= 2) return '#28a745';  // green
+            return '#007bff';                   // blue
+        }
+        
+        // Функция для определения размера метки
+        function getMarkerSize(count) {
+            return Math.min(8 + Math.log2(count) * 3, 25);
+        }
+        
+        // Добавляем метки
+        mapData.locations.forEach(location => {
+            const color = getMarkerColor(location.count);
+            const size = getMarkerSize(location.count);
+            
+            // Создаем кастомную иконку
+            const icon = L.divIcon({
+                html: `<div style="
+                    width: ${size}px; 
+                    height: ${size}px; 
+                    background-color: ${color}; 
+                    border: 2px solid white; 
+                    border-radius: 50%; 
+                    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                    color: white;
+                    font-weight: bold;
+                    font-size: ${Math.max(10, size/2)}px;">
+                    ${location.count}
+                </div>`,
+                className: 'custom-marker',
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2]
+            });
+            
+            const marker = L.marker([location.lat, location.lon], { icon: icon });
+            
+            // Создаем содержимое попапа
+            let popupContent = `<div class="popup-content">
+                <h4 style="margin-top: 0;">📍 Место</h4>
+                <p><strong>Координаты:</strong><br>
+                ${location.lat.toFixed(6)}, ${location.lon.toFixed(6)}</p>
+                <p><strong>Количество записок:</strong> ${location.count}</p>`;
+            
+            if (location.preview && location.preview.length > 0) {
+                popupContent += '<h5>Последние записки:</h5>';
+                location.preview.forEach((note, index) => {
+                    popupContent += `
+                    <div class="note-item">
+                        <div class="username">👤 ${note.username}</div>
+                        <div>${note.note}</div>
+                        <div class="timestamp">🕒 ${note.time}</div>
+                    </div>`;
+                });
+                
+                if (location.count > 3) {
+                    popupContent += `<p><em>... и еще ${location.count - 3} записок</em></p>`;
+                }
+            }
+            
+            // Кнопка для просмотра всех записок
+            popupContent += `
+                <a href="location_details.html?lat=${location.lat}&lon=${location.lon}" 
+                   class="view-details-btn" 
+                   target="_blank">
+                   👥 Показать все записки (${location.count})
+                </a>
+            </div>`;
+            
+            marker.bindPopup(popupContent);
+            markers.addLayer(marker);
+        });
+        
+        // Добавляем кластеры на карту
+        map.addLayer(markers);
+        
+        // Автоматическое приближение если есть только одна метка
+        if (mapData.locations.length === 1) {
+            const loc = mapData.locations[0];
+            map.setView([loc.lat, loc.lon], 15);
+        }
+        
+        // Добавляем легенду
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = `
+                <h4>Легенда карты</h4>
+                <div><i style="background: #007bff"></i> 1 записка</div>
+                <div><i style="background: #28a745"></i> 2-4 записки</div>
+                <div><i style="background: #fd7e14"></i> 5-9 записок</div>
+                <div><i style="background: #dc3545"></i> 10+ записок</div>
+                <hr style="margin: 8px 0;">
+                <div><strong>Статистика:</strong></div>
+                <div>📝 Всего записок: ${mapData.stats.total_notes}</div>
+                <div>📍 Уникальных мест: ${mapData.stats.unique_locations}</div>
+                <div>👥 Пользователей: ${mapData.stats.unique_users}</div>
+                <div style="margin-top: 8px; font-size: 0.8em; color: #666;">
+                    Обновлено: ${mapData.timestamp}
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // Добавляем информацию о данных
+        const info = L.control({position: 'topleft'});
+        info.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'info');
+            div.innerHTML = `
+                <h4>🌍 Everest Me - Полная карта</h4>
+                <div>Показано мест: ${mapData.locations.length}</div>
+                <div>Кликните на метку для деталей</div>
+            `;
+            return div;
+        };
+        info.addTo(map);
+        
+        // Обработка ошибок
+        map.on('error', function(e) {
+            console.error('Map error:', e);
+        });
+    </script>
+</body>
+</html>
