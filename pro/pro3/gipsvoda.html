@@ -393,89 +393,125 @@
         }
 
         // Сохранение результата с изображением
-        function downloadImage() {
-            if (!lastResult) {
-                alert('Сначала выполните расчет.');
-                return;
-            }
+        // Сохранение результата с изображением
+function downloadImage() {
+    if (!lastResult) {
+        alert('Сначала выполните расчет.');
+        return;
+    }
 
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            // Устанавливаем размер холста
-            canvas.width = 800;
-            canvas.height = 600;
-            
-            // Очищаем холст белым фоном
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Загружаем изображение (асинхронно)
-            const imageToDraw = uploadedImage || new Image();
-            
-            if (!uploadedImage) {
-                imageToDraw.src = 'https://2d3t.github.io/index.html/images/gips.jpg';
-                imageToDraw.crossOrigin = "anonymous";
-            }
-            
-            imageToDraw.onload = function() {
-                // Рисуем изображение в верхней части
-                const imageHeight = 250;
-                const imageWidth = (imageToDraw.width / imageToDraw.height) * imageHeight;
-                const imageX = (canvas.width - imageWidth) / 2;
-                
-                ctx.drawImage(imageToDraw, imageX, 20, imageWidth, imageHeight);
-                
-                // Добавляем разделитель
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Динамически рассчитываем высоту холста на основе количества строк
+    const lines = lastResult.split('\n');
+    const baseHeight = 600;
+    const extraHeight = Math.max(0, (lines.length - 15) * 25); // Дополнительная высота если много строк
+    canvas.width = 800;
+    canvas.height = baseHeight + extraHeight;
+    
+    // Очищаем холст белым фоном
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Загружаем изображение (асинхронно)
+    const imageToDraw = uploadedImage || new Image();
+    
+    if (!uploadedImage) {
+        imageToDraw.src = 'https://2d3t.github.io/index.html/images/gips.jpg';
+        imageToDraw.crossOrigin = "anonymous";
+    }
+    
+    imageToDraw.onload = function() {
+        // Рисуем изображение в верхней части
+        const imageHeight = 200;
+        const imageWidth = Math.min((imageToDraw.width / imageToDraw.height) * imageHeight, canvas.width - 40);
+        const imageX = (canvas.width - imageWidth) / 2;
+        
+        ctx.drawImage(imageToDraw, imageX, 20, imageWidth, imageHeight);
+        
+        // Добавляем разделитель
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(20, imageHeight + 30, canvas.width - 40, 2);
+        
+        // Добавляем заголовок
+        ctx.fillStyle = '#2E7D32';
+        ctx.font = 'bold 22px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('РАСЧЕТ СМЕСИ ДЛЯ ГИПСА', canvas.width / 2, imageHeight + 70);
+        
+        // Добавляем текст расчета
+        ctx.fillStyle = 'black';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
+        
+        // Рисуем текст построчно
+        let yPos = imageHeight + 100;
+        lines.forEach(line => {
+            if (line.includes('===') || line.includes('---')) {
+                // Разделители
                 ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(20, 280, canvas.width - 40, 2);
-                
-                // Добавляем текст расчета
-                ctx.fillStyle = 'black';
-                ctx.font = 'bold 20px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('РАСЧЕТ СМЕСИ ДЛЯ ГИПСА', canvas.width / 2, 320);
-                
+                ctx.font = '14px Arial';
+                ctx.fillText(line, 20, yPos);
                 ctx.font = '16px Arial';
-                ctx.textAlign = 'left';
-                const lines = lastResult.split('\n');
-                
-                // Рисуем текст построчно
-                let yPos = 360;
-                lines.forEach(line => {
-                    if (line.includes('===') || line.includes('---')) {
-                        ctx.fillStyle = '#4CAF50';
-                        ctx.fillText(line, 20, yPos);
-                        ctx.fillStyle = 'black';
-                    } else if (line.includes('ЦВЕТ')) {
-                        ctx.fillStyle = '#2196F3';
-                        ctx.fillText(line, 20, yPos);
-                        ctx.fillStyle = 'black';
-                    } else {
-                        ctx.fillText(line, 20, yPos);
-                    }
-                    yPos += 25;
-                });
-                
-                // Добавляем дату и время
-                ctx.font = '12px Arial';
-                ctx.fillStyle = '#666';
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU');
-                ctx.fillText(`Создано: ${dateStr}`, 20, canvas.height - 20);
-                
-                // Скачиваем результат
-                const link = document.createElement('a');
-                link.download = `расчет_гипса_${new Date().getTime()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            };
-            
-            // Если изображение уже загружено, вызываем onload сразу
-            if (imageToDraw.complete) {
-                imageToDraw.onload();
+                ctx.fillStyle = 'black';
+            } else if (line.includes('ЦВЕТ')) {
+                // Заголовки цветов
+                ctx.fillStyle = '#2196F3';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(line, 20, yPos);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'black';
+            } else if (line.includes('ОБЩИЕ') || line.includes('РАСПРЕДЕЛЕНИЕ')) {
+                // Подзаголовки
+                ctx.fillStyle = '#555';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(line, 20, yPos);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'black';
+            } else if (line.includes('Форма:') || line.includes('Количество цветов:') || line.includes('Общая масса:')) {
+                // Основная информация
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(line, 20, yPos);
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'black';
+            } else {
+                // Обычный текст
+                ctx.fillText(line, 20, yPos);
             }
-        }
+            yPos += 24;
+        });
+        
+        // Добавляем дату и время в правый нижний угол
+        ctx.font = '10px Arial';
+        ctx.fillStyle = '#888';
+        const now = new Date();
+        // Более компактный формат даты
+        const dateStr = now.toLocaleDateString('ru-RU') + ' ' + 
+                       now.getHours().toString().padStart(2, '0') + ':' + 
+                       now.getMinutes().toString().padStart(2, '0');
+        ctx.textAlign = 'right';
+        ctx.fillText(`Создано: ${dateStr}`, canvas.width - 20, canvas.height - 15);
+        
+        // Добавляем водяной знак с названием программы
+        ctx.font = 'italic 10px Arial';
+        ctx.fillStyle = '#CCC';
+        ctx.fillText('Калькулятор смеси гипса и воды', canvas.width - 20, canvas.height - 5);
+        ctx.textAlign = 'left';
+        
+        // Скачиваем результат
+        const link = document.createElement('a');
+        link.download = `расчет_гипса_${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    };
+    
+    // Если изображение уже загружено, вызываем onload сразу
+    if (imageToDraw.complete) {
+        imageToDraw.onload();
+    }
+}
     </script>
 </body>
 </html>
