@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Детали места - Everest Me</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+        
+        .location-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+        
+        .location-info strong {
+            color: #2c3e50;
+        }
+        
+        .users-count {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .user-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+            transition: transform 0.3s ease;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .username {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1.1em;
+        }
+        
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+        
+        .coordinates {
+            color: #28a745;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin: 8px 0;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .note-content {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 1em;
+            line-height: 1.6;
+            color: #495057;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: white;
+            color: #007bff;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 2px solid #007bff;
+        }
+        
+        .back-btn:hover {
+            background: #007bff;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,123,255,0.3);
+        }
+        
+        .actions {
+            margin-top: 25px;
+            text-align: center;
+        }
+        
+        .map-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin-left: 10px;
+            box-shadow: 0 5px 15px rgba(40,167,69,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .map-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40,167,69,0.3);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .user-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .timestamp {
+                margin-top: 5px;
+            }
+            
+            .back-btn, .map-btn {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📍 Детали места</h1>
+            <div id="location-info" class="location-info">
+                Загрузка данных...
+            </div>
+            <div id="users-count" class="users-count">
+                👥 <span id="count">0</span> записок
+            </div>
+        </div>
+        
+        <div id="users-list"></div>
+        
+        <div class="actions">
+            <a href="javascript:history.back()" class="back-btn">🔙 Назад к карте</a>
+            <a href="#" id="openMapBtn" class="map-btn" target="_blank">🗺️ Открыть на карте</a>
+        </div>
+    </div>
+    
+    <script>
+        // Функция для получения параметров из URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const encodedData = params.get('data');
+            const lat = params.get('lat');
+            const lon = params.get('lon');
+            
+            return { encodedData, lat, lon };
+        }
+        
+        // Функция для отображения данных
+        function displayLocationData(data) {
+            // Обновляем информацию о локации
+            document.getElementById('location-info').innerHTML = `
+                <strong>🗺️ Координаты:</strong><br>
+                Широта: <code>${data.lat.toFixed(6)}</code><br>
+                Долгота: <code>${data.lon.toFixed(6)}</code>
+            `;
+            
+            // Обновляем счетчик
+            document.getElementById('count').textContent = data.total;
+            
+            // Устанавливаем ссылку для кнопки карты
+            const openMapBtn = document.getElementById('openMapBtn');
+            openMapBtn.href = `map.html?center=${data.lat},${data.lon}&zoom=17`;
+            
+            // Отображаем список пользователей
+            const usersList = document.getElementById('users-list');
+            
+            if (data.users.length === 0) {
+                usersList.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 3em;">📭</div>
+                        <h3>Записок не найдено</h3>
+                        <p>В этом месте пока нет оставленных записок.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            usersList.innerHTML = '';
+            
+            data.users.forEach((user, index) => {
+                const userCard = document.createElement('div');
+                userCard.className = 'user-card';
+                
+                // Форматируем текст записки
+                let noteHtml = user.note;
+                // Простая обработка ссылок
+                noteHtml = noteHtml.replace(
+                    /(https?:\/\/[^\s]+)/g, 
+                    '<a href="$1" target="_blank" style="color: #007bff;">$1</a>'
+                );
+                // Обработка переносов строк
+                noteHtml = noteHtml.replace(/\n/g, '<br>');
+                
+                userCard.innerHTML = `
+                    <div class="user-header">
+                        <div class="username">
+                            <span style="font-size: 1.2em;">👤</span> 
+                            ${user.username || 'Анонимный путешественник'}
+                        </div>
+                        <div class="timestamp">🕒 ${user.time}</div>
+                    </div>
+                    
+                    <div class="coordinates">
+                        📍 ${user.lat.toFixed(6)}, ${user.lon.toFixed(6)}
+                    </div>
+                    
+                    <div class="note-content">
+                        ${noteHtml}
+                    </div>
+                `;
+                
+                usersList.appendChild(userCard);
+            });
+        }
+        
+        // Основная функция загрузки
+        async function loadLocationData() {
+            const { encodedData, lat, lon } = getUrlParams();
+            
+            if (encodedData) {
+                // Если данные переданы напрямую
+                try {
+                    const locationData = JSON.parse(decodeURIComponent(encodedData));
+                    displayLocationData(locationData);
+                } catch (error) {
+                    showError('Ошибка загрузки данных');
+                    console.error('Parse error:', error);
+                }
+            } else if (lat && lon) {
+                // Если переданы только координаты, можем загрузить через API
+                // В реальном проекте здесь был бы fetch запрос к вашему API
+                showError('Функция загрузки по координатам требует реализации API');
+            } else {
+                showError('Не указаны данные для загрузки');
+            }
+        }
+        
+        // Функция отображения ошибки
+        function showError(message) {
+            document.getElementById('location-info').innerHTML = `
+                <div style="color: #dc3545; text-align: center;">
+                    <div style="font-size: 2em;">⚠️</div>
+                    <h3>Ошибка</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+            
+            document.getElementById('users-count').style.display = 'none';
+            document.getElementById('openMapBtn').style.display = 'none';
+        }
+        
+        // Загружаем данные при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadLocationData);
+        
+        // Добавляем кнопку "Поделиться"
+        if (navigator.share) {
+            const shareBtn = document.createElement('a');
+            shareBtn.className = 'map-btn';
+            shareBtn.style.backgroundColor = '#6f42c1';
+            shareBtn.href = '#';
+            shareBtn.innerHTML = '📤 Поделиться';
+            shareBtn.onclick = async (e) => {
+                e.preventDefault();
+                try {
+                    await navigator.share({
+                        title: 'Место в Everest Me',
+                        text: 'Посмотрите это интересное место!',
+                        url: window.location.href
+                    });
+                } catch (err) {
+                    console.log('Ошибка при попытке поделиться:', err);
+                }
+            };
+            document.querySelector('.actions').appendChild(shareBtn);
+        }
+    </script>
+</body>
+</html>
