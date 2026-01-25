@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта записок | Everest Me</title>
+    <!-- Подключаем библиотеку Leaflet для карты -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { margin-bottom: 10px; color: #2c3e50; }
+        .subtitle { margin-bottom: 20px; color: #7f8c8d; }
+        #map { height: 600px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 20px; }
+        .instructions, .note { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .note { border-left: 4px solid #3498db; }
+        code { background: #eee; padding: 2px 5px; border-radius: 3px; }
+        .marker-cluster { background-color: rgba(231, 76, 60, 0.6); border-radius: 50%; color: white; text-align: center; font-weight: bold; }
+        .marker-cluster div { background-color: rgba(192, 57, 43, 0.9); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Карта записок Everest Me</h1>
+        <p class="subtitle">Места, которые посетили путешественники, и их заметки.</p>
+
+        <div class="instructions">
+            <p><strong>Как это работает:</strong> Эта страница получает данные о метках из параметра URL. Ваш бот должен сформировать ссылку вида:</p>
+            <p><code>https://ВАШ_ЛОГИН.github.io/everest-map/map.html?data=[{...данные...}]</code></p>
+            <p>и отправить её пользователю.</p>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="note" id="statusNote">
+            Загрузка карты и данных...
+        </div>
+    </div>
+
+    <script>
+        // Инициализация карты в центре России (примерно)
+        const map = L.map('map').setView([55.7558, 37.6176], 5);
+
+        // Добавляем слой с бесплатными картами OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Группа для автоматического подбора масштаба
+        const markersLayer = L.layerGroup().addTo(map);
+
+        // ФУНКЦИЯ: Получение данных из URL
+        function getNotesDataFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataParam = urlParams.get('data');
+
+            if (!dataParam) {
+                console.warn('Параметр "data" не найден в URL. Используем пример данных.');
+                return getExampleData(); // Для демонстрации без бота
+            }
+
+            try {
+                // Декодируем и парсим JSON строку из URL
+                const decodedData = decodeURIComponent(dataParam);
+                return JSON.parse(decodedData);
+            } catch (error) {
+                console.error('Ошибка при разборе данных из URL:', error);
+                document.getElementById('statusNote').innerHTML = '<span style="color:#e74c3c;">Ошибка загрузки данных. Проверьте формат ссылки.</span>';
+                return [];
+            }
+        }
+
+        // ФУНКЦИЯ: Загрузка и отображение меток на карте
+        function loadMarkers(notesData) {
+            if (!notesData || notesData.length === 0) {
+                document.getElementById('statusNote').innerHTML = 'На карте нет меток для отображения.';
+                return;
+            }
+
+            // Создаем иконку для метки
+            const customIcon = L.icon({
+                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34]
+            });
+
+            let bounds = []; // Для автоматического масштаба
+
+            notesData.forEach(note => {
+                // Проверяем наличие обязательных полей
+                if (note.lat && note.lon) {
+                    const marker = L.marker([note.lat, note.lon], { icon: customIcon })
+                        .addTo(markersLayer)
+                        .bindPopup(`
+                            <div style="min-width: 200px; font-family: sans-serif;">
+                                <strong>👤 ${note.username || 'Аноним'}</strong><br>
+                                <small>📅 ${note.time || 'Дата не указана'}</small><hr style="margin: 5px 0;">
+                                <p>${note.text || '...'}</p>
+                                <small style="color: gray;">📍 ${note.lat.toFixed(6)}, ${note.lon.toFixed(6)}</small>
+                            </div>
+                        `);
+                    bounds.push([note.lat, note.lon]);
+                }
+            });
+
+            // Автоматически подбираем масштаб, чтобы были видны все метки
+            if (bounds.length > 0) {
+                map.fitBounds(bounds);
+            }
+
+            // Обновляем статус
+            document.getElementById('statusNote').innerHTML = `
+                ✅ Загружено <strong>${notesData.length}</strong> заметок. Кликните на значок на карте, чтобы прочитать.
+            `;
+        }
+
+        // ФУНКЦИЯ: Пример данных (если параметр 'data' не передан)
+        function getExampleData() {
+            return [
+                { username: "Иван_Путешественник", lat: 55.755826, lon: 37.617300, text: "Красная площадь! Незабываемо.", time: "15-04-2024 12:30" },
+                { username: "Анна_Исследователь", lat: 59.934280, lon: 30.335099, text: "Эрмитаж - целый мир искусства.", time: "10-04-2024 15:45" },
+                { username: "Максим_Турист", lat: 43.585525, lon: 39.723062, text: "Сочи, солнечный день у моря.", time: "05-04-2024 11:20" }
+            ];
+        }
+
+        // ЗАПУСК: Получаем данные и загружаем карту
+        document.addEventListener('DOMContentLoaded', function() {
+            const notesData = getNotesDataFromUrl();
+            loadMarkers(notesData);
+        });
+    </script>
+</body>
+</html>
