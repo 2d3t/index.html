@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор смеси гипса и воды</title>
+    <style>
+    body {
+        font-family: 'Arial', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px;
+        background-image: url('https://2d3t.github.io/index.html/images/sky.png');
+        background-size: cover;
+        background-position: center;
+        color: #333;
+    }
+    .container {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        max-width: 600px;
+        width: 100%;
+    }
+    h1 {
+        color: #4CAF50;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .input-group {
+        margin-bottom: 15px;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    input, select, button {
+        padding: 10px;
+        margin: 5px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    button {
+        cursor: pointer;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        transition: background-color 0.3s;
+        margin-top: 10px;
+    }
+    button:hover {
+        background-color: #45a049;
+    }
+    .button-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    .button-group button {
+        flex: 1;
+    }
+    .colors-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    #result {
+        margin-top: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        white-space: pre-wrap;
+        font-family: monospace;
+        line-height: 1.5;
+    }
+    .image-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    #previewImage {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        cursor: pointer;
+        transition: transform 0.3s;
+    }
+    .enlarged {
+        transform: scale(2);
+        position: relative;
+        z-index: 1000;
+    }
+    .image-controls {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+    }
+    .image-controls button {
+        width: auto;
+        padding: 8px 15px;
+    }
+    #imageUpload {
+        display: none;
+    }
+    .upload-label {
+        background-color: #2196F3;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: inline-block;
+    }
+    .upload-label:hover {
+        background-color: #0b7dda;
+    }
+    canvas {
+        display: none;
+    }
+    .color-result {
+        background: #f0f0f0;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border-left: 4px solid #4CAF50;
+    }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="image-section">
+            <img id="previewImage" src="https://2d3t.github.io/index.html/images/gips.jpg" 
+                 alt="Гипс строительный Тайфун Мастер 35" 
+                 onclick="toggleImageSize(this)">
+            <div class="image-controls">
+                <label class="upload-label">
+                    📁 Загрузить фото
+                    <input type="file" id="imageUpload" accept="image/*" onchange="handleImageUpload(event)">
+                </label>
+                <button onclick="clearUploadedImage()">🗑️ Удалить</button>
+            </div>
+        </div>
+
+        <h1>Калькулятор смеси гипса и воды</h1>
+        
+        <div class="input-group">
+            <label for="mixtureWeight">Масса смеси (г):</label>
+            <input type="number" id="mixtureWeight" placeholder="Введите массу смеси в граммах" min="1" />
+        </div>
+        
+        <div class="input-group">
+            <label for="formName">Название формы:</label>
+            <input type="text" id="formName" placeholder="Например: Ваза, Фигурка и т.д." />
+        </div>
+        
+        <div class="colors-group">
+            <label for="colorCount">Количество цветов:</label>
+            <select id="colorCount" onchange="updateColorCount()">
+                <option value="1">1 цвет</option>
+                <option value="2">2 цвета</option>
+                <option value="3">3 цвета</option>
+            </select>
+        </div>
+
+        <div class="button-group">
+            <button onclick="calculateStandard()">Стандартный расчет</button>
+            <button onclick="calculatePalyzh()">С "Палиж"</button>
+            <button onclick="calculateStakhema()">С "Стахема-М"</button>
+        </div>
+        
+        <button onclick="downloadImage()">📷 Сохранить как JPEG</button>
+
+        <h2>Результаты:</h2>
+        <div id="result"></div>
+        
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        let lastResult = '';
+        let uploadedImage = null;
+        let uploadedImageUrl = null;
+
+        // Обработка загрузки изображения
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImageUrl = e.target.result;
+                const preview = document.getElementById('previewImage');
+                preview.src = uploadedImageUrl;
+                uploadedImage = new Image();
+                uploadedImage.src = uploadedImageUrl;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // Очистка загруженного изображения
+        function clearUploadedImage() {
+            uploadedImage = null;
+            uploadedImageUrl = null;
+            document.getElementById('previewImage').src = 'https://2d3t.github.io/index.html/images/gips.jpg';
+            document.getElementById('imageUpload').value = '';
+        }
+
+        // Переключение размера изображения
+        function toggleImageSize(img) {
+            img.classList.toggle('enlarged');
+        }
+
+        // Обновление интерфейса при изменении количества цветов
+        function updateColorCount() {
+            // Можно добавить дополнительную логику при необходимости
+            console.log('Выбрано цветов:', document.getElementById('colorCount').value);
+        }
+
+        // Функция для разделения компонентов по цветам
+        function splitByColors(total, colorCount) {
+            const perColor = total / colorCount;
+            const result = [];
+            for (let i = 0; i < colorCount; i++) {
+                result.push(perColor);
+            }
+            return result;
+        }
+
+        // Стандартный расчет
+        function calculateStandard() {
+            const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
+            const formName = document.getElementById('formName').value || 'Форма';
+            const colorCount = parseInt(document.getElementById('colorCount').value);
+            
+            if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
+                document.getElementById('result').innerText = 'Введите корректное значение массы смеси.';
+                return;
+            }
+
+            const waterRatio = 100 / 130;
+            const gypsumRatio = 150 / 130;
+
+            const waterWeight = waterRatio * mixtureWeight;
+            const gypsumWeight = gypsumRatio * mixtureWeight;
+            const extraWaterWeight = waterWeight * 0.1;
+            const totalWaterWeight = waterWeight + extraWaterWeight;
+
+            // Разделяем по цветам
+            const waterPerColor = splitByColors(totalWaterWeight, colorCount);
+            const gypsumPerColor = splitByColors(gypsumWeight, colorCount);
+
+            // Формируем результат
+            let resultText = `РАСЧЕТ СМЕСИ ДЛЯ ГИПСА\n`;
+            resultText += `========================\n`;
+            resultText += `Форма: ${formName}\n`;
+            resultText += `Количество цветов: ${colorCount}\n`;
+            resultText += `Общая масса смеси: ${mixtureWeight.toFixed(2)} г\n\n`;
+            
+            resultText += `ОБЩИЕ КОМПОНЕНТЫ:\n`;
+            resultText += `Вода: ${totalWaterWeight.toFixed(2)} г\n`;
+            resultText += `Гипс: ${gypsumWeight.toFixed(2)} г\n\n`;
+            
+            if (colorCount > 1) {
+                resultText += `РАСПРЕДЕЛЕНИЕ ПО ЦВЕТАМ:\n`;
+                resultText += `------------------------\n`;
+                
+                for (let i = 0; i < colorCount; i++) {
+                    resultText += `\nЦВЕТ ${i + 1}:\n`;
+                    resultText += `Вода: ${waterPerColor[i].toFixed(2)} г\n`;
+                    resultText += `Гипс: ${gypsumPerColor[i].toFixed(2)} г\n`;
+                }
+            }
+
+            resultText += `\n* Расчет основан на пропорции 100мл воды : 150г гипса`;
+
+            lastResult = resultText;
+            document.getElementById('result').innerText = resultText;
+        }
+
+        // Расчет для жидкого красителя "Палиж"
+        function calculatePalyzh() {
+            const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
+            const formName = document.getElementById('formName').value || 'Форма';
+            const colorCount = parseInt(document.getElementById('colorCount').value);
+            
+            if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
+                document.getElementById('result').innerText = 'Введите корректное значение массы смеси.';
+                return;
+            }
+
+            const waterRatio = 100 / 130;
+            const gypsumRatio = 150 / 130;
+
+            const waterWeight = waterRatio * mixtureWeight;
+            const gypsumWeight = gypsumRatio * mixtureWeight;
+            const dyeWeight = gypsumWeight * 0.01 * 2; // 2% от массы гипса
+
+            // Разделяем по цветам
+            const waterPerColor = splitByColors(waterWeight, colorCount);
+            const gypsumPerColor = splitByColors(gypsumWeight, colorCount);
+            const dyePerColor = splitByColors(dyeWeight, colorCount);
+
+            // Формируем результат
+            let resultText = `РАСЧЕТ С КРАСИТЕЛЕМ "ПАЛИЖ"\n`;
+            resultText += `==========================\n`;
+            resultText += `Форма: ${formName}\n`;
+            resultText += `Количество цветов: ${colorCount}\n`;
+            resultText += `Общая масса смеси: ${mixtureWeight.toFixed(2)} г\n\n`;
+            
+            resultText += `ОБЩИЕ КОМПОНЕНТЫ:\n`;
+            resultText += `Вода: ${waterWeight.toFixed(2)} г\n`;
+            resultText += `Гипс: ${gypsumWeight.toFixed(2)} г\n`;
+            resultText += `Краситель "Палиж": ${dyeWeight.toFixed(2)} г (2% от гипса)\n\n`;
+            
+            if (colorCount > 1) {
+                resultText += `РАСПРЕДЕЛЕНИЕ ПО ЦВЕТАМ:\n`;
+                resultText += `------------------------\n`;
+                
+                for (let i = 0; i < colorCount; i++) {
+                    resultText += `\nЦВЕТ ${i + 1}:\n`;
+                    resultText += `Вода: ${waterPerColor[i].toFixed(2)} г\n`;
+                    resultText += `Гипс: ${gypsumPerColor[i].toFixed(2)} г\n`;
+                    resultText += `Краситель: ${dyePerColor[i].toFixed(2)} г\n`;
+                }
+            }
+
+            resultText += `\n* Расчет основан на пропорции 100мл воды : 150г гипса`;
+
+            lastResult = resultText;
+            document.getElementById('result').innerText = resultText;
+        }
+
+        // Расчет для сухого красителя "Стахема-М"
+        function calculateStakhema() {
+            const mixtureWeight = parseFloat(document.getElementById('mixtureWeight').value);
+            const formName = document.getElementById('formName').value || 'Форма';
+            const colorCount = parseInt(document.getElementById('colorCount').value);
+            
+            if (isNaN(mixtureWeight) || mixtureWeight <= 0) {
+                document.getElementById('result').innerText = 'Введите корректное значение массы смеси.';
+                return;
+            }
+
+            const waterRatio = 100 / 130;
+            const gypsumRatio = 150 / 130;
+
+            const waterWeight = waterRatio * mixtureWeight * 1.2;
+            const gypsumWeight = gypsumRatio * mixtureWeight;
+            const dyeWeight = gypsumWeight * 0.03; // 3% от массы гипса
+
+            // Разделяем по цветам
+            const waterPerColor = splitByColors(waterWeight, colorCount);
+            const gypsumPerColor = splitByColors(gypsumWeight, colorCount);
+            const dyePerColor = splitByColors(dyeWeight, colorCount);
+
+            // Формируем результат
+            let resultText = `РАСЧЕТ С КРАСИТЕЛЕМ "СТАХЕМА-М"\n`;
+            resultText += `==============================\n`;
+            resultText += `Форма: ${formName}\n`;
+            resultText += `Количество цветов: ${colorCount}\n`;
+            resultText += `Общая масса смеси: ${mixtureWeight.toFixed(2)} г\n\n`;
+            
+            resultText += `ОБЩИЕ КОМПОНЕНТЫ:\n`;
+            resultText += `Вода: ${waterWeight.toFixed(2)} г\n`;
+            resultText += `Гипс: ${gypsumWeight.toFixed(2)} г\n`;
+            resultText += `Краситель "Стахема-М": ${dyeWeight.toFixed(2)} г (3% от гипса)\n\n`;
+            
+            if (colorCount > 1) {
+                resultText += `РАСПРЕДЕЛЕНИЕ ПО ЦВЕТАМ:\n`;
+                resultText += `------------------------\n`;
+                
+                for (let i = 0; i < colorCount; i++) {
+                    resultText += `\nЦВЕТ ${i + 1}:\n`;
+                    resultText += `Вода: ${waterPerColor[i].toFixed(2)} г\n`;
+                    resultText += `Гипс: ${gypsumPerColor[i].toFixed(2)} г\n`;
+                    resultText += `Краситель: ${dyePerColor[i].toFixed(2)} г\n`;
+                }
+            }
+
+            resultText += `\n* Расчет основан на пропорции 120мл воды : 150г гипса`;
+
+            lastResult = resultText;
+            document.getElementById('result').innerText = resultText;
+        }
+
+        // Сохранение результата с изображением
+        function downloadImage() {
+            if (!lastResult) {
+                alert('Сначала выполните расчет.');
+                return;
+            }
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Устанавливаем размер холста
+            canvas.width = 800;
+            canvas.height = 600;
+            
+            // Очищаем холст белым фоном
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Загружаем изображение (асинхронно)
+            const imageToDraw = uploadedImage || new Image();
+            
+            if (!uploadedImage) {
+                imageToDraw.src = 'https://2d3t.github.io/index.html/images/gips.jpg';
+                imageToDraw.crossOrigin = "anonymous";
+            }
+            
+            imageToDraw.onload = function() {
+                // Рисуем изображение в верхней части
+                const imageHeight = 250;
+                const imageWidth = (imageToDraw.width / imageToDraw.height) * imageHeight;
+                const imageX = (canvas.width - imageWidth) / 2;
+                
+                ctx.drawImage(imageToDraw, imageX, 20, imageWidth, imageHeight);
+                
+                // Добавляем разделитель
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(20, 280, canvas.width - 40, 2);
+                
+                // Добавляем текст расчета
+                ctx.fillStyle = 'black';
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('РАСЧЕТ СМЕСИ ДЛЯ ГИПСА', canvas.width / 2, 320);
+                
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'left';
+                const lines = lastResult.split('\n');
+                
+                // Рисуем текст построчно
+                let yPos = 360;
+                lines.forEach(line => {
+                    if (line.includes('===') || line.includes('---')) {
+                        ctx.fillStyle = '#4CAF50';
+                        ctx.fillText(line, 20, yPos);
+                        ctx.fillStyle = 'black';
+                    } else if (line.includes('ЦВЕТ')) {
+                        ctx.fillStyle = '#2196F3';
+                        ctx.fillText(line, 20, yPos);
+                        ctx.fillStyle = 'black';
+                    } else {
+                        ctx.fillText(line, 20, yPos);
+                    }
+                    yPos += 25;
+                });
+                
+                // Добавляем дату и время
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#666';
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU');
+                ctx.fillText(`Создано: ${dateStr}`, 20, canvas.height - 20);
+                
+                // Скачиваем результат
+                const link = document.createElement('a');
+                link.download = `расчет_гипса_${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+            
+            // Если изображение уже загружено, вызываем onload сразу
+            if (imageToDraw.complete) {
+                imageToDraw.onload();
+            }
+        }
+    </script>
+</body>
+</html>
