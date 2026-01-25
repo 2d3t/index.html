@@ -1,197 +1,733 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Everest Me - Полная карта</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <style>
-        body { margin: 0; padding: 0; }
-        #map { height: 100vh; }
-        .info { padding: 6px 8px; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
-        .info h4 { margin: 0 0 5px; color: #777; }
-        .legend { line-height: 18px; color: #555; }
-        .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
-        .popup-content { max-width: 300px; max-height: 400px; overflow-y: auto; }
-        .note-item { margin: 8px 0; padding: 8px; background: #f8f9fa; border-left: 3px solid #007bff; border-radius: 3px; }
-        .username { font-weight: bold; color: #007bff; }
-        .timestamp { font-size: 0.85em; color: #6c757d; }
-        .view-details-btn { 
-            display: block; width: 100%; padding: 8px; 
-            margin-top: 10px; background: #28a745; 
-            color: white; border: none; border-radius: 4px; 
-            cursor: pointer; text-align: center; 
-            text-decoration: none; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            overflow: hidden;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+            max-width: 280px;
+        }
+        
+        .legend h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.3);
+            max-width: 300px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stats h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stats-item {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stats-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stats-value {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 16px;
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        .popup-content {
+            max-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .popup-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .popup-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .popup-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        .popup-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        
+        .popup-coords {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #495057;
+        }
+        
+        .popup-count {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .note-preview {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 8px 0;
+            transition: all 0.2s ease;
+        }
+        
+        .note-preview:hover {
+            border-color: #007bff;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.1);
+        }
+        
+        .note-username {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .note-text {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #495057;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .note-time {
+            font-size: 11px;
+            color: #6c757d;
+            text-align: right;
+        }
+        
+        .view-all-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .view-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: #007bff;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .error h2 {
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .legend, .stats {
+                max-width: 250px;
+                font-size: 12px;
+            }
+            
+            .stats {
+                top: 10px;
+                left: 10px;
+                padding: 10px;
+            }
+            
+            .legend {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px;
+            }
+            
+            .controls {
+                top: 10px;
+                right: 10px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
     
+    <div class="controls">
+        <button class="control-btn" onclick="zoomIn()" title="Приблизить">+</button>
+        <button class="control-btn" onclick="zoomOut()" title="Отдалить">-</button>
+        <button class="control-btn" onclick="locateMe()" title="Моё местоположение">📍</button>
+        <button class="control-btn" onclick="resetView()" title="Сбросить вид">🗺️</button>
+    </div>
+    
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка карты...</p>
+    </div>
+    
+    <div id="error" class="error" style="display: none;">
+        <h2>⚠️ Ошибка загрузки</h2>
+        <p id="error-message"></p>
+        <button onclick="window.location.reload()" style="
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 15px;
+            cursor: pointer;
+        ">Обновить страницу</button>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
-        // Парсим данные из URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const encodedData = urlParams.get('data');
-        
-        if (!encodedData) {
-            document.getElementById('map').innerHTML = '<h2 style="padding: 20px;">Ошибка: данные не загружены</h2>';
-            throw new Error('No data provided');
-        }
-        
-        let mapData;
-        try {
-            mapData = JSON.parse(decodeURIComponent(encodedData));
-        } catch (e) {
-            document.getElementById('map').innerHTML = '<h2 style="padding: 20px;">Ошибка загрузки данных</h2>';
-            throw new Error('Invalid JSON data');
-        }
+        // Глобальные переменные
+        let map;
+        let markerCluster;
+        let currentLocationMarker;
+        let mapData = null;
         
         // Инициализация карты
-        const map = L.map('map').setView([55.7558, 37.6176], 3);
-        
-        // Добавляем тайлы OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
-        
-        // Создаем кластерную группу
-        const markers = L.markerClusterGroup({
-            maxClusterRadius: 50,
-            spiderfyOnMaxZoom: true,
-            showCoverageOnHover: false,
-            zoomToBoundsOnClick: true
-        });
-        
-        // Функция для определения цвета метки по количеству записок
-        function getMarkerColor(count) {
-            if (count >= 10) return '#dc3545'; // red
-            if (count >= 5) return '#fd7e14';  // orange
-            if (count >= 2) return '#28a745';  // green
-            return '#007bff';                   // blue
+        function initMap() {
+            try {
+                // Создаем карту
+                map = L.map('map', {
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([55.7558, 37.6176], 3);
+                
+                // Добавляем слой OpenStreetMap
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                
+                // Добавляем кастомный контрол зума
+                L.control.zoom({
+                    position: 'bottomright'
+                }).addTo(map);
+                
+                // Создаем кластерную группу
+                markerCluster = L.markerClusterGroup({
+                    maxClusterRadius: 40,
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: false,
+                    zoomToBoundsOnClick: true,
+                    disableClusteringAtZoom: 17
+                });
+                
+                // Загружаем данные
+                loadMapData();
+                
+            } catch (error) {
+                showError('Ошибка инициализации карты: ' + error.message);
+            }
         }
         
-        // Функция для определения размера метки
-        function getMarkerSize(count) {
-            return Math.min(8 + Math.log2(count) * 3, 25);
+        // Загрузка данных карты из URL параметров
+        function loadMapData() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const dataParam = urlParams.get('data');
+                
+                if (!dataParam) {
+                    showError('Данные карты не переданы. Откройте карту через бота.');
+                    return;
+                }
+                
+                // Декодируем данные
+                const jsonData = decodeURIComponent(dataParam);
+                mapData = JSON.parse(jsonData);
+                
+                // Скрываем индикатор загрузки
+                document.getElementById('loading').style.display = 'none';
+                
+                // Добавляем метки на карту
+                addMarkersToMap();
+                
+                // Обновляем статистику
+                updateStats();
+                
+                // Добавляем легенду
+                addLegend();
+                
+                // Автоматическое приближение если данные есть
+                if (mapData.locations && mapData.locations.length > 0) {
+                    // Если всего одна метка - приближаем к ней
+                    if (mapData.locations.length === 1) {
+                        const loc = mapData.locations[0];
+                        map.setView([loc.lat, loc.lon], 15);
+                    }
+                    // Если много меток - показываем все
+                    else if (mapData.locations.length > 1) {
+                        const bounds = markerCluster.getBounds();
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [50, 50] });
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                showError('Ошибка загрузки данных: ' + error.message);
+            }
         }
         
-        // Добавляем метки
-        mapData.locations.forEach(location => {
-            const color = getMarkerColor(location.count);
-            const size = getMarkerSize(location.count);
+        // Добавление меток на карту
+        function addMarkersToMap() {
+            if (!mapData || !mapData.locations) {
+                console.error('Нет данных для отображения');
+                return;
+            }
             
-            // Создаем кастомную иконку
-            const icon = L.divIcon({
-                html: `<div style="
-                    width: ${size}px; 
-                    height: ${size}px; 
-                    background-color: ${color}; 
-                    border: 2px solid white; 
-                    border-radius: 50%; 
-                    box-shadow: 0 0 5px rgba(0,0,0,0.3);
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center;
-                    color: white;
-                    font-weight: bold;
-                    font-size: ${Math.max(10, size/2)}px;">
-                    ${location.count}
-                </div>`,
-                className: 'custom-marker',
-                iconSize: [size, size],
-                iconAnchor: [size/2, size/2]
+            // Очищаем старые метки
+            markerCluster.clearLayers();
+            
+            mapData.locations.forEach(location => {
+                if (!location.lat || !location.lon) {
+                    console.warn('Пропущена метка без координат:', location);
+                    return;
+                }
+                
+                // Создаем кастомную иконку
+                const markerColor = getMarkerColor(location.count);
+                const icon = L.divIcon({
+                    html: `
+                        <div style="
+                            width: ${getMarkerSize(location.count)}px;
+                            height: ${getMarkerSize(location.count)}px;
+                            background-color: ${markerColor};
+                            border: 3px solid white;
+                            border-radius: 50%;
+                            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-weight: bold;
+                            font-size: ${getMarkerFontSize(location.count)}px;
+                            cursor: pointer;
+                        ">
+                            ${location.count > 1 ? location.count : ''}
+                        </div>
+                    `,
+                    className: 'custom-marker',
+                    iconSize: [getMarkerSize(location.count), getMarkerSize(location.count)],
+                    iconAnchor: [getMarkerSize(location.count) / 2, getMarkerSize(location.count) / 2]
+                });
+                
+                // Создаем маркер
+                const marker = L.marker([location.lat, location.lon], { icon: icon });
+                
+                // Создаем содержимое для попапа
+                const popupContent = createPopupContent(location);
+                marker.bindPopup(popupContent, {
+                    maxWidth: 320,
+                    minWidth: 300,
+                    autoPanPaddingTopLeft: [20, 20],
+                    autoPanPaddingBottomRight: [20, 20]
+                });
+                
+                // Добавляем маркер в кластер
+                markerCluster.addLayer(marker);
             });
             
-            const marker = L.marker([location.lat, location.lon], { icon: icon });
+            // Добавляем кластер на карту
+            map.addLayer(markerCluster);
+        }
+        
+        // Создание содержимого попапа
+        function createPopupContent(location) {
+            let content = `
+                <div class="popup-content">
+                    <div class="popup-title">📍 Место</div>
+                    <div class="popup-coords">
+                        Широта: ${location.lat.toFixed(6)}<br>
+                        Долгота: ${location.lon.toFixed(6)}
+                    </div>
+                    <div class="popup-count">👥 ${location.count} записок</div>
+            `;
             
-            // Создаем содержимое попапа
-            let popupContent = `<div class="popup-content">
-                <h4 style="margin-top: 0;">📍 Место</h4>
-                <p><strong>Координаты:</strong><br>
-                ${location.lat.toFixed(6)}, ${location.lon.toFixed(6)}</p>
-                <p><strong>Количество записок:</strong> ${location.count}</p>`;
-            
+            // Добавляем предпросмотр записок
             if (location.preview && location.preview.length > 0) {
-                popupContent += '<h5>Последние записки:</h5>';
+                content += '<div style="margin-top: 10px;"><strong>Последние записки:</strong></div>';
+                
                 location.preview.forEach((note, index) => {
-                    popupContent += `
-                    <div class="note-item">
-                        <div class="username">👤 ${note.username}</div>
-                        <div>${note.note}</div>
-                        <div class="timestamp">🕒 ${note.time}</div>
-                    </div>`;
+                    // Обрезаем длинный текст
+                    let noteText = note.note;
+                    if (noteText.length > 100) {
+                        noteText = noteText.substring(0, 100) + '...';
+                    }
+                    
+                    content += `
+                        <div class="note-preview">
+                            <div class="note-username">👤 ${note.username || 'Аноним'}</div>
+                            <div class="note-text">${noteText}</div>
+                            <div class="note-time">${note.time || ''}</div>
+                        </div>
+                    `;
                 });
                 
                 if (location.count > 3) {
-                    popupContent += `<p><em>... и еще ${location.count - 3} записок</em></p>`;
+                    content += `<div style="text-align: center; color: #666; margin: 10px 0; font-size: 12px;">
+                        ... и еще ${location.count - 3} записок
+                    </div>`;
                 }
             }
             
-            // Кнопка для просмотра всех записок
-            popupContent += `
-                <a href="location_details.html?lat=${location.lat}&lon=${location.lon}" 
-                   class="view-details-btn" 
-                   target="_blank">
-                   👥 Показать все записки (${location.count})
-                </a>
+            // Добавляем кнопку для просмотра всех записок
+            content += `
+                <button onclick="viewLocationDetails(${location.lat}, ${location.lon})" 
+                        class="view-all-btn">
+                    👥 Показать все записки (${location.count})
+                </button>
             </div>`;
             
-            marker.bindPopup(popupContent);
-            markers.addLayer(marker);
-        });
-        
-        // Добавляем кластеры на карту
-        map.addLayer(markers);
-        
-        // Автоматическое приближение если есть только одна метка
-        if (mapData.locations.length === 1) {
-            const loc = mapData.locations[0];
-            map.setView([loc.lat, loc.lon], 15);
+            return content;
         }
         
-        // Добавляем легенду
-        const legend = L.control({position: 'bottomright'});
-        legend.onAdd = function(map) {
-            const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML = `
-                <h4>Легенда карты</h4>
-                <div><i style="background: #007bff"></i> 1 записка</div>
-                <div><i style="background: #28a745"></i> 2-4 записки</div>
-                <div><i style="background: #fd7e14"></i> 5-9 записок</div>
-                <div><i style="background: #dc3545"></i> 10+ записок</div>
-                <hr style="margin: 8px 0;">
-                <div><strong>Статистика:</strong></div>
-                <div>📝 Всего записок: ${mapData.stats.total_notes}</div>
-                <div>📍 Уникальных мест: ${mapData.stats.unique_locations}</div>
-                <div>👥 Пользователей: ${mapData.stats.unique_users}</div>
-                <div style="margin-top: 8px; font-size: 0.8em; color: #666;">
-                    Обновлено: ${mapData.timestamp}
+        // Функция для просмотра деталей локации
+        function viewLocationDetails(lat, lon) {
+            // Закрываем попап
+            map.closePopup();
+            
+            // Открываем страницу с деталями
+            const detailsUrl = `location_details.html?lat=${lat}&lon=${lon}`;
+            window.open(detailsUrl, '_blank');
+        }
+        
+        // Определение цвета маркера по количеству записок
+        function getMarkerColor(count) {
+            if (count >= 10) return '#dc3545';     // красный
+            if (count >= 5) return '#fd7e14';      // оранжевый
+            if (count >= 2) return '#28a745';      // зеленый
+            return '#007bff';                       // синий
+        }
+        
+        // Определение размера маркера
+        function getMarkerSize(count) {
+            if (count >= 10) return 30;
+            if (count >= 5) return 25;
+            if (count >= 2) return 20;
+            return 15;
+        }
+        
+        // Определение размера шрифта
+        function getMarkerFontSize(count) {
+            if (count >= 10) return 12;
+            if (count >= 5) return 11;
+            if (count >= 2) return 10;
+            return 0; // для одиночных записок не показываем число
+        }
+        
+        // Обновление статистики
+        function updateStats() {
+            if (!mapData || !mapData.stats) return;
+            
+            const stats = mapData.stats;
+            const statsDiv = document.createElement('div');
+            statsDiv.className = 'stats';
+            statsDiv.innerHTML = `
+                <h3>🌍 Everest Me</h3>
+                <div class="stats-item">
+                    <span class="stats-label">Всего записок:</span>
+                    <span class="stats-value">${stats.total_notes || 0}</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">Уникальных мест:</span>
+                    <span class="stats-value">${stats.unique_locations || 0}</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">Пользователей:</span>
+                    <span class="stats-value">${stats.unique_users || 0}</span>
+                </div>
+                ${mapData.timestamp ? `
+                    <div style="margin-top: 10px; font-size: 11px; color: #888; text-align: center;">
+                        Обновлено: ${mapData.timestamp}
+                    </div>
+                ` : ''}
+            `;
+            
+            document.body.appendChild(statsDiv);
+        }
+        
+        // Добавление легенды
+        function addLegend() {
+            const legend = document.createElement('div');
+            legend.className = 'legend';
+            legend.innerHTML = `
+                <h4>Легенда</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #007bff;"></div>
+                    <span>1 записка</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #28a745;"></div>
+                    <span>2-4 записки</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fd7e14;"></div>
+                    <span>5-9 записок</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #dc3545;"></div>
+                    <span>10+ записок</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Кликните на метку для деталей
                 </div>
             `;
-            return div;
-        };
-        legend.addTo(map);
+            
+            document.body.appendChild(legend);
+        }
         
-        // Добавляем информацию о данных
-        const info = L.control({position: 'topleft'});
-        info.onAdd = function(map) {
-            const div = L.DomUtil.create('div', 'info');
-            div.innerHTML = `
-                <h4>🌍 Everest Me - Полная карта</h4>
-                <div>Показано мест: ${mapData.locations.length}</div>
-                <div>Кликните на метку для деталей</div>
-            `;
-            return div;
-        };
-        info.addTo(map);
+        // Управление картой
+        function zoomIn() {
+            map.zoomIn();
+        }
+        
+        function zoomOut() {
+            map.zoomOut();
+        }
+        
+        function resetView() {
+            map.setView([55.7558, 37.6176], 3);
+        }
+        
+        function locateMe() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        // Удаляем старый маркер если есть
+                        if (currentLocationMarker) {
+                            map.removeLayer(currentLocationMarker);
+                        }
+                        
+                        // Добавляем новый маркер
+                        currentLocationMarker = L.marker([lat, lon], {
+                            icon: L.divIcon({
+                                html: '<div style="background-color: #ff6b6b; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            })
+                        }).addTo(map);
+                        
+                        // Приближаем к местоположению
+                        map.setView([lat, lon], 15);
+                        
+                        // Показываем попап
+                        currentLocationMarker.bindPopup('📍 Вы здесь').openPopup();
+                        
+                        // Автоматически скрываем через 3 секунды
+                        setTimeout(() => {
+                            if (currentLocationMarker) {
+                                currentLocationMarker.closePopup();
+                            }
+                        }, 3000);
+                    },
+                    (error) => {
+                        alert('Не удалось определить местоположение. Проверьте разрешения.');
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                alert('Геолокация не поддерживается вашим браузером');
+            }
+        }
         
         // Обработка ошибок
-        map.on('error', function(e) {
-            console.error('Map error:', e);
-        });
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+            console.error('Map error:', message);
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', initMap);
+        
+        // Глобальные функции для кнопок
+        window.zoomIn = zoomIn;
+        window.zoomOut = zoomOut;
+        window.resetView = resetView;
+        window.locateMe = locateMe;
+        window.viewLocationDetails = viewLocationDetails;
     </script>
 </body>
 </html>
