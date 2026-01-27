@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Объединитель аудио и видео</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .upload-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .upload-box {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8fafc;
+        }
+
+        .upload-box:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-box.active {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #a0aec0;
+        }
+
+        .upload-box.active .upload-icon {
+            color: #48bb78;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 200px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            width: 100%;
+            max-width: 500px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            background: #f8fafc;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .preview-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .preview-box {
+            border-radius: 10px;
+            overflow: hidden;
+            background: #1a202c;
+        }
+
+        .preview-box h3 {
+            background: #2d3748;
+            color: white;
+            padding: 10px;
+            margin: 0;
+            text-align: center;
+        }
+
+        video, audio {
+            width: 100%;
+            display: block;
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .loader {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .format-info {
+            background: #e6f7ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #1890ff;
+        }
+
+        .tips {
+            font-size: 14px;
+            color: #666;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eaeaea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Объединитель аудио и видео</h1>
+        <p class="subtitle">Загрузите видео WebM без звука и аудио MP3 для объединения</p>
+        
+        <div class="format-info">
+            <strong>📋 Поддерживаемые форматы:</strong><br>
+            • Видео: WebM (без звука, рекомендуется для лучшей совместимости)<br>
+            • Аудио: MP3<br>
+            • Результат: WebM с объединённым звуком
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-box" id="videoUpload">
+                <div class="upload-icon">📹</div>
+                <h3>Загрузите видео (WebM)</h3>
+                <p>Перетащите или кликните для выбора</p>
+                <input type="file" id="videoInput" accept=".webm,video/webm" hidden>
+                <div class="file-info" id="videoInfo"></div>
+            </div>
+
+            <div class="upload-box" id="audioUpload">
+                <div class="upload-icon">🎵</div>
+                <h3>Загрузите аудио (MP3)</h3>
+                <p>Перетащите или кликните для выбора</p>
+                <input type="file" id="audioInput" accept=".mp3,audio/mpeg" hidden>
+                <div class="file-info" id="audioInfo"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <button id="mergeBtn" disabled>Объединить аудио и видео</button>
+            <div class="loader" id="loader"></div>
+        </div>
+
+        <div class="status" id="status">
+            Ожидание загрузки файлов...
+        </div>
+
+        <div class="preview-section">
+            <div class="preview-box">
+                <h3>Предпросмотр видео</h3>
+                <video id="videoPreview" controls></video>
+            </div>
+            <div class="preview-box">
+                <h3>Предпросмотр аудио</h3>
+                <audio id="audioPreview" controls></audio>
+            </div>
+        </div>
+
+        <div class="download-section" id="downloadSection" style="display: none;">
+            <a id="downloadLink" download="combined_video.webm">
+                <button>⬇ Скачать объединённое видео</button>
+            </a>
+        </div>
+
+        <div class="tips">
+            <strong>💡 Советы:</strong><br>
+            1. Для лучшего качества убедитесь, что видео и аудио имеют одинаковую длительность<br>
+            2. Видео должно быть записано без звука<br>
+            3. Процесс обработки происходит в браузере, файлы никуда не загружаются<br>
+            4. Чем длиннее видео, тем больше времени займёт обработка
+        </div>
+    </div>
+
+    <script>
+        class VideoAudioMerger {
+            constructor() {
+                this.videoFile = null;
+                this.audioFile = null;
+                this.videoElement = document.createElement('video');
+                this.audioContext = null;
+                this.mediaRecorder = null;
+                this.recordedChunks = [];
+                
+                this.init();
+            }
+
+            init() {
+                this.setupFileUploads();
+                this.setupMergeButton();
+            }
+
+            setupFileUploads() {
+                const videoUpload = document.getElementById('videoUpload');
+                const audioUpload = document.getElementById('audioUpload');
+                const videoInput = document.getElementById('videoInput');
+                const audioInput = document.getElementById('audioInput');
+
+                // Видео загрузка
+                videoUpload.addEventListener('click', () => videoInput.click());
+                videoUpload.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    videoUpload.classList.add('active');
+                });
+                videoUpload.addEventListener('dragleave', () => {
+                    videoUpload.classList.remove('active');
+                });
+                videoUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    videoUpload.classList.remove('active');
+                    if (e.dataTransfer.files[0]) {
+                        this.handleVideoFile(e.dataTransfer.files[0]);
+                    }
+                });
+
+                videoInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) {
+                        this.handleVideoFile(e.target.files[0]);
+                    }
+                });
+
+                // Аудио загрузка
+                audioUpload.addEventListener('click', () => audioInput.click());
+                audioUpload.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    audioUpload.classList.add('active');
+                });
+                audioUpload.addEventListener('dragleave', () => {
+                    audioUpload.classList.remove('active');
+                });
+                audioUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    audioUpload.classList.remove('active');
+                    if (e.dataTransfer.files[0]) {
+                        this.handleAudioFile(e.dataTransfer.files[0]);
+                    }
+                });
+
+                audioInput.addEventListener('change', (e) => {
+                    if (e.target.files[0]) {
+                        this.handleAudioFile(e.target.files[0]);
+                    }
+                });
+            }
+
+            handleVideoFile(file) {
+                if (!file.type.includes('video/webm')) {
+                    this.updateStatus('Ошибка: Пожалуйста, загрузите видео в формате WebM', 'error');
+                    return;
+                }
+
+                this.videoFile = file;
+                document.getElementById('videoInfo').textContent = 
+                    `📹 ${file.name} (${this.formatFileSize(file.size)})`;
+                
+                const preview = document.getElementById('videoPreview');
+                preview.src = URL.createObjectURL(file);
+                preview.load();
+                
+                this.checkFilesReady();
+                this.updateStatus('Видео загружено. Теперь загрузите аудио файл.');
+            }
+
+            handleAudioFile(file) {
+                if (!file.type.includes('audio/mpeg') && !file.name.endsWith('.mp3')) {
+                    this.updateStatus('Ошибка: Пожалуйста, загрузите аудио в формате MP3', 'error');
+                    return;
+                }
+
+                this.audioFile = file;
+                document.getElementById('audioInfo').textContent = 
+                    `🎵 ${file.name} (${this.formatFileSize(file.size)})`;
+                
+                const preview = document.getElementById('audioPreview');
+                preview.src = URL.createObjectURL(file);
+                preview.load();
+                
+                this.checkFilesReady();
+                this.updateStatus('Аудио загружено. Готово к объединению!');
+            }
+
+            checkFilesReady() {
+                const mergeBtn = document.getElementById('mergeBtn');
+                mergeBtn.disabled = !(this.videoFile && this.audioFile);
+            }
+
+            setupMergeButton() {
+                document.getElementById('mergeBtn').addEventListener('click', () => {
+                    this.mergeAudioVideo();
+                });
+            }
+
+            async mergeAudioVideo() {
+                if (!this.videoFile || !this.audioFile) {
+                    this.updateStatus('Ошибка: Загрузите оба файла', 'error');
+                    return;
+                }
+
+                this.updateStatus('Начинаю обработку...', 'processing');
+                this.showLoader(true);
+                this.showProgress(true);
+                
+                try {
+                    // Создаём видео элемент
+                    const videoUrl = URL.createObjectURL(this.videoFile);
+                    this.videoElement.src = videoUrl;
+                    
+                    // Ждём загрузки метаданных видео
+                    await new Promise((resolve) => {
+                        this.videoElement.onloadedmetadata = resolve;
+                    });
+
+                    // Создаём аудио контекст
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Загружаем аудио файл
+                    const audioBuffer = await this.loadAudioFile(this.audioFile);
+                    
+                    // Создаём MediaStream для записи
+                    const canvas = document.createElement('canvas');
+                    canvas.width = this.videoElement.videoWidth;
+                    canvas.height = this.videoElement.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Создаём источник видео
+                    const videoStream = canvas.captureStream();
+                    
+                    // Создаём источник аудио
+                    const audioSource = this.audioContext.createBufferSource();
+                    audioSource.buffer = audioBuffer;
+                    
+                    // Создаём аудио ноду для MediaStream
+                    const audioDestination = this.audioContext.createMediaStreamDestination();
+                    audioSource.connect(audioDestination);
+                    
+                    // Объединяем видео и аудио потоки
+                    const combinedStream = new MediaStream([
+                        ...videoStream.getVideoTracks(),
+                        ...audioDestination.stream.getAudioTracks()
+                    ]);
+                    
+                    // Настраиваем MediaRecorder
+                    this.mediaRecorder = new MediaRecorder(combinedStream, {
+                        mimeType: 'video/webm;codecs=vp9,opus'
+                    });
+                    
+                    this.recordedChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.recordedChunks.push(event.data);
+                            this.updateProgress((this.recordedChunks.length / 100) * 100);
+                        }
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        this.onRecordingComplete();
+                    };
+                    
+                    // Начинаем запись
+                    this.mediaRecorder.start(100); // Собираем данные каждые 100мс
+                    
+                    // Воспроизводим видео и аудио одновременно
+                    this.videoElement.currentTime = 0;
+                    audioSource.start(0);
+                    this.videoElement.play();
+                    
+                    // Рендерим видео на canvas
+                    const drawFrame = () => {
+                        if (this.videoElement.paused || this.videoElement.ended) {
+                            return;
+                        }
+                        
+                        ctx.drawImage(this.videoElement, 0, 0, canvas.width, canvas.height);
+                        requestAnimationFrame(drawFrame);
+                    };
+                    
+                    drawFrame();
+                    
+                    // Останавливаем запись когда видео закончилось
+                    this.videoElement.onended = () => {
+                        setTimeout(() => {
+                            this.mediaRecorder.stop();
+                            audioSource.stop();
+                        }, 500);
+                    };
+                    
+                    this.updateStatus('Идёт обработка видео...', 'processing');
+                    
+                } catch (error) {
+                    console.error('Ошибка при объединении:', error);
+                    this.updateStatus(`Ошибка: ${error.message}`, 'error');
+                    this.showLoader(false);
+                    this.showProgress(false);
+                }
+            }
+
+            async loadAudioFile(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const audioBuffer = await this.audioContext.decodeAudioData(e.target.result);
+                            resolve(audioBuffer);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            onRecordingComplete() {
+                this.showLoader(false);
+                this.showProgress(false);
+                
+                const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                
+                // Показываем результат
+                const preview = document.getElementById('videoPreview');
+                preview.src = url;
+                preview.load();
+                
+                // Показываем кнопку скачивания
+                const downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = url;
+                downloadLink.download = `combined_${Date.now()}.webm`;
+                
+                document.getElementById('downloadSection').style.display = 'block';
+                
+                this.updateStatus(`Готово! Видео успешно объединено. Размер: ${this.formatFileSize(blob.size)}`, 'success');
+                
+                // Очищаем временные URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(this.videoElement.src);
+                }, 1000);
+            }
+
+            updateStatus(message, type = 'info') {
+                const statusElement = document.getElementById('status');
+                statusElement.textContent = message;
+                
+                statusElement.style.background = type === 'error' ? '#fed7d7' :
+                                                type === 'success' ? '#c6f6d5' :
+                                                type === 'processing' ? '#bee3f8' : '#f8fafc';
+                statusElement.style.color = type === 'error' ? '#c53030' :
+                                           type === 'success' ? '#276749' :
+                                           type === 'processing' ? '#2c5282' : '#333';
+            }
+
+            updateProgress(percent) {
+                const progressBar = document.getElementById('progressBar');
+                progressBar.style.width = `${percent}%`;
+            }
+
+            showLoader(show) {
+                document.getElementById('loader').style.display = show ? 'block' : 'none';
+            }
+
+            showProgress(show) {
+                document.getElementById('progressContainer').style.display = show ? 'block' : 'none';
+                if (!show) {
+                    this.updateProgress(0);
+                }
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', () => {
+            new VideoAudioMerger();
+        });
+    </script>
+</body>
+</html>
