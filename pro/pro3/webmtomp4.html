@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebM to MP4 Converter</title>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f7fafc;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-area.dragover {
+            border-color: #48bb78;
+            background: #f0fff4;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .video-preview {
+            width: 100%;
+            max-width: 600px;
+            margin: 25px auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 180px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .progress-container {
+            background: #e2e8f0;
+            border-radius: 50px;
+            height: 24px;
+            margin: 30px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 50px;
+            position: relative;
+        }
+
+        .progress-text {
+            position: absolute;
+            right: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 24px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .status.info {
+            background: #ebf8ff;
+            color: #3182ce;
+            border: 1px solid #bee3f8;
+        }
+
+        .status.success {
+            background: #f0fff4;
+            color: #38a169;
+            border: 1px solid #c6f6d5;
+        }
+
+        .status.error {
+            background: #fff5f5;
+            color: #e53e3e;
+            border: 1px solid #fed7d7;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .format-options {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+
+        .option-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .option {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .option label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .option select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .specs {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            font-size: 14px;
+            color: #718096;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Конвертер WebM в MP4</h1>
+        <p class="subtitle">Конвертируйте видеофайлы прямо в браузере</p>
+        
+        <!-- Область загрузки файла -->
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Перетащите WebM файл сюда</h3>
+            <p>или</p>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                <span class="icon">📂</span> Выберите файл
+            </button>
+            <div class="file-name" id="fileName"></div>
+            <input type="file" id="fileInput" class="file-input" accept=".webm,.mkv">
+        </div>
+        
+        <!-- Превью видео -->
+        <video id="videoPreview" class="video-preview" controls></video>
+        
+        <!-- Настройки конвертации -->
+        <div class="format-options">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #4a5568;">Настройки конвертации</h3>
+            <div class="option-group">
+                <div class="option">
+                    <label for="videoQuality">Качество видео:</label>
+                    <select id="videoQuality">
+                        <option value="high">Высокое (рекомендуется)</option>
+                        <option value="medium" selected>Среднее</option>
+                        <option value="low">Низкое</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <label for="audioQuality">Качество звука:</label>
+                    <select id="audioQuality">
+                        <option value="192">Высокое (192k)</option>
+                        <option value="128" selected>Стандартное (128k)</option>
+                        <option value="64">Низкое (64k)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Прогресс бар -->
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar">
+                <span class="progress-text" id="progressText">0%</span>
+            </div>
+        </div>
+        
+        <!-- Индикатор загрузки -->
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        
+        <!-- Статус -->
+        <div class="status info" id="status"></div>
+        
+        <!-- Кнопки управления -->
+        <div class="controls">
+            <button class="btn btn-primary" id="convertBtn" disabled>
+                <span class="icon">🔄</span> Конвертировать в MP4
+            </button>
+            <button class="btn btn-success" id="downloadBtn" disabled>
+                <span class="icon">💾</span> Скачать MP4
+            </button>
+        </div>
+        
+        <!-- Спецификации -->
+        <div class="specs">
+            <p>💡 Это приложение работает полностью в вашем браузере. Файлы не загружаются на сервер.</p>
+            <p>📱 Поддерживается на Chrome, Edge, Safari и других современных браузерах</p>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let ffmpeg = null;
+        let convertedVideoUrl = null;
+        let currentFile = null;
+
+        // Элементы DOM
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const videoPreview = document.getElementById('videoPreview');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const statusDiv = document.getElementById('status');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const videoQuality = document.getElementById('videoQuality');
+        const audioQuality = document.getElementById('audioQuality');
+
+        // Обработчики событий для drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Обработчик выбора файла
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Обработчик кнопки конвертации
+        convertBtn.addEventListener('click', convertVideo);
+
+        // Обработчик кнопки скачивания
+        downloadBtn.addEventListener('click', () => {
+            if (!convertedVideoUrl) return;
+            
+            const a = document.createElement('a');
+            a.href = convertedVideoUrl;
+            a.download = 'converted_video.mp4';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            showStatus('Файл скачивается!', 'success');
+        });
+
+        // Функция обработки выбранного файла
+        function handleFileSelect(file) {
+            if (!file.type.includes('video')) {
+                showStatus('Пожалуйста, выберите видеофайл', 'error');
+                return;
+            }
+
+            currentFile = file;
+            fileName.textContent = `📹 Файл: ${file.name} (${formatFileSize(file.size)})`;
+            
+            // Создаем URL для превью
+            const previewUrl = URL.createObjectURL(file);
+            videoPreview.src = previewUrl;
+            videoPreview.style.display = 'block';
+            
+            // Активируем кнопку конвертации
+            convertBtn.disabled = false;
+            
+            showStatus('Файл загружен! Выберите настройки и нажмите "Конвертировать"', 'info');
+        }
+
+        // Основная функция конвертации
+        async function convertVideo() {
+            if (!currentFile) return;
+            
+            try {
+                // Отключаем кнопки и показываем прогресс
+                convertBtn.disabled = true;
+                progressContainer.style.display = 'block';
+                loadingSpinner.style.display = 'block';
+                
+                showStatus('Инициализация FFmpeg...', 'info');
+                
+                // Инициализация FFmpeg
+                if (!ffmpeg) {
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    ffmpeg = createFFmpeg({
+                        log: false,
+                        progress: ({ ratio }) => {
+                            const percent = Math.round(ratio * 100);
+                            updateProgress(percent);
+                        }
+                    });
+                }
+                
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                }
+                
+                showStatus('Конвертация начата...', 'info');
+                
+                // Записываем файл в виртуальную файловую систему FFmpeg
+                ffmpeg.FS('writeFile', 'input.webm', await fetchFile(currentFile));
+                
+                // Получаем настройки качества
+                const qualitySettings = getQualitySettings();
+                
+                // Выполняем конвертацию
+                await ffmpeg.run(
+                    '-i', 'input.webm',
+                    '-c:v', 'libx264',
+                    '-preset', 'medium',
+                    '-crf', qualitySettings.crf,
+                    '-c:a', 'aac',
+                    '-b:a', `${qualitySettings.audioBitrate}k`,
+                    '-movflags', '+faststart',
+                    'output.mp4'
+                );
+                
+                // Читаем результат
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                
+                // Создаем Blob и URL для скачивания
+                const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                convertedVideoUrl = URL.createObjectURL(blob);
+                
+                // Обновляем превью
+                videoPreview.src = convertedVideoUrl;
+                
+                // Активируем кнопку скачивания
+                downloadBtn.disabled = false;
+                
+                // Очищаем виртуальную файловую систему
+                ffmpeg.FS('unlink', 'input.webm');
+                ffmpeg.FS('unlink', 'output.mp4');
+                
+                showStatus('Конвертация успешно завершена!', 'success');
+                updateProgress(100);
+                
+            } catch (error) {
+                console.error('Ошибка конвертации:', error);
+                showStatus(`Ошибка: ${error.message}`, 'error');
+            } finally {
+                loadingSpinner.style.display = 'none';
+                convertBtn.disabled = false;
+            }
+        }
+
+        // Функция получения настроек качества
+        function getQualitySettings() {
+            const videoQ = videoQuality.value;
+            const audioQ = audioQuality.value;
+            
+            let crf = 23; // Среднее качество по умолчанию
+            
+            if (videoQ === 'high') crf = 18;   // Высокое качество
+            if (videoQ === 'low') crf = 28;    // Низкое качество
+            
+            return {
+                crf: crf.toString(),
+                audioBitrate: audioQ
+            };
+        }
+
+        // Функция обновления прогресс бара
+        function updateProgress(percent) {
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = `${percent}%`;
+            
+            if (percent < 100) {
+                showStatus(`Конвертация: ${percent}%`, 'info');
+            }
+        }
+
+        // Функция показа статуса
+        function showStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            // Автоматически скрываем успешные сообщения через 5 секунд
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Функция форматирования размера файла
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Информация при загрузке
+        showStatus('Готов к работе! Загрузите WebM файл для конвертации', 'info');
+    </script>
+</body>
+</html>
