@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Телесуфлер и запись видео</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            gap: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .video-container {
+            flex: 1;
+            min-width: 300px;
+            position: relative;
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .teleprompter-container {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .teleprompter-header {
+            background-color: #2a2a2a;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #444;
+        }
+
+        #textInput {
+            flex: 1;
+            background-color: #252525;
+            color: white;
+            border: none;
+            padding: 15px;
+            resize: none;
+            font-size: 16px;
+            line-height: 1.5;
+            outline: none;
+        }
+
+        #textInput::placeholder {
+            color: #888;
+        }
+
+        #teleprompterText {
+            flex: 1;
+            padding: 20px;
+            font-size: 24px;
+            line-height: 1.6;
+            overflow-y: auto;
+            background-color: rgba(0, 20, 40, 0.7);
+            color: #fff;
+            text-align: center;
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        button {
+            background-color: #3a6df0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            min-width: 140px;
+        }
+
+        button:hover {
+            background-color: #2a5adf;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #555;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button#startTeleprompterBtn {
+            background-color: #28a745;
+        }
+
+        button#startTeleprompterBtn:hover {
+            background-color: #218838;
+        }
+
+        button#stopBtn {
+            background-color: #dc3545;
+        }
+
+        button#stopBtn:hover {
+            background-color: #c82333;
+        }
+
+        .teleprompter-controls {
+            display: none;
+            justify-content: center;
+            gap: 15px;
+            padding: 15px;
+            background-color: #252525;
+            border-top: 1px solid #444;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ddd;
+        }
+
+        #speedSlider {
+            width: 100px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .recording {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📹 Видеозапись с телесуфлером</h1>
+            <p>Запишите видео, читая текст с экрана. Текст не попадает в запись.</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="video-container">
+                <video id="video" autoplay muted playsinline></video>
+            </div>
+            
+            <div class="teleprompter-container">
+                <div class="teleprompter-header">
+                    <span id="teleprompterToggleText">Подготовка текста</span>
+                </div>
+                
+                <textarea 
+                    id="textInput" 
+                    placeholder="Введите или вставьте сюда текст, который нужно прочитать во время записи видео. Например: Привет! Добро пожаловать в мой новый ролик. Сегодня я расскажу вам о возможностях этого приложения..."
+                    rows="10"
+                ></textarea>
+                
+                <div id="teleprompterText"></div>
+                
+                <div class="teleprompter-controls" id="teleprompterControls">
+                    <div class="speed-control">
+                        <span>Скорость:</span>
+                        <input type="range" id="speedSlider" min="1" max="20" value="10">
+                        <span id="speedValue">10</span>
+                    </div>
+                    <button id="pauseResumeBtn">Пауза</button>
+                    <button id="resetTeleprompterBtn">С начала</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="startTeleprompterBtn">Запустить суфлер</button>
+            <button id="startBtn">Начать запись</button>
+            <button id="pauseResumeRecordBtn" disabled>Пауза записи</button>
+            <button id="stopBtn" disabled>Завершить запись</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        // Элементы DOM
+        const videoElement = document.getElementById('video');
+        const textInput = document.getElementById('textInput');
+        const teleprompterText = document.getElementById('teleprompterText');
+        const teleprompterControls = document.getElementById('teleprompterControls');
+        const teleprompterToggleText = document.getElementById('teleprompterToggleText');
+        
+        const startTeleprompterBtn = document.getElementById('startTeleprompterBtn');
+        const startBtn = document.getElementById('startBtn');
+        const pauseResumeRecordBtn = document.getElementById('pauseResumeRecordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const pauseResumeBtn = document.getElementById('pauseResumeBtn');
+        const resetTeleprompterBtn = document.getElementById('resetTeleprompterBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const statusDiv = document.getElementById('status');
+        
+        // Переменные состояния
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let stream = null;
+        let isRecording = false;
+        let isPaused = false;
+        
+        // Переменные для телесуфлера
+        let isTeleprompterActive = false;
+        let isTeleprompterPaused = false;
+        let teleprompterPosition = 0;
+        let teleprompterInterval = null;
+        let scrollSpeed = parseInt(speedSlider.value);
+        
+        // Обновление отображения скорости
+        speedSlider.addEventListener('input', function() {
+            scrollSpeed = parseInt(this.value);
+            speedValue.textContent = scrollSpeed;
+            
+            // Если телесуфлер активен, обновляем скорость прокрутки
+            if (isTeleprompterActive && !isTeleprompterPaused) {
+                clearInterval(teleprompterInterval);
+                startTeleprompterScrolling();
+            }
+        });
+        
+        // Запуск телесуфлера
+        startTeleprompterBtn.addEventListener('click', function() {
+            const text = textInput.value.trim();
+            
+            if (!text) {
+                alert('Пожалуйста, введите текст для телесуфлера');
+                return;
+            }
+            
+            // Показываем текст телесуфлера и скрываем текстовое поле
+            teleprompterText.textContent = text;
+            textInput.style.display = 'none';
+            teleprompterText.style.display = 'block';
+            teleprompterControls.style.display = 'flex';
+            teleprompterToggleText.textContent = 'Текст для чтения';
+            
+            // Сбрасываем позицию и запускаем прокрутку
+            teleprompterPosition = 0;
+            isTeleprompterActive = true;
+            isTeleprompterPaused = false;
+            startTeleprompterScrolling();
+            
+            // Меняем кнопку
+            startTeleprompterBtn.disabled = true;
+            startTeleprompterBtn.textContent = 'Суфлер активен';
+            startTeleprompterBtn.style.backgroundColor = '#555';
+            
+            updateStatus('Телесуфлер запущен. Можете начинать запись.', 'info');
+        });
+        
+        // Функция запуска прокрутки текста
+        function startTeleprompterScrolling() {
+            clearInterval(teleprompterInterval);
+            
+            teleprompterInterval = setInterval(() => {
+                if (!isTeleprompterPaused) {
+                    teleprompterPosition += 1;
+                    teleprompterText.scrollTop = teleprompterPosition;
+                    
+                    // Если достигнут конец текста
+                    if (teleprompterPosition >= teleprompterText.scrollHeight - teleprompterText.clientHeight) {
+                        clearInterval(teleprompterInterval);
+                        updateStatus('Текст телесуфлера закончился.', 'info');
+                    }
+                }
+            }, 1000 / scrollSpeed); // Чем выше скорость, тем чаще обновляется позиция
+        }
+        
+        // Пауза/возобновление телесуфлера
+        pauseResumeBtn.addEventListener('click', function() {
+            isTeleprompterPaused = !isTeleprompterPaused;
+            pauseResumeBtn.textContent = isTeleprompterPaused ? 'Продолжить' : 'Пауза';
+            
+            if (!isTeleprompterPaused) {
+                startTeleprompterScrolling();
+            }
+        });
+        
+        // Сброс телесуфлера
+        resetTeleprompterBtn.addEventListener('click', function() {
+            teleprompterPosition = 0;
+            teleprompterText.scrollTop = 0;
+            isTeleprompterPaused = false;
+            pauseResumeBtn.textContent = 'Пауза';
+            
+            if (isTeleprompterActive) {
+                startTeleprompterScrolling();
+            }
+        });
+        
+        // Запрос доступа к камере при загрузке
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }, 
+                    audio: true 
+                });
+                videoElement.srcObject = stream;
+                updateStatus('Камера и микрофон активированы', 'success');
+                startBtn.disabled = false;
+            } catch (err) {
+                updateStatus(`Ошибка доступа к камере/микрофону: ${err.message}`, 'error');
+                console.error('Ошибка доступа к медиаустройствам:', err);
+            }
+        }
+        
+        // Начать запись
+        startBtn.addEventListener('click', async function() {
+            if (!stream) {
+                alert('Сначала необходимо предоставить доступ к камере и микрофону');
+                return;
+            }
+            
+            // Если телесуфлер не активен, предлагаем активировать
+            if (!isTeleprompterActive && textInput.value.trim()) {
+                if (confirm('Запустить телесуфлер перед началом записи?')) {
+                    startTeleprompterBtn.click();
+                }
+            }
+            
+            try {
+                const options = { 
+                    mimeType: 'video/webm;codecs=vp9,opus',
+                    audioBitsPerSecond: 128000,
+                    videoBitsPerSecond: 2500000
+                };
+                
+                mediaRecorder = new MediaRecorder(stream, options);
+                recordedChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    downloadVideo();
+                };
+                
+                mediaRecorder.start(1000); // Собираем данные каждую секунду
+                isRecording = true;
+                isPaused = false;
+                
+                // Обновляем UI
+                startBtn.disabled = true;
+                pauseResumeRecordBtn.disabled = false;
+                stopBtn.disabled = false;
+                pauseResumeRecordBtn.textContent = 'Пауза записи';
+                
+                updateStatus('Идет запись видео...', 'recording');
+            } catch (err) {
+                updateStatus(`Ошибка начала записи: ${err.message}`, 'error');
+                console.error('Ошибка MediaRecorder:', err);
+            }
+        });
+        
+        // Пауза/возобновление записи
+        pauseResumeRecordBtn.addEventListener('click', function() {
+            if (!mediaRecorder) return;
+            
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                isPaused = true;
+                pauseResumeRecordBtn.textContent = 'Продолжить запись';
+                updateStatus('Запись на паузе', 'info');
+            } else if (mediaRecorder.state === 'paused') {
+                mediaRecorder.resume();
+                isPaused = false;
+                pauseResumeRecordBtn.textContent = 'Пауза записи';
+                updateStatus('Идет запись видео...', 'recording');
+            }
+        });
+        
+        // Остановка записи
+        stopBtn.addEventListener('click', function() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                // Обновляем UI
+                startBtn.disabled = false;
+                pauseResumeRecordBtn.disabled = true;
+                stopBtn.disabled = true;
+                
+                updateStatus('Запись завершена. Скачивание начнется автоматически.', 'success');
+            }
+        });
+        
+        // Скачивание видео
+        function downloadVideo() {
+            if (recordedChunks.length === 0) {
+                updateStatus('Ошибка: нет данных для сохранения', 'error');
+                return;
+            }
+            
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `teleprompter-video-${new Date().toISOString().slice(0, 10)}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Останавливаем телесуфлер при завершении записи
+            if (isTeleprompterActive) {
+                clearInterval(teleprompterInterval);
+                isTeleprompterActive = false;
+                startTeleprompterBtn.disabled = false;
+                startTeleprompterBtn.textContent = 'Запустить суфлер';
+                startTeleprompterBtn.style.backgroundColor = '';
+            }
+        }
+        
+        // Обновление статуса
+        function updateStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status';
+            
+            switch(type) {
+                case 'success':
+                    statusDiv.style.backgroundColor = 'rgba(40, 167, 69, 0.2)';
+                    statusDiv.style.color = '#4cd964';
+                    break;
+                case 'error':
+                    statusDiv.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+                    statusDiv.style.color = '#ff6b6b';
+                    break;
+                case 'recording':
+                    statusDiv.classList.add('recording');
+                    break;
+                case 'info':
+                    statusDiv.style.backgroundColor = 'rgba(23, 162, 184, 0.2)';
+                    statusDiv.style.color = '#5ac8fa';
+                    break;
+                default:
+                    statusDiv.style.backgroundColor = 'rgba(108, 117, 125, 0.2)';
+                    statusDiv.style.color = '#8e8e93';
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        window.addEventListener('load', initCamera);
+        
+        // Очистка при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (isTeleprompterActive) {
+                clearInterval(teleprompterInterval);
+            }
+        });
+    </script>
+</body>
+</html>
