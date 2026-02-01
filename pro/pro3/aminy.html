@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аминокислотный анализ продуктов</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f9ff;
+            color: #333;
+            line-height: 1.6;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e88e5, #0d47a1);
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            max-width: 90%;
+            margin: 0 auto;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            background-color: #f0f7ff;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        select, button {
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 1rem;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+        
+        button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background-color: #1565c0;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+        
+        @media (min-width: 768px) {
+            .main-content {
+                flex-direction: row;
+            }
+        }
+        
+        .product-info, .amino-acids-info {
+            padding: 15px;
+            flex: 1;
+        }
+        
+        .product-card {
+            background-color: #f8fbff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+        
+        .product-name {
+            font-size: 1.5rem;
+            color: #1a237e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .product-icon {
+            font-size: 1.8rem;
+        }
+        
+        .usefulness-scale {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            gap: 10px;
+        }
+        
+        .scale-bar {
+            height: 20px;
+            flex-grow: 1;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .scale-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .amino-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .amino-table th, .amino-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .amino-table th {
+            background-color: #f0f7ff;
+            color: #1a237e;
+            font-weight: 600;
+        }
+        
+        .amino-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .essential {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+        
+        .non-essential {
+            color: #388e3c;
+        }
+        
+        .amino-acid-count {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .count-box {
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 120px;
+        }
+        
+        .count-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e88e5;
+        }
+        
+        .count-label {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            color: #666;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #e0e0e0;
+            background-color: #f8fbff;
+        }
+        
+        .highlight {
+            background-color: #fff9c4;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .info-note {
+            background-color: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.95rem;
+        }
+        
+        .category-filter {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .category-btn {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .category-btn.active {
+            background-color: #1e88e5;
+            color: white;
+            border-color: #1e88e5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-fish"></i> Аминокислотный анализ продуктов</h1>
+            <p class="subtitle">Узнайте, какие аминокислоты содержатся в рыбе, мясе и морепродуктах, и какие из них не вырабатываются организмом человека</p>
+        </header>
+        
+        <div class="controls">
+            <select id="productSelect">
+                <option value="">Выберите продукт для анализа</option>
+                <!-- Опции будут добавлены через JavaScript -->
+            </select>
+            
+            <button id="compareBtn">
+                <i class="fas fa-balance-scale"></i> Сравнить с другим продуктом
+            </button>
+        </div>
+        
+        <div class="category-filter">
+            <div class="category-btn active" data-category="all">Все продукты</div>
+            <div class="category-btn" data-category="fish">Рыба</div>
+            <div class="category-btn" data-category="meat">Мясо</div>
+            <div class="category-btn" data-category="seafood">Морепродукты</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="product-info">
+                <div class="product-card">
+                    <h2 class="product-name">
+                        <span id="productIcon" class="product-icon"></span>
+                        <span id="productTitle">Выберите продукт</span>
+                    </h2>
+                    
+                    <div id="productDescription">
+                        <p>Выберите продукт из списка, чтобы увидеть его аминокислотный состав и полезность.</p>
+                    </div>
+                    
+                    <div class="usefulness-scale">
+                        <span>Полезность:</span>
+                        <div class="scale-bar">
+                            <div id="scaleFill" class="scale-fill" style="width: 0%; background-color: #4caf50;"></div>
+                        </div>
+                        <span id="usefulnessValue">0%</span>
+                    </div>
+                    
+                    <div class="amino-acid-count">
+                        <div class="count-box">
+                            <div class="count-value" id="essentialCount">0</div>
+                            <div class="count-label">Незаменимых</div>
+                        </div>
+                        <div class="count-box">
+                            <div class="count-value" id="totalCount">0</div>
+                            <div class="count-label">Всего аминокислот</div>
+                        </div>
+                        <div class="count-box">
+                            <div class="count-value" id="nonEssentialCount">0</div>
+                            <div class="count-label">Заменимых</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-note">
+                    <p><strong>Незаменимые аминокислоты</strong> <span class="essential">(отмечены красным)</span> — не синтезируются в организме человека и должны поступать с пищей.</p>
+                    <p><strong>Заменимые аминокислоты</strong> <span class="non-essential">(отмечены зеленым)</span> — могут синтезироваться в организме человека.</p>
+                </div>
+            </div>
+            
+            <div class="amino-acids-info">
+                <h3 style="margin-bottom: 15px; color: #1a237e;">Аминокислотный состав</h3>
+                <table class="amino-table">
+                    <thead>
+                        <tr>
+                            <th>Аминокислота</th>
+                            <th>Содержание</th>
+                            <th>Тип</th>
+                        </tr>
+                    </thead>
+                    <tbody id="aminoTableBody">
+                        <tr>
+                            <td colspan="3" style="text-align: center;">Выберите продукт для отображения данных</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="info-note" style="margin-top: 20px;">
+                    <p><i class="fas fa-lightbulb"></i> <strong>Рекомендация:</strong> Для полноценного питания важно употреблять продукты, содержащие все 9 незаменимых аминокислот. Разнообразьте свой рацион!</p>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Приложение создано для информационных целей. Данные о содержании аминокислот являются усредненными.</p>
+            <p>© 2023 Аминокислотный анализ продуктов</p>
+        </footer>
+    </div>
+
+    <script>
+        // Данные о продуктах и их аминокислотном составе
+        const products = [
+            {
+                id: 1,
+                name: "Лосось",
+                category: "fish",
+                icon: "fas fa-fish",
+                description: "Лосось богат омега-3 жирными кислотами и содержит полный спектр незаменимых аминокислот.",
+                usefulness: 95,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Среднее"},
+                    {name: "Треонин", essential: true, content: "Высокое"},
+                    {name: "Триптофан", essential: true, content: "Среднее"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"},
+                    {name: "Тирозин", essential: false, content: "Среднее"},
+                    {name: "Цистеин", essential: false, content: "Низкое"}
+                ]
+            },
+            {
+                id: 2,
+                name: "Сельдь",
+                category: "fish",
+                icon: "fas fa-fish",
+                description: "Сельдь - доступная рыба с высоким содержанием белка и незаменимых аминокислот.",
+                usefulness: 85,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Среднее"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Среднее"},
+                    {name: "Треонин", essential: true, content: "Среднее"},
+                    {name: "Триптофан", essential: true, content: "Низкое"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"}
+                ]
+            },
+            {
+                id: 3,
+                name: "Щука",
+                category: "fish",
+                icon: "fas fa-fish",
+                description: "Речная рыба с нежным мясом и хорошим аминокислотным составом.",
+                usefulness: 75,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Среднее"},
+                    {name: "Изолейцин", essential: true, content: "Среднее"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Низкое"},
+                    {name: "Треонин", essential: true, content: "Среднее"},
+                    {name: "Триптофан", essential: true, content: "Низкое"},
+                    {name: "Фенилаланин", essential: true, content: "Среднее"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"}
+                ]
+            },
+            {
+                id: 4,
+                name: "Кальмар",
+                category: "seafood",
+                icon: "fas fa-stroopwafel",
+                description: "Кальмар - низкокалорийный морепродукт, богатый белком и незаменимыми аминокислотами.",
+                usefulness: 88,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Среднее"},
+                    {name: "Треонин", essential: true, content: "Высокое"},
+                    {name: "Триптофан", essential: true, content: "Среднее"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"},
+                    {name: "Тирозин", essential: false, content: "Среднее"}
+                ]
+            },
+            {
+                id: 5,
+                name: "Говядина",
+                category: "meat",
+                icon: "fas fa-drumstick-bite",
+                description: "Говядина - один из лучших источников полноценного белка с высоким содержанием железа.",
+                usefulness: 90,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Высокое"},
+                    {name: "Треонин", essential: true, content: "Высокое"},
+                    {name: "Триптофан", essential: true, content: "Среднее"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Высокое"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"},
+                    {name: "Тирозин", essential: false, content: "Среднее"},
+                    {name: "Цистеин", essential: false, content: "Низкое"}
+                ]
+            },
+            {
+                id: 6,
+                name: "Куриная грудка",
+                category: "meat",
+                icon: "fas fa-drumstick-bite",
+                description: "Диетический продукт с высоким содержанием белка и низким содержанием жира.",
+                usefulness: 92,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Высокое"},
+                    {name: "Треонин", essential: true, content: "Высокое"},
+                    {name: "Триптофан", essential: true, content: "Среднее"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Высокое"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"}
+                ]
+            },
+            {
+                id: 7,
+                name: "Свинина",
+                category: "meat",
+                icon: "fas fa-bacon",
+                description: "Свинина содержит все незаменимые аминокислоты и богата витаминами группы B.",
+                usefulness: 80,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Среднее"},
+                    {name: "Треонин", essential: true, content: "Среднее"},
+                    {name: "Триптофан", essential: true, content: "Низкое"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"}
+                ]
+            },
+            {
+                id: 8,
+                name: "Баранина",
+                category: "meat",
+                icon: "fas fa-paw",
+                description: "Баранина богата белком, железом и витамином B12, содержит все незаменимые аминокислоты.",
+                usefulness: 82,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Среднее"},
+                    {name: "Треонин", essential: true, content: "Высокое"},
+                    {name: "Триптофан", essential: true, content: "Среднее"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"}
+                ]
+            },
+            {
+                id: 9,
+                name: "Тунец",
+                category: "fish",
+                icon: "fas fa-fish",
+                description: "Тунец - отличный источник белка с низким содержанием жира и полным набором аминокислот.",
+                usefulness: 94,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Высокое"},
+                    {name: "Изолейцин", essential: true, content: "Высокое"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Высокое"},
+                    {name: "Треонин", essential: true, content: "Высокое"},
+                    {name: "Триптофан", essential: true, content: "Среднее"},
+                    {name: "Фенилаланин", essential: true, content: "Высокое"},
+                    {name: "Гистидин", essential: true, content: "Высокое"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"},
+                    {name: "Серин", essential: false, content: "Высокое"},
+                    {name: "Тирозин", essential: false, content: "Среднее"}
+                ]
+            },
+            {
+                id: 10,
+                name: "Карп",
+                category: "fish",
+                icon: "fas fa-fish",
+                description: "Популярная речная рыба с хорошим аминокислотным профилем и содержанием омега-3.",
+                usefulness: 78,
+                aminoAcids: [
+                    {name: "Валин", essential: true, content: "Среднее"},
+                    {name: "Изолейцин", essential: true, content: "Среднее"},
+                    {name: "Лейцин", essential: true, content: "Высокое"},
+                    {name: "Лизин", essential: true, content: "Высокое"},
+                    {name: "Метионин", essential: true, content: "Низкое"},
+                    {name: "Треонин", essential: true, content: "Среднее"},
+                    {name: "Триптофан", essential: true, content: "Низкое"},
+                    {name: "Фенилаланин", essential: true, content: "Среднее"},
+                    {name: "Гистидин", essential: true, content: "Среднее"},
+                    {name: "Аланин", essential: false, content: "Высокое"},
+                    {name: "Аргинин", essential: false, content: "Высокое"},
+                    {name: "Аспарагиновая кислота", essential: false, content: "Высокое"},
+                    {name: "Глицин", essential: false, content: "Среднее"},
+                    {name: "Глутаминовая кислота", essential: false, content: "Высокое"},
+                    {name: "Пролин", essential: false, content: "Среднее"}
+                ]
+            }
+        ];
+
+        // Глобальные переменные
+        let currentProduct = null;
+        let selectedCategory = "all";
+
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', function() {
+            initProductSelect();
+            setupEventListeners();
+            
+            // Выбираем первый продукт по умолчанию
+            if (products.length > 0) {
+                selectProduct(products[0]);
+            }
+        });
+
+        // Инициализация выпадающего списка продуктов
+        function initProductSelect() {
+            const select = document.getElementById('productSelect');
+            
+            // Группируем продукты по категориям
+            const categories = {
+                fish: "Рыба",
+                seafood: "Морепродукты",
+                meat: "Мясо"
+            };
+            
+            // Добавляем опции по категориям
+            for (const [categoryKey, categoryName] of Object.entries(categories)) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = categoryName;
+                
+                const categoryProducts = products.filter(p => p.category === categoryKey);
+                categoryProducts.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = product.name;
+                    optgroup.appendChild(option);
+                });
+                
+                select.appendChild(optgroup);
+            }
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            // Обработчик выбора продукта
+            document.getElementById('productSelect').addEventListener('change', function(e) {
+                const productId = parseInt(e.target.value);
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                    selectProduct(product);
+                }
+            });
+            
+            // Обработчик кнопки сравнения
+            document.getElementById('compareBtn').addEventListener('click', function() {
+                alert('Функция сравнения будет добавлена в следующей версии приложения!');
+            });
+            
+            // Обработчики кнопок категорий
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Убираем активный класс у всех кнопок
+                    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    
+                    // Добавляем активный класс нажатой кнопке
+                    this.classList.add('active');
+                    
+                    // Обновляем выбранную категорию
+                    selectedCategory = this.dataset.category;
+                    
+                    // Фильтруем продукты в выпадающем списке
+                    filterProductsByCategory();
+                });
+            });
+        }
+
+        // Фильтрация продуктов по категории
+        function filterProductsByCategory() {
+            const select = document.getElementById('productSelect');
+            const options = select.querySelectorAll('option');
+            
+            // Показываем/скрываем опции в зависимости от категории
+            options.forEach(option => {
+                if (option.value === "") {
+                    option.hidden = false;
+                    return;
+                }
+                
+                const productId = parseInt(option.value);
+                const product = products.find(p => p.id === productId);
+                
+                if (selectedCategory === "all" || (product && product.category === selectedCategory)) {
+                    option.hidden = false;
+                    option.parentElement.hidden = false;
+                } else {
+                    option.hidden = true;
+                    // Скрываем optgroup, если все его опции скрыты
+                    const optgroup = option.parentElement;
+                    const visibleOptions = Array.from(optgroup.querySelectorAll('option')).filter(opt => !opt.hidden);
+                    if (visibleOptions.length === 0) {
+                        optgroup.hidden = true;
+                    }
+                }
+            });
+            
+            // Сбрасываем выбранное значение, если текущий продукт не соответствует категории
+            if (currentProduct && selectedCategory !== "all" && currentProduct.category !== selectedCategory) {
+                select.value = "";
+                // Выбираем первый доступный продукт из выбранной категории
+                const filteredProducts = products.filter(p => selectedCategory === "all" || p.category === selectedCategory);
+                if (filteredProducts.length > 0) {
+                    setTimeout(() => {
+                        selectProduct(filteredProducts[0]);
+                        select.value = filteredProducts[0].id;
+                    }, 0);
+                }
+            }
+        }
+
+        // Выбор и отображение продукта
+        function selectProduct(product) {
+            currentProduct = product;
+            
+            // Обновляем заголовок и иконку
+            document.getElementById('productTitle').textContent = product.name;
+            document.getElementById('productIcon').className = `product-icon ${product.icon}`;
+            
+            // Обновляем описание
+            document.getElementById('productDescription').innerHTML = `<p>${product.description}</p>`;
+            
+            // Обновляем шкалу полезности
+            document.getElementById('scaleFill').style.width = `${product.usefulness}%`;
+            document.getElementById('usefulnessValue').textContent = `${product.usefulness}%`;
+            
+            // Обновляем цвета шкалы в зависимости от полезности
+            let scaleColor = '#4caf50'; // зеленый
+            if (product.usefulness < 70) scaleColor = '#ff9800'; // оранжевый
+            if (product.usefulness < 50) scaleColor = '#f44336'; // красный
+            document.getElementById('scaleFill').style.backgroundColor = scaleColor;
+            
+            // Подсчитываем аминокислоты
+            const essentialCount = product.aminoAcids.filter(aa => aa.essential).length;
+            const nonEssentialCount = product.aminoAcids.filter(aa => !aa.essential).length;
+            const totalCount = product.aminoAcids.length;
+            
+            // Обновляем счетчики
+            document.getElementById('essentialCount').textContent = essentialCount;
+            document.getElementById('nonEssentialCount').textContent = nonEssentialCount;
+            document.getElementById('totalCount').textContent = totalCount;
+            
+            // Обновляем таблицу аминокислот
+            updateAminoTable(product.aminoAcids);
+        }
+
+        // Обновление таблицы аминокислот
+        function updateAminoTable(aminoAcids) {
+            const tableBody = document.getElementById('aminoTableBody');
+            tableBody.innerHTML = '';
+            
+            aminoAcids.forEach(aminoAcid => {
+                const row = document.createElement('tr');
+                
+                // Название аминокислоты
+                const nameCell = document.createElement('td');
+                nameCell.textContent = aminoAcid.name;
+                if (aminoAcid.essential) {
+                    nameCell.classList.add('essential');
+                } else {
+                    nameCell.classList.add('non-essential');
+                }
+                
+                // Содержание
+                const contentCell = document.createElement('td');
+                contentCell.textContent = aminoAcid.content;
+                
+                // Тип
+                const typeCell = document.createElement('td');
+                typeCell.textContent = aminoAcid.essential ? 'Незаменимая' : 'Заменимая';
+                
+                row.appendChild(nameCell);
+                row.appendChild(contentCell);
+                row.appendChild(typeCell);
+                tableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
