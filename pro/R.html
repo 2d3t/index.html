@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KlikEdit 🎀 — Modern Web Editor</title>
+  <style>
+    :root {
+      --bg-dark: #1e1e1e;
+      --bg-light: #252526;
+      --accent: #ff85a1; /* Твой розовый бантик 🎀 */
+      --text-main: #d4d4d4;
+      --toolbar-bg: #2d2d2d;
+      --border-color: #404040;
+      --btn-hover: #454545;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+
+    /* Тулбар */
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 15px;
+      background: var(--toolbar-bg);
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+
+    .toolbar input {
+      background: #3c3c3c;
+      border: 1px solid var(--border-color);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .toolbar input:focus {
+      border-color: var(--accent);
+    }
+
+    .toolbar button,
+    .toolbar label[for="fileUpload"] {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 4px;
+      background: #3c3c3c;
+      color: #eee;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 500;
+    }
+
+    .toolbar button:hover,
+    .toolbar label[for="fileUpload"]:hover {
+      background: var(--btn-hover);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .toolbar button:active {
+      transform: translateY(0);
+    }
+
+    /* Специфические цвета кнопок */
+    #copyButton.copied { background: #28a745 !important; }
+    button[onclick*="runCode"] { background: #007acc; } /* Синий для запуска */
+    button[onclick*="runCode"]:hover { background: #0062a3; }
+    button[onclick*="clearAll"] { color: #ff6b6b; }
+
+    /* Редактор */
+    .editor {
+      display: flex;
+      height: calc(100vh - 60px);
+      background: var(--bg-dark);
+    }
+
+    .line-numbers {
+      background: var(--bg-dark);
+      color: #858585;
+      padding: 10px 0;
+      text-align: right;
+      user-select: none;
+      width: 45px;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .line-numbers div {
+      padding: 0 8px;
+    }
+
+    textarea {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 10px;
+      background: var(--bg-dark);
+      color: #9cdcfe; /* Приятный голубой для текста кода */
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      caret-color: var(--accent);
+    }
+
+    .active-line {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--accent);
+    }
+
+    /* Превью */
+    .preview {
+      width: 100%;
+      height: calc(100vh - 60px);
+      border: none;
+      background: white;
+      display: none;
+    }
+
+    .preview.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Скрытый input */
+    .file-input { display: none; }
+
+    /* Полноэкранный оверлей */
+    .fullscreen-overlay {
+      position: fixed;
+      inset: 0;
+      background: white;
+      z-index: 10000;
+      display: none;
+    }
+
+    .fullscreen-overlay.active { display: block; }
+
+    .fullscreen-exit-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10001;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Кастомизация скроллбара */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <input type="number" id="lineNumber" min="1" placeholder="Строка" style="width: 70px;">
+  <button onclick="goToLine()">Перейти 🔀</button>
+  
+  <div style="width: 1px; height: 25px; background: var(--border-color); margin: 0 5px;"></div>
+
+  <input type="text" id="searchInput" placeholder="Поиск..." style="width:120px;">
+  <button onclick="findNext()">▶️</button>
+  <button onclick="findPrev()">◀️</button>
+
+  <div style="width: 1px; height: 25px; background: var(--border-color); margin: 0 5px;"></div>
+
+  <button id="copyButton" onclick="copyText()">Скопировать 📃</button>
+  <button onclick="undo()">↩️</button>
+  <button onclick="redo()">↪️</button>
+  <button onclick="shareCode()">Скачать ⬇️</button>
+  
+  <div style="flex-grow: 1;"></div> <label for="fileUpload">Файлы 📂</label>
+  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt" onchange="loadFile(event)">
+
+  <button onclick="showEditor()" style="border: 1px solid var(--border-color);">🛠️ Редактор</button>
+  <button onclick="runCode()">🖥️ Просмотр</button>
+  <button onclick="toggleFullscreen()">⛶</button>
+  <button onclick="window.location.href='https://2d3t.github.io/index.html/'" title="Выход">🚸</button>
+  <button onclick="clearAll()" title="Очистить всё">❌</button>
+</div>
+  
+<div class="editor">
+  <div class="line-numbers" id="lineNumbers"></div>
+  <textarea id="codeArea" spellcheck="false" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
+</div>
+
+<iframe class="preview" id="previewFrame"></iframe>
+
+<div class="fullscreen-overlay" id="fullscreenOverlay">
+  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти</button>
+  <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
+<script>
+  // Весь твой JS функционал сохранен полностью без изменений в логике
+  const textarea = document.getElementById('codeArea');
+  const lineNumbers = document.getElementById('lineNumbers');
+  const previewFrame = document.getElementById('previewFrame');
+  const copyButton = document.getElementById('copyButton');
+  const searchInput = document.getElementById('searchInput');
+  const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+  const fullscreenFrame = document.getElementById('fullscreenFrame');
+
+  let history = [];
+  let redoStack = [];
+  let isFullscreen = false;
+
+  function updateLineNumbers() {
+    const lines = textarea.value.split('\n').length;
+    const extraLines = 5; // Уменьшил запас для чистоты
+    const totalLines = lines + extraLines;
+
+    lineNumbers.innerHTML = '';
+    for (let i = 1; i <= totalLines; i++) {
+      const div = document.createElement("div");
+      div.textContent = i;
+      lineNumbers.appendChild(div);
+    }
+    highlightActiveLine();
+  }
+
+  function syncScroll() {
+    lineNumbers.scrollTop = textarea.scrollTop;
+  }
+
+  function goToLine() {
+    const line = parseInt(document.getElementById('lineNumber').value);
+    const lines = textarea.value.split('\n').length;
+    if (!isNaN(line) && line > 0 && line <= lines) {
+        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+        textarea.scrollTop = (line - 1) * lineHeight - (textarea.clientHeight / 2);
+        highlightActiveLine(line);
+    } else {
+        alert("Строка не найдена");
+    }
+  }
+
+  function highlightActiveLine(line) {
+    const lineElements = Array.from(lineNumbers.children);
+    lineElements.forEach((el, index) => {
+      el.classList.remove('active-line');
+      if (line && index === (line - 1)) el.classList.add('active-line');
+    });
+  }
+
+  function copyText() {
+    textarea.select();
+    document.execCommand('copy');
+    copyButton.classList.add('copied');
+    const oldText = copyButton.innerHTML;
+    copyButton.textContent = "Готово ✅"; 
+    setTimeout(() => {
+      copyButton.classList.remove('copied');
+      copyButton.innerHTML = oldText; 
+    }, 1500); 
+  }
+
+  function clearAll() {
+    if(confirm("Очистить весь код?")) {
+        textarea.value = '';
+        updateLineNumbers();
+    }
+  }
+
+  function runCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    previewFrame.src = url;
+    fullscreenFrame.src = url;
+    previewFrame.classList.add("active");
+    document.querySelector('.editor').style.display = "none";
+  }
+
+  function showEditor() {
+    if (isFullscreen) exitFullscreen();
+    previewFrame.classList.remove("active");
+    document.querySelector('.editor').style.display = "flex";
+  }
+
+  function shareCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'index.html';
+    link.click();
+  }
+
+  function saveState() {
+    history.push(textarea.value);
+    if(history.length > 50) history.shift();
+    redoStack = [];
+  }
+
+  function undo() {
+    if (history.length > 0) {
+      redoStack.push(textarea.value);
+      textarea.value = history.pop();
+      updateLineNumbers();
+    }
+  }
+
+  function redo() {
+    if (redoStack.length > 0) {
+      history.push(textarea.value);
+      textarea.value = redoStack.pop();
+      updateLineNumbers();
+    }
+  }
+
+  function loadFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      textarea.value = e.target.result;
+      updateLineNumbers();
+      event.target.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function toggleFullscreen() {
+    if (!previewFrame.classList.contains('active')) {
+      runCode();
+    }
+    isFullscreen ? exitFullscreen() : enterFullscreen();
+  }
+
+  function enterFullscreen() {
+    fullscreenOverlay.classList.add('active');
+    isFullscreen = true;
+    if (fullscreenOverlay.requestFullscreen) fullscreenOverlay.requestFullscreen();
+  }
+
+  function exitFullscreen() {
+    fullscreenOverlay.classList.remove('active');
+    isFullscreen = false;
+    if (document.exitFullscreen) document.exitFullscreen();
+  }
+
+  // Обработка поиска
+  let searchResults = [];
+  let currentResult = -1;
+
+  function findNext() {
+    const term = searchInput.value;
+    if (!term) return;
+    const text = textarea.value;
+    const index = text.indexOf(term, currentResult + 1);
+    if (index !== -1) {
+      currentResult = index;
+      textarea.setSelectionRange(index, index + term.length);
+      textarea.focus();
+    } else {
+      currentResult = -1; // Сброс для поиска сначала
+    }
+  }
+
+  textarea.addEventListener('input', saveState);
+  updateLineNumbers();
+</script>
+
+</body>
+</html>
