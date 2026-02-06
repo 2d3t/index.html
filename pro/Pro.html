@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading AI Offline</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: #0b0e11; 
+            color: white; 
+            font-family: -apple-system, sans-serif; 
+            padding: 15px; 
+            min-height: 100vh; 
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .card { 
+            background: #181a20; 
+            border-radius: 12px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            border: 1px solid #2b2f36; 
+        }
+        .btn { 
+            background: #f0b90b; 
+            color: black; 
+            border: none; 
+            padding: 16px; 
+            width: 100%; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            margin: 10px 0; 
+        }
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            background: #2b2f36; 
+            border: 1px solid #444; 
+            color: white; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            margin-bottom: 10px; 
+        }
+        .result { 
+            background: #0b0e11; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-top: 15px; 
+        }
+        .buy { color: #0ecb81; }
+        .sell { color: #f6465d; }
+        .hold { color: #848e9c; }
+        .history-item { 
+            border-bottom: 1px solid #2b2f36; 
+            padding: 12px 0; 
+        }
+        .trend-up { color: #0ecb81; }
+        .trend-down { color: #f6465d; }
+        .trend-side { color: #848e9c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align: center; margin-bottom: 20px;">📈 Trading AI Offline</h2>
+        
+        <!-- Вкладка анализа -->
+        <div id="tab-analysis" class="card">
+            <input type="text" id="asset-input" placeholder="Актив (BTCUSDT)" value="BTCUSDT">
+            
+            <button class="btn" onclick="document.getElementById('file-input').click()">
+                📥 Загрузить график
+            </button>
+            <input type="file" id="file-input" accept="image/*" style="display:none">
+            
+            <div id="result-card" style="display:none;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span id="asset-badge" style="background: #f0b90b; color: black; padding: 4px 8px; border-radius: 4px;"></span>
+                    <span id="verdict-text" style="font-size: 24px; font-weight: bold;"></span>
+                </div>
+                
+                <div id="chart" style="height: 200px; margin: 15px 0;"></div>
+                
+                <div class="result">
+                    <div id="details"></div>
+                    <div style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button class="btn" onclick="saveToHistory()" style="background: #0ecb81;">💾 Сохранить</button>
+                        <button class="btn" onclick="showHistory()" style="background: #2b2f36;">📋 История</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Вкладка истории -->
+        <div id="tab-history" class="card" style="display:none;">
+            <h3>История прогнозов</h3>
+            <div id="history-list" style="margin: 15px 0;"></div>
+            <button class="btn" onclick="clearHistory()" style="background: #f6465d;">🗑️ Очистить историю</button>
+            <button class="btn" onclick="showAnalyzer()" style="margin-top: 10px;">← Назад</button>
+        </div>
+        
+        <div id="error" style="color: #f6465d; text-align: center; margin-top: 10px;"></div>
+    </div>
+
+    <script>
+        let currentResult = null;
+        let history = JSON.parse(localStorage.getItem('trading_history') || '[]');
+        
+        // Инициализация
+        function init() {
+            document.getElementById('file-input').addEventListener('change', handleImageUpload);
+            console.log("Приложение загружено!");
+        }
+        
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const asset = document.getElementById('asset-input').value || 'UNKNOWN';
+            
+            // Проверяем размер файла
+            if (file.size > 5 * 1024 * 1024) {
+                showError("Файл слишком большой (макс 5MB)");
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                analyzeImage(event.target.result, asset);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function analyzeImage(imageData, asset) {
+            try {
+                // Генерируем случайные данные для демонстрации
+                const probUp = Math.floor(Math.random() * 40) + 30; // 30-70%
+                const slope = (Math.random() - 0.5) * 2;
+                
+                let verdict, verdictClass, trend;
+                if (probUp > 60) {
+                    verdict = "BUY";
+                    verdictClass = "buy";
+                    trend = "Восходящий";
+                } else if (probUp < 40) {
+                    verdict = "SELL";
+                    verdictClass = "sell";
+                    trend = "Нисходящий";
+                } else {
+                    verdict = "HOLD";
+                    verdictClass = "hold";
+                    trend = "Боковой";
+                }
+                
+                currentResult = {
+                    asset: asset,
+                    verdict: verdict,
+                    verdictClass: verdictClass,
+                    probUp: probUp,
+                    trend: trend,
+                    slope: slope,
+                    timestamp: new Date().toLocaleString('ru-RU')
+                };
+                
+                displayResult();
+                generateChart();
+                
+            } catch (error) {
+                showError("Ошибка анализа: " + error.message);
+            }
+        }
+        
+        function displayResult() {
+            if (!currentResult) return;
+            
+            document.getElementById('result-card').style.display = 'block';
+            document.getElementById('asset-badge').textContent = currentResult.asset;
+            
+            const verdictEl = document.getElementById('verdict-text');
+            verdictEl.textContent = currentResult.verdict;
+            verdictEl.className = currentResult.verdictClass;
+            
+            document.getElementById('details').innerHTML = `
+                <strong>Тренд:</strong> ${currentResult.trend}<br>
+                <strong>Вероятность роста:</strong> ${currentResult.probUp}%<br>
+                <strong>Время:</strong> ${currentResult.timestamp}<br>
+                <strong>Анализ:</strong> ${getAnalysisText(currentResult.probUp)}
+            `;
+            
+            document.getElementById('error').textContent = '';
+        }
+        
+        function generateChart() {
+            // Генерируем демо-данные для графика
+            const data = [];
+            for (let i = 0; i < 50; i++) {
+                data.push(Math.sin(i / 5) * 20 + 50 + Math.random() * 10);
+            }
+            
+            // Прогноз
+            const forecast = [];
+            for (let i = 0; i < 20; i++) {
+                const trend = currentResult.slope > 0 ? 1 : -1;
+                forecast.push(data[data.length-1] + (Math.random() * 5 + 2) * trend);
+            }
+            
+            const trace1 = {
+                x: Array.from({length: data.length}, (_, i) => i),
+                y: data,
+                mode: 'lines',
+                name: 'График',
+                line: {color: '#f0b90b'}
+            };
+            
+            const trace2 = {
+                x: Array.from({length: forecast.length}, (_, i) => data.length + i),
+                y: forecast,
+                mode: 'lines',
+                name: 'Прогноз',
+                line: {color: currentResult.probUp > 50 ? '#0ecb81' : '#f6465d', dash: 'dot'}
+            };
+            
+            Plotly.newPlot('chart', [trace1, trace2], {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: {t: 10, r: 10, b: 30, l: 40},
+                font: {color: '#848e9c'},
+                showlegend: true,
+                legend: {x: 0, y: 1}
+            });
+        }
+        
+        function getAnalysisText(prob) {
+            if (prob > 70) return "Сильный сигнал на покупку";
+            if (prob > 60) return "Умеренный сигнал на покупку";
+            if (prob < 30) return "Сильный сигнал на продажу";
+            if (prob < 40) return "Умеренный сигнал на продажу";
+            return "Нейтральный сигнал";
+        }
+        
+        function saveToHistory() {
+            if (!currentResult) return;
+            
+            history.unshift({
+                ...currentResult,
+                id: Date.now()
+            });
+            
+            // Ограничиваем историю 50 записями
+            if (history.length > 50) history = history.slice(0, 50);
+            
+            localStorage.setItem('trading_history', JSON.stringify(history));
+            alert("✅ Прогноз сохранен в историю!");
+        }
+        
+        function showHistory() {
+            document.getElementById('tab-analysis').style.display = 'none';
+            document.getElementById('tab-history').style.display = 'block';
+            renderHistory();
+        }
+        
+        function showAnalyzer() {
+            document.getElementById('tab-analysis').style.display = 'block';
+            document.getElementById('tab-history').style.display = 'none';
+        }
+        
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if (history.length === 0) {
+                list.innerHTML = '<p style="color: #848e9c; text-align: center;">История пуста</p>';
+                return;
+            }
+            
+            list.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong>${item.asset}</strong>
+                        <span class="${item.verdictClass}" style="font-weight: bold;">${item.verdict}</span>
+                    </div>
+                    <div style="color: #848e9c; font-size: 14px;">
+                        ${item.timestamp} | ${item.probUp}% | ${item.trend}
+                    </div>
+                    <button onclick="deleteHistoryItem(${item.id})" style="background: none; border: none; color: #f6465d; font-size: 12px; margin-top: 5px;">
+                        Удалить
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        function deleteHistoryItem(id) {
+            if (confirm("Удалить эту запись?")) {
+                history = history.filter(item => item.id !== id);
+                localStorage.setItem('trading_history', JSON.stringify(history));
+                renderHistory();
+            }
+        }
+        
+        function clearHistory() {
+            if (confirm("Очистить всю историю?")) {
+                history = [];
+                localStorage.removeItem('trading_history');
+                renderHistory();
+            }
+        }
+        
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            setTimeout(() => {
+                document.getElementById('error').textContent = '';
+            }, 5000);
+        }
+        
+        // Запуск при загрузке
+        window.onload = init;
+    </script>
+</body>
+</html>
