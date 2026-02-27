@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎹 Аккорды · полифония · 2 октавы</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1a1e2f 0%, #2a2f44 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+        }
+        .piano-app {
+            width: 100%;
+            max-width: 600px;
+            background: rgba(18, 22, 40, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 42px;
+            padding: 20px 12px 30px;
+            box-shadow: 0 30px 40px rgba(0,0,0,0.6), inset 0 1px 4px rgba(255,255,255,0.1);
+            border: 1px solid rgba(120, 140, 200, 0.2);
+        }
+        .display {
+            background: #0e111f;
+            border-radius: 32px;
+            padding: 18px 16px;
+            margin-bottom: 24px;
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.7), 0 2px 2px rgba(255,255,255,0.05);
+            border: 1px solid #2f385a;
+        }
+        .last-notes {
+            color: #a4b8e0;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 400;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            opacity: 0.7;
+        }
+        .note-sequence {
+            font-size: 24px;
+            font-weight: 600;
+            color: #c6eaff;
+            text-shadow: 0 0 8px #5f7eff;
+            min-height: 40px;
+            word-break: break-word;
+            font-family: 'Courier New', monospace;
+            background: #030617;
+            padding: 8px 16px;
+            border-radius: 28px;
+            border: 1px solid #31486c;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .control-bar {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            border: none;
+            background: #262e4a;
+            padding: 16px 0;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 16px;
+            color: white;
+            box-shadow: 0 6px 0 #0b0f1c, 0 4px 12px black;
+            transition: 0.08s linear;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid #4f5d88;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            flex: 1 1 auto;
+            min-width: 100px;
+        }
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 1px 0 #0b0f1c, 0 4px 10px black;
+        }
+        .btn.record {
+            background: #83254b;
+            border-color: #ff7b9c;
+        }
+        .btn.record.active-record {
+            background: #c73b6b;
+            border-color: #ff4d7a;
+            box-shadow: 0 0 15px #ff3a5e;
+        }
+        .btn.play {
+            background: #2a5f3a;
+            border-color: #73d98d;
+        }
+        .btn.clear {
+            background: #a1551d;
+            border-color: #ffb07c;
+        }
+        .btn.save {
+            background: #4a3a8c;
+            border-color: #b397ff;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            transform: translateY(0);
+            box-shadow: 0 4px 0 #0b0f1c;
+            pointer-events: none;
+            filter: grayscale(0.6);
+        }
+        .instrument-selector {
+            background: #1a1f33;
+            border-radius: 30px;
+            padding: 8px 12px;
+            margin: 16px 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #3b4570;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .instrument-selector label {
+            color: #9aabd8;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .instrument-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .inst-btn {
+            background: #2a3150;
+            border: 1px solid #4f6193;
+            color: #ccdcff;
+            border-radius: 40px;
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .inst-btn.active {
+            background: #5b6fb0;
+            color: white;
+            border-color: #aac0ff;
+            box-shadow: 0 0 10px #5f7eff;
+        }
+        .keyboard-container {
+            background: #101525;
+            border-radius: 30px;
+            padding: 16px 8px;
+            box-shadow: inset 0 0 0 2px #252e48, inset 0 4px 8px black;
+            margin: 16px 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: #4f5d88 #1a1f33;
+        }
+        .keyboard-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        .keyboard-container::-webkit-scrollbar-track {
+            background: #1a1f33;
+            border-radius: 10px;
+        }
+        .keyboard-container::-webkit-scrollbar-thumb {
+            background: #4f5d88;
+            border-radius: 10px;
+        }
+        .keyboard {
+            display: flex;
+            justify-content: flex-start;
+            min-width: max-content;
+            padding: 4px 2px;
+            position: relative;
+            touch-action: pan-x pinch-zoom;
+        }
+        .octave {
+            display: flex;
+            position: relative;
+            margin-right: 4px;
+        }
+        .white-keys {
+            display: flex;
+            gap: 4px;
+        }
+        .white-key {
+            background: linear-gradient(180deg, #f6f9fc 0%, #e0e6f0 100%);
+            width: 48px;
+            height: 140px;
+            border-radius: 12px 12px 8px 8px;
+            box-shadow: 0 8px 0 #898e9e, 0 6px 12px rgba(0,0,0,0.5);
+            border: 1px solid white;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 12px;
+            font-weight: 800;
+            font-size: 18px;
+            color: #222952;
+            text-shadow: 0 1px 2px white;
+            transition: 0.04s ease;
+            touch-action: manipulation;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+        }
+        .white-key.active-key {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #6b7284, 0 6px 12px black;
+            background: linear-gradient(180deg, #ffe68f 0%, #ffcd7e 100%);
+            border-color: #ffd966;
+        }
+        .white-key.holding {
+            background: linear-gradient(180deg, #ffb347 0%, #ff9500 100%);
+            box-shadow: 0 2px 0 #b35f00, 0 6px 12px black;
+            border-color: #ffaa33;
+            transform: translateY(4px);
+        }
+        .black-key {
+            position: absolute;
+            width: 32px;
+            height: 90px;
+            background: linear-gradient(180deg, #33363f, #1e212a);
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 6px 0 #0b0b10, 0 4px 8px black;
+            border: 1px solid #5d6072;
+            border-top: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 20px;
+            font-weight: 700;
+            font-size: 16px;
+            color: #e8f0ff;
+            text-shadow: 0 1px 2px black;
+            transition: 0.04s ease;
+            touch-action: manipulation;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .black-key.active-key {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0b0b10, 0 4px 8px black;
+            background: linear-gradient(180deg, #6b6f80, #3d404d);
+            border-color: #9da3c0;
+        }
+        .black-key.holding {
+            background: linear-gradient(180deg, #8b6f50, #5a3d2a);
+            box-shadow: 0 2px 0 #2a1f15, 0 4px 8px black;
+            border-color: #b38b5a;
+            transform: translateY(2px);
+        }
+        .black-key[data-note="C#4"] { left: 32px; }
+        .black-key[data-note="D#4"] { left: 84px; }
+        .black-key[data-note="F#4"] { left: 192px; }
+        .black-key[data-note="G#4"] { left: 244px; }
+        .black-key[data-note="A#4"] { left: 296px; }
+        .black-key[data-note="C#5"] { left: 32px; }
+        .black-key[data-note="D#5"] { left: 84px; }
+        .black-key[data-note="F#5"] { left: 192px; }
+        .black-key[data-note="G#5"] { left: 244px; }
+        .black-key[data-note="A#5"] { left: 296px; }
+        
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            color: #7b8bb7;
+            font-size: 14px;
+            background: #1a1f33;
+            padding: 10px 18px;
+            border-radius: 60px;
+            border: 1px solid #3b4570;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .status-led {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .led {
+            width: 16px;
+            height: 16px;
+            border-radius: 16px;
+            background: #44506b;
+            box-shadow: inset 0 2px 4px black;
+            transition: 0.2s;
+        }
+        .led.rec-on {
+            background: #ff3a5e;
+            box-shadow: 0 0 14px #ff4164;
+        }
+        .footer-note {
+            text-align: center;
+            color: #4a567b;
+            font-size: 12px;
+            margin-top: 12px;
+        }
+        .audio-progress {
+            background: #0e111f;
+            border-radius: 20px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            border: 1px solid #3b4570;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: #262e4a;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #5f7eff;
+            transition: width 0.1s;
+        }
+
+        .bottom-record {
+            display: flex;
+            justify-content: center;
+            margin: 12px 0 8px;
+        }
+        .record-bottom-btn {
+            background: #83254b;
+            border: none;
+            padding: 18px 30px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 18px;
+            color: white;
+            box-shadow: 0 8px 0 #4a1530, 0 6px 15px black;
+            border: 1px solid #ff7b9c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: 0.08s linear;
+            width: 100%;
+            max-width: 280px;
+            letter-spacing: 1px;
+        }
+        .record-bottom-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #4a1530, 0 6px 15px black;
+        }
+        .record-bottom-btn.active-record {
+            background: #c73b6b;
+            border-color: #ff4d7a;
+            box-shadow: 0 0 20px #ff3a5e, 0 8px 0 #4a1530;
+        }
+
+        .tip {
+            color: #7b8bb7;
+            font-size: 12px;
+            text-align: center;
+            margin: 8px 0;
+            background: #1a1f33;
+            padding: 6px;
+            border-radius: 20px;
+        }
+
+        .chord-indicator {
+            background: #2a3150;
+            border-radius: 16px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #aac0ff;
+            border: 1px solid #4f6193;
+        }
+
+        /* Индикатор полифонии */
+        .polyphony-indicator {
+            background: #2a3150;
+            border-radius: 16px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #aac0ff;
+            border: 1px solid #4f6193;
+        }
+    </style>
+</head>
+<body>
+<div class="piano-app">
+    <div class="display">
+        <div class="last-notes">
+            <span>🎼 Запоминалка музыкальных идей</span>
+            <span id="noteCounter">нот: 0</span>
+        </div>
+        <div class="note-sequence" id="sequenceDisplay">—</div>
+
+        <div class="control-bar">
+            <button class="btn record" id="recordBtn">⏺ Запись</button>
+            <button class="btn play" id="playBtn">▶ Слушать</button>
+            <button class="btn clear" id="clearBtn">🗑 Очистить</button>
+            <button class="btn save" id="saveBtn">💾 Сохранить MP3</button>
+        </div>
+        
+        <div class="audio-progress" id="audioProgress" style="display: none;">
+            <span>🔊 Генерация MP3...</span>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Выбор инструмента -->
+    <div class="instrument-selector">
+        <label>🎵 Инструмент:</label>
+        <div class="instrument-buttons">
+            <div class="inst-btn active" data-instrument="sine">Синус</div>
+            <div class="inst-btn" data-instrument="triangle">Треугольник</div>
+            <div class="inst-btn" data-instrument="sawtooth">Пила</div>
+            <div class="inst-btn" data-instrument="square">Квадрат</div>
+        </div>
+    </div>
+
+    <div class="tip">
+        ↩️ Разверни экран для полноценной клавиатуры 🎹
+    </div>
+
+    <!-- Клавиатура 2 октавы (C4 - B5) -->
+    <div class="keyboard-container">
+        <div class="keyboard" id="pianoKeyboard">
+            <div class="octave" id="octave1">
+                <div class="white-keys">
+                    <div class="white-key" data-note="C4">C</div>
+                    <div class="white-key" data-note="D4">D</div>
+                    <div class="white-key" data-note="E4">E</div>
+                    <div class="white-key" data-note="F4">F</div>
+                    <div class="white-key" data-note="G4">G</div>
+                    <div class="white-key" data-note="A4">A</div>
+                    <div class="white-key" data-note="B4">B</div>
+                </div>
+                <div class="black-key" data-note="C#4">C#</div>
+                <div class="black-key" data-note="D#4">D#</div>
+                <div class="black-key" data-note="F#4">F#</div>
+                <div class="black-key" data-note="G#4">G#</div>
+                <div class="black-key" data-note="A#4">A#</div>
+            </div>
+
+            <div class="octave" id="octave2">
+                <div class="white-keys">
+                    <div class="white-key" data-note="C5">C</div>
+                    <div class="white-key" data-note="D5">D</div>
+                    <div class="white-key" data-note="E5">E</div>
+                    <div class="white-key" data-note="F5">F</div>
+                    <div class="white-key" data-note="G5">G</div>
+                    <div class="white-key" data-note="A5">A</div>
+                    <div class="white-key" data-note="B5">B</div>
+                </div>
+                <div class="black-key" data-note="C#5">C#</div>
+                <div class="black-key" data-note="D#5">D#</div>
+                <div class="black-key" data-note="F#5">F#</div>
+                <div class="black-key" data-note="G#5">G#</div>
+                <div class="black-key" data-note="A#5">A#</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижняя кнопка записи (дубль) -->
+    <div class="bottom-record">
+        <button class="record-bottom-btn" id="recordBottomBtn">⏺ Запись</button>
+    </div>
+
+    <!-- статус -->
+    <div class="meta-info">
+        <div class="status-led" id="recStatus">
+            <span class="led" id="recLed"></span>
+            <span id="recText">Стоп</span>
+        </div>
+        <div id="polyphonyStats" class="polyphony-indicator">🎹 полифония до 6 нот</div>
+    </div>
+    <div class="footer-note">
+        ← скользи для перебора · одновременно до 6 нот →
+    </div>
+</div>
+
+<!-- Подключаем библиотеки -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.0/lame.min.js"></script>
+
+<script>
+(function() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const noteFreq = {
+        'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63,
+        'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00,
+        'A#4': 466.16, 'B4': 493.88,
+        'C5': 523.25, 'C#5': 554.37, 'D5': 587.33, 'D#5': 622.25, 'E5': 659.25,
+        'F5': 698.46, 'F#5': 739.99, 'G5': 783.99, 'G#5': 830.61, 'A5': 880.00,
+        'A#5': 932.33, 'B5': 987.77
+    };
+
+    let currentWaveform = 'sine';
+    let isRecording = false;
+    
+    // Новая структура хранения последовательности для поддержки полифонии
+    // Каждый элемент - объект с полями:
+    // - type: 'note' | 'pause'
+    // - notes: массив нот (для аккорда)
+    // - duration: длительность в мс
+    // - timestamp: время начала события (относительное)
+    let currentSequence = [];
+    
+    // Текущие удерживаемые ноты во время записи
+    let activeRecordingNotes = new Map(); // note -> { startTime, eventId }
+    
+    // Время последнего события для расчета пауз
+    let lastEventEndTime = 0;
+    let recordingStartTime = null;
+
+    // Для удержания нот при воспроизведении/игре
+    let activeOscillators = new Map(); // note -> {osc, gain, startTime}
+
+    const activeKeys = new Set();
+    let touchActiveNotes = new Map(); // touchId -> note
+
+    const sequenceDisplay = document.getElementById('sequenceDisplay');
+    const recordBtn = document.getElementById('recordBtn');
+    const recordBottomBtn = document.getElementById('recordBottomBtn');
+    const playBtn = document.getElementById('playBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const recLed = document.getElementById('recLed');
+    const recText = document.getElementById('recText');
+    const noteCounterSpan = document.getElementById('noteCounter');
+    const audioProgress = document.getElementById('audioProgress');
+    const progressFill = document.getElementById('progressFill');
+    const pianoKeyboard = document.getElementById('pianoKeyboard');
+
+    // Выбор инструмента
+    const instBtns = document.querySelectorAll('.inst-btn');
+    instBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            instBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentWaveform = btn.dataset.instrument;
+        });
+    });
+
+    function startNote(noteName) {
+        if (!noteFreq[noteName]) return;
+        
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        // Если нота уже звучит, не начинаем заново (но для полифонии ок)
+        if (activeOscillators.has(noteName)) return;
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = currentWaveform;
+        osc.frequency.value = noteFreq[noteName];
+        
+        // Плавное начало - уменьшаем громкость для аккордов
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.02); // Тише для полифонии
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        
+        activeOscillators.set(noteName, { osc, gain, startTime: now });
+        
+        // Визуализация удержания
+        const key = document.querySelector(`[data-note="${noteName}"]`);
+        if (key) {
+            key.classList.add('holding');
+        }
+    }
+
+    function stopNote(noteName) {
+        if (!activeOscillators.has(noteName)) return;
+
+        const { osc, gain } = activeOscillators.get(noteName);
+        const now = audioCtx.currentTime;
+        
+        // Плавное затухание
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+        
+        setTimeout(() => {
+            try {
+                osc.stop();
+                osc.disconnect();
+                gain.disconnect();
+            } catch (e) {}
+        }, 100);
+        
+        activeOscillators.delete(noteName);
+
+        // Убираем визуализацию
+        const key = document.querySelector(`[data-note="${noteName}"]`);
+        if (key) {
+            key.classList.remove('holding');
+        }
+    }
+
+    function stopAllNotes() {
+        activeOscillators.forEach((_, note) => {
+            stopNote(note);
+        });
+    }
+
+    function activateKey(note) {
+        const key = document.querySelector(`[data-note="${note}"]`);
+        if (key && !activeKeys.has(note)) {
+            key.classList.add('active-key');
+            activeKeys.add(note);
+        }
+    }
+
+    function deactivateKey(note) {
+        const key = document.querySelector(`[data-note="${note}"]`);
+        if (key) {
+            key.classList.remove('active-key');
+            activeKeys.delete(note);
+        }
+    }
+
+    function deactivateAllKeys() {
+        activeKeys.forEach(note => {
+            const key = document.querySelector(`[data-note="${note}"]`);
+            if (key) key.classList.remove('active-key');
+        });
+        activeKeys.clear();
+    }
+
+    // Обновление отображения последовательности
+    function updateUI() {
+        if (currentSequence.length === 0) {
+            sequenceDisplay.innerText = '—';
+        } else {
+            let raw = '';
+            for (let ev of currentSequence) {
+                if (ev.type === 'note') {
+                    // Показываем аккорд в виде [C E G] или одной ноты
+                    if (ev.notes.length === 1) {
+                        const noteName = ev.notes[0].replace(/[0-9]/g, '');
+                        raw += noteName;
+                    } else {
+                        raw += '[';
+                        ev.notes.forEach((note, idx) => {
+                            raw += note.replace(/[0-9]/g, '');
+                            if (idx < ev.notes.length - 1) raw += ' ';
+                        });
+                        raw += ']';
+                    }
+                } else if (ev.type === 'pause') {
+                    if (ev.duration < 200) raw += '▪';
+                    else if (ev.duration < 400) raw += '▫';
+                    else raw += '□';
+                }
+            }
+            if (raw.length > 20) {
+                raw = raw.slice(0, 18) + '…';
+            }
+            sequenceDisplay.innerText = raw;
+        }
+
+        const notesCount = currentSequence.filter(ev => ev.type === 'note').reduce((acc, ev) => acc + ev.notes.length, 0);
+        noteCounterSpan.innerText = `нот: ${notesCount}`;
+
+        // Обновляем состояние кнопок записи
+        if (isRecording) {
+            recLed.classList.add('rec-on');
+            recText.innerText = 'ЗАПИСЬ';
+            recordBtn.classList.add('active-record');
+            recordBottomBtn.classList.add('active-record');
+            recordBtn.innerHTML = '⏹ Стоп';
+            recordBottomBtn.innerHTML = '⏹ Стоп';
+        } else {
+            recLed.classList.remove('rec-on');
+            recText.innerText = 'Стоп';
+            recordBtn.classList.remove('active-record');
+            recordBottomBtn.classList.remove('active-record');
+            recordBtn.innerHTML = '⏺ Запись';
+            recordBottomBtn.innerHTML = '⏺ Запись';
+        }
+    }
+
+    // Функция для получения ноты под точкой касания
+    function getNoteFromTouch(touch) {
+        const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+        for (let el of elements) {
+            if (el.classList && (el.classList.contains('white-key') || el.classList.contains('black-key'))) {
+                return el.getAttribute('data-note');
+            }
+        }
+        return null;
+    }
+
+    // Обработчики для мыши
+    let isMouseDown = false;
+    let currentMouseNotes = new Set();
+
+    document.addEventListener('mousedown', (e) => {
+        const target = e.target;
+        if (target.classList && (target.classList.contains('white-key') || target.classList.contains('black-key'))) {
+            e.preventDefault();
+            isMouseDown = true;
+            const note = target.getAttribute('data-note');
+            if (!currentMouseNotes.has(note)) {
+                currentMouseNotes.add(note);
+                handleNoteDown(note);
+            }
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const currentNoteSet = new Set();
+        
+        for (let el of elements) {
+            if (el.classList && (el.classList.contains('white-key') || el.classList.contains('black-key'))) {
+                const note = el.getAttribute('data-note');
+                currentNoteSet.add(note);
+                
+                if (!currentMouseNotes.has(note)) {
+                    currentMouseNotes.add(note);
+                    handleNoteDown(note);
+                }
+            }
+        }
+        
+        currentMouseNotes.forEach(note => {
+            if (!currentNoteSet.has(note)) {
+                handleNoteUp(note);
+                currentMouseNotes.delete(note);
+            }
+        });
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+            currentMouseNotes.forEach(note => {
+                handleNoteUp(note);
+            });
+            currentMouseNotes.clear();
+            isMouseDown = false;
+        }
+    });
+
+    // Обработчики для touch
+    pianoKeyboard.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            const note = getNoteFromTouch(touch);
+            
+            if (note && !touchActiveNotes.has(touch.identifier)) {
+                touchActiveNotes.set(touch.identifier, note);
+                handleNoteDown(note);
+            }
+        }
+    }, { passive: false });
+
+    pianoKeyboard.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            const currentNote = getNoteFromTouch(touch);
+            const previousNote = touchActiveNotes.get(touch.identifier);
+            
+            if (currentNote && previousNote !== currentNote) {
+                if (previousNote) {
+                    handleNoteUp(previousNote);
+                }
+                touchActiveNotes.set(touch.identifier, currentNote);
+                handleNoteDown(currentNote);
+            } else if (!currentNote && previousNote) {
+                handleNoteUp(previousNote);
+                touchActiveNotes.delete(touch.identifier);
+            }
+        }
+    }, { passive: false });
+
+    pianoKeyboard.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+            const note = touchActiveNotes.get(touch.identifier);
+            
+            if (note) {
+                handleNoteUp(note);
+                touchActiveNotes.delete(touch.identifier);
+            }
+        }
+    });
+
+    pianoKeyboard.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+            const note = touchActiveNotes.get(touch.identifier);
+            
+            if (note) {
+                handleNoteUp(note);
+                touchActiveNotes.delete(touch.identifier);
+            }
+        }
+    });
+
+    // Обработка нажатия ноты
+    function handleNoteDown(note) {
+        startNote(note);
+        activateKey(note);
+        
+        if (isRecording) {
+            // Запоминаем время начала ноты
+            if (!activeRecordingNotes.has(note)) {
+                activeRecordingNotes.set(note, {
+                    startTime: performance.now()
+                });
+            }
+        }
+    }
+
+    // Обработка отпускания ноты
+    function handleNoteUp(note) {
+        stopNote(note);
+        deactivateKey(note);
+        
+        if (isRecording) {
+            const noteInfo = activeRecordingNotes.get(note);
+            if (noteInfo) {
+                const endTime = performance.now();
+                const duration = endTime - noteInfo.startTime;
+                
+                // Ищем существующее событие для этого момента времени
+                // (может быть аккорд из нескольких нот)
+                const currentTime = endTime - recordingStartTime;
+                
+                // Проверяем, есть ли событие, начавшееся примерно в то же время
+                const tolerance = 50; // 50мс допуск
+                let existingEvent = null;
+                
+                for (let i = currentSequence.length - 1; i >= 0; i--) {
+                    const ev = currentSequence[i];
+                    if (ev.type === 'note' && Math.abs(ev.timestamp - (noteInfo.startTime - recordingStartTime)) < tolerance) {
+                        existingEvent = ev;
+                        break;
+                    }
+                }
+                
+                if (existingEvent) {
+                    // Добавляем ноту к существующему аккорду
+                    if (!existingEvent.notes.includes(note)) {
+                        existingEvent.notes.push(note);
+                        // Обновляем длительность (берем максимальную)
+                        existingEvent.duration = Math.max(existingEvent.duration, duration);
+                    }
+                } else {
+                    // Создаем новое событие
+                    const timestamp = noteInfo.startTime - recordingStartTime;
+                    
+                    // Добавляем паузу если нужно
+                    if (currentSequence.length > 0) {
+                        const lastEvent = currentSequence[currentSequence.length - 1];
+                        const lastEventEnd = lastEvent.timestamp + lastEvent.duration;
+                        const pauseDuration = timestamp - lastEventEnd;
+                        
+                        if (pauseDuration > 50) { // Минимальная пауза для записи
+                            currentSequence.push({
+                                type: 'pause',
+                                duration: pauseDuration,
+                                timestamp: lastEventEnd
+                            });
+                        }
+                    }
+                    
+                    // Добавляем новую ноту/аккорд
+                    currentSequence.push({
+                        type: 'note',
+                        notes: [note],
+                        duration: duration,
+                        timestamp: timestamp
+                    });
+                }
+                
+                activeRecordingNotes.delete(note);
+                updateUI();
+            }
+        }
+    }
+
+    // Воспроизведение последовательности с поддержкой полифонии
+    function playSequence() {
+        if (currentSequence.length === 0) return;
+
+        recordBtn.disabled = true;
+        recordBottomBtn.disabled = true;
+        playBtn.disabled = true;
+        clearBtn.disabled = true;
+        saveBtn.disabled = true;
+
+        if (isRecording) {
+            isRecording = false;
+            activeRecordingNotes.clear();
+            stopAllNotes();
+        }
+
+        deactivateAllKeys();
+        updateUI();
+
+        let eventIndex = 0;
+        let startTime = audioCtx.currentTime;
+
+        function scheduleNext() {
+            if (eventIndex >= currentSequence.length) {
+                setTimeout(() => {
+                    recordBtn.disabled = false;
+                    recordBottomBtn.disabled = false;
+                    playBtn.disabled = false;
+                    clearBtn.disabled = false;
+                    saveBtn.disabled = false;
+                    deactivateAllKeys();
+                }, 500);
+                return;
+            }
+
+            const event = currentSequence[eventIndex];
+            const now = audioCtx.currentTime;
+            const eventStartTime = startTime + (event.timestamp / 1000);
+
+            if (event.type === 'note') {
+                // Запускаем все ноты аккорда
+                event.notes.forEach(note => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.type = currentWaveform;
+                    osc.frequency.value = noteFreq[note];
+                    
+                    gain.gain.setValueAtTime(0, eventStartTime);
+                    gain.gain.linearRampToValueAtTime(0.1, eventStartTime + 0.02);
+                    gain.gain.setValueAtTime(0.1, eventStartTime + (event.duration / 1000) - 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, eventStartTime + (event.duration / 1000));
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(eventStartTime);
+                    osc.stop(eventStartTime + (event.duration / 1000) + 0.1);
+                });
+
+                // Визуализация
+                event.notes.forEach(note => {
+                    const key = document.querySelector(`[data-note="${note}"]`);
+                    if (key) {
+                        setTimeout(() => {
+                            key.classList.add('active-key');
+                        }, event.timestamp);
+                        setTimeout(() => {
+                            key.classList.remove('active-key');
+                        }, event.timestamp + event.duration);
+                    }
+                });
+            }
+
+            eventIndex++;
+            setTimeout(scheduleNext, 10);
+        }
+
+        scheduleNext();
+    }
+
+    function clearSequence() {
+        stopAllNotes();
+        currentSequence = [];
+        activeRecordingNotes.clear();
+        isRecording = false;
+        recordingStartTime = null;
+        lastEventEndTime = 0;
+        deactivateAllKeys();
+        touchActiveNotes.clear();
+        currentMouseNotes.clear();
+        updateUI();
+    }
+
+    function toggleRecording() {
+        if (!isRecording) {
+            clearSequence();
+            isRecording = true;
+            recordingStartTime = performance.now();
+            activeRecordingNotes.clear();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        } else {
+            isRecording = false;
+            // Завершаем все активные ноты
+            activeRecordingNotes.forEach((_, note) => {
+                handleNoteUp(note);
+            });
+            activeRecordingNotes.clear();
+            stopAllNotes();
+        }
+        updateUI();
+    }
+
+    // Сохранение в MP3 с поддержкой полифонии
+    async function saveAsMP3() {
+        if (currentSequence.length === 0) {
+            alert('Сначала создайте последовательность нот');
+            return;
+        }
+
+        audioProgress.style.display = 'flex';
+        progressFill.style.width = '0%';
+
+        const sampleRate = 44100;
+        const totalDuration = (currentSequence[currentSequence.length - 1].timestamp + 
+                              currentSequence[currentSequence.length - 1].duration) / 1000 + 1;
+        const totalSamples = Math.floor(totalDuration * sampleRate) + 10000;
+        
+        const audioBuffer = audioCtx.createBuffer(1, totalSamples, sampleRate);
+        const channelData = audioBuffer.getChannelData(0);
+        
+        for (let i = 0; i < totalSamples; i++) {
+            channelData[i] = 0;
+        }
+
+        // Генерируем звук для каждого события
+        for (let i = 0; i < currentSequence.length; i++) {
+            const event = currentSequence[i];
+            
+            if (event.type === 'note') {
+                const startSample = Math.floor(event.timestamp / 1000 * sampleRate);
+                const durationSamples = Math.floor(event.duration / 1000 * sampleRate);
+                
+                // Для каждой ноты в аккорде
+                event.notes.forEach(note => {
+                    const freq = noteFreq[note];
+                    
+                    for (let j = 0; j < durationSamples; j++) {
+                        const t = j / sampleRate;
+                        const sampleIndex = startSample + j;
+                        
+                        if (sampleIndex >= totalSamples) break;
+                        
+                        let sample = 0;
+                        switch(currentWaveform) {
+                            case 'sine':
+                                sample = Math.sin(2 * Math.PI * freq * t);
+                                break;
+                            case 'triangle':
+                                sample = 2 * Math.abs(2 * (t * freq - Math.floor(t * freq + 0.5))) - 1;
+                                break;
+                            case 'sawtooth':
+                                sample = 2 * (t * freq - Math.floor(t * freq + 0.5));
+                                break;
+                            case 'square':
+                                sample = Math.sign(Math.sin(2 * Math.PI * freq * t));
+                                break;
+                        }
+                        
+                        // Огибающая
+                        let env;
+                        if (t < 0.02) {
+                            env = t * 50;
+                        } else if (t > event.duration/1000 - 0.1) {
+                            env = Math.max(0, (event.duration/1000 - t) * 10);
+                        } else {
+                            env = 1;
+                        }
+                        
+                        sample *= env * 0.15 / Math.sqrt(event.notes.length); // Деление на корень из числа нот для баланса
+                        channelData[sampleIndex] += sample;
+                    }
+                });
+            }
+            
+            progressFill.style.width = `${(i + 1) / currentSequence.length * 100}%`;
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+
+        // Нормализация
+        let maxSample = 0;
+        for (let i = 0; i < totalSamples; i++) {
+            maxSample = Math.max(maxSample, Math.abs(channelData[i]));
+        }
+        if (maxSample > 0.9) {
+            const gain = 0.9 / maxSample;
+            for (let i = 0; i < totalSamples; i++) {
+                channelData[i] *= gain;
+            }
+        }
+
+        const wavData = encodeWAV(channelData, sampleRate);
+        const wavBlob = new Blob([wavData], { type: 'audio/wav' });
+
+        try {
+            const mp3Blob = await convertWavToMp3(wavBlob);
+
+            const url = URL.createObjectURL(mp3Blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `piano_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.mp3`;
+            a.click();
+            
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+        } catch (error) {
+            console.error('MP3 conversion error:', error);
+            alert('Ошибка при создании MP3. Попробуйте еще раз.');
+        }
+
+        audioProgress.style.display = 'none';
+    }
+
+    function convertWavToMp3(wavBlob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function() {
+                try {
+                    const wavArrayBuffer = reader.result;
+                    const samples = new Int16Array(wavArrayBuffer, 44, (wavArrayBuffer.byteLength - 44) / 2);
+                    
+                    const mp3encoder = new lamejs.Mp3Encoder(1, 44100, 128);
+                    
+                    const mp3Data = [];
+                    const sampleBlockSize = 1152;
+                    
+                    for (let i = 0; i < samples.length; i += sampleBlockSize) {
+                        const sampleChunk = samples.subarray(i, i + sampleBlockSize);
+                        const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+                        if (mp3buf.length > 0) {
+                            mp3Data.push(new Uint8Array(mp3buf));
+                        }
+                    }
+                    
+                    const mp3buf = mp3encoder.flush();
+                    if (mp3buf.length > 0) {
+                        mp3Data.push(new Uint8Array(mp3buf));
+                    }
+                    
+                    const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+                    resolve(mp3Blob);
+                } catch (e) {
+                    reject(e);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(wavBlob);
+        });
+    }
+
+    function encodeWAV(samples, sampleRate) {
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+        
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, 36 + samples.length * 2, true);
+        writeString(view, 8, 'WAVE');
+        
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        
+        writeString(view, 36, 'data');
+        view.setUint32(40, samples.length * 2, true);
+        
+        for (let i = 0; i < samples.length; i++) {
+            const s = Math.max(-1, Math.min(1, samples[i]));
+            view.setInt16(44 + i * 2, s * 0x7FFF, true);
+        }
+        
+        return buffer;
+    }
+
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+
+    // Глобальные обработчики
+    document.addEventListener('mouseup', () => {
+        if (isMouseDown) {
+            currentMouseNotes.forEach(note => {
+                handleNoteUp(note);
+            });
+            currentMouseNotes.clear();
+            isMouseDown = false;
+        }
+    });
+
+    // Обработчики для кнопок
+    recordBtn.addEventListener('click', toggleRecording);
+    recordBottomBtn.addEventListener('click', toggleRecording);
+
+    playBtn.addEventListener('click', () => {
+        playSequence();
+    });
+
+    clearBtn.addEventListener('click', () => {
+        clearSequence();
+    });
+
+    saveBtn.addEventListener('click', () => {
+        saveAsMP3();
+    });
+
+    updateUI();
+
+    document.addEventListener('touchstart', () => {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }, { once: true });
+
+    document.addEventListener('click', () => {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }, { once: true });
+})();
+</script>
+</body>
+</html>
+
+
