@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Драм машина + MP3 — предпрослушивание</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0a0c12;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            margin: 0;
+            touch-action: manipulation;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 420px;
+            background: #14181f;
+            border-radius: 32px;
+            padding: 20px 16px;
+            box-shadow: 0 25px 50px -8px black;
+            border: 1px solid #2a313c;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #e8edff;
+            text-align: center;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8892b0;
+            font-size: 13px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #232a33;
+            padding-bottom: 12px;
+        }
+
+        .section {
+            background: #1e242c;
+            border-radius: 24px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #2f3844;
+        }
+
+        .file-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #2b6c9f;
+            color: white;
+            font-weight: 600;
+            padding: 14px;
+            border-radius: 40px;
+            margin-bottom: 12px;
+            border: none;
+            box-shadow: 0 5px 0 #154a73;
+            transition: 0.05s ease;
+            cursor: pointer;
+        }
+        .file-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #154a73;
+        }
+        .file-btn input {
+            display: none;
+        }
+
+        .file-name {
+            background: #0f141c;
+            padding: 10px 16px;
+            border-radius: 30px;
+            color: #b4c2e0;
+            font-size: 14px;
+            border: 1px solid #384252;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 16px;
+            border-radius: 30px;
+            background: #0b1017;
+        }
+
+        .bank-switch {
+            display: flex;
+            background: #1a212a;
+            border-radius: 60px;
+            padding: 4px;
+            margin: 20px 0 16px;
+            border: 1px solid #374150;
+        }
+
+        .bank-btn {
+            flex: 1;
+            padding: 12px 0;
+            border-radius: 40px;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            color: #8f9bb5;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+        .bank-btn.active {
+            background: #2b6c9f;
+            color: white;
+            box-shadow: 0 2px 10px #1d4b73;
+        }
+
+        .drum-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .drum-pad {
+            background: #212833;
+            border-radius: 24px;
+            padding: 16px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #415166;
+            box-shadow: 0 6px 0 #0f141c, 0 8px 12px rgba(0,0,0,0.4);
+            transition: 0.03s linear;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            min-height: 90px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .drum-pad:active {
+            transform: translateY(5px);
+            box-shadow: 0 2px 0 #0f141c, 0 5px 10px black;
+        }
+        .pad-name {
+            font-size: 13px;
+            background: #313e52;
+            padding: 4px 12px;
+            border-radius: 30px;
+            margin-top: 8px;
+            font-weight: 400;
+            color: #cfdcff;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0 10px;
+            flex-wrap: wrap;
+        }
+        .action-btn {
+            flex: 1 0 100px;
+            background: #2d3543;
+            border: 1px solid #4f5b70;
+            color: white;
+            font-weight: 600;
+            padding: 16px 0;
+            border-radius: 50px;
+            box-shadow: 0 4px 0 #181f28;
+            transition: 0.04s;
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .action-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #181f28;
+        }
+        .action-btn.record { background: #b13e3e; border-color: #ff8a8a; box-shadow: 0 4px 0 #6d2424; }
+        .action-btn.stop { background: #49516b; }
+        .action-btn.play { background: #3a7b4e; border-color: #7bcb99; box-shadow: 0 4px 0 #1f4a2f; }
+        .action-btn.play.active-preview { background: #f4c542; border-color: #ffe28b; color: #1f2a3a; box-shadow: 0 4px 0 #b57c1a; }
+        .action-btn.save { background: #5d418c; border-color: #b192f0; box-shadow: 0 4px 0 #382758; }
+
+        .preview-section {
+            background: #1b212a;
+            border-radius: 20px;
+            padding: 16px;
+            margin: 16px 0 8px;
+            border: 1px solid #394153;
+        }
+
+        .preview-title {
+            color: #adb9d6;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .preview-audio {
+            flex: 1;
+            height: 40px;
+        }
+
+        .status {
+            text-align: center;
+            color: #a5b2cf;
+            padding: 12px;
+            background: #0e131b80;
+            border-radius: 40px;
+            margin-top: 16px;
+            font-size: 14px;
+            backdrop-filter: blur(4px);
+            border: 1px solid #3a4357;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <h1>🎧 DRUM OVERLAY</h1>
+    <div class="subtitle">запись барабанов поверх MP3</div>
+
+    <div class="section">
+        <label for="mp3File" class="file-btn">
+            <span>📁</span> Выбрать MP3
+            <input type="file" id="mp3File" accept="audio/mpeg, audio/mp3" />
+        </label>
+        <div id="fileName" class="file-name">файл не выбран</div>
+        <audio id="audioPlayer" controls controlsList="nodownload"></audio>
+    </div>
+
+    <div class="bank-switch">
+        <button id="bank1" class="bank-btn active" data-bank="1">🥁 Акустика</button>
+        <button id="bank2" class="bank-btn" data-bank="2">⚡ Электро</button>
+    </div>
+
+    <div class="drum-grid" id="padGrid"></div>
+
+    <div class="action-row">
+        <button id="recordBtn" class="action-btn record">⏺ ЗАПИСЬ</button>
+        <button id="stopBtn" class="action-btn stop">⏹ СТОП</button>
+        <button id="playPreviewBtn" class="action-btn play">👂 ПРОСЛУШАТЬ</button>
+    </div>
+    <div class="action-row">
+        <button id="saveBtn" class="action-btn save">💾 СОХРАНИТЬ</button>
+    </div>
+
+    <div class="preview-section">
+        <div class="preview-title">
+            <span>🎵 результат записи</span>
+        </div>
+        <div class="preview-controls">
+            <audio id="previewAudio" controls class="preview-audio"></audio>
+            <button id="clearPreviewBtn" style="background: none; border: none; color: #a5b2cf; font-size: 24px; padding: 0 8px; cursor:pointer;">🗑️</button>
+        </div>
+        <div style="font-size: 12px; color: #6f7c9f; margin-top: 8px;">* после записи нажми "прослушать"</div>
+    </div>
+
+    <div id="status" class="status">⚡ готов к работе</div>
+</div>
+
+<script>
+(function() {
+    // ============ РЕАЛЬНЫЕ ЗВУКИ БАРАБАНОВ (разные частоты и формы волны) ============
+    // Создаем реальные аудио-сэмплы с разными характеристиками
+    function createDrumSound(type, pitch = 440, duration = 0.2) {
+        const sampleRate = 44100;
+        const bytesPerSample = 2;
+        const numChannels = 1;
+        const byteRate = sampleRate * numChannels * bytesPerSample;
+        const blockAlign = numChannels * bytesPerSample;
+        const dataSize = Math.floor(sampleRate * duration) * bytesPerSample;
+        const fileSize = 44 + dataSize;
+        
+        // Создаем WAV заголовок
+        const buffer = new ArrayBuffer(44 + dataSize);
+        const view = new DataView(buffer);
+        
+        // RIFF header
+        writeString(view, 0, 'RIFF');
+        view.setUint32(4, fileSize - 8, true);
+        writeString(view, 8, 'WAVE');
+        writeString(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, byteRate, true);
+        view.setUint16(32, blockAlign, true);
+        view.setUint16(34, 16, true);
+        writeString(view, 36, 'data');
+        view.setUint32(40, dataSize, true);
+        
+        // Генерируем аудио данные в зависимости от типа
+        const samples = new Int16Array(dataSize / 2);
+        const numSamples = samples.length;
+        
+        for (let i = 0; i < numSamples; i++) {
+            const t = i / sampleRate;
+            let sample = 0;
+            
+            switch(type) {
+                case 'kick': // Бочка - низкий удар с затуханием
+                    sample = Math.sin(2 * Math.PI * 60 * t) * Math.exp(-t * 15);
+                    sample += Math.sin(2 * Math.PI * 120 * t) * 0.5 * Math.exp(-t * 20);
+                    break;
+                    
+                case 'snare': // Малый - шум с хрустом
+                    const noise = Math.random() * 2 - 1;
+                    const tone = Math.sin(2 * Math.PI * 180 * t);
+                    sample = (tone * 0.3 + noise * 0.7) * Math.exp(-t * 12);
+                    break;
+                    
+                case 'hat': // Хэт - короткий шипящий
+                    sample = (Math.random() * 2 - 1) * Math.exp(-t * 40);
+                    break;
+                    
+                case 'tom-low': // Том низкий
+                    sample = Math.sin(2 * Math.PI * 100 * t) * Math.exp(-t * 8);
+                    sample += Math.sin(2 * Math.PI * 200 * t) * 0.3 * Math.exp(-t * 12);
+                    break;
+                    
+                case 'crash': // Крэш - яркий шум
+                    sample = (Math.random() * 2 - 1) * Math.exp(-t * 5);
+                    sample += Math.sin(2 * Math.PI * 400 * t) * 0.2 * Math.exp(-t * 4);
+                    break;
+                    
+                case 'ride': // Райд - долгий звон
+                    sample = Math.sin(2 * Math.PI * 300 * t) * Math.exp(-t * 3);
+                    sample += Math.sin(2 * Math.PI * 600 * t) * 0.5 * Math.exp(-t * 4);
+                    break;
+                    
+                case 'tom-mid': // Том средний
+                    sample = Math.sin(2 * Math.PI * 140 * t) * Math.exp(-t * 9);
+                    sample += Math.sin(2 * Math.PI * 280 * t) * 0.4 * Math.exp(-t * 10);
+                    break;
+                    
+                case 'clap': // Хлопок
+                    const env = Math.exp(-t * 30) * Math.sin(2 * Math.PI * 200 * t) * 0.5;
+                    sample = env + (Math.random() * 2 - 1) * 0.3 * Math.exp(-t * 35);
+                    break;
+                    
+                case '808kick': // Электро бочка
+                    sample = Math.sin(2 * Math.PI * 50 * t) * Math.exp(-t * 8);
+                    break;
+                    
+                case 'electrosnare': // Электро малый
+                    sample = Math.sin(2 * Math.PI * 250 * t) * Math.exp(-t * 10);
+                    sample += (Math.random() * 2 - 1) * 0.4 * Math.exp(-t * 15);
+                    break;
+                    
+                case 'electrohat': // Электро хэт
+                    sample = Math.sin(2 * Math.PI * 800 * t) * 0.3 * Math.exp(-t * 25);
+                    sample += (Math.random() * 2 - 1) * 0.7 * Math.exp(-t * 30);
+                    break;
+                    
+                case 'electrotom': // Электро том
+                    sample = Math.sin(2 * Math.PI * 120 * t) * Math.exp(-t * 7);
+                    sample += Math.sin(2 * Math.PI * 240 * t) * 0.3 * Math.exp(-t * 8);
+                    break;
+                    
+                case 'electrocrash': // Электро крэш
+                    sample = Math.sin(2 * Math.PI * 500 * t) * 0.3 * Math.exp(-t * 3);
+                    sample += (Math.random() * 2 - 1) * 0.5 * Math.exp(-t * 4);
+                    break;
+                    
+                case 'electroride': // Электро райд
+                    sample = Math.sin(2 * Math.PI * 350 * t) * Math.exp(-t * 5);
+                    sample += Math.sin(2 * Math.PI * 700 * t) * 0.3 * Math.exp(-t * 6);
+                    break;
+                    
+                case 'electroperc': // Электро перкуссия
+                    sample = Math.sin(2 * Math.PI * 180 * t) * Math.exp(-t * 12);
+                    break;
+                    
+                case 'electroclap': // Электро хлопок
+                    sample = Math.sin(2 * Math.PI * 220 * t) * 0.5 * Math.exp(-t * 25);
+                    sample += (Math.random() * 2 - 1) * 0.5 * Math.exp(-t * 30);
+                    break;
+            }
+            
+            // Нормализация и запись
+            sample = Math.max(-1, Math.min(1, sample));
+            samples[i] = sample * 32767;
+        }
+        
+        // Копируем samples в buffer
+        const samplesView = new Int16Array(buffer, 44, numSamples);
+        samplesView.set(samples);
+        
+        // Конвертируем в base64
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return 'data:audio/wav;base64,' + btoa(binary);
+    }
+    
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    }
+
+    // Создаем разные звуки для каждого пэда
+    const DRUM_KITS = {
+        // Акустический набор - все звуки разные
+        1: [
+            createDrumSound('kick'),      // KICK - низкий бум
+            createDrumSound('snare'),     // SNARE - резкий шум
+            createDrumSound('hat'),       // HAT - короткий шип
+            createDrumSound('tom-low'),   // TOM-L - глухой удар
+            createDrumSound('crash'),     // CRASH - яркая тарелка
+            createDrumSound('ride'),      // RIDE - долгий звон
+            createDrumSound('tom-mid'),   // TOM-M - средний том
+            createDrumSound('clap')       // CLAP - хлопок
+        ],
+        // Электронный набор - все звуки разные
+        2: [
+            createDrumSound('808kick'),    // Электро бочка
+            createDrumSound('electrosnare'), // Электро малый
+            createDrumSound('electrohat'),  // Электро хэт
+            createDrumSound('electrotom'),  // Электро том
+            createDrumSound('electrocrash'), // Электро крэш
+            createDrumSound('electroride'), // Электро райд
+            createDrumSound('electroperc'), // Электро перкуссия
+            createDrumSound('electroclap')  // Электро хлопок
+        ]
+    };
+
+    const PAD_LABELS = ["KICK", "SNARE", "HAT", "TOM-L", "CRASH", "RIDE", "TOM-M", "CLAP"];
+
+    // --- Элементы ---
+    const mp3Input = document.getElementById('mp3File');
+    const fileNameDiv = document.getElementById('fileName');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const padGrid = document.getElementById('padGrid');
+    const bank1Btn = document.getElementById('bank1');
+    const bank2Btn = document.getElementById('bank2');
+    const recordBtn = document.getElementById('recordBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const playPreviewBtn = document.getElementById('playPreviewBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const previewAudio = document.getElementById('previewAudio');
+    const clearPreviewBtn = document.getElementById('clearPreviewBtn');
+    const statusDiv = document.getElementById('status');
+
+    // --- Состояние ---
+    let currentBank = 1;
+    let isRecording = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let audioContext = null;
+    let destinationNode = null;
+    let mixStream = null;
+    let sourceNode = null;
+    let lastRecordingBlob = null;
+    let isPreviewPlaying = false;
+
+    // --- Инициализация сетки пэдов ---
+    function renderPads() {
+        padGrid.innerHTML = '';
+        for (let i = 0; i < 8; i++) {
+            const pad = document.createElement('div');
+            pad.className = 'drum-pad';
+            pad.dataset.index = i;
+            pad.innerHTML = `<span>${PAD_LABELS[i]}</span><span class="pad-name">банк ${currentBank}</span>`;
+            pad.addEventListener('touchstart', (e) => { e.preventDefault(); playDrum(i); });
+            pad.addEventListener('mousedown', (e) => { e.preventDefault(); playDrum(i); });
+            padGrid.appendChild(pad);
+        }
+    }
+
+    async function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            destinationNode = audioContext.createMediaStreamDestination();
+            mixStream = destinationNode.stream;
+        }
+        if (audioContext.state !== 'running') {
+            await audioContext.resume();
+        }
+        return audioContext;
+    }
+
+    async function playDrum(index) {
+        try {
+            const ctx = await initAudio();
+            const kit = DRUM_KITS[currentBank];
+            if (!kit || !kit[index]) return;
+
+            // Визуальный фидбек
+            const pads = document.querySelectorAll('.drum-pad');
+            if (pads[index]) {
+                pads[index].style.background = '#3f506f';
+                pads[index].style.transform = 'translateY(5px)';
+                setTimeout(() => { 
+                    pads[index].style.background = ''; 
+                    pads[index].style.transform = '';
+                }, 90);
+            }
+
+            const response = await fetch(kit[index]);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+            const bufferSource = ctx.createBufferSource();
+            bufferSource.buffer = audioBuffer;
+            bufferSource.connect(ctx.destination);
+            if (destinationNode) bufferSource.connect(destinationNode);
+            bufferSource.start();
+        } catch (e) {
+            console.log('drum error', e);
+        }
+    }
+
+    function setBank(bank) {
+        currentBank = bank;
+        bank1Btn.classList.toggle('active', bank === 1);
+        bank2Btn.classList.toggle('active', bank === 2);
+        document.querySelectorAll('.drum-pad .pad-name').forEach(el => {
+            el.innerText = `банк ${bank}`;
+        });
+    }
+
+    bank1Btn.addEventListener('click', () => setBank(1));
+    bank2Btn.addEventListener('click', () => setBank(2));
+
+    mp3Input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileNameDiv.innerText = file.name;
+            const url = URL.createObjectURL(file);
+            audioPlayer.src = url;
+            audioPlayer.load();
+            setStatus('MP3 загружен');
+        } else {
+            fileNameDiv.innerText = 'файл не выбран';
+        }
+    });
+
+    async function startRecording() {
+        if (isRecording) return;
+        try {
+            const ctx = await initAudio();
+            if (!audioPlayer.src) {
+                setStatus('❌ Сначала загрузи MP3', true);
+                return;
+            }
+
+            if (sourceNode) {
+                sourceNode.disconnect();
+                sourceNode = null;
+            }
+
+            sourceNode = ctx.createMediaElementSource(audioPlayer);
+            sourceNode.connect(ctx.destination);
+            sourceNode.connect(destinationNode);
+
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(mixStream, { mimeType: 'audio/webm' });
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+            mediaRecorder.onstop = () => {
+                lastRecordingBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                setStatus('⏸ Запись готова, нажми ПРОСЛУШАТЬ');
+                if (isPreviewPlaying) {
+                    isPreviewPlaying = false;
+                    playPreviewBtn.classList.remove('active-preview');
+                }
+            };
+            mediaRecorder.start();
+            isRecording = true;
+            setStatus('🔴 ЗАПИСЬ... играй на барабанах');
+            if (audioPlayer.paused) {
+                audioPlayer.play().catch(e => setStatus('Нажми play в MP3 плеере', true));
+            }
+        } catch (err) {
+            setStatus('Ошибка: ' + err.message, true);
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            isRecording = false;
+            setStatus('⏹ Запись остановлена');
+        }
+    }
+
+    function togglePreview() {
+        if (!lastRecordingBlob) {
+            setStatus('Сначала сделай запись', true);
+            return;
+        }
+
+        if (isPreviewPlaying) {
+            previewAudio.pause();
+            previewAudio.currentTime = 0;
+            isPreviewPlaying = false;
+            playPreviewBtn.classList.remove('active-preview');
+            setStatus('⏸ Прослушивание остановлено');
+            return;
+        }
+
+        const url = URL.createObjectURL(lastRecordingBlob);
+        previewAudio.src = url;
+        previewAudio.play()
+            .then(() => {
+                isPreviewPlaying = true;
+                playPreviewBtn.classList.add('active-preview');
+                setStatus('🎧 Предпрослушивание...');
+            })
+            .catch(e => {
+                setStatus('Не удалось воспроизвести', true);
+                isPreviewPlaying = false;
+                playPreviewBtn.classList.remove('active-preview');
+            });
+
+        previewAudio.onended = () => {
+            isPreviewPlaying = false;
+            playPreviewBtn.classList.remove('active-preview');
+            setStatus('Прослушивание завершено');
+        };
+    }
+
+    function saveFile() {
+        if (!lastRecordingBlob) {
+            setStatus('Нет записи для сохранения', true);
+            return;
+        }
+        const url = URL.createObjectURL(lastRecordingBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `drums_mp3_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setStatus('✅ Файл сохранён');
+    }
+
+    function clearPreview() {
+        previewAudio.pause();
+        previewAudio.src = '';
+        lastRecordingBlob = null;
+        isPreviewPlaying = false;
+        playPreviewBtn.classList.remove('active-preview');
+        setStatus('Превью очищено');
+    }
+
+    recordBtn.addEventListener('click', startRecording);
+    stopBtn.addEventListener('click', stopRecording);
+    playPreviewBtn.addEventListener('click', togglePreview);
+    saveBtn.addEventListener('click', saveFile);
+    clearPreviewBtn.addEventListener('click', clearPreview);
+
+    function setStatus(msg, isError = false) {
+        statusDiv.innerText = msg;
+        statusDiv.style.color = isError ? '#ffb0b0' : '#a5b2cf';
+    }
+
+    renderPads();
+
+    document.body.addEventListener('touchstart', () => initAudio(), { passive: true });
+    document.body.addEventListener('mousedown', () => initAudio());
+
+    previewAudio.addEventListener('pause', () => {
+        if (isPreviewPlaying) {
+            isPreviewPlaying = false;
+            playPreviewBtn.classList.remove('active-preview');
+        }
+    });
+
+    previewAudio.addEventListener('ended', () => {
+        isPreviewPlaying = false;
+        playPreviewBtn.classList.remove('active-preview');
+        setStatus('Прослушивание завершено');
+    });
+
+    setStatus('⚡ Загрузи MP3 и жми на барабаны');
+})();
+</script>
+</body>
+</html>
