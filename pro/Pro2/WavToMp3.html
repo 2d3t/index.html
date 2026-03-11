@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>WAV в MP3 конвертер · тёмная тема</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #0b0c10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 12px;
+            color: #e0e0e0;
+        }
+
+        .card {
+            background: #1e1f2a;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 36px;
+            padding: 24px 20px 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(2px);
+            border: 1px solid #333646;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+            background: linear-gradient(145deg, #ffffff 0%, #b0b0d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            padding-left: 6px;
+        }
+
+        .sub {
+            color: #8f94b0;
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+            padding-left: 8px;
+            border-left: 3px solid #5f7b9c;
+        }
+
+        /* зона выбора файла */
+        .file-area {
+            background: #262836;
+            border-radius: 40px;
+            padding: 6px;
+            margin-bottom: 24px;
+            border: 1px solid #3e4057;
+            transition: border 0.2s;
+        }
+
+        .file-area:focus-within {
+            border-color: #7d9ec0;
+            box-shadow: 0 0 0 2px rgba(100, 150, 220, 0.3);
+        }
+
+        .file-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1b1d29;
+            border-radius: 40px;
+            padding: 14px 20px;
+            color: #b9c4dc;
+            font-weight: 450;
+            border: 1px solid #4b4e6b;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .file-label span {
+            font-size: 1rem;
+            word-break: break-word;
+            padding-right: 8px;
+        }
+
+        .file-label .icon {
+            font-size: 1.4rem;
+            filter: drop-shadow(0 2px 4px #00000060);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* битрейт + качество */
+        .bitrate-section {
+            background: #1b1d29;
+            border-radius: 26px;
+            padding: 16px 18px;
+            margin-bottom: 26px;
+            border: 1px solid #3f435b;
+        }
+
+        .bitrate-header {
+            display: flex;
+            justify-content: space-between;
+            color: #a5b3d4;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        .bitrate-value {
+            color: #dbcbaa;
+            background: #2c2f3f;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #4f7092, #a4c2e0);
+            border-radius: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            background: #f0f2fa;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px #00000070, 0 0 0 2px #1e80b0;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 2px solid #152b3b;
+        }
+
+        .presets {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 14px;
+            gap: 6px;
+        }
+
+        .preset-btn {
+            background: #262b39;
+            border: 1px solid #49587a;
+            color: #cbd5f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 8px 0;
+            border-radius: 40px;
+            width: 23%;
+            text-align: center;
+            transition: all 0.15s;
+            box-shadow: 0 2px 3px #00000040;
+        }
+
+        .preset-btn.active {
+            background: #3f5680;
+            border-color: #96bcf5;
+            color: white;
+            box-shadow: inset 0 1px 3px #000000, 0 2px 6px #1d3557;
+        }
+
+        /* кнопка конвертации */
+        .convert-btn {
+            background: linear-gradient(145deg, #30577b, #1b334a);
+            border: none;
+            width: 100%;
+            padding: 20px 0;
+            border-radius: 60px;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #eef7ff;
+            text-shadow: 0 2px 4px black;
+            margin: 10px 0 20px;
+            box-shadow: 0 10px 20px #00000060, 0 2px 0 #3c6490 inset;
+            transition: all 0.1s ease;
+            border: 1px solid #3f6791;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .convert-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 4px 8px black;
+            background: linear-gradient(145deg, #20415f, #122735);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.45;
+            transform: none;
+            box-shadow: none;
+            background: #2e3647;
+            border-color: #4f556b;
+        }
+
+        /* индикатор процесса */
+        .progress-container {
+            background: #12141c;
+            border-radius: 40px;
+            height: 22px;
+            margin: 22px 0 8px;
+            border: 1px solid #414b60;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 3px 6px #000000;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3f95d1, #82c4ff, #3f95d1);
+            background-size: 200% 100%;
+            border-radius: 40px;
+            transition: width 0.15s ease;
+            box-shadow: 0 0 15px #4195dc;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 450;
+            color: #aec9f0;
+            min-height: 26px;
+            margin-bottom: 12px;
+            text-shadow: 0 1px 3px black;
+        }
+
+        /* статус / ссылка */
+        .status-area {
+            background: #272b38;
+            border-radius: 30px;
+            padding: 18px 16px;
+            margin: 16px 0 6px;
+            border: 1px solid #434a60;
+            word-break: break-word;
+            font-size: 0.95rem;
+            color: #bccaf0;
+            box-shadow: inset 0 2px 5px #00000050;
+            text-align: center;
+        }
+
+        .download-link {
+            display: inline-block;
+            margin-top: 8px;
+            background: #1f5630;
+            padding: 12px 28px;
+            border-radius: 50px;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid #65b47c;
+            box-shadow: 0 4px 10px black;
+            transition: background 0.15s;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .download-link.hide {
+            display: none;
+        }
+
+        .small-note {
+            color: #7e86a2;
+            font-size: 0.8rem;
+            margin-top: 12px;
+            text-align: center;
+        }
+    </style>
+    <!-- подключаем библиотеку lamejs для MP3 кодирования -->
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h1>MP3 станция</h1>
+        <div class="sub">WAV → MP3 · с прогрессом</div>
+
+        <!-- скрытый input файла -->
+        <div class="file-area" id="fileArea">
+            <label for="wavFileInput" class="file-label">
+                <span id="fileNameDisplay">Выбрать WAV файл</span>
+                <span class="icon">🎛️</span>
+            </label>
+            <input type="file" id="wavFileInput" accept="audio/wav, audio/wave, .wav">
+        </div>
+
+        <!-- блок выбора битрейта -->
+        <div class="bitrate-section">
+            <div class="bitrate-header">
+                <span>⚙️ Битрейт</span>
+                <span class="bitrate-value" id="bitrateDisplay">192 кбит/с</span>
+            </div>
+            <input type="range" id="bitrateSlider" min="32" max="320" value="192" step="32">
+            <div class="presets">
+                <div class="preset-btn" data-br="96">96</div>
+                <div class="preset-btn" data-br="128">128</div>
+                <div class="preset-btn" data-br="192">192</div>
+                <div class="preset-btn" data-br="320">320</div>
+            </div>
+        </div>
+
+        <!-- кнопка конвертации -->
+        <button class="convert-btn" id="convertBtn">
+            <span>🔊</span> КОНВЕРТИРОВАТЬ
+        </button>
+
+        <!-- прогресс бар и текст -->
+        <div class="progress-container">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">⏳ ожидание файла</div>
+
+        <!-- статус и ссылка на скачивание -->
+        <div class="status-area" id="statusMessage">
+            ✨ Выберите WAV и нажмите конвертацию
+        </div>
+        <a href="#" id="downloadLink" class="download-link hide" download="converted.mp3">⬇️ Скачать MP3</a>
+        <div class="small-note">все операции в браузере — конфиденциально</div>
+    </div>
+
+    <script>
+        (function() {
+            // DOM элементы
+            const fileInput = document.getElementById('wavFileInput');
+            const fileNameSpan = document.getElementById('fileNameDisplay');
+            const bitrateSlider = document.getElementById('bitrateSlider');
+            const bitrateDisplay = document.getElementById('bitrateDisplay');
+            const presetBtns = document.querySelectorAll('.preset-btn');
+            const convertBtn = document.getElementById('convertBtn');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const statusDiv = document.getElementById('statusMessage');
+            const downloadLink = document.getElementById('downloadLink');
+
+            let selectedFile = null;
+            let mp3Blob = null;            // готовый результат
+
+            // ---- обновление битрейта ----
+            function updateBitrateDisplay(value) {
+                bitrateDisplay.innerText = value + ' кбит/с';
+                // подсветка preset
+                presetBtns.forEach(btn => {
+                    const br = parseInt(btn.dataset.br, 10);
+                    if (br === value) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            bitrateSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                updateBitrateDisplay(val);
+            });
+
+            presetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const br = parseInt(btn.dataset.br, 10);
+                    bitrateSlider.value = br;
+                    updateBitrateDisplay(br);
+                });
+            });
+
+            // начальное состояние битрейта
+            updateBitrateDisplay(192);
+
+            // ---- выбор файла ----
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // простая проверка на WAV по mime или расширению
+                    if (file.type === 'audio/wav' || file.type === 'audio/wave' || file.name.toLowerCase().endsWith('.wav')) {
+                        selectedFile = file;
+                        fileNameSpan.innerText = file.name.length > 30 ? file.name.substr(0, 27) + '...' : file.name;
+                        statusDiv.innerText = `✅ загружен: ${file.name}`;
+                        // сброс прошлого результата
+                        mp3Blob = null;
+                        downloadLink.classList.add('hide');
+                        downloadLink.removeAttribute('href');
+                        progressFill.style.width = '0%';
+                        progressText.innerText = 'готов к конвертации';
+                    } else {
+                        selectedFile = null;
+                        fileNameSpan.innerText = '⚠️ нужен WAV файл';
+                        statusDiv.innerText = '❌ выберите корректный WAV';
+                        fileInput.value = ''; // сброс
+                    }
+                } else {
+                    selectedFile = null;
+                    fileNameSpan.innerText = 'Выбрать WAV файл';
+                    statusDiv.innerText = '✖️ файл не выбран';
+                }
+            });
+
+            // ---- конвертация WAV в MP3 с lamejs ----
+            function convertWavToMp3(file, bitrateKbps) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        try {
+                            const arrayBuffer = e.target.result;
+                            const wavBuffer = new Uint8Array(arrayBuffer);
+
+                            // Простейший WAV-парсер (достаточно для RIFF стерео/моно 16 бит)
+                            // заголовок 44 байта для PCM
+                            const dataView = new DataView(arrayBuffer);
+                            // проверка на "RIFF"
+                            if (String.fromCharCode(dataView.getUint8(0), dataView.getUint8(1), dataView.getUint8(2), dataView.getUint8(3)) !== 'RIFF') {
+                                reject(new Error('Неверный формат: не RIFF'));
+                                return;
+                            }
+                            // каналы (offset 22)
+                            const channels = dataView.getUint16(22, true);
+                            // sample rate (offset 24)
+                            const sampleRate = dataView.getUint32(24, true);
+                            // бит на сэмпл (offset 34)
+                            const bitsPerSample = dataView.getUint16(34, true);
+
+                            if (bitsPerSample !== 16) {
+                                reject(new Error('Поддерживается только 16-битный WAV'));
+                                return;
+                            }
+
+                            // начало данных (обычно 44, но проверим chunk "data")
+                            let dataOffset = 44; // большинство простых WAV
+                            // пробуем найти data chunk если заголовок расширенный
+                            let offset = 12; // после "RIFFxxxxWAVE"
+                            while (offset < 44) { // минимально до 44 уже всё перебрали
+                                // но для надежности просканируем до 100 байт
+                                if (offset > 100) break;
+                                const chunkId = String.fromCharCode(dataView.getUint8(offset), dataView.getUint8(offset+1), dataView.getUint8(offset+2), dataView.getUint8(offset+3));
+                                const chunkSize = dataView.getUint32(offset+4, true);
+                                if (chunkId === 'data') {
+                                    dataOffset = offset + 8;
+                                    break;
+                                }
+                                offset += 8 + chunkSize;
+                            }
+
+                            // сэмплы (int16)
+                            const numSamples = (arrayBuffer.byteLength - dataOffset) / (bitsPerSample / 8) / channels;
+                            const samples = new Int16Array(arrayBuffer, dataOffset);
+
+                            // подготовка MP3 кодировщика lame
+                            // каналы: моно или стерео
+                            const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, bitrateKbps);
+                            const sampleBlockSize = 1152; // стандартный блок для LAME
+
+                            const mp3Data = []; // массив фрагментов
+
+                            let sampleIndex = 0;
+                            const totalSamples = samples.length / channels; // количество фреймов на канал
+
+                            // для прогресса
+                            let processedSamples = 0;
+
+                            function encodeChunk() {
+                                if (sampleIndex < totalSamples) {
+                                    const remaining = totalSamples - sampleIndex;
+                                    const blockSize = Math.min(sampleBlockSize, remaining);
+
+                                    // канальные буферы
+                                    let left = new Int16Array(blockSize);
+                                    let right = channels === 2 ? new Int16Array(blockSize) : null;
+
+                                    for (let i = 0; i < blockSize; i++) {
+                                        const pos = (sampleIndex + i) * channels;
+                                        left[i] = samples[pos];
+                                        if (channels === 2) {
+                                            right[i] = samples[pos + 1];
+                                        }
+                                    }
+
+                                    let mp3buf;
+                                    if (channels === 2) {
+                                        mp3buf = mp3Encoder.encodeBuffer(left, right);
+                                    } else {
+                                        mp3buf = mp3Encoder.encodeBuffer(left);
+                                    }
+
+                                    if (mp3buf.length > 0) {
+                                        mp3Data.push(new Uint8Array(mp3buf));
+                                    }
+
+                                    sampleIndex += blockSize;
+                                    processedSamples = sampleIndex;
+
+                                    // прогресс ≈ (sampleIndex / totalSamples) * 100, но после encode финальный буфер даст 100%
+                                    const percent = Math.min(99, Math.floor((sampleIndex / totalSamples) * 100));
+                                    progressFill.style.width = percent + '%';
+                                    progressText.innerText = `кодирование ${percent}% · ${bitrateKbps} kbps`;
+
+                                    // продолжаем асинхронно для отзывчивости UI
+                                    setTimeout(encodeChunk, 0);
+                                } else {
+                                    // финализируем
+                                    const mp3buf = mp3Encoder.flush();
+                                    if (mp3buf.length > 0) {
+                                        mp3Data.push(new Uint8Array(mp3buf));
+                                    }
+
+                                    // объединяем
+                                    const totalLen = mp3Data.reduce((acc, arr) => acc + arr.length, 0);
+                                    const combined = new Uint8Array(totalLen);
+                                    let offset = 0;
+                                    for (const arr of mp3Data) {
+                                        combined.set(arr, offset);
+                                        offset += arr.length;
+                                    }
+
+                                    const blob = new Blob([combined], { type: 'audio/mp3' });
+                                    progressFill.style.width = '100%';
+                                    progressText.innerText = `✅ готово · ${(blob.size / 1024).toFixed(1)} КБ`;
+                                    resolve(blob);
+                                }
+                            }
+
+                            // старт кодирования
+                            encodeChunk();
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            // ---- обработчик кнопки конвертации ----
+            convertBtn.addEventListener('click', async () => {
+                if (!selectedFile) {
+                    statusDiv.innerText = '❌ сначала выберите WAV файл';
+                    return;
+                }
+
+                // блокируем кнопку, сбрасываем ссылку
+                convertBtn.disabled = true;
+                mp3Blob = null;
+                downloadLink.classList.add('hide');
+                downloadLink.removeAttribute('href');
+                statusDiv.innerText = '🔄 конвертация... (это займет несколько секунд)';
+                progressFill.style.width = '0%';
+                progressText.innerText = 'запуск...';
+
+                try {
+                    const bitrate = parseInt(bitrateSlider.value, 10);
+                    mp3Blob = await convertWavToMp3(selectedFile, bitrate);
+
+                    // создаём ссылку для скачивания
+                    const url = URL.createObjectURL(mp3Blob);
+                    downloadLink.href = url;
+                    downloadLink.classList.remove('hide');
+                    statusDiv.innerText = `🎵 MP3 создан (${(mp3Blob.size / 1024 / 1024).toFixed(2)} МБ) · битрейт ${bitrate}`;
+                    progressText.innerText = 'конвертация завершена';
+                } catch (err) {
+                    console.error(err);
+                    statusDiv.innerText = `⚠️ ошибка: ${err.message || 'неподдерживаемый WAV (только 16bit PCM)'}`;
+                    progressFill.style.width = '0%';
+                    progressText.innerText = 'ошибка кодирования';
+                } finally {
+                    convertBtn.disabled = false;
+                }
+            });
+
+            // предупреждение если старый lame не загрузился (проверяем)
+            if (typeof lamejs === 'undefined') {
+                statusDiv.innerText = '⚠️ Ошибка загрузки библиотеки кодирования, проверьте интернет';
+                convertBtn.disabled = true;
+            } else {
+                // всё ок
+            }
+        })();
+    </script>
+</body>
+</html>
