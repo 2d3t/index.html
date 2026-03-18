@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>🎮 Поле чудес: Редактор вопросов</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0b0f14;  /* глубокий тёмный фон */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            padding: 12px;
+            margin: 0;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            max-width: 420px;
+            width: 100%;
+            background: #1a242b;  /* тёмный контейнер */
+            border-radius: 48px 48px 32px 32px;
+            padding: 20px 16px 24px;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.8), 0 0 0 2px #4a3f2a;
+            border: 1px solid #b5944b;
+        }
+
+        /* Шапка с вопросом */
+        .question-panel {
+            background: #1e2c36;
+            padding: 18px 12px 12px;
+            border-radius: 36px 36px 24px 24px;
+            margin-bottom: 18px;
+            border: 2px solid #e4b138;
+            box-shadow: inset 0 -3px 0 #7f5f28, 0 6px 0 #0a1219;
+        }
+
+        /* Поле для редактирования вопроса */
+        .question-edit-area {
+            margin-bottom: 15px;
+        }
+
+        .question-input {
+            background: #2c3f4d;
+            border: 2px solid #dbb257;
+            border-radius: 40px;
+            padding: 16px 18px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff6d9;
+            outline: none;
+            width: 100%;
+            font-family: inherit;
+            box-shadow: inset 0 2px 5px #00000055;
+        }
+
+        .question-input::placeholder {
+            color: #a3bed1;
+            font-weight: 400;
+        }
+
+        /* Контейнер для ответов (редактирование) */
+        .answers-edit {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 8px 0 5px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .answer-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e2f3b;
+            border-radius: 60px;
+            padding: 4px 4px 4px 18px;
+            border: 1px solid #e4b138;
+            box-shadow: inset 0 1px 3px black;
+        }
+
+        .answer-input-row input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            font-size: 1.05rem;
+            color: #ffe8b5;
+            font-weight: 500;
+            outline: none;
+            min-width: 0;
+        }
+
+        .answer-input-row input::placeholder {
+            color: #6a8fa5;
+        }
+
+        .remove-answer {
+            background: #c05454;
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 1.8rem;
+            font-weight: bold;
+            box-shadow: 0 5px 0 #6d2f2f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.05s linear;
+            touch-action: manipulation;
+            border: 1px solid #ffa07a;
+        }
+
+        .remove-answer:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #6d2f2f;
+        }
+
+        .add-answer-btn {
+            background: #3f9e6b;
+            border: none;
+            border-radius: 50px;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 0 #1d5438;
+            box-shadow: 0 5px 0 #1d5438;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: 0.05s linear;
+            border: 1px solid #8ed973;
+            width: 100%;
+        }
+
+        .add-answer-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #1d5438;
+        }
+
+        /* Чипсы ответов (отображение) */
+        .answers-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 10px;
+            margin: 16px 0 8px;
+            padding: 0 4px;
+        }
+
+        .answer-chip {
+            background: #fedb9f;
+            padding: 8px 16px;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1f2c35;
+            box-shadow: 0 5px 0 #ad7a4b, 0 6px 8px black;
+            border: 1px solid #ffcd7e;
+            display: inline-block;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        /* Сетка 3x3 */
+        .grid-arena {
+            background: #1f313d;
+            padding: 14px;
+            border-radius: 44px;
+            border: 4px solid #cf9f4a;
+            box-shadow: inset 0 -3px 0 #624d2e, 0 12px 18px rgba(0,0,0,0.9);
+            margin: 12px 0 20px;
+        }
+
+        .cells-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            aspect-ratio: 1 / 1;
+        }
+
+        .cell {
+            border-radius: 24px;
+            box-shadow: 0 8px 0 #3a2e1f, 0 10px 14px black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.15s ease;
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 3px 0 #000000, 0 0 12px #ffffffa0;
+            aspect-ratio: 1 / 1;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            border: 3px solid #f3d37c;
+            padding: 4px;
+        }
+
+        /* УНИКАЛЬНЫЕ ЦВЕТА — максимально яркие, сочные, видимые в тёмной теме */
+        .cell[data-id="0"] { background: #E33B3B; }  /* ярко-красный */
+        .cell[data-id="1"] { background: #3DB86D; }  /* ярко-зелёный */
+        .cell[data-id="2"] { background: #2F6FDB; }  /* ярко-синий */
+        .cell[data-id="3"] { background: #FCDB40; color: #1a1a1a; text-shadow: 0 2px 0 white; }  /* ярко-жёлтый (текст тёмный) */
+        .cell[data-id="4"] { background: #C55AC5; }  /* яркий фиолет */
+        .cell[data-id="5"] { background: #FF9433; }  /* яркий оранж */
+        .cell[data-id="6"] { background: #3FC5C5; }  /* яркая бирюза */
+        .cell[data-id="7"] { background: #F27C8C; }  /* яркий розовый */
+        .cell[data-id="8"] { background: #B58463; }  /* светлый коричневый/карамель */
+
+        .cell.opened {
+            box-shadow: 0 3px 0 #3a2e1f, 0 8px 12px black;
+            transform: translateY(5px);
+            filter: brightness(1.2);
+            border-color: #fff9e6;
+        }
+
+        .cell:active:not(.opened) {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #3a2e1f, 0 8px 12px black;
+        }
+
+        /* Кнопки управления */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 16px 0 5px;
+        }
+
+        .game-btn {
+            background: #eebb55;
+            border: none;
+            padding: 16px 18px;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #1e2b32;
+            text-shadow: 0 1px 0 #ffeeaa;
+            box-shadow: 0 7px 0 #9e762e, 0 8px 12px black;
+            transition: all 0.08s linear;
+            border: 1px solid #ffd966;
+            flex: 1 1 auto;
+            min-width: 140px;
+            touch-action: manipulation;
+            cursor: pointer;
+        }
+
+        .game-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 2px 0 #9e762e, 0 5px 10px black;
+        }
+
+        .game-btn.reset-btn {
+            background: #b0c4de;
+            box-shadow: 0 7px 0 #6d7f9a;
+            border-color: #cfdef5;
+            color: #141f2c;
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 0 8px;
+            color: #ffdf9c;
+            font-weight: 700;
+            text-shadow: 0 2px 3px black;
+            font-size: 1.1rem;
+        }
+
+        .opened-counter {
+            background: #00000077;
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: 1px solid #c9a445;
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameApp">
+    <!-- панель редактирования вопроса и ответов -->
+    <div class="question-panel">
+        <div class="question-edit-area">
+            <!-- редактирование вопроса -->
+            <input type="text" class="question-input" id="questionInput" placeholder="Введи свой вопрос..." value="Столица Франции?">
+            
+            <!-- контейнер для редактирования ответов (динамические поля) -->
+            <div class="answers-edit" id="answersEditContainer"></div>
+            
+            <!-- кнопка добавить вариант ответа -->
+            <button class="add-answer-btn" id="addAnswerBtn">➕ добавить вариант ответа</button>
+        </div>
+        
+        <!-- отображение ответов (для красоты) -->
+        <div class="answers-row" id="answersList"></div>
+    </div>
+
+    <!-- поле 3x3 -->
+    <div class="grid-arena">
+        <div class="cells-grid" id="cellsGrid"></div>
+    </div>
+
+    <!-- кнопки действий -->
+    <div class="controls">
+        <button class="game-btn" id="hideAnswersBtn">🎲 спрятать ответы</button>
+        <button class="game-btn reset-btn" id="restartBtn">⟲ рестарт</button>
+    </div>
+
+    <!-- счётчик открытых клеток -->
+    <div class="footer-info">
+        <span class="opened-counter" id="statsCounter">📦 открыто 0/9</span>
+        <span style="font-size: 1.5rem;">🔮</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---- начальные данные (можно изменить в интерфейсе) ----
+        let currentQuestion = "Столица Франции?";
+        let currentAnswers = ["Париж", "Лондон", "Берлин", "Мадрид"]; 
+
+        // состояние игры
+        let hiddenAnswers = new Array(9).fill(null);   // что под клетками
+        let openedState = new Array(9).fill(false);
+        let gameInitialized = false;                    // были ли ответы спрятаны
+
+        // DOM элементы
+        const questionInput = document.getElementById('questionInput');
+        const answersEditContainer = document.getElementById('answersEditContainer');
+        const addAnswerBtn = document.getElementById('addAnswerBtn');
+        const answersListEl = document.getElementById('answersList');
+        const cellsGridEl = document.getElementById('cellsGrid');
+        const hideBtn = document.getElementById('hideAnswersBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const statsCounter = document.getElementById('statsCounter');
+
+        // ========== ФУНКЦИИ ОТРИСОВКИ ==========
+
+        // Отрисовка полей для редактирования ответов (под вопросом)
+        function renderAnswerInputs() {
+            let html = '';
+            currentAnswers.forEach((ans, index) => {
+                // Экранируем кавычки для безопасного вывода
+                const safeValue = ans.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                html += `
+                    <div class="answer-input-row" data-index="${index}">
+                        <input type="text" class="answer-field" value="${safeValue}" placeholder="Ответ ${index+1}">
+                        <button class="remove-answer" data-index="${index}">−</button>
+                    </div>
+                `;
+            });
+            answersEditContainer.innerHTML = html;
+
+            // обработчики на кнопки удаления
+            document.querySelectorAll('.remove-answer').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = this.dataset.index;
+                    if (idx !== undefined) removeAnswer(parseInt(idx));
+                });
+            });
+
+            // обработчики на изменение текста ответа
+            document.querySelectorAll('.answer-field').forEach((input, idx) => {
+                input.addEventListener('input', function() {
+                    updateAnswerText(idx, this.value);
+                });
+            });
+        }
+
+        // Обновить конкретный ответ при вводе текста
+        function updateAnswerText(index, newText) {
+            if (index >= 0 && index < currentAnswers.length) {
+                currentAnswers[index] = newText || '???';
+                renderAnswersChips();  // обновить чипсы
+            }
+        }
+
+        // Добавить новый пустой ответ
+        function addNewAnswer() {
+            if (currentAnswers.length >= 9) {
+                alert('Максимум 9 вариантов (по числу клеток)');
+                return;
+            }
+            currentAnswers.push(`Вариант ${currentAnswers.length+1}`);
+            renderAnswerInputs();
+            renderAnswersChips();
+        }
+
+        // Удалить ответ по индексу
+        function removeAnswer(index) {
+            if (currentAnswers.length <= 1) {
+                alert('Должен быть хотя бы один ответ');
+                return;
+            }
+            currentAnswers.splice(index, 1);
+            renderAnswerInputs();
+            renderAnswersChips();
+        }
+
+        // Отрисовка "чипсов" (значки ответов над полем)
+        function renderAnswersChips() {
+            let html = '';
+            currentAnswers.forEach(ans => {
+                html += `<span class="answer-chip">${ans}</span>`;
+            });
+            answersListEl.innerHTML = html;
+        }
+
+        // Отрисовка сетки 3x3
+        function renderGrid() {
+            let cellsHtml = '';
+            for (let i = 0; i < 9; i++) {
+                let displayText = '';
+                if (openedState[i] && hiddenAnswers[i]) {
+                    displayText = hiddenAnswers[i];               // показываем ответ
+                } else if (openedState[i] && hiddenAnswers[i] === null) {
+                    displayText = '🌑';                             // пусто
+                } else {
+                    displayText = '?';                               // закрыто
+                }
+                cellsHtml += `<div class="cell" data-id="${i}" data-index="${i}">${displayText}</div>`;
+            }
+            cellsGridEl.innerHTML = cellsHtml;
+        }
+
+        // Счётчик открытых
+        function countOpened() {
+            return openedState.filter(v => v).length;
+        }
+        function updateStats() {
+            statsCounter.innerText = `📦 открыто ${countOpened()}/9`;
+        }
+
+        // Синхронизировать вопрос из поля ввода
+        function syncQuestionFromInput() {
+            currentQuestion = questionInput.value.trim() || '❓ Без вопроса';
+        }
+
+        // ========== ИГРОВАЯ ЛОГИКА ==========
+
+        // Разбросать ответы по клеткам (кнопка "спрятать ответы")
+        function scatterAnswers() {
+            syncQuestionFromInput();  // сохраняем актуальный вопрос
+
+            openedState.fill(false);   // закрыть все клетки
+            
+            const newHidden = new Array(9).fill(null);
+            // Берём копию текущих ответов (до 9 штук)
+            const answersToHide = [...currentAnswers].slice(0, 9); 
+
+            // Индексы клеток и перемешиваем
+            let indices = [0,1,2,3,4,5,6,7,8];
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+
+            // Раскидываем ответы
+            for (let k = 0; k < answersToHide.length; k++) {
+                newHidden[indices[k]] = answersToHide[k];
+            }
+
+            hiddenAnswers = newHidden;
+            gameInitialized = true;
+            renderGrid();
+            updateStats();
+        }
+
+        // Полный рестарт (сброс поля, но вопрос/ответы остаются из редактора)
+        function restartGame() {
+            syncQuestionFromInput();   // фиксируем вопрос
+            
+            // Сброс скрытых ответов и открытий
+            hiddenAnswers = new Array(9).fill(null);
+            openedState.fill(false);
+            gameInitialized = false;
+            renderGrid();
+            updateStats();
+        }
+
+        // Клик по клетке
+        function handleCellClick(e) {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            const index = cell.dataset.index;
+            if (index === undefined) return;
+            const idx = parseInt(index, 10);
+
+            if (openedState[idx]) return;  // уже открыта
+
+            if (!gameInitialized) {
+                alert('🎲 Сначала нажми "спрятать ответы"!');
+                return;
+            }
+
+            // открываем
+            openedState[idx] = true;
+            renderGrid();
+            updateStats();
+        }
+
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        function init() {
+            // Установить начальные значения
+            questionInput.value = currentQuestion;
+            renderAnswerInputs();
+            renderAnswersChips();
+            renderGrid();
+            updateStats();
+
+            // Обработчики
+            cellsGridEl.addEventListener('click', handleCellClick);
+            cellsGridEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            hideBtn.addEventListener('click', () => {
+                scatterAnswers();
+            });
+
+            restartBtn.addEventListener('click', () => {
+                restartGame();
+            });
+
+            addAnswerBtn.addEventListener('click', addNewAnswer);
+
+            // вопрос меняется — сохраняем
+            questionInput.addEventListener('input', syncQuestionFromInput);
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>
