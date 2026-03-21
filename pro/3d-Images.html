@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -626,7 +625,9 @@
                 current.imageUrl = null;
                 updateUI();
                 renderCurrentPhotoOnSphere();
-                if (document.getElementById('photo-modal').classList.contains('active')) {
+                // Закрываем модальное окно, если оно открыто
+                const modal = document.getElementById('photo-modal');
+                if (modal.classList.contains('active')) {
                     closeModal();
                 }
                 showStatus(`🗑️ Фото удалено из "${current.name}"`);
@@ -639,15 +640,31 @@
         // --- Модальное окно ---
         function openPhotoModal() {
             const current = worldData.locations[worldData.currentLocationId];
-            if (!current || !current.imageUrl) return;
+            if (!current || !current.imageUrl) {
+                showStatus("❌ Нет фото для просмотра");
+                return;
+            }
             
             const modal = document.getElementById('photo-modal');
             const modalImg = document.getElementById('modal-image');
+            
+            // Обновляем изображение в модальном окне
             modalImg.src = current.imageUrl;
-            updateModalContent();
+            
+            // Обновляем название локации
+            const modalName = document.getElementById('modal-location-name');
+            modalName.textContent = `📍 ${current.name}`;
+            
+            // Показываем модальное окно
             modal.classList.add('active');
+            
+            // Обновляем состояние кнопок навигации
             updateModalNavButtons();
+            
+            // Инициализируем обработчики свайпов
             initSwipeControls();
+            
+            showStatus("🔍 Режим просмотра фото | Нажмите на фото или кнопку ✖ для закрытия");
         }
 
         function updateModalContent() {
@@ -658,14 +675,20 @@
                 const modalImg = document.getElementById('modal-image');
                 if (current.imageUrl && modalImg.src !== current.imageUrl) {
                     modalImg.src = current.imageUrl;
+                } else if (!current.imageUrl && modal.classList.contains('active')) {
+                    // Если фото удалено во время просмотра, закрываем модалку
+                    closeModal();
                 }
             }
         }
 
         function closeModal() {
             const modal = document.getElementById('photo-modal');
-            modal.classList.remove('active');
-            removeSwipeControls();
+            if (modal.classList.contains('active')) {
+                modal.classList.remove('active');
+                removeSwipeControls();
+                showStatus("🔒 Режим просмотра закрыт");
+            }
         }
 
         // --- Свайп управление ---
@@ -673,14 +696,12 @@
         let swipeHandlerActive = false;
         
         function handleTouchStart(e) {
-            e.preventDefault();
             const touch = e.touches[0];
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
         }
         
         function handleTouchEnd(e) {
-            e.preventDefault();
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
             const deltaX = touchEndX - touchStartX;
@@ -708,24 +729,32 @@
                 const current = worldData.locations[worldData.currentLocationId];
                 if (!current || !current.imageUrl) {
                     closeModal();
-                    showStatus("⚠️ В этой локации нет фото, режим закрыт");
+                    showStatus("⚠️ В этой локации нет фото, режим просмотра закрыт");
+                } else {
+                    // Обновляем изображение в модалке после навигации
+                    const modalImg = document.getElementById('modal-image');
+                    if (modalImg.src !== current.imageUrl) {
+                        modalImg.src = current.imageUrl;
+                    }
+                    const modalName = document.getElementById('modal-location-name');
+                    modalName.textContent = `📍 ${current.name}`;
                 }
             }, 50);
         }
         
         function initSwipeControls() {
             if (swipeHandlerActive) return;
-            const modal = document.getElementById('photo-modal');
-            modal.addEventListener('touchstart', handleTouchStart, { passive: false });
-            modal.addEventListener('touchend', handleTouchEnd, { passive: false });
+            const modalImageContainer = document.getElementById('modal-image-container');
+            modalImageContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+            modalImageContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
             swipeHandlerActive = true;
         }
         
         function removeSwipeControls() {
             if (!swipeHandlerActive) return;
-            const modal = document.getElementById('photo-modal');
-            modal.removeEventListener('touchstart', handleTouchStart);
-            modal.removeEventListener('touchend', handleTouchEnd);
+            const modalImageContainer = document.getElementById('modal-image-container');
+            modalImageContainer.removeEventListener('touchstart', handleTouchStart);
+            modalImageContainer.removeEventListener('touchend', handleTouchEnd);
             swipeHandlerActive = false;
         }
 
@@ -967,13 +996,10 @@
             modalImageContainer.addEventListener('click', () => closeModal());
             
             // Кнопка закрытия
-            const closeBtn = document.getElementById('modal-close-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    closeModal();
-                });
-            }
+            document.getElementById('modal-close-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeModal();
+            });
             
             // Закрытие по Esc
             document.addEventListener('keydown', (e) => {
@@ -998,7 +1024,7 @@
                 });
             });
             
-            showStatus("✨ Тап по фото для закрытия | Зелёные стрелки = в той локации есть фото");
+            showStatus("✨ Тап по фото для увеличения | Кнопка ✖ закрывает режим просмотра");
         }
         
         start();
