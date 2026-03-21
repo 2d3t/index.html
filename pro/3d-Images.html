@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -316,6 +317,39 @@
             background: #8b3c3c;
         }
 
+        .reset-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .reset-world-btn {
+            background: #a5421b;
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            color: white;
+            backdrop-filter: blur(4px);
+        }
+
+        .full-reset-btn {
+            background: #7a2e2e;
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            color: white;
+        }
+
         .save-load {
             display: flex;
             gap: 12px;
@@ -373,6 +407,10 @@
                 top: 12px;
                 right: 12px;
             }
+            .reset-world-btn, .full-reset-btn {
+                padding: 10px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -413,6 +451,11 @@
             <div class="special-row">
                 <button class="nav-btn action-btn" id="add-photo-btn">📷 ДОБАВИТЬ ФОТО</button>
                 <button class="nav-btn action-btn danger-btn" id="reset-location-btn">🗑️ ОЧИСТИТЬ ФОТО</button>
+            </div>
+            <!-- Две новые кнопки для создания нового мира и полного сброса кэша -->
+            <div class="reset-group">
+                <button class="reset-world-btn" id="new-world-btn">🌍 НОВЫЙ МИР (сброс данных)</button>
+                <button class="full-reset-btn" id="full-clear-btn">🗑️ СБРОСИТЬ ВСЁ + КЭШ</button>
             </div>
         </div>
 
@@ -625,7 +668,6 @@
                 current.imageUrl = null;
                 updateUI();
                 renderCurrentPhotoOnSphere();
-                // Закрываем модальное окно, если оно открыто
                 const modal = document.getElementById('photo-modal');
                 if (modal.classList.contains('active')) {
                     closeModal();
@@ -635,6 +677,76 @@
                 updateModalNavButtons();
                 autoSaveToLocal();
             }
+        }
+
+        // --- НОВЫЙ МИР (чистый старт без сохранения) ---
+        function resetToNewWorld() {
+            // Создаём абсолютно новый мир с одной стартовой локацией
+            const freshWorld = {
+                locations: {
+                    "start": {
+                        id: "start",
+                        name: "Центральная площадь",
+                        imageUrl: null,
+                        links: {
+                            left: null,
+                            right: null,
+                            forward: null,
+                            back: null,
+                            turnLeft: null,
+                            turnRight: null
+                        }
+                    }
+                },
+                currentLocationId: "start"
+            };
+            worldData = freshWorld;
+            
+            // Обновляем интерфейс, сферу и сохраняем в localStorage (автосохранение)
+            updateUI();
+            renderCurrentPhotoOnSphere();
+            updateButtonsColorByPhoto();
+            updateModalContent();
+            // Если модалка была открыта - закрываем
+            const modal = document.getElementById('photo-modal');
+            if (modal.classList.contains('active')) closeModal();
+            autoSaveToLocal();
+            showStatus("🌍 Создан новый мир! Все старые данные удалены. Начинайте исследование.");
+        }
+        
+        // --- ПОЛНЫЙ СБРОС (удаление localStorage + новый мир) ---
+        function fullResetAndClearCache() {
+            // Удаляем сохранение из localStorage
+            localStorage.removeItem('photo3d_world');
+            // Сбрасываем мир в начальное состояние
+            const freshWorld = {
+                locations: {
+                    "start": {
+                        id: "start",
+                        name: "Центральная площадь",
+                        imageUrl: null,
+                        links: {
+                            left: null,
+                            right: null,
+                            forward: null,
+                            back: null,
+                            turnLeft: null,
+                            turnRight: null
+                        }
+                    }
+                },
+                currentLocationId: "start"
+            };
+            worldData = freshWorld;
+            
+            updateUI();
+            renderCurrentPhotoOnSphere();
+            updateButtonsColorByPhoto();
+            updateModalContent();
+            const modal = document.getElementById('photo-modal');
+            if (modal.classList.contains('active')) closeModal();
+            // Дополнительно можно попытаться очистить кэш изображений (но основное - сторидж)
+            showStatus("💥 Полный сброс! Кэш браузера и автосохранение очищены. Мир как новый.");
         }
 
         // --- Модальное окно ---
@@ -648,22 +760,12 @@
             const modal = document.getElementById('photo-modal');
             const modalImg = document.getElementById('modal-image');
             
-            // Обновляем изображение в модальном окне
             modalImg.src = current.imageUrl;
-            
-            // Обновляем название локации
             const modalName = document.getElementById('modal-location-name');
             modalName.textContent = `📍 ${current.name}`;
-            
-            // Показываем модальное окно
             modal.classList.add('active');
-            
-            // Обновляем состояние кнопок навигации
             updateModalNavButtons();
-            
-            // Инициализируем обработчики свайпов
             initSwipeControls();
-            
             showStatus("🔍 Режим просмотра фото | Нажмите на фото или кнопку ✖ для закрытия");
         }
 
@@ -675,8 +777,7 @@
                 const modalImg = document.getElementById('modal-image');
                 if (current.imageUrl && modalImg.src !== current.imageUrl) {
                     modalImg.src = current.imageUrl;
-                } else if (!current.imageUrl && modal.classList.contains('active')) {
-                    // Если фото удалено во время просмотра, закрываем модалку
+                } else if (!current.imageUrl && document.getElementById('photo-modal').classList.contains('active')) {
                     closeModal();
                 }
             }
@@ -731,7 +832,6 @@
                     closeModal();
                     showStatus("⚠️ В этой локации нет фото, режим просмотра закрыт");
                 } else {
-                    // Обновляем изображение в модалке после навигации
                     const modalImg = document.getElementById('modal-image');
                     if (modalImg.src !== current.imageUrl) {
                         modalImg.src = current.imageUrl;
@@ -863,7 +963,7 @@
             setTimeout(() => {
                 if (document.getElementById('status-msg') && statusEl.textContent === msg)
                     statusEl.textContent = "⚡ 3D просмотрщик | Тап по фото для закрытия | Зелёные стрелки = есть фото";
-            }, 2000);
+            }, 2500);
         }
         
         // --- Сохранение/загрузка ---
@@ -961,7 +1061,10 @@
                 e.target.value = '';
             });
             
-            // Модальные кнопки навигации
+            // НОВЫЕ КНОПКИ
+            document.getElementById('new-world-btn').addEventListener('click', () => resetToNewWorld());
+            document.getElementById('full-clear-btn').addEventListener('click', () => fullResetAndClearCache());
+            
             document.getElementById('modal-nav-left').addEventListener('click', () => {
                 performNavigation('left');
                 updateModalContent();
@@ -991,17 +1094,13 @@
                 if (!current.imageUrl) closeModal();
             });
             
-            // Тап по фото в модалке закрывает режим
             const modalImageContainer = document.getElementById('modal-image-container');
             modalImageContainer.addEventListener('click', () => closeModal());
-            
-            // Кнопка закрытия
             document.getElementById('modal-close-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 closeModal();
             });
             
-            // Закрытие по Esc
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && document.getElementById('photo-modal').classList.contains('active')) {
                     closeModal();
@@ -1024,7 +1123,7 @@
                 });
             });
             
-            showStatus("✨ Тап по фото для увеличения | Кнопка ✖ закрывает режим просмотра");
+            showStatus("✨ Тап по фото для увеличения | Кнопка ✖ закрывает режим просмотра | 🌍 НОВЫЙ МИР - чистый старт");
         }
         
         start();
