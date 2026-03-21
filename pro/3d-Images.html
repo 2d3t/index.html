@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Фото-Навигатор | Панорамный мир</title>
+    <title>3D Фото-Навигатор | Свайп-управление</title>
     <style>
         * {
             margin: 0;
@@ -48,6 +49,7 @@
             cursor: pointer;
             backdrop-filter: blur(8px);
             animation: fadeIn 0.2s ease;
+            touch-action: none; /* Отключаем стандартную прокрутку для свайпов */
         }
 
         .modal.active {
@@ -61,6 +63,7 @@
             border-radius: 16px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             animation: zoomIn 0.2s ease;
+            pointer-events: none; /* Чтобы свайпы проходили через изображение */
         }
 
         .modal-close-hint {
@@ -78,6 +81,31 @@
             border-radius: 40px;
             backdrop-filter: blur(4px);
             pointer-events: none;
+        }
+        
+        .swipe-hint {
+            position: absolute;
+            top: 30px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            background: rgba(0,0,0,0.4);
+            padding: 6px 12px;
+            width: fit-content;
+            margin: 0 auto;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        .swipe-hint i {
+            display: inline-block;
+            margin: 0 4px;
+            font-style: normal;
         }
 
         @keyframes fadeIn {
@@ -207,7 +235,6 @@
             border: 1px solid rgba(72, 239, 128, 0.6);
         }
         
-        /* Обычный стиль если нет фото или неизвестно */
         .nav-btn:active {
             transform: scale(0.96);
         }
@@ -278,9 +305,12 @@
 <body>
     <div id="canvas-container"></div>
     
-    <!-- Модальное окно для увеличенного фото -->
+    <!-- Модальное окно для увеличенного фото с поддержкой свайпов -->
     <div id="photo-modal" class="modal">
         <img id="modal-image" src="" alt="Увеличенное фото">
+        <div class="swipe-hint">
+            ← →  Свайп влево/вправо = перемещение  |  ↑↓  Свайп вверх/вниз = вперёд/назад
+        </div>
         <div class="modal-close-hint">✖ Нажмите в любом месте, чтобы закрыть</div>
     </div>
     
@@ -312,7 +342,7 @@
                 <input type="file" id="load-file-input" accept=".json">
             </label>
         </div>
-        <div class="status" id="status-msg">⚡ 3D просмотрщик | Нажми на фото для увеличения</div>
+        <div class="status" id="status-msg">⚡ 3D просмотрщик | Свайпы в полноэкранном режиме работают!</div>
     </div>
 
     <!-- Библиотеки Three.js -->
@@ -376,7 +406,7 @@
             return loc && loc.imageUrl !== null && loc.imageUrl !== "";
         }
 
-        // Обновление цвета кнопок навигации: зелёные если в целевой локации есть фото
+        // Обновление цвета кнопок навигации
         function updateButtonsColorByPhoto() {
             const current = worldData.locations[worldData.currentLocationId];
             if (!current) return;
@@ -404,20 +434,20 @@
             });
         }
 
-        // Переход по направлению (создание или переход)
-        function navigate(direction) {
+        // Функция перемещения (общая)
+        function performNavigation(direction) {
             const currentLoc = worldData.locations[worldData.currentLocationId];
-            if (!currentLoc) return;
+            if (!currentLoc) return false;
             const targetId = currentLoc.links[direction];
             if (targetId && worldData.locations[targetId]) {
-                // существующая локация
                 worldData.currentLocationId = targetId;
                 updateUI();
                 renderCurrentPhotoOnSphere();
                 showStatus(`Переход: ${worldData.locations[targetId].name}`);
-                updateButtonsColorByPhoto(); // обновить цвета после смены локации
+                updateButtonsColorByPhoto();
+                autoSaveToLocal();
+                return true;
             } else {
-                // нет локации - создаём новую пустую
                 const dirNames = {
                     left: "слева", right: "справа", forward: "спереди", back: "сзади",
                     turnLeft: "поворот влево", turnRight: "поворот вправо"
@@ -425,7 +455,6 @@
                 const newLoc = createEmptyLocation(currentLoc.name, dirNames[direction] || direction);
                 worldData.locations[newLoc.id] = newLoc;
                 currentLoc.links[direction] = newLoc.id;
-                // обратная ссылка для удобства
                 const opposite = {
                     left: "right", right: "left", forward: "back", back: "forward",
                     turnLeft: "turnRight", turnRight: "turnLeft"
@@ -436,10 +465,16 @@
                 worldData.currentLocationId = newLoc.id;
                 updateUI();
                 renderCurrentPhotoOnSphere();
-                showStatus(`✨ Создана новая локация: ${newLoc.name}. Добавьте фото!`);
+                showStatus(`✨ Создана новая локация: ${newLoc.name}`);
                 updateButtonsColorByPhoto();
+                autoSaveToLocal();
+                return true;
             }
-            autoSaveToLocal();
+        }
+
+        // Навигация (обертка)
+        function navigate(direction) {
+            performNavigation(direction);
         }
 
         // Добавить фото в текущую локацию
@@ -459,7 +494,6 @@
                         updateUI();
                         renderCurrentPhotoOnSphere();
                         showStatus(`✅ Фото добавлено в "${current.name}"`);
-                        // обновляем цвета кнопок (теперь текущая локация имеет фото, но цвета у соседей меняются)
                         updateButtonsColorByPhoto();
                         autoSaveToLocal();
                     };
@@ -488,6 +522,9 @@
             const modalImg = document.getElementById('modal-image');
             modalImg.src = imageUrl;
             modal.classList.add('active');
+            
+            // Добавляем обработчики свайпов после открытия модалки
+            initSwipeControls();
         }
 
         function closeModal() {
@@ -495,6 +532,96 @@
             modal.classList.remove('active');
             const modalImg = document.getElementById('modal-image');
             modalImg.src = "";
+            // Удаляем обработчики свайпов
+            removeSwipeControls();
+        }
+        
+        // --- Свайп управление в полноэкранном режиме ---
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        let swipeHandlerActive = false;
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            touchEndX = e.changedTouches[0].clientX;
+            touchEndY = e.changedTouches[0].clientY;
+            handleSwipe();
+        }
+        
+        function handleSwipe() {
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            // Минимальное расстояние для свайпа (пиксели)
+            const minSwipeDistance = 50;
+            
+            // Определяем горизонтальный или вертикальный свайп
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+                // Горизонтальный свайп: влево/вправо
+                if (deltaX > 0) {
+                    // Свайп вправо -> перемещаемся ВЛЕВО (по логике пользователя: слайд вправо = идём влево)
+                    showStatus(`↪ Свайп вправо → переход ВЛЕВО`);
+                    performNavigation('left');
+                } else {
+                    // Свайп влево -> перемещаемся ВПРАВО
+                    showStatus(`↩ Свайп влево → переход ВПРАВО`);
+                    performNavigation('right');
+                }
+            } 
+            else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
+                // Вертикальный свайп: вверх/вниз
+                if (deltaY > 0) {
+                    // Свайп вниз -> перемещаемся ВПЕРЁД (по ТЗ: слайд вниз перемещает вперёд)
+                    showStatus(`⬇ Свайп вниз → переход ВПЕРЁД`);
+                    performNavigation('forward');
+                } else {
+                    // Свайп вверх -> перемещаемся НАЗАД
+                    showStatus(`⬆ Свайп вверх → переход НАЗАД`);
+                    performNavigation('back');
+                }
+            }
+            
+            // Обновляем UI после свайпа (фото в модалке изменится)
+            setTimeout(() => {
+                const currentLoc = worldData.locations[worldData.currentLocationId];
+                if (currentLoc && currentLoc.imageUrl && document.getElementById('photo-modal').classList.contains('active')) {
+                    // Обновляем изображение в модалке, если оно изменилось
+                    const modalImg = document.getElementById('modal-image');
+                    if (modalImg.src !== currentLoc.imageUrl) {
+                        modalImg.src = currentLoc.imageUrl;
+                        showStatus(`📸 Теперь: ${currentLoc.name}`);
+                    }
+                } else if (document.getElementById('photo-modal').classList.contains('active') && (!currentLoc || !currentLoc.imageUrl)) {
+                    // Если в новой локации нет фото, закрываем модалку
+                    closeModal();
+                    showStatus(`⚠️ В этой локации нет фото, модалка закрыта`);
+                }
+            }, 50);
+        }
+        
+        function initSwipeControls() {
+            if (swipeHandlerActive) return;
+            const modal = document.getElementById('photo-modal');
+            modal.addEventListener('touchstart', handleTouchStart, { passive: false });
+            modal.addEventListener('touchend', handleTouchEnd, { passive: false });
+            swipeHandlerActive = true;
+        }
+        
+        function removeSwipeControls() {
+            if (!swipeHandlerActive) return;
+            const modal = document.getElementById('photo-modal');
+            modal.removeEventListener('touchstart', handleTouchStart);
+            modal.removeEventListener('touchend', handleTouchEnd);
+            swipeHandlerActive = false;
         }
 
         // --- Three.js 3D сфера с текстурой ---
@@ -522,7 +649,7 @@
             sphereMesh = new THREE.Mesh(geometry, material);
             scene.add(sphereMesh);
             
-            // Звёздный фон (декорация)
+            // Звёздный фон
             const starGeometry = new THREE.BufferGeometry();
             const starCount = 1800;
             const starPos = [];
@@ -577,14 +704,13 @@
             img.src = imgUrl;
         }
         
-        // --- UI обновление + обработка клика по фото ---
+        // --- UI обновление ---
         function updateUI() {
             const current = worldData.locations[worldData.currentLocationId];
             if (!current) return;
             document.getElementById('location-name').innerHTML = `📍 ${current.name}`;
             const previewDiv = document.getElementById('photo-preview-area');
             if (current.imageUrl) {
-                // создаём изображение, которое будет кликабельным
                 previewDiv.innerHTML = `<img src="${current.imageUrl}" alt="preview" style="max-width:100%; max-height:180px; border-radius:20px; cursor:pointer;">`;
                 const previewImg = previewDiv.querySelector('img');
                 if (previewImg) {
@@ -596,9 +722,7 @@
             } else {
                 previewDiv.innerHTML = `<div class="empty-photo">📸 Нет фотографии<br>Нажмите "Добавить фото"</div>`;
             }
-            // дополнительно клик по всей зоне превью тоже открывает фото если оно есть
             const previewArea = document.getElementById('photo-preview-area');
-            // Удаляем старый обработчик, чтобы не дублировать
             previewArea.style.cursor = current.imageUrl ? 'pointer' : 'default';
             const oldHandler = previewArea._clickHandler;
             if (oldHandler) previewArea.removeEventListener('click', oldHandler);
@@ -614,8 +738,8 @@
             statusEl.textContent = msg;
             setTimeout(() => {
                 if (document.getElementById('status-msg') && statusEl.textContent === msg)
-                    statusEl.textContent = "⚡ 3D просмотрщик | Нажми на фото для увеличения";
-            }, 2200);
+                    statusEl.textContent = "⚡ 3D просмотрщик | Свайпы в полноэкранном режиме работают!";
+            }, 2000);
         }
         
         // --- Сохранение / загрузка ---
@@ -697,7 +821,7 @@
             }
         }
         
-        // --- Инициализация кнопок и обновление цвета при каждом изменении ссылок ---
+        // --- Инициализация кнопок ---
         function bindEvents() {
             document.getElementById('btn-left').addEventListener('click', () => navigate('left'));
             document.getElementById('btn-right').addEventListener('click', () => navigate('right'));
@@ -723,9 +847,8 @@
             });
         }
         
-        // Дополнительная инициализация для автообновления цвета после любых изменений фото
+        // Автообновление цветов кнопок
         function watchPhotoChanges() {
-            // обновляем цвета при любом переходе, изменении фото
             setInterval(() => {
                 updateButtonsColorByPhoto();
             }, 300);
@@ -748,12 +871,10 @@
                 });
             });
             
-            // Показ подсказки
-            showStatus("✨ Нажмите на фото для увеличения | Зелёные кнопки = там есть фото!");
+            showStatus("✨ Свайпы в полноэкранном режиме: ←→ = влево/вправо, ↑↓ = назад/вперёд");
         }
         
         start();
     </script>
 </body>
 </html>
-```
