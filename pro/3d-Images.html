@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Фото-Навигатор | Свайп-управление</title>
+    <title>3D Фото-Навигатор | Полноэкранный режим с навигацией</title>
     <style>
         * {
             margin: 0;
@@ -42,70 +42,139 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.97);
             z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
             backdrop-filter: blur(8px);
             animation: fadeIn 0.2s ease;
-            touch-action: none; /* Отключаем стандартную прокрутку для свайпов */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .modal.active {
             display: flex;
         }
 
+        .modal-image-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: calc(100% - 120px);
+            cursor: pointer;
+        }
+
         .modal img {
             max-width: 95vw;
-            max-height: 95vh;
+            max-height: 90vh;
             object-fit: contain;
             border-radius: 16px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
             animation: zoomIn 0.2s ease;
-            pointer-events: none; /* Чтобы свайпы проходили через изображение */
+            pointer-events: none;
         }
 
-        .modal-close-hint {
+        /* Навигационная панель в полноэкранном режиме */
+        .modal-nav {
             position: absolute;
             bottom: 30px;
             left: 0;
             right: 0;
-            text-align: center;
-            color: rgba(255,255,255,0.7);
-            font-size: 14px;
-            background: rgba(0,0,0,0.5);
-            padding: 8px;
-            width: fit-content;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 60px;
             margin: 0 auto;
-            border-radius: 40px;
+            width: fit-content;
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 1001;
+        }
+
+        .modal-nav-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(30,30,40,0.9);
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             backdrop-filter: blur(4px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            touch-action: manipulation;
+        }
+
+        .modal-nav-btn:active {
+            transform: scale(0.92);
+        }
+
+        .modal-nav-btn.has-photo {
+            background: #1f6d3b;
+            box-shadow: 0 0 12px rgba(46, 204, 113, 0.6);
+            border: 1px solid rgba(72, 239, 128, 0.8);
+        }
+
+        .modal-nav-btn.has-photo:active {
+            background: #158a44;
+        }
+
+        .modal-close-hint {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 14px;
+            color: white;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            z-index: 1002;
+            transition: 0.2s;
+        }
+
+        .modal-close-hint:active {
+            transform: scale(0.95);
+        }
+
+        .modal-location-name {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+            z-index: 1002;
             pointer-events: none;
         }
-        
+
         .swipe-hint {
             position: absolute;
-            top: 30px;
+            bottom: 110px;
             left: 0;
             right: 0;
             text-align: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
             background: rgba(0,0,0,0.4);
-            padding: 6px 12px;
+            padding: 4px 12px;
             width: fit-content;
             margin: 0 auto;
             border-radius: 40px;
             backdrop-filter: blur(4px);
             pointer-events: none;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-        
-        .swipe-hint i {
-            display: inline-block;
-            margin: 0 4px;
-            font-style: normal;
+            z-index: 1001;
         }
 
         @keyframes fadeIn {
@@ -132,7 +201,6 @@
             pointer-events: none;
         }
 
-        /* Панель фото и контроллеры */
         .photo-panel {
             background: rgba(20,20,30,0.85);
             backdrop-filter: blur(20px);
@@ -166,11 +234,6 @@
             transition: 0.2s;
         }
         
-        .photo-preview:hover {
-            filter: brightness(1.02);
-            background: #2a2a36;
-        }
-        
         .photo-preview:active {
             transform: scale(0.99);
         }
@@ -202,7 +265,6 @@
             display: block;
         }
 
-        /* Стили для кнопок с цветовой индикацией фото */
         .nav-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -225,10 +287,8 @@
             pointer-events: auto;
             font-family: monospace;
             letter-spacing: 1px;
-            position: relative;
         }
         
-        /* ЗЕЛЕНАЯ кнопка — если в целевой локации есть фото */
         .nav-btn.has-photo {
             background: #1f6d3b;
             box-shadow: 0 0 6px rgba(46, 204, 113, 0.5);
@@ -299,19 +359,41 @@
         @media (max-width: 600px) {
             .nav-btn { padding: 12px 0; font-size: 0.9rem; }
             .photo-preview { min-height: 150px; }
+            .modal-nav-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+            .modal-location-name {
+                font-size: 11px;
+                top: 12px;
+                left: 12px;
+            }
+            .modal-close-hint {
+                font-size: 12px;
+                top: 12px;
+                right: 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
     
-    <!-- Модальное окно для увеличенного фото с поддержкой свайпов -->
+    <!-- Модальное окно для увеличенного фото с навигацией -->
     <div id="photo-modal" class="modal">
-        <img id="modal-image" src="" alt="Увеличенное фото">
-        <div class="swipe-hint">
-            ← →  Свайп влево/вправо = перемещение  |  ↑↓  Свайп вверх/вниз = вперёд/назад
+        <div class="modal-location-name" id="modal-location-name">📍 Локация</div>
+        <div class="modal-close-hint" id="modal-close-btn">✖ Закрыть</div>
+        <div class="modal-image-container" id="modal-image-container">
+            <img id="modal-image" src="" alt="Увеличенное фото">
         </div>
-        <div class="modal-close-hint">✖ Нажмите в любом месте, чтобы закрыть</div>
+        <div class="modal-nav">
+            <button class="modal-nav-btn" id="modal-nav-left" title="Влево">◀</button>
+            <button class="modal-nav-btn" id="modal-nav-forward" title="Вперёд">▲</button>
+            <button class="modal-nav-btn" id="modal-nav-right" title="Вправо">▶</button>
+            <button class="modal-nav-btn" id="modal-nav-back" title="Назад">▼</button>
+        </div>
+        <div class="swipe-hint">↔ Свайп влево/вправо = перемещение | ↕ Свайп вверх/вниз = вперёд/назад</div>
     </div>
     
     <div class="ui-overlay">
@@ -320,7 +402,7 @@
             <div class="photo-preview" id="photo-preview-area">
                 <div class="empty-photo">📸 Нет фотографии<br>Нажмите "Добавить фото"</div>
             </div>
-            <div class="click-hint" id="click-hint-text">✨ Нажмите на фото, чтобы увеличить</div>
+            <div class="click-hint">✨ Нажмите на фото, чтобы увеличить</div>
             <div class="nav-grid">
                 <button class="nav-btn" id="btn-left">◀ ВЛЕВО</button>
                 <button class="nav-btn" id="btn-forward">⬆ ВПЕРЁД</button>
@@ -342,7 +424,7 @@
                 <input type="file" id="load-file-input" accept=".json">
             </label>
         </div>
-        <div class="status" id="status-msg">⚡ 3D просмотрщик | Свайпы в полноэкранном режиме работают!</div>
+        <div class="status" id="status-msg">⚡ 3D просмотрщик | Тап по фото для закрытия | Зелёные стрелки = есть фото</div>
     </div>
 
     <!-- Библиотеки Three.js -->
@@ -400,13 +482,12 @@
             };
         }
 
-        // Функция проверки: есть ли фото в локации по ID
         function locationHasPhoto(locId) {
             const loc = worldData.locations[locId];
             return loc && loc.imageUrl !== null && loc.imageUrl !== "";
         }
 
-        // Обновление цвета кнопок навигации
+        // Обновление цвета кнопок в основном интерфейсе
         function updateButtonsColorByPhoto() {
             const current = worldData.locations[worldData.currentLocationId];
             if (!current) return;
@@ -433,18 +514,52 @@
                 }
             });
         }
+        
+        // Обновление цвета кнопок в модальном окне
+        function updateModalNavButtons() {
+            const current = worldData.locations[worldData.currentLocationId];
+            if (!current) return;
+            
+            const navButtons = {
+                left: document.getElementById('modal-nav-left'),
+                right: document.getElementById('modal-nav-right'),
+                forward: document.getElementById('modal-nav-forward'),
+                back: document.getElementById('modal-nav-back')
+            };
+            
+            const checks = {
+                left: current.links.left,
+                right: current.links.right,
+                forward: current.links.forward,
+                back: current.links.back
+            };
+            
+            for (const [dir, btn] of Object.entries(navButtons)) {
+                if (btn) {
+                    const targetId = checks[dir];
+                    if (targetId && locationHasPhoto(targetId)) {
+                        btn.classList.add('has-photo');
+                    } else {
+                        btn.classList.remove('has-photo');
+                    }
+                }
+            }
+        }
 
-        // Функция перемещения (общая)
+        // Функция перемещения
         function performNavigation(direction) {
             const currentLoc = worldData.locations[worldData.currentLocationId];
             if (!currentLoc) return false;
             const targetId = currentLoc.links[direction];
+            
             if (targetId && worldData.locations[targetId]) {
                 worldData.currentLocationId = targetId;
                 updateUI();
                 renderCurrentPhotoOnSphere();
+                updateModalContent();
                 showStatus(`Переход: ${worldData.locations[targetId].name}`);
                 updateButtonsColorByPhoto();
+                updateModalNavButtons();
                 autoSaveToLocal();
                 return true;
             } else {
@@ -465,19 +580,19 @@
                 worldData.currentLocationId = newLoc.id;
                 updateUI();
                 renderCurrentPhotoOnSphere();
+                updateModalContent();
                 showStatus(`✨ Создана новая локация: ${newLoc.name}`);
                 updateButtonsColorByPhoto();
+                updateModalNavButtons();
                 autoSaveToLocal();
                 return true;
             }
         }
 
-        // Навигация (обертка)
         function navigate(direction) {
             performNavigation(direction);
         }
 
-        // Добавить фото в текущую локацию
         function addPhotoToCurrent() {
             const current = worldData.locations[worldData.currentLocationId];
             if (!current) return;
@@ -493,8 +608,10 @@
                         current.imageUrl = imgUrl;
                         updateUI();
                         renderCurrentPhotoOnSphere();
+                        updateModalContent();
                         showStatus(`✅ Фото добавлено в "${current.name}"`);
                         updateButtonsColorByPhoto();
+                        updateModalNavButtons();
                         autoSaveToLocal();
                     };
                     reader.readAsDataURL(file);
@@ -509,38 +626,50 @@
                 current.imageUrl = null;
                 updateUI();
                 renderCurrentPhotoOnSphere();
+                if (document.getElementById('photo-modal').classList.contains('active')) {
+                    closeModal();
+                }
                 showStatus(`🗑️ Фото удалено из "${current.name}"`);
                 updateButtonsColorByPhoto();
+                updateModalNavButtons();
                 autoSaveToLocal();
             }
         }
 
-        // --- Открытие фото по клику (модальное окно) ---
-        function openPhotoModal(imageUrl) {
-            if (!imageUrl) return;
+        // --- Модальное окно ---
+        function openPhotoModal() {
+            const current = worldData.locations[worldData.currentLocationId];
+            if (!current || !current.imageUrl) return;
+            
             const modal = document.getElementById('photo-modal');
             const modalImg = document.getElementById('modal-image');
-            modalImg.src = imageUrl;
+            modalImg.src = current.imageUrl;
+            updateModalContent();
             modal.classList.add('active');
-            
-            // Добавляем обработчики свайпов после открытия модалки
+            updateModalNavButtons();
             initSwipeControls();
+        }
+
+        function updateModalContent() {
+            const current = worldData.locations[worldData.currentLocationId];
+            if (current) {
+                const modalName = document.getElementById('modal-location-name');
+                modalName.textContent = `📍 ${current.name}`;
+                const modalImg = document.getElementById('modal-image');
+                if (current.imageUrl && modalImg.src !== current.imageUrl) {
+                    modalImg.src = current.imageUrl;
+                }
+            }
         }
 
         function closeModal() {
             const modal = document.getElementById('photo-modal');
             modal.classList.remove('active');
-            const modalImg = document.getElementById('modal-image');
-            modalImg.src = "";
-            // Удаляем обработчики свайпов
             removeSwipeControls();
         }
-        
-        // --- Свайп управление в полноэкранном режиме ---
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let touchEndX = 0;
-        let touchEndY = 0;
+
+        // --- Свайп управление ---
+        let touchStartX = 0, touchStartY = 0;
         let swipeHandlerActive = false;
         
         function handleTouchStart(e) {
@@ -552,58 +681,34 @@
         
         function handleTouchEnd(e) {
             e.preventDefault();
-            touchEndX = e.changedTouches[0].clientX;
-            touchEndY = e.changedTouches[0].clientY;
-            handleSwipe();
-        }
-        
-        function handleSwipe() {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
             const deltaX = touchEndX - touchStartX;
             const deltaY = touchEndY - touchStartY;
+            const minDistance = 50;
             
-            // Минимальное расстояние для свайпа (пиксели)
-            const minSwipeDistance = 50;
-            
-            // Определяем горизонтальный или вертикальный свайп
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
-                // Горизонтальный свайп: влево/вправо
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minDistance) {
                 if (deltaX > 0) {
-                    // Свайп вправо -> перемещаемся ВЛЕВО (по логике пользователя: слайд вправо = идём влево)
-                    showStatus(`↪ Свайп вправо → переход ВЛЕВО`);
                     performNavigation('left');
                 } else {
-                    // Свайп влево -> перемещаемся ВПРАВО
-                    showStatus(`↩ Свайп влево → переход ВПРАВО`);
                     performNavigation('right');
                 }
             } 
-            else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipeDistance) {
-                // Вертикальный свайп: вверх/вниз
+            else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minDistance) {
                 if (deltaY > 0) {
-                    // Свайп вниз -> перемещаемся ВПЕРЁД (по ТЗ: слайд вниз перемещает вперёд)
-                    showStatus(`⬇ Свайп вниз → переход ВПЕРЁД`);
                     performNavigation('forward');
                 } else {
-                    // Свайп вверх -> перемещаемся НАЗАД
-                    showStatus(`⬆ Свайп вверх → переход НАЗАД`);
                     performNavigation('back');
                 }
             }
             
-            // Обновляем UI после свайпа (фото в модалке изменится)
             setTimeout(() => {
-                const currentLoc = worldData.locations[worldData.currentLocationId];
-                if (currentLoc && currentLoc.imageUrl && document.getElementById('photo-modal').classList.contains('active')) {
-                    // Обновляем изображение в модалке, если оно изменилось
-                    const modalImg = document.getElementById('modal-image');
-                    if (modalImg.src !== currentLoc.imageUrl) {
-                        modalImg.src = currentLoc.imageUrl;
-                        showStatus(`📸 Теперь: ${currentLoc.name}`);
-                    }
-                } else if (document.getElementById('photo-modal').classList.contains('active') && (!currentLoc || !currentLoc.imageUrl)) {
-                    // Если в новой локации нет фото, закрываем модалку
+                updateModalContent();
+                updateModalNavButtons();
+                const current = worldData.locations[worldData.currentLocationId];
+                if (!current || !current.imageUrl) {
                     closeModal();
-                    showStatus(`⚠️ В этой локации нет фото, модалка закрыта`);
+                    showStatus("⚠️ В этой локации нет фото, режим закрыт");
                 }
             }, 50);
         }
@@ -624,9 +729,8 @@
             swipeHandlerActive = false;
         }
 
-        // --- Three.js 3D сфера с текстурой ---
+        // --- Three.js ---
         let scene, camera, renderer, sphereMesh;
-        let currentTexture = null;
         
         function initThree() {
             const container = document.getElementById('canvas-container');
@@ -635,10 +739,8 @@
             
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x050510);
-            
             camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
             camera.position.set(0, 0, 0.1);
-            
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
             renderer.setSize(width, height);
             renderer.setPixelRatio(window.devicePixelRatio);
@@ -649,7 +751,6 @@
             sphereMesh = new THREE.Mesh(geometry, material);
             scene.add(sphereMesh);
             
-            // Звёздный фон
             const starGeometry = new THREE.BufferGeometry();
             const starCount = 1800;
             const starPos = [];
@@ -669,21 +770,18 @@
             }
             animate();
             
-            window.addEventListener('resize', onWindowResize, false);
-            function onWindowResize() {
+            window.addEventListener('resize', () => {
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
-            }
+            });
         }
         
         function renderCurrentPhotoOnSphere() {
             const current = worldData.locations[worldData.currentLocationId];
             const imgUrl = current?.imageUrl;
             if (!imgUrl) {
-                if (sphereMesh.material.map) {
-                    sphereMesh.material.map = null;
-                }
+                if (sphereMesh.material.map) sphereMesh.material.map = null;
                 sphereMesh.material.color.setHex(0x1a1a2e);
                 sphereMesh.material.needsUpdate = true;
                 return;
@@ -694,17 +792,14 @@
                 const texture = new THREE.Texture(img);
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.ClampToEdgeWrapping;
-                texture.repeat.set(1, 1);
                 texture.needsUpdate = true;
                 sphereMesh.material.map = texture;
                 sphereMesh.material.color.setHex(0xffffff);
                 sphereMesh.material.needsUpdate = true;
-                currentTexture = texture;
             };
             img.src = imgUrl;
         }
         
-        // --- UI обновление ---
         function updateUI() {
             const current = worldData.locations[worldData.currentLocationId];
             if (!current) return;
@@ -716,7 +811,7 @@
                 if (previewImg) {
                     previewImg.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        openPhotoModal(current.imageUrl);
+                        openPhotoModal();
                     });
                 }
             } else {
@@ -727,7 +822,7 @@
             const oldHandler = previewArea._clickHandler;
             if (oldHandler) previewArea.removeEventListener('click', oldHandler);
             const newHandler = () => {
-                if (current.imageUrl) openPhotoModal(current.imageUrl);
+                if (current.imageUrl) openPhotoModal();
             };
             previewArea.addEventListener('click', newHandler);
             previewArea._clickHandler = newHandler;
@@ -738,11 +833,11 @@
             statusEl.textContent = msg;
             setTimeout(() => {
                 if (document.getElementById('status-msg') && statusEl.textContent === msg)
-                    statusEl.textContent = "⚡ 3D просмотрщик | Свайпы в полноэкранном режиме работают!";
+                    statusEl.textContent = "⚡ 3D просмотрщик | Тап по фото для закрытия | Зелёные стрелки = есть фото";
             }, 2000);
         }
         
-        // --- Сохранение / загрузка ---
+        // --- Сохранение/загрузка ---
         function exportWorldToJSON() {
             const exportData = {
                 version: "1.0",
@@ -778,6 +873,7 @@
                         updateUI();
                         renderCurrentPhotoOnSphere();
                         updateButtonsColorByPhoto();
+                        updateModalNavButtons();
                         showStatus(`📀 Загружен мир! Локаций: ${Object.keys(worldData.locations).length}`);
                         autoSaveToLocal();
                     } else {
@@ -792,11 +888,10 @@
         
         function autoSaveToLocal() {
             try {
-                const saveObj = {
+                localStorage.setItem('photo3d_world', JSON.stringify({
                     locations: worldData.locations,
                     currentLocationId: worldData.currentLocationId
-                };
-                localStorage.setItem('photo3d_world', JSON.stringify(saveObj));
+                }));
             } catch(e) {}
         }
         
@@ -821,7 +916,7 @@
             }
         }
         
-        // --- Инициализация кнопок ---
+        // --- Инициализация ---
         function bindEvents() {
             document.getElementById('btn-left').addEventListener('click', () => navigate('left'));
             document.getElementById('btn-right').addEventListener('click', () => navigate('right'));
@@ -832,26 +927,54 @@
             document.getElementById('add-photo-btn').addEventListener('click', () => addPhotoToCurrent());
             document.getElementById('reset-location-btn').addEventListener('click', () => clearPhotoCurrent());
             document.getElementById('save-world-btn').addEventListener('click', () => exportWorldToJSON());
-            const fileInput = document.getElementById('load-file-input');
-            fileInput.addEventListener('change', (e) => {
+            document.getElementById('load-file-input').addEventListener('change', (e) => {
                 if (e.target.files.length) importWorldFromJSON(e.target.files[0]);
-                fileInput.value = '';
+                e.target.value = '';
             });
             
-            // Закрытие модалки по клику на фон
-            const modal = document.getElementById('photo-modal');
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal || e.target.classList.contains('modal-close-hint')) {
+            // Модальные кнопки навигации
+            document.getElementById('modal-nav-left').addEventListener('click', () => {
+                performNavigation('left');
+                updateModalContent();
+                updateModalNavButtons();
+                const current = worldData.locations[worldData.currentLocationId];
+                if (!current.imageUrl) closeModal();
+            });
+            document.getElementById('modal-nav-right').addEventListener('click', () => {
+                performNavigation('right');
+                updateModalContent();
+                updateModalNavButtons();
+                const current = worldData.locations[worldData.currentLocationId];
+                if (!current.imageUrl) closeModal();
+            });
+            document.getElementById('modal-nav-forward').addEventListener('click', () => {
+                performNavigation('forward');
+                updateModalContent();
+                updateModalNavButtons();
+                const current = worldData.locations[worldData.currentLocationId];
+                if (!current.imageUrl) closeModal();
+            });
+            document.getElementById('modal-nav-back').addEventListener('click', () => {
+                performNavigation('back');
+                updateModalContent();
+                updateModalNavButtons();
+                const current = worldData.locations[worldData.currentLocationId];
+                if (!current.imageUrl) closeModal();
+            });
+            
+            // Тап по фото в модалке закрывает режим
+            const modalImageContainer = document.getElementById('modal-image-container');
+            modalImageContainer.addEventListener('click', () => closeModal());
+            
+            // Кнопка закрытия
+            document.getElementById('modal-close-btn').addEventListener('click', () => closeModal());
+            
+            // Закрытие по Esc
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('photo-modal').classList.contains('active')) {
                     closeModal();
                 }
             });
-        }
-        
-        // Автообновление цветов кнопок
-        function watchPhotoChanges() {
-            setInterval(() => {
-                updateButtonsColorByPhoto();
-            }, 300);
         }
         
         function start() {
@@ -861,9 +984,7 @@
             updateUI();
             renderCurrentPhotoOnSphere();
             updateButtonsColorByPhoto();
-            watchPhotoChanges();
             
-            // Предотвращаем прокрутку при тапах на кнопки
             document.querySelectorAll('button').forEach(btn => {
                 btn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
@@ -871,7 +992,7 @@
                 });
             });
             
-            showStatus("✨ Свайпы в полноэкранном режиме: ←→ = влево/вправо, ↑↓ = назад/вперёд");
+            showStatus("✨ Тап по фото для закрытия | Зелёные стрелки = в той локации есть фото");
         }
         
         start();
