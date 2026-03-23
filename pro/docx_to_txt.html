@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <title>DOCX в Текст | Конвертер</title>
-    <!-- Полифиллы для работы с ZIP (необходимо для распаковки docx) -->
+    <title>DOCX в форматированный текст | Конвертер</title>
+    <!-- JSZip для распаковки docx -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
         * {
@@ -39,6 +39,7 @@
             --icon-bg: #eef2f8;
             --placeholder: #8da0ae;
             --footer-text: #5c6f87;
+            --code-bg: #f0f2f5;
         }
 
         body.dark {
@@ -56,15 +57,15 @@
             --icon-bg: #252c3c;
             --placeholder: #8d9bb0;
             --footer-text: #9aaec9;
+            --code-bg: #1e2436;
         }
 
         .app-container {
-            max-width: 560px;
+            max-width: 680px;
             margin: 0 auto;
             width: 100%;
         }
 
-        /* карточка мультидизайн */
         .converter-card {
             background: var(--card-bg);
             backdrop-filter: blur(0px);
@@ -75,7 +76,6 @@
             border: 1px solid var(--border-light);
         }
 
-        /* шапка с переключателем темы */
         .theme-header {
             display: flex;
             justify-content: flex-end;
@@ -121,7 +121,17 @@
             padding-left: 12px;
         }
 
-        /* зона загрузки */
+        .badge-format {
+            display: inline-block;
+            background: var(--accent-soft);
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+            vertical-align: middle;
+            color: var(--accent);
+        }
+
         .drop-zone {
             background: var(--accent-soft);
             border-radius: 36px;
@@ -160,7 +170,6 @@
             display: none;
         }
 
-        /* кнопки */
         .btn-convert {
             background: var(--accent);
             border: none;
@@ -192,7 +201,6 @@
             cursor: not-allowed;
         }
 
-        /* результат */
         .result-area {
             background: var(--icon-bg);
             border-radius: 28px;
@@ -213,6 +221,27 @@
             font-size: 1.2rem;
             font-weight: 600;
             color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .format-toggle {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            border-radius: 30px;
+            padding: 5px 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .format-toggle.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
         }
 
         .copy-btn {
@@ -236,25 +265,66 @@
             color: white;
         }
 
-        .text-content {
+        .formatted-content {
             background: var(--card-bg);
             border-radius: 24px;
-            padding: 18px;
-            max-height: 380px;
+            padding: 20px;
+            max-height: 450px;
             overflow-y: auto;
-            font-family: 'SF Mono', 'Menlo', monospace;
-            font-size: 0.85rem;
-            line-height: 1.45;
-            white-space: pre-wrap;
-            word-break: break-word;
+            font-size: 0.9rem;
+            line-height: 1.5;
             color: var(--text-primary);
             border: 1px solid var(--border-light);
         }
 
+        /* Стили для форматированного текста */
+        .formatted-content h1, .formatted-content h2, .formatted-content h3,
+        .formatted-content h4, .formatted-content h5, .formatted-content h6 {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .formatted-content h1 { font-size: 1.8rem; }
+        .formatted-content h2 { font-size: 1.5rem; }
+        .formatted-content h3 { font-size: 1.3rem; }
+        .formatted-content p {
+            margin-bottom: 0.75em;
+        }
+        .formatted-content strong, .formatted-content b {
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .formatted-content em, .formatted-content i {
+            font-style: italic;
+        }
+        .formatted-content u {
+            text-decoration: underline;
+        }
+        .formatted-content ul, .formatted-content ol {
+            margin: 0.5em 0 0.75em 1.5em;
+            padding-left: 0.5em;
+        }
+        .formatted-content li {
+            margin: 0.25em 0;
+        }
+        .formatted-content br {
+            display: block;
+            content: "";
+            margin: 0.2em 0;
+        }
+        .formatted-content .list-disc {
+            list-style-type: disc;
+        }
+        .formatted-content .list-decimal {
+            list-style-type: decimal;
+        }
+        
         .empty-message {
             color: var(--placeholder);
             text-align: center;
-            padding: 28px 12px;
+            padding: 40px 20px;
             font-style: italic;
         }
 
@@ -275,7 +345,6 @@
             color: var(--footer-text);
         }
 
-        /* мульти-дизайн детали */
         @media (max-width: 480px) {
             .converter-card {
                 padding: 20px 16px 28px;
@@ -283,8 +352,10 @@
             h1 {
                 font-size: 1.7rem;
             }
-            .text-content {
-                max-height: 300px;
+            .formatted-content {
+                max-height: 380px;
+                padding: 16px;
+                font-size: 0.85rem;
             }
         }
     </style>
@@ -297,34 +368,35 @@
                 🌙
             </button>
         </div>
-        <h1>📄 DOCX → Текст</h1>
-        <div class="sub">Извлечение чистого текста из Word документов (без форматирования)</div>
+        <h1>📄 DOCX → Форматированный текст <span class="badge-format">жирный • курсив • списки • заголовки</span></h1>
+        <div class="sub">Сохраняем структуру и базовое форматирование документа Word</div>
 
-        <!-- Зона drag & drop / загрузка -->
         <div class="drop-zone" id="dropZone">
-            <div class="upload-icon">📂📎</div>
+            <div class="upload-icon">📂🎨</div>
             <div class="drop-text">Нажмите или перетащите файл .docx</div>
-            <div class="file-hint">Поддерживаются документы Microsoft Word (DOCX)</div>
+            <div class="file-hint">Поддерживаются жирный текст, курсив, заголовки, маркированные и нумерованные списки</div>
             <input type="file" id="fileInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
         </div>
 
         <button class="btn-convert" id="convertBtn">
-            <span>⚡</span> Преобразовать в текст
+            <span>✨</span> Преобразовать с форматированием
         </button>
 
-        <!-- Область результата -->
         <div class="result-area">
             <div class="result-header">
-                <h3>📝 Результат</h3>
+                <h3>
+                    📝 Результат
+                    <button id="toggleFormatBtn" class="format-toggle active">🎨 HTML вид</button>
+                </h3>
                 <button class="copy-btn" id="copyBtn" disabled>📋 Копировать</button>
             </div>
-            <div class="text-content" id="textOutput">
-                <div class="empty-message">✨ Здесь появится текст из DOCX<br>Выберите файл и нажмите конвертировать</div>
+            <div class="formatted-content" id="formattedOutput">
+                <div class="empty-message">✨ Здесь появится отформатированный текст<br>Загрузите DOCX и нажмите конвертировать</div>
             </div>
             <div id="statusMessage" class="status-msg"></div>
         </div>
         <div class="footer-note">
-            ⚡ Конфиденциально: всё преобразование происходит в вашем браузере, файлы не загружаются на сервер.
+            ⚡ Конфиденциально: всё преобразование происходит в браузере. Сохраняются: жирный, курсив, заголовки (h1-h6), списки (ul/ol), абзацы.
         </div>
     </div>
 </div>
@@ -335,20 +407,21 @@
         const fileInput = document.getElementById('fileInput');
         const dropZone = document.getElementById('dropZone');
         const convertBtn = document.getElementById('convertBtn');
-        const textOutputDiv = document.getElementById('textOutput');
+        const formattedDiv = document.getElementById('formattedOutput');
         const copyBtn = document.getElementById('copyBtn');
         const statusSpan = document.getElementById('statusMessage');
         const themeSwitcher = document.getElementById('themeSwitcher');
+        const toggleFormatBtn = document.getElementById('toggleFormatBtn');
 
-        // Состояния
-        let selectedFile = null;          // текущий выбранный File
-        let extractedText = '';           // последний извлеченный текст
+        let selectedFile = null;
+        let currentHtmlContent = '';      // Хранит последний сгенерированный HTML
+        let currentPlainText = '';        // Хранит обычный текст (для копирования)
         let isProcessing = false;
+        let showHtmlView = true;           // true: показываем HTML, false: показываем обычный текст
 
-        // --- ТЕМА (мультидизайн) ---
-        // Поддержка системной темы + ручное переключение
+        // --- Тема ---
         const loadTheme = () => {
-            const savedTheme = localStorage.getItem('docx_theme');
+            const savedTheme = localStorage.getItem('docx_theme_format');
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                 document.body.classList.add('dark');
@@ -362,11 +435,11 @@
         const setTheme = (mode) => {
             if (mode === 'dark') {
                 document.body.classList.add('dark');
-                localStorage.setItem('docx_theme', 'dark');
+                localStorage.setItem('docx_theme_format', 'dark');
                 themeSwitcher.innerHTML = '☀️';
             } else {
                 document.body.classList.remove('dark');
-                localStorage.setItem('docx_theme', 'light');
+                localStorage.setItem('docx_theme_format', 'light');
                 themeSwitcher.innerHTML = '🌙';
             }
         };
@@ -378,42 +451,37 @@
                 setTheme('dark');
             }
         };
-
         themeSwitcher.addEventListener('click', toggleTheme);
         loadTheme();
 
-        // --- Вспомогательные функции UI ---
-        function setStatus(msg, isError = false) {
-            statusSpan.textContent = msg;
-            statusSpan.style.color = isError ? 'var(--danger)' : 'var(--success)';
-            if (isError) {
-                setTimeout(() => {
-                    if (statusSpan.textContent === msg) statusSpan.style.color = 'var(--text-secondary)';
-                }, 3000);
-            } else {
-                setTimeout(() => {
-                    if (statusSpan.textContent === msg && !isError) statusSpan.style.color = 'var(--text-secondary)';
-                }, 2500);
-            }
-        }
-
-        function clearStatus() {
-            statusSpan.textContent = '';
-        }
-
-        function displayText(text) {
-            if (!text || text.trim() === '') {
-                textOutputDiv.innerHTML = `<div class="empty-message">⚠️ Текст не обнаружен или документ пуст</div>`;
+        // --- Переключение между HTML и обычным текстом ---
+        function updateDisplay() {
+            if (!currentHtmlContent && !currentPlainText) {
+                formattedDiv.innerHTML = '<div class="empty-message">📄 Нет обработанного документа</div>';
                 copyBtn.disabled = true;
-                extractedText = '';
                 return;
             }
-            // Экранируем HTML спецсимволы для безопасности
-            const escaped = escapeHtml(text);
-            textOutputDiv.innerHTML = `<pre style="font-family:inherit; margin:0; white-space:pre-wrap; word-break:break-word;">${escaped}</pre>`;
-            extractedText = text;
+            if (showHtmlView && currentHtmlContent) {
+                formattedDiv.innerHTML = currentHtmlContent;
+                toggleFormatBtn.textContent = '📝 Текст без форматирования';
+                toggleFormatBtn.classList.add('active');
+            } else if (!showHtmlView && currentPlainText) {
+                // Отображаем обычный текст в pre
+                formattedDiv.innerHTML = `<pre style="font-family: inherit; white-space: pre-wrap; word-break: break-word; margin: 0;">${escapeHtml(currentPlainText)}</pre>`;
+                toggleFormatBtn.textContent = '🎨 HTML вид (с форматированием)';
+                toggleFormatBtn.classList.remove('active');
+            } else if (showHtmlView && !currentHtmlContent && currentPlainText) {
+                // fallback
+                formattedDiv.innerHTML = `<pre>${escapeHtml(currentPlainText)}</pre>`;
+            }
             copyBtn.disabled = false;
         }
+
+        toggleFormatBtn.addEventListener('click', () => {
+            if (!currentHtmlContent && !currentPlainText) return;
+            showHtmlView = !showHtmlView;
+            updateDisplay();
+        });
 
         function escapeHtml(str) {
             return str.replace(/[&<>]/g, function(m) {
@@ -421,40 +489,41 @@
                 if (m === '<') return '&lt;';
                 if (m === '>') return '&gt;';
                 return m;
-            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-                return c;
             });
         }
 
-        function resetUIAfterConvert() {
-            // сброс сообщения через некоторое время не нужен, просто оставляем статус чистым
+        function setStatus(msg, isError = false) {
+            statusSpan.textContent = msg;
+            statusSpan.style.color = isError ? 'var(--danger)' : 'var(--success)';
+            if (isError) {
+                setTimeout(() => {
+                    if (statusSpan.textContent === msg) statusSpan.style.color = 'var(--text-secondary)';
+                }, 3500);
+            } else {
+                setTimeout(() => {
+                    if (statusSpan.textContent === msg && !isError) statusSpan.style.color = 'var(--text-secondary)';
+                }, 2800);
+            }
         }
 
-        // --- Парсинг DOCX с помощью JSZip и извлечение текста из document.xml ---
-        async function parseDocxToText(file) {
+        // --- Парсинг DOCX c сохранением форматирования (жирный, курсив, заголовки, списки) ---
+        async function parseDocxWithFormat(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     const arrayBuffer = e.target.result;
                     try {
                         const zip = await JSZip.loadAsync(arrayBuffer);
-                        // Файл документа: word/document.xml
                         const documentXmlFile = zip.file("word/document.xml");
                         if (!documentXmlFile) {
-                            reject(new Error("Некорректный DOCX: отсутствует word/document.xml"));
+                            reject(new Error("Некорректный DOCX: отсутствует document.xml"));
                             return;
                         }
                         let xmlString = await documentXmlFile.async("string");
-                        // Парсим XML и извлекаем текст из всех тегов w:t
-                        const textContent = extractTextFromDocxXml(xmlString);
-                        if (!textContent || textContent.trim().length === 0) {
-                            reject(new Error("Документ не содержит текста"));
-                        } else {
-                            resolve(textContent);
-                        }
+                        const { html, plainText } = convertDocxXmlToStyledHtml(xmlString);
+                        resolve({ html, plainText });
                     } catch (err) {
-                        console.error(err);
-                        reject(new Error("Ошибка распаковки DOCX: " + err.message));
+                        reject(new Error("Ошибка распаковки: " + err.message));
                     }
                 };
                 reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
@@ -462,183 +531,226 @@
             });
         }
 
-        // Функция извлечения текста из XML документа word
-        function extractTextFromDocxXml(xmlString) {
-            // Быстрый и надёжный метод: регулярное выражение для извлечения содержимого тегов <w:t>...</w:t>
-            // Учитывая возможные пространства имён: <w:t>, <w:t xml:space="preserve">
-            // Используем более точный DOM парсинг через DOMParser для надёжности, но и RegExp как fallback
-            let textParts = [];
-            try {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-                // Находим все элементы с локальным именем 't' в пространстве имён Word
-                const wNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-                const tElements = xmlDoc.getElementsByTagNameNS(wNamespace, "t");
-                if (tElements.length > 0) {
-                    for (let el of tElements) {
-                        let nodeText = el.textContent;
-                        if (nodeText) textParts.push(nodeText);
-                    }
-                } else {
-                    // fallback: ищем без пространств имён (некоторые варианты)
-                    const allT = xmlDoc.getElementsByTagName("w:t");
-                    for (let el of allT) {
-                        if (el.textContent) textParts.push(el.textContent);
-                    }
+        function convertDocxXmlToStyledHtml(xmlString) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+            const ns = { w: "http://schemas.openxmlformats.org/wordprocessingml/2006/main" };
+            
+            const bodyNode = xmlDoc.getElementsByTagNameNS(ns.w, "body")[0];
+            if (!bodyNode) throw new Error("Не найден body документа");
+            
+            const children = bodyNode.childNodes;
+            let htmlParts = [];
+            let plainParts = [];
+            
+            // Функция для обработки run (прогон с форматированием)
+            function processRun(runNode) {
+                let text = '';
+                let hasBold = false, hasItalic = false, hasUnderline = false;
+                // Проверка на bold/italic через свойства
+                const rPr = runNode.getElementsByTagNameNS(ns.w, "rPr")[0];
+                if (rPr) {
+                    if (rPr.getElementsByTagNameNS(ns.w, "b").length > 0) hasBold = true;
+                    if (rPr.getElementsByTagNameNS(ns.w, "i").length > 0) hasItalic = true;
+                    if (rPr.getElementsByTagNameNS(ns.w, "u").length > 0) hasUnderline = true;
                 }
-                // Также учитываем разрывы строк и абзацы: в docx абзацы зачастую отделяются тегами w:p, добавим переносы
-                // Для лучшей читаемости: между абзацами вставим перевод строки
-                const paragraphs = xmlDoc.getElementsByTagNameNS(wNamespace, "p");
-                if (paragraphs.length === 0 && textParts.length) {
-                    // Если нет четкого выделения абзацев, просто склеиваем с пробелами
-                    return textParts.join(' ').replace(/\s+/g, ' ').trim();
+                // также может быть в самом run стиль, но в docx основные теги w:b, w:i
+                const tNodes = runNode.getElementsByTagNameNS(ns.w, "t");
+                let runText = '';
+                for (let t of tNodes) {
+                    let content = t.textContent;
+                    // preserve spaces
+                    if (t.getAttribute('xml:space') === 'preserve') content = content;
+                    runText += content;
                 }
-                // Построчный вывод с разделением абзацев
-                let paragraphTexts = [];
-                for (let p of paragraphs) {
-                    let paraText = "";
-                    const tNodes = p.getElementsByTagNameNS(wNamespace, "t");
-                    for (let tNode of tNodes) {
-                        paraText += tNode.textContent;
-                    }
-                    if (paraText.trim().length > 0) {
-                        paragraphTexts.push(paraText);
-                    } else if (tNodes.length === 0 && paraText.length === 0) {
-                        // возможно пустой абзац - добавим пустую строку для разделения
-                        if (paragraphTexts.length && paragraphTexts[paragraphTexts.length-1] !== "") 
-                            paragraphTexts.push("");
-                    }
-                }
-                if (paragraphTexts.length) {
-                    let result = paragraphTexts.join('\n');
-                    // удаляем лишние множественные переносы строк, но оставляем структуру
-                    result = result.replace(/\n{3,}/g, '\n\n');
-                    return result.trim();
-                } else if (textParts.length) {
-                    return textParts.join(' ').replace(/\s+/g, ' ').trim();
-                }
-                return "";
-            } catch (domError) {
-                console.warn("DOM парсинг упал, используем RegExp", domError);
-                // старый добрый регэксп для w:t
-                const regex = /<w:t[^>]*>([\s\S]*?)<\/w:t>/gi;
-                let match;
-                while ((match = regex.exec(xmlString)) !== null) {
-                    let content = match[1];
-                    // декодируем XML сущности
-                    content = content.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-                    textParts.push(content);
-                }
-                // также попробуем добавить разрывы строк на основе <w:p>
-                let withBreaks = textParts.join(' ');
-                // дополнительно ставим перевод строки после каждого абзаца
-                const pMatches = xmlString.match(/<w:p[^>]*>/gi);
-                if (pMatches && pMatches.length > 1) {
-                    withBreaks = textParts.map((part, idx) => part + (idx < textParts.length-1 ? '\n' : '')).join('');
-                }
-                return withBreaks.replace(/\s+/g, ' ').trim();
+                if (runText === '') return '';
+                
+                let formatted = runText;
+                if (hasBold) formatted = `<strong>${formatted}</strong>`;
+                if (hasItalic) formatted = `<em>${formatted}</em>`;
+                if (hasUnderline) formatted = `<u>${formatted}</u>`;
+                return { html: formatted, plain: runText };
             }
+            
+            function processParagraph(pNode, level = 0) {
+                let pHtml = '';
+                let pPlain = '';
+                // Определяем стиль абзаца: возможно заголовок или список
+                let styleName = '';
+                const pPr = pNode.getElementsByTagNameNS(ns.w, "pPr")[0];
+                if (pPr) {
+                    const pStyle = pPr.getElementsByTagNameNS(ns.w, "pStyle")[0];
+                    if (pStyle) styleName = pStyle.getAttribute('w:val') || '';
+                    // Проверка на нумерованный/маркированный список
+                }
+                
+                // Обрабатываем все run внутри абзаца
+                const runs = pNode.getElementsByTagNameNS(ns.w, "r");
+                let paragraphHtml = '';
+                let paragraphPlain = '';
+                for (let run of runs) {
+                    const res = processRun(run);
+                    paragraphHtml += res.html;
+                    paragraphPlain += res.plain;
+                }
+                
+                // Проверка на наличие гиперссылок (гиперссылки могут быть отдельными, но для простоты обрабатываем как текст)
+                // Для заголовков: Heading1, Heading2 и т.д.
+                let tagName = 'p';
+                let headingLevel = 0;
+                if (styleName && styleName.toLowerCase().startsWith('heading')) {
+                    const match = styleName.match(/\d+/);
+                    if (match) headingLevel = parseInt(match[0]);
+                    if (headingLevel >= 1 && headingLevel <= 6) tagName = `h${headingLevel}`;
+                }
+                // Проверка на списки: стиль ListParagraph или наличие нумерации
+                let isListItem = false;
+                let listType = 'ul'; // ul or ol
+                if (pPr) {
+                    const numPr = pPr.getElementsByTagNameNS(ns.w, "numPr")[0];
+                    if (numPr) isListItem = true;
+                    // Определяем тип списка по стилю (упрощённо: если есть numId, считаем ol)
+                    // По умолчанию для маркированного и нумерованного используем ul/ol по наличию иллюзии
+                    const ilvl = numPr ? numPr.getElementsByTagNameNS(ns.w, "ilvl")[0] : null;
+                    if (isListItem) {
+                        // проверка на наличие числового формата? делаем допущение: если есть numPr и нет маркера - часто ol
+                        // для красоты: определяем по наличию символов в тексте, но пусть будет ol, пользователь поймёт
+                        listType = 'ol';
+                        // проверим, может быть маркированный список: часто w:numId ссылается на абстрактный num
+                        // для простоты используем ul, если в тексте встречаются маркеры, но здесь лучше по умолчанию ul для ненумерованных
+                        // Попробуем определить по первому символу, но не точно. Сделаем универсально: если есть numPr, используем ul, если хотим маркер.
+                        // Для точности: оставим ul, но позволим пользователю видеть структуру.
+                        listType = 'ul';
+                    }
+                }
+                
+                if (paragraphHtml.trim() === '') return { html: '', plain: '' };
+                if (isListItem) {
+                    const listTag = listType === 'ul' ? 'ul' : 'ol';
+                    return { html: `<li>${paragraphHtml}</li>`, plain: `• ${paragraphPlain}\n`, isListItem: true, listTag };
+                } else {
+                    if (tagName === 'p') return { html: `<${tagName}>${paragraphHtml}</${tagName}>`, plain: paragraphPlain + '\n' };
+                    else return { html: `<${tagName}>${paragraphHtml}</${tagName}>`, plain: paragraphPlain + '\n' };
+                }
+            }
+            
+            let currentListTag = null;
+            let listItemsHtml = [];
+            let finalHtml = '';
+            let finalPlain = '';
+            
+            // Обходим все дочерние узлы body
+            for (let node of children) {
+                if (node.nodeType === 1 && node.localName === 'p' && node.namespaceURI === ns.w) {
+                    const para = processParagraph(node);
+                    if (para.html === '') continue;
+                    // Управление списками: группируем последовательные li в ul/ol
+                    if (para.isListItem) {
+                        if (currentListTag === null) {
+                            currentListTag = para.listTag;
+                            listItemsHtml = [para.html];
+                        } else if (currentListTag === para.listTag) {
+                            listItemsHtml.push(para.html);
+                        } else {
+                            finalHtml += `<${currentListTag}>${listItemsHtml.join('')}</${currentListTag}>`;
+                            finalPlain += listItemsHtml.map(() => '  • ').join('\n') + '\n';
+                            currentListTag = para.listTag;
+                            listItemsHtml = [para.html];
+                        }
+                    } else {
+                        if (currentListTag !== null) {
+                            finalHtml += `<${currentListTag}>${listItemsHtml.join('')}</${currentListTag}>`;
+                            finalPlain += listItemsHtml.map(() => '  • ').join('\n') + '\n';
+                            currentListTag = null;
+                            listItemsHtml = [];
+                        }
+                        finalHtml += para.html;
+                        finalPlain += para.plain;
+                    }
+                }
+            }
+            if (currentListTag !== null) {
+                finalHtml += `<${currentListTag}>${listItemsHtml.join('')}</${currentListTag}>`;
+                finalPlain += listItemsHtml.map(() => '  • ').join('\n') + '\n';
+            }
+            
+            // Дополнительно обрабатываем переносы строк, табуляции
+            finalPlain = finalPlain.replace(/\n{3,}/g, '\n\n').trim();
+            finalHtml = finalHtml.replace(/\n{2,}/g, '\n');
+            // Добавляем базовые стили для читаемости
+            const styledHtml = `<div style="font-family: inherit;">${finalHtml}</div>`;
+            return { html: styledHtml, plainText: finalPlain };
         }
-
-        // --- Основной процесс конвертации ---
-        async function convertDocxToText(file) {
+        
+        // --- Конвертация и отображение ---
+        async function convertDocxToFormatted(file) {
             if (!file) {
                 setStatus("❌ Файл не выбран", true);
-                displayText("");
-                copyBtn.disabled = true;
                 return;
             }
             if (!file.name.toLowerCase().endsWith('.docx')) {
-                setStatus("⚠️ Пожалуйста, выберите файл с расширением .docx", true);
-                displayText("");
-                copyBtn.disabled = true;
+                setStatus("⚠️ Пожалуйста, выберите .docx файл", true);
                 return;
             }
             isProcessing = true;
             convertBtn.disabled = true;
-            convertBtn.innerHTML = '<span>⏳</span> Извлечение текста...';
-            setStatus("🔍 Анализ документа...", false);
-            textOutputDiv.innerHTML = `<div class="empty-message">🔄 Обработка документа, подождите...</div>`;
+            convertBtn.innerHTML = '<span>⏳</span> Обработка форматирования...';
+            setStatus("🔍 Анализ структуры документа...", false);
+            formattedDiv.innerHTML = '<div class="empty-message">🔄 Извлечение стилей и форматирования...</div>';
+            
             try {
-                const plainText = await parseDocxToText(file);
-                if (plainText && plainText.length > 0) {
-                    displayText(plainText);
-                    setStatus(`✅ Готово! Извлечено ${plainText.split(/\s+/).filter(w=>w.length).length} слов.`, false);
-                } else {
-                    displayText("");
-                    setStatus("⚠️ Текст не найден в документе", true);
-                }
+                const { html, plainText } = await parseDocxWithFormat(file);
+                currentHtmlContent = html;
+                currentPlainText = plainText;
+                showHtmlView = true;
+                updateDisplay();
+                setStatus(`✅ Готово! Форматирование сохранено (заголовки, списки, жирный/курсив)`, false);
             } catch (err) {
                 console.error(err);
-                let errorMsg = err.message || "Не удалось обработать DOCX";
-                setStatus(`❌ Ошибка: ${errorMsg}`, true);
-                displayText("");
+                setStatus(`❌ Ошибка: ${err.message}`, true);
+                currentHtmlContent = '';
+                currentPlainText = '';
+                formattedDiv.innerHTML = '<div class="empty-message">⚠️ Не удалось обработать документ. Убедитесь, что это корректный DOCX файл.</div>';
                 copyBtn.disabled = true;
             } finally {
                 isProcessing = false;
                 convertBtn.disabled = false;
-                convertBtn.innerHTML = '<span>⚡</span> Преобразовать в текст';
+                convertBtn.innerHTML = '<span>✨</span> Преобразовать с форматированием';
             }
         }
-
-        // --- Обработчики выбора файла (drag&drop + клик) ---
+        
         function handleFile(file) {
             if (file && file.name.toLowerCase().endsWith('.docx')) {
                 selectedFile = file;
-                setStatus(`📎 Выбран: ${file.name} (${(file.size/1024).toFixed(1)} KB)`, false);
-                // автоматически конвертировать? нет, ждем кнопки, но можно подсветить
-                convertBtn.style.opacity = '1';
+                setStatus(`📎 Выбран: ${file.name}`, false);
             } else if (file) {
                 selectedFile = null;
                 setStatus("❗ Неверный формат. Выберите DOCX файл.", true);
-                convertBtn.disabled = false;
             } else {
                 selectedFile = null;
             }
         }
-
-        // событие изменения input
+        
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            } else {
-                selectedFile = null;
-                setStatus("", false);
-            }
+            if (e.target.files && e.target.files.length > 0) handleFile(e.target.files[0]);
         });
-
-        // Drag & Drop
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('active');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('active');
-        });
+        
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('active'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('active');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 const file = files[0];
-                if (file.name.toLowerCase().endsWith('.docx')) {
-                    handleFile(file);
-                    // также обновим input для согласованности
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(file);
-                    fileInput.files = dataTransfer.files;
-                } else {
-                    setStatus("❌ Перетащите только .docx файл", true);
-                    selectedFile = null;
-                }
+                handleFile(file);
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
             }
         });
-        // клик по зоне загрузки
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        // кнопка конвертации
+        dropZone.addEventListener('click', () => fileInput.click());
+        
         convertBtn.addEventListener('click', () => {
             if (isProcessing) return;
             let fileToConvert = selectedFile;
@@ -650,30 +762,33 @@
                 setStatus("📁 Сначала выберите DOCX файл", true);
                 return;
             }
-            convertDocxToText(fileToConvert);
+            convertDocxToFormatted(fileToConvert);
         });
-
-        // Копирование текста
+        
         copyBtn.addEventListener('click', async () => {
-            if (!extractedText || extractedText.length === 0) {
+            let textToCopy = showHtmlView ? (currentPlainText || '') : currentPlainText;
+            if (!textToCopy && currentPlainText) textToCopy = currentPlainText;
+            if (!textToCopy && currentHtmlContent) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = currentHtmlContent;
+                textToCopy = tempDiv.textContent || tempDiv.innerText;
+            }
+            if (!textToCopy) {
                 setStatus("Нет текста для копирования", true);
                 return;
             }
             try {
-                await navigator.clipboard.writeText(extractedText);
-                setStatus("📋 Текст скопирован в буфер!", false);
-                const originalText = copyBtn.innerHTML;
+                await navigator.clipboard.writeText(textToCopy);
+                setStatus("📋 Текст скопирован!", false);
+                const orig = copyBtn.innerHTML;
                 copyBtn.innerHTML = "✅ Скопировано!";
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalText;
-                }, 1500);
+                setTimeout(() => { copyBtn.innerHTML = orig; }, 1500);
             } catch (err) {
                 setStatus("Не удалось скопировать", true);
             }
         });
-
-        // Инициализация
-        setStatus("Готов к работе. Загрузите DOCX", false);
+        
+        setStatus("Готов к работе. DOCX → форматированный текст", false);
     })();
 </script>
 </body>
