@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>HEIC to JPEG | Telegram Mini App</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Библиотека HEIC -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+    <!-- JSZip -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--tg-theme-bg-color, #f4f7fc);
+            color: var(--tg-theme-text-color, #0f172a);
+            padding: 20px 16px 40px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        /* Telegram темы */
+        body.light {
+            --tg-bg: #f8fafc;
+            --tg-text: #0f172a;
+            --tg-card: white;
+            --tg-border: #e9edf2;
+        }
+        body.dark {
+            --tg-bg: #0a0c10;
+            --tg-text: #eef2ff;
+            --tg-card: #1e293b;
+            --tg-border: #334155;
+        }
+        
+        body {
+            background: var(--tg-bg, #f4f7fc);
+            color: var(--tg-text, #0f172a);
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--tg-card, white);
+            border-radius: 2rem;
+            padding: 1.5rem 1.25rem;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        h1 small {
+            font-size: 0.75rem;
+            font-weight: 400;
+            background: var(--tg-border, #e9ecef);
+            padding: 0.2rem 0.7rem;
+            border-radius: 40px;
+            color: var(--tg-text, #2c3e66);
+        }
+
+        .file-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: var(--tg-border, #f1f5f9);
+            border: 2px dashed #94a3b8;
+            border-radius: 28px;
+            padding: 18px 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .file-label:hover {
+            background: #e6edf4;
+            border-color: #3b82f6;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+
+        .queue-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 16px 0 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .badge {
+            background: var(--tg-border, #d9e2ef);
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+
+        .progress-global {
+            height: 8px;
+            background: var(--tg-border, #e2e8f0);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--tg-accent, #3b82f6);
+            transition: width 0.2s ease;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .start-btn, .download-all-btn, .tg-send-btn {
+            flex: 1;
+            border: none;
+            padding: 14px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .start-btn {
+            background: #10b981;
+            color: white;
+        }
+        
+        .download-all-btn {
+            background: #8b5cf6;
+            color: white;
+        }
+        
+        .tg-send-btn {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .start-btn:active, .download-all-btn:active, .tg-send-btn:active { 
+            transform: scale(0.98); 
+            opacity: 0.9;
+        }
+        
+        .start-btn:disabled, .download-all-btn:disabled, .tg-send-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .queue-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+            max-height: 460px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        
+        .queue-item {
+            background: var(--tg-card, #f9fbfe);
+            border-radius: 20px;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            border: 1px solid var(--tg-border, #e9edf2);
+        }
+        
+        .file-info {
+            flex: 3;
+            min-width: 130px;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+        
+        .file-status {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        
+        .status-pending { color: #f59e0b; }
+        .status-processing { color: #3b82f6; animation: pulse 1s infinite; }
+        .status-done { color: #10b981; }
+        .status-error { color: #ef4444; }
+
+        .action-btn {
+            background: var(--tg-border, #eef2ff);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        
+        .action-btn.download {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .action-btn.remove {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        
+        .action-btn:active { transform: scale(0.96); }
+
+        .empty-queue {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c7a91;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            margin-top: 20px;
+            opacity: 0.6;
+        }
+        
+        button {
+            font-family: inherit;
+        }
+        
+        @media (max-width: 480px) {
+            .card { padding: 1.2rem; }
+            .file-name { max-width: 120px; }
+            .button-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>
+            📸 HEIC → JPEG
+            <small>Telegram Mini App</small>
+        </h1>
+
+        <div class="upload-area">
+            <label class="file-label" id="fileLabel">
+                📂 + Добавить HEIC/HEIF файлы
+                <input type="file" id="fileInput" accept=".heic, .heif, .HEIC, .HEIF" multiple>
+            </label>
+        </div>
+
+        <div class="queue-stats">
+            <span>📋 Очередь: <span id="queueCount">0</span> файлов</span>
+            <span>✅ Готово: <span id="doneCount">0</span></span>
+            <span class="badge" id="statusMessage">Готов к работе</span>
+        </div>
+        <div class="progress-global">
+            <div class="progress-fill" id="globalProgressFill"></div>
+        </div>
+
+        <div id="queueContainer" class="queue-list">
+            <div class="empty-queue">✨ Добавьте HEIC-файлы для конвертации</div>
+        </div>
+
+        <div class="button-group">
+            <button id="startConvertBtn" class="start-btn">▶ Запустить конвертацию</button>
+            <button id="downloadAllBtn" class="download-all-btn">📦 Скачать ZIP</button>
+            <button id="tgSendBtn" class="tg-send-btn">📤 Отправить в Telegram</button>
+        </div>
+    </div>
+    <footer>⚙️ Конвертация на вашем устройстве. Готовые файлы можно скачать или отправить в чат.</footer>
+</div>
+
+<script>
+    // Инициализация Telegram WebApp
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand(); // Растягиваем на весь экран
+    
+    // Применяем тему Telegram
+    document.body.style.backgroundColor = tg.themeParams.bg_color || '#f4f7fc';
+    document.body.style.color = tg.themeParams.text_color || '#0f172a';
+    
+    // Состояние очереди
+    let queue = [];
+    let processingActive = false;
+    let nextId = 1;
+
+    // DOM элементы
+    const fileInput = document.getElementById('fileInput');
+    const queueContainer = document.getElementById('queueContainer');
+    const queueCountSpan = document.getElementById('queueCount');
+    const doneCountSpan = document.getElementById('doneCount');
+    const startBtn = document.getElementById('startConvertBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const tgSendBtn = document.getElementById('tgSendBtn');
+    const globalProgressFill = document.getElementById('globalProgressFill');
+    const statusMsgSpan = document.getElementById('statusMessage');
+
+    // Функция отправки файла в Telegram
+    async function sendToTelegram(blob, filename) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = function() {
+                const base64 = reader.result.split(',')[1];
+                const data = {
+                    action: 'send_file',
+                    filename: filename,
+                    file: base64,
+                    mime: 'image/jpeg'
+                };
+                
+                // Отправляем данные через Telegram WebApp
+                tg.sendData(JSON.stringify(data));
+                resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    // Адаптированная функция скачивания для Telegram
+    function downloadJpeg(item) {
+        if (item && item.status === 'done' && item.blobUrl) {
+            // В Telegram WebView используем openLink
+            if (tg.isExpanded) {
+                // Показываем диалог сохранения через Telegram
+                tg.showPopup({
+                    title: 'Сохранение файла',
+                    message: `Файл ${item.name.replace(/\.(heic|heif)$/i, '.jpg')} готов. Сохранить?`,
+                    buttons: [
+                        {id: 'save', type: 'default', text: 'Сохранить'},
+                        {id: 'cancel', type: 'cancel', text: 'Отмена'}
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 'save') {
+                        const a = document.createElement('a');
+                        a.download = item.name.replace(/\.(heic|heif)$/i, '.jpg');
+                        a.href = item.blobUrl;
+                        a.click();
+                        tg.showAlert('✅ Файл сохранён!');
+                    }
+                });
+            } else {
+                // Обычный браузер
+                const a = document.createElement('a');
+                a.download = item.name.replace(/\.(heic|heif)$/i, '.jpg');
+                a.href = item.blobUrl;
+                a.click();
+            }
+        }
+    }
+
+    // Отправка готовых файлов в Telegram
+    async function sendAllToTelegram() {
+        const doneItems = queue.filter(item => item.status === 'done' && item.blobUrl);
+        if (doneItems.length === 0) {
+            tg.showAlert('Нет готовых файлов для отправки');
+            return;
+        }
+        
+        tgSendBtn.disabled = true;
+        tgSendBtn.innerHTML = '⏳ Отправка...';
+        
+        try {
+            for (const item of doneItems) {
+                const response = await fetch(item.blobUrl);
+                const blob = await response.blob();
+                const filename = item.name.replace(/\.(heic|heif)$/i, '.jpg');
+                await sendToTelegram(blob, filename);
+                await new Promise(r => setTimeout(r, 500)); // Небольшая задержка между отправками
+            }
+            tg.showAlert(`✅ Отправлено ${doneItems.length} файлов в чат!`);
+        } catch (error) {
+            console.error('Ошибка отправки:', error);
+            tg.showAlert('❌ Ошибка при отправке файлов');
+        } finally {
+            tgSendBtn.innerHTML = '📤 Отправить в Telegram';
+            tgSendBtn.disabled = false;
+        }
+    }
+
+    // Отправка одного файла
+    async function sendSingleToTelegram(item) {
+        if (!item || item.status !== 'done' || !item.blobUrl) {
+            tg.showAlert('Файл не готов');
+            return;
+        }
+        
+        try {
+            const response = await fetch(item.blobUrl);
+            const blob = await response.blob();
+            const filename = item.name.replace(/\.(heic|heif)$/i, '.jpg');
+            await sendToTelegram(blob, filename);
+            tg.showAlert(`✅ Файл ${filename} отправлен в чат!`);
+        } catch (error) {
+            tg.showAlert('❌ Ошибка отправки');
+        }
+    }
+
+    // Остальной код конвертера (оставляем как у вас, только добавляем Telegram-интеграцию)
+    // ... [весь ваш существующий код функций renderQueue, removeFromQueue, 
+    // convertHeicToJpeg, processQueueItem, startQueueProcessing, addFilesToQueue] ...
+    
+    // Показываем инструкцию при первом запуске
+    tg.showPopup({
+        title: '📸 HEIC to JPEG',
+        message: 'Добавьте HEIC-файлы, нажмите "Запустить конвертацию". Готовые файлы можно скачать или отправить в чат с ботом.',
+        buttons: [{type: 'ok'}]
+    });
+    
+    // Навешиваем обработчики на кнопки
+    tgSendBtn.addEventListener('click', sendAllToTelegram);
+    
+    // Модифицируем существующие обработчики для скачивания
+    // В функции renderQueue нужно добавить обработчик для кнопки отправки в Telegram
+    
+    // ... остальной ваш код с функциями ...
+</script>
+</body>
+</html>
