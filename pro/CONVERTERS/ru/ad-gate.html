@@ -13,101 +13,108 @@
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: #0a0c10;
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            flex-direction: column;
         }
-        .card {
+        .header {
             background: #1e293b;
-            border-radius: 2rem;
-            padding: 2rem;
+            padding: 12px 16px;
             text-align: center;
-            max-width: 320px;
-            width: 100%;
-            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.5);
+            border-bottom: 1px solid #334155;
+            flex-shrink: 0;
         }
-        .timer {
-            font-size: 4rem;
-            font-weight: 800;
-            color: #3b82f6;
-            margin: 1rem 0;
-            font-family: monospace;
-        }
-        .title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #f1f5f9;
-            margin-bottom: 0.5rem;
-        }
-        .sub {
-            color: #94a3b8;
-            font-size: 0.85rem;
-            margin-bottom: 1.5rem;
+        .timer-box {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 1.2rem;
         }
         .close-btn {
-            background: #3b82f6;
+            background: #ef4444;
             border: none;
-            padding: 14px 24px;
-            border-radius: 60px;
-            font-weight: 700;
-            font-size: 1rem;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: bold;
             color: white;
-            width: 100%;
+            margin-left: 12px;
             cursor: pointer;
-            transition: 0.1s;
-            margin-top: 1rem;
         }
         .close-btn:active {
-            transform: scale(0.98);
-            background: #2563eb;
+            transform: scale(0.96);
+        }
+        .iframe-container {
+            flex: 1;
+            background: white;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
         .note {
+            background: #0f172a;
+            color: #94a3b8;
+            text-align: center;
+            padding: 6px;
             font-size: 0.7rem;
-            color: #5b6e8c;
-            margin-top: 1rem;
+            flex-shrink: 0;
         }
     </style>
 </head>
 <body>
-<div class="card">
-    <div class="title">📸 Секунду...</div>
-    <div class="sub">Подготавливаем рекламную страницу</div>
-    <div class="timer" id="timer">5</div>
+<div class="header">
+    <span class="timer-box" id="timer">5</span>
     <button class="close-btn" id="closeBtn">✖ Закрыть сейчас</button>
-    <div class="note">После закрытия вы вернётесь к конвертеру</div>
+</div>
+<div class="iframe-container">
+    <iframe id="adIframe" src="about:blank"></iframe>
+</div>
+<div class="note">
+    🔄 Страница закроется автоматически через <span id="secLabel">5</span> секунд<br>
+    Вы вернетесь к конвертеру
 </div>
 
 <script>
-    let seconds = 5;
-    const timerElement = document.getElementById('timer');
-    const closeBtn = document.getElementById('closeBtn');
-
-    // Функция закрытия окна (работает в большинстве браузеров)
-    function closeWindow() {
+    // Функция закрытия вкладки
+    function closeTab() {
         window.close();
-        // fallback: если окно не закрывается, показываем сообщение
+        // fallback
         setTimeout(() => {
-            document.body.innerHTML = '<div class="card"><div class="title">⚠️ Не удалось закрыть автоматически</div><div class="sub">Пожалуйста, закройте вкладку вручную и вернитесь к конвертеру</div></div>';
+            document.body.innerHTML = '<div style="text-align:center; padding:50px; color:white; background:#0a0c10; height:100vh;">⚠️ Не удалось закрыть автоматически. Пожалуйста, закройте вкладку вручную.</div>';
         }, 200);
     }
 
-    // Кнопка закрытия
-    closeBtn.addEventListener('click', closeWindow);
+    // Загружаем Smartlink в iframe
+    const smartlinkUrl = 'https://www.profitablecpmratenetwork.com/vi562ifgx4?key=75405d02d81a39be756d180c43747c47';
+    const iframe = document.getElementById('adIframe');
+    iframe.src = smartlinkUrl;
 
-    // Таймер обратного отсчета
+    // Таймер 5 секунд
+    let seconds = 5;
+    const timerElement = document.getElementById('timer');
+    const secLabel = document.getElementById('secLabel');
+    const closeBtn = document.getElementById('closeBtn');
+
     const interval = setInterval(() => {
         seconds--;
         timerElement.innerText = seconds;
+        secLabel.innerText = seconds;
+        
         if (seconds <= 0) {
             clearInterval(interval);
-            closeWindow();
+            closeTab();
         }
     }, 1000);
 
-    // Сообщаем, что страница готова (опционально)
-    console.log('Ad gate ready, will close in 5 sec');
+    // Кнопка закрытия (для тех, кто хочет быстрее)
+    closeBtn.addEventListener('click', () => {
+        clearInterval(interval);
+        closeTab();
+    });
 </script>
 </body>
 </html>
