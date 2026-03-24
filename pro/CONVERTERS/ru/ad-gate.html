@@ -23,38 +23,27 @@
             text-align: center;
             border-bottom: 1px solid #334155;
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
         }
         .timer-box {
+            display: inline-block;
             background: #3b82f6;
             color: white;
             font-weight: bold;
             padding: 6px 16px;
             border-radius: 40px;
             font-size: 1.2rem;
-            font-family: monospace;
         }
         .close-btn {
             background: #ef4444;
             border: none;
-            padding: 6px 20px;
+            padding: 6px 16px;
             border-radius: 40px;
             font-weight: bold;
             color: white;
-            cursor: not-allowed;
-            opacity: 0.5;
-            transition: 0.1s;
-        }
-        .close-btn.active {
+            margin-left: 12px;
             cursor: pointer;
-            opacity: 1;
-            background: #ef4444;
         }
-        .close-btn.active:active {
+        .close-btn:active {
             transform: scale(0.96);
         }
         .iframe-container {
@@ -70,39 +59,46 @@
             background: #0f172a;
             color: #94a3b8;
             text-align: center;
-            padding: 8px;
-            font-size: 0.75rem;
+            padding: 6px;
+            font-size: 0.7rem;
             flex-shrink: 0;
-        }
-        .note strong {
-            color: #3b82f6;
         }
     </style>
 </head>
 <body>
 <div class="header">
     <span class="timer-box" id="timer">10</span>
-    <button class="close-btn" id="closeBtn" disabled>✖ Закрыть</button>
+    <button class="close-btn" id="closeBtn">✖ Закрыть сейчас</button>
 </div>
 <div class="iframe-container">
     <iframe id="adIframe" src="about:blank"></iframe>
 </div>
 <div class="note">
-    ⏱️ Реклама загружается... Вы сможете закрыть окно через <strong id="secLabel">10</strong> секунд
+    🔄 Страница закроется автоматически через <span id="secLabel">10</span> секунд<br>
+    Вы вернетесь к конвертеру
 </div>
 
 <script>
-    // ТВОЙ SMARTLINK (РАБОТАЕТ ЧЕРЕЗ ADSTERRA)
+    // Функция закрытия вкладки
+    function closeTab() {
+        window.close();
+        // fallback
+        setTimeout(() => {
+            document.body.innerHTML = '<div style="text-align:center; padding:50px; color:white; background:#0a0c10; height:100vh;">⚠️ Не удалось закрыть автоматически. Пожалуйста, закройте вкладку вручную.</div>';
+        }, 200);
+    }
+
+    // Загружаем Smartlink в iframe
     const smartlinkUrl = 'https://www.profitablecpmratenetwork.com/vi562ifgx4?key=75405d02d81a39be756d180c43747c47';
-    
     const iframe = document.getElementById('adIframe');
     iframe.src = smartlinkUrl;
-    
+
+    // Таймер 10 секунд
     let seconds = 10;
     const timerElement = document.getElementById('timer');
     const secLabel = document.getElementById('secLabel');
     const closeBtn = document.getElementById('closeBtn');
-    
+
     const interval = setInterval(() => {
         seconds--;
         timerElement.innerText = seconds;
@@ -110,19 +106,14 @@
         
         if (seconds <= 0) {
             clearInterval(interval);
-            closeBtn.disabled = false;
-            closeBtn.classList.add('active');
-            closeBtn.innerText = '✖ Закрыть сейчас';
-            document.querySelector('.note').innerHTML = '✅ Реклама загружена. Вы можете закрыть окно или оставить открытым.';
+            closeTab();
         }
     }, 1000);
-    
+
+    // Кнопка закрытия (для тех, кто хочет быстрее)
     closeBtn.addEventListener('click', () => {
-        if (closeBtn.disabled) return;
-        window.close();
-        setTimeout(() => {
-            document.body.innerHTML = '<div style="text-align:center; padding:50px; color:white; background:#0a0c10; height:100vh;">⚠️ Не удалось закрыть автоматически. Пожалуйста, закройте вкладку вручную.</div>';
-        }, 200);
+        clearInterval(interval);
+        closeTab();
     });
 </script>
 </body>
