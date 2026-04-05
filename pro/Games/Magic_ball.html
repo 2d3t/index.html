@@ -1,0 +1,716 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Магнитный лабиринт — шарик с наклоном телефона</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, 'Poppins', monospace;
+            transition: background 0.3s, color 0.2s;
+            padding: 12px;
+            background: #0f172a;
+        }
+
+        /* светлая тема */
+        body.light {
+            background: linear-gradient(145deg, #cbd5e6, #eef2ff);
+        }
+        body.dark {
+            background: linear-gradient(145deg, #020617, #0f172a);
+        }
+
+        .game-container {
+            max-width: 620px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+            border-radius: 64px 48px 64px 48px;
+            padding: 20px 16px 28px;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s;
+        }
+
+        body.light .game-container {
+            background: rgba(240, 245, 255, 0.7);
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #facc15, #ff6a88);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .theme-toggle {
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            font-size: 1.6rem;
+            border-radius: 60px;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: 0.2s;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 10px 12px 20px;
+            font-weight: bold;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 18px;
+            border-radius: 60px;
+            font-size: 1.1rem;
+            backdrop-filter: blur(4px);
+        }
+        body.light .stat-card {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        canvas {
+            width: 100%;
+            max-width: 550px;
+            aspect-ratio: 1 / 1;
+            background: radial-gradient(circle at 30% 20%, #1e293b, #0a0f1a);
+            border-radius: 48px;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.5);
+            display: block;
+            touch-action: none;
+        }
+        body.light canvas {
+            background: radial-gradient(circle at 30% 20%, #cfdee9, #b9c8da);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls-panel {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 20px 0 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #1f3a6b;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 80px;
+            font-weight: bold;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            backdrop-filter: blur(4px);
+        }
+        button:active { transform: scale(0.96); }
+        .reset-btn { background: #ff5e6e; }
+        .reset-btn:active { background: #d14452; }
+
+        .info {
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 16px;
+            opacity: 0.8;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 40px;
+        }
+
+        @media (max-width: 500px) {
+            .game-container { padding: 14px; }
+            h1 { font-size: 1.5rem; }
+            .stat-card { font-size: 0.9rem; padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body class="dark">
+<div class="game-container">
+    <div class="game-header">
+        <h1>🌀 МАГНИТНЫЙ ШАР</h1>
+        <button class="theme-toggle" id="themeToggleBtn">☀️</button>
+    </div>
+    <div class="stats">
+        <div class="stat-card">🎯 Цели: <span id="targetCount">0</span></div>
+        <div class="stat-card">⚡ Победы: <span id="winCount">0</span></div>
+    </div>
+    <div class="canvas-wrapper">
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+    <div class="controls-panel">
+        <button id="resetGameBtn" class="reset-btn">🔄 НОВАЯ ИГРА</button>
+        <button id="calibrateBtn">🎯 Калибровка (горизонт)</button>
+    </div>
+    <div class="info">
+        🎮 <strong>Наклоняйте телефон</strong> — шарик покатится в сторону наклона. Собирайте золотые звёзды, избегайте красных шипов!<br>
+        🌟 5 звёзд = победа. Касание шипа сбрасывает прогресс. Есть звуковые эффекты!
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ---------- ИГРОВАЯ ФИЗИКА + ДАТЧИК НАКЛОНА (ИСПРАВЛЕННЫЕ НАПРАВЛЕНИЯ) ----------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width = 600, height = 600;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Шарик
+        let ball = { x: width/2, y: height/2, radius: 14, vx: 0, vy: 0 };
+        
+        // Объекты
+        let spikes = [];
+        let stars = [];
+        let starsCollected = 0;
+        let totalStars = 0;
+        let winCount = 0;
+        let gameWin = false;
+        let gameWinTimer = null;
+        
+        // Наклон (акселерометр) - ИСПРАВЛЕНО: теперь при наклоне вперёд (положительный Y) шарик движется ВНИЗ,
+        // при наклоне влево (отрицательный X) шарик движется ВЛЕВО.
+        // Это соответствует естественным ожиданиям: наклоняем телефон — шарик катится в сторону наклона.
+        let tiltX = 0;      // диапазон -1..1 (влево/вправо)
+        let tiltY = 0;      // -1..1 (вперёд/назад)
+        let calibrationX = 0, calibrationY = 0;
+        
+        const GRAVITY = 0.48;
+        const FRICTION = 0.985;
+        const BOUNCE_DAMP = 0.7;
+        
+        // ---------- ЗВУКИ (Web Audio, синтез коротких писков) ----------
+        let audioCtx = null;
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function playBeep(type) {
+            try {
+                if (!audioCtx) {
+                    initAudio();
+                    if (audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                }
+                if (!audioCtx) return;
+                const now = audioCtx.currentTime;
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                if (type === 'star') {
+                    oscillator.frequency.value = 880;
+                    gainNode.gain.value = 0.2;
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+                    oscillator.start();
+                    oscillator.stop(now + 0.25);
+                } 
+                else if (type === 'spike') {
+                    oscillator.frequency.value = 220;
+                    gainNode.gain.value = 0.25;
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+                    oscillator.start();
+                    oscillator.stop(now + 0.35);
+                }
+                else if (type === 'win') {
+                    oscillator.frequency.value = 1046.5;
+                    gainNode.gain.value = 0.3;
+                    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+                    oscillator.start();
+                    oscillator.stop(now + 0.4);
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.frequency.value = 1318.52;
+                    gain2.gain.value = 0.25;
+                    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+                    osc2.start(now + 0.25);
+                    osc2.stop(now + 0.65);
+                }
+            } catch(e) { console.log("audio err", e); }
+        }
+        
+        function enableAudioOnTouch() {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            } else if (!audioCtx) {
+                initAudio();
+                if (audioCtx) audioCtx.resume();
+            }
+        }
+        document.body.addEventListener('touchstart', enableAudioOnTouch, { once: true });
+        document.body.addEventListener('click', enableAudioOnTouch, { once: true });
+        
+        // ----- Генерация уровня -----
+        function generateLevel() {
+            const margin = 35;
+            stars = [];
+            starsCollected = 0;
+            totalStars = 5;
+            for(let i=0; i<totalStars; i++) {
+                let overlap = true;
+                let tries = 0;
+                let sx, sy;
+                while(overlap && tries < 200) {
+                    sx = margin + Math.random() * (width - margin*2);
+                    sy = margin + Math.random() * (height - margin*2);
+                    overlap = false;
+                    for(let s of stars) {
+                        if(Math.hypot(sx - s.x, sy - s.y) < 32) overlap = true;
+                    }
+                    if(Math.hypot(sx - width/2, sy - height/2) < 45) overlap = true;
+                    tries++;
+                }
+                stars.push({ x: sx, y: sy, radius: 12, collected: false });
+            }
+            
+            spikes = [];
+            const spikeCount = 9 + Math.floor(Math.random() * 5);
+            for(let i=0; i<spikeCount; i++) {
+                let overlap = true;
+                let tries = 0;
+                let px, py;
+                while(overlap && tries < 150) {
+                    px = margin + 15 + Math.random() * (width - margin*2 - 30);
+                    py = margin + 15 + Math.random() * (height - margin*2 - 30);
+                    overlap = false;
+                    for(let s of stars) {
+                        if(Math.hypot(px - s.x, py - s.y) < 28) overlap = true;
+                    }
+                    if(Math.hypot(px - width/2, py - height/2) < 55) overlap = true;
+                    for(let sp of spikes) {
+                        if(Math.hypot(px - sp.x, py - sp.y) < 32) overlap = true;
+                    }
+                    tries++;
+                }
+                spikes.push({ x: px, y: py, radius: 12 });
+            }
+            
+            ball.x = width/2;
+            ball.y = height/2;
+            ball.vx = 0;
+            ball.vy = 0;
+            gameWin = false;
+            if(gameWinTimer) clearTimeout(gameWinTimer);
+            updateStarsUI();
+        }
+        
+        function updateStarsUI() {
+            document.getElementById('targetCount').innerText = `${starsCollected}/${totalStars}`;
+            if(starsCollected >= totalStars && !gameWin) {
+                gameWin = true;
+                winCount++;
+                document.getElementById('winCount').innerText = winCount;
+                playBeep('win');
+                if(gameWinTimer) clearTimeout(gameWinTimer);
+                gameWinTimer = setTimeout(() => {
+                    generateLevel();
+                    gameWin = false;
+                }, 1800);
+            }
+        }
+        
+        // Физика и столкновения
+        function updatePhysics() {
+            if(gameWin) {
+                ball.vx *= 0.95;
+                ball.vy *= 0.95;
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+                clampBallInside();
+                return;
+            }
+            
+            // КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: 
+            // Ранее было: accX = tiltX * GRAVITY, accY = tiltY * GRAVITY, но из-за путаницы с осями и знаками 
+            // получалось инвертированное движение. Теперь:
+            // tiltX: положительное значение (наклон вправо) -> ускорение вправо (+X)
+            // tiltY: положительное значение (наклон вперёд, т.е. от себя) -> ускорение вниз (+Y)
+            // Это соответствует тому, как держат телефон: наклоняем вперёд — шарик катится вниз, наклоняем влево — влево.
+            // На многих устройствах ось Y акселерометра: +Y вперёд (от экрана вверх при горизонтальной ориентации?).
+            // Но для стандартного портретного режима, когда телефон вертикально, поворот на себя даёт +Y, и шарик должен идти вниз.
+            // Для X: наклон вправо даёт +X и шарик идёт вправо. Без инверсий.
+            let accX = tiltX * GRAVITY;
+            let accY = tiltY * GRAVITY;
+            
+            ball.vx += accX;
+            ball.vy += accY;
+            ball.vx *= FRICTION;
+            ball.vy *= FRICTION;
+            
+            let newX = ball.x + ball.vx;
+            let newY = ball.y + ball.vy;
+            const rad = ball.radius;
+            if(newX - rad < 0) { newX = rad; ball.vx = -ball.vx * BOUNCE_DAMP; }
+            if(newX + rad > width) { newX = width - rad; ball.vx = -ball.vx * BOUNCE_DAMP; }
+            if(newY - rad < 0) { newY = rad; ball.vy = -ball.vy * BOUNCE_DAMP; }
+            if(newY + rad > height) { newY = height - rad; ball.vy = -ball.vy * BOUNCE_DAMP; }
+            
+            ball.x = newX;
+            ball.y = newY;
+            
+            // шипы: сброс звёзд + звук
+            for(let spike of spikes) {
+                const dx = ball.x - spike.x;
+                const dy = ball.y - spike.y;
+                if(Math.hypot(dx, dy) < ball.radius + spike.radius) {
+                    if(starsCollected > 0 && !gameWin) {
+                        starsCollected = 0;
+                        for(let s of stars) s.collected = false;
+                        updateStarsUI();
+                        playBeep('spike');
+                    }
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = (ball.radius + spike.radius) - Math.hypot(dx, dy);
+                    ball.x += Math.cos(angle) * overlap;
+                    ball.y += Math.sin(angle) * overlap;
+                    ball.vx = -ball.vx * 0.5;
+                    ball.vy = -ball.vy * 0.5;
+                }
+            }
+            
+            // сбор звёзд
+            for(let star of stars) {
+                if(!star.collected) {
+                    if(Math.hypot(ball.x - star.x, ball.y - star.y) < ball.radius + star.radius) {
+                        star.collected = true;
+                        starsCollected++;
+                        updateStarsUI();
+                        playBeep('star');
+                    }
+                }
+            }
+            clampBallInside();
+        }
+        
+        function clampBallInside() {
+            const rad = ball.radius;
+            ball.x = Math.min(Math.max(ball.x, rad), width - rad);
+            ball.y = Math.min(Math.max(ball.y, rad), height - rad);
+        }
+        
+        // ----- Отрисовка -----
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            const grad = ctx.createLinearGradient(0, 0, width, height);
+            if(document.body.classList.contains('dark')) {
+                grad.addColorStop(0, '#18223c');
+                grad.addColorStop(1, '#0b0f1f');
+            } else {
+                grad.addColorStop(0, '#dee9f2');
+                grad.addColorStop(1, '#c0cfdf');
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.strokeStyle = '#ffdd99';
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.25;
+            for(let i = 0; i < width; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(width, i);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            
+            // шипы
+            for(let spike of spikes) {
+                const gradSpike = ctx.createRadialGradient(spike.x-3, spike.y-3, 3, spike.x, spike.y, spike.radius+2);
+                gradSpike.addColorStop(0, '#ff4d6d');
+                gradSpike.addColorStop(1, '#a0002c');
+                ctx.beginPath();
+                ctx.arc(spike.x, spike.y, spike.radius, 0, Math.PI*2);
+                ctx.fillStyle = gradSpike;
+                ctx.fill();
+                ctx.shadowBlur = 6;
+                ctx.fillStyle = '#ffaa88';
+                ctx.font = `bold ${spike.radius}px monospace`;
+                ctx.fillText("⚡", spike.x-8, spike.y+5);
+                ctx.shadowBlur = 0;
+            }
+            
+            // звёзды
+            for(let star of stars) {
+                if(!star.collected) {
+                    const pulse = 0.8 + 0.3 * Math.sin(Date.now() * 0.008);
+                    const radStar = star.radius * (0.7 + pulse*0.2);
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, radStar, 0, Math.PI*2);
+                    const gradStar = ctx.createLinearGradient(star.x-4, star.y-4, star.x+4, star.y+4);
+                    gradStar.addColorStop(0, '#ffdd77');
+                    gradStar.addColorStop(1, '#ffaa33');
+                    ctx.fillStyle = gradStar;
+                    ctx.fill();
+                    ctx.fillStyle = '#ffec80';
+                    ctx.font = `bold ${star.radius+4}px "Segoe UI"`;
+                    ctx.fillText("★", star.x-9, star.y+6);
+                    ctx.shadowBlur = 6;
+                    ctx.shadowColor = '#ffaa55';
+                }
+            }
+            ctx.shadowBlur = 0;
+            
+            // шарик
+            const gradBall = ctx.createRadialGradient(ball.x-5, ball.y-5, 5, ball.x, ball.y, ball.radius+2);
+            if(document.body.classList.contains('dark')) {
+                gradBall.addColorStop(0, '#f9c270');
+                gradBall.addColorStop(1, '#e07a2c');
+            } else {
+                gradBall.addColorStop(0, '#ffda99');
+                gradBall.addColorStop(1, '#ffaa33');
+            }
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+            ctx.fillStyle = gradBall;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ball.x-3, ball.y-3, 4, 0, Math.PI*2);
+            ctx.fillStyle = '#fff9e0';
+            ctx.fill();
+            ctx.fillStyle = '#00000044';
+            ctx.beginPath();
+            ctx.arc(ball.x+2, ball.y+2, 3, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(ball.x-2, ball.y-2, 2, 0, Math.PI*2);
+            ctx.fill();
+            
+            if(gameWin) {
+                ctx.font = "bold 28px 'Orbitron', monospace";
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#facc15';
+                ctx.shadowColor = 'gold';
+                ctx.fillText("✨ ПОБЕДА! ✨", width/2-110, height/2-40);
+                ctx.font = "bold 16px system-ui";
+                ctx.fillStyle = '#ffeeaa';
+                ctx.fillText("Новый уровень через секунду", width/2-135, height/2+30);
+            }
+        }
+        
+        // ----- АКСЕЛЕРОМЕТР (ИСПРАВЛЕНЫ НАПРАВЛЕНИЯ) -----
+        // Теперь обработка датчиков даёт прямую связь: наклон влево -> шарик влево, наклон вправо -> шарик вправо.
+        // Наклон вперёд (от себя, верх телефона наклоняется вниз) -> шарик движется вниз по экрану.
+        // Наклон назад (на себя) -> шарик движется вверх.
+        function handleDeviceMotion(event) {
+            if(gameWin) return;
+            let acc = event.accelerationIncludingGravity;
+            if (!acc) return;
+            
+            // Получаем сырые значения с акселерометра.
+            // В портретной ориентации:
+            //   X: положительный при наклоне телефона вправо
+            //   Y: положительный при наклоне верхней части телефона вперёд (от себя, т.е. экран смотрит в потолок?)
+            //   Но стандарт Android/iOS: при наклоне верхней части телефона ВНИЗ (от себя) Y становится положительным.
+            //   Чтобы шарик падал вниз при наклоне телефона вперёд (экран от пользователя), используем acc.y без инверсии.
+            //   Для X: наклон вправо -> шарик вправо, так что acc.x без инверсии.
+            //   Для этого нужно вычесть калибровку и затем нормализовать.
+            let rawX = acc.x || 0;
+            let rawY = acc.y || 0;
+            
+            // Применяем калибровку (вычитаем смещение нуля, запомненное в момент калибровки)
+            let calibratedX = rawX - calibrationX;
+            let calibratedY = rawY - calibrationY;
+            
+            // Ограничиваем диапазон, чтобы физика не была слишком дикой, и делим на чувствительность (12 — эмпирически)
+            // Чувствительность: при наклоне до ~0.8g даёт максимальное ускорение.
+            let normX = Math.min(0.8, Math.max(-0.8, -calibratedX / 12));
+            let normY = Math.min(0.8, Math.max(-0.8, calibratedY / 12));
+            
+            // Прямое отображение: normX -> ускорение по X, normY -> ускорение по Y.
+            // Таким образом, наклон вперёд (положительный Y) даст движение вниз, наклон влево (отрицательный X) даст движение влево.
+            tiltX = normX;
+            tiltY = normY;
+        }
+        
+        function calibrateTilt() {
+            // Функция калибровки: запоминаем текущие показания акселерометра как "горизонт".
+            if(window.DeviceMotionEvent) {
+                // Слушаем одно событие, чтобы получить текущее значение гравитации и обнулить калибровку.
+                window.addEventListener('devicemotion', function onCalib(e) {
+                    let acc = e.accelerationIncludingGravity;
+                    if(acc && acc.x !== undefined && acc.y !== undefined) {
+                        // Запоминаем смещение (текущее положение устройства принимаем за нейтральное)
+                        calibrationX = acc.x || 0;
+                        calibrationY = acc.y || 0;
+                        // Небольшое ограничение, чтобы калибровка не улетала в космос
+                        calibrationX = Math.min(5, Math.max(-5, calibrationX));
+                        calibrationY = Math.min(5, Math.max(-5, calibrationY));
+                        window.removeEventListener('devicemotion', onCalib);
+                        // Небольшая визуальная обратная связь через кратковременное изменение текста кнопки
+                        const calibBtn = document.getElementById('calibrateBtn');
+                        const originalText = calibBtn.innerText;
+                        calibBtn.innerText = '✅ Готово!';
+                        setTimeout(() => {
+                            if(calibBtn) calibBtn.innerText = originalText;
+                        }, 800);
+                    }
+                }, { once: true });
+            }
+        }
+        
+        function requestMotionPermission() {
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('devicemotion', handleDeviceMotion);
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                window.addEventListener('devicemotion', handleDeviceMotion);
+            }
+        }
+        
+        // ----- Игровой цикл -----
+        let animFrame;
+        function gameLoop() {
+            updatePhysics();
+            draw();
+            animFrame = requestAnimationFrame(gameLoop);
+        }
+        
+        function resetGame() {
+            generateLevel();
+            gameWin = false;
+            if(gameWinTimer) clearTimeout(gameWinTimer);
+            starsCollected = 0;
+            for(let s of stars) s.collected = false;
+            updateStarsUI();
+            ball.vx = 0; ball.vy = 0;
+            ball.x = width/2;
+            ball.y = height/2;
+        }
+        
+        function fullReset() {
+            resetGame();
+            winCount = 0;
+            document.getElementById('winCount').innerText = winCount;
+        }
+        
+        // ----- ИНИЦИАЛИЗАЦИЯ -----
+        function init() {
+            generateLevel();
+            updateStarsUI();
+            
+            document.getElementById('resetGameBtn').addEventListener('click', () => { resetGame(); });
+            document.getElementById('calibrateBtn').addEventListener('click', () => { calibrateTilt(); });
+            
+            // Тема
+            const themeBtn = document.getElementById('themeToggleBtn');
+            function setTheme(theme) {
+                if(theme === 'dark') {
+                    document.body.classList.remove('light');
+                    document.body.classList.add('dark');
+                    localStorage.setItem('ball_theme','dark');
+                    themeBtn.innerHTML = '☀️';
+                } else {
+                    document.body.classList.remove('dark');
+                    document.body.classList.add('light');
+                    localStorage.setItem('ball_theme','light');
+                    themeBtn.innerHTML = '🌙';
+                }
+            }
+            const savedTheme = localStorage.getItem('ball_theme') || 'dark';
+            setTheme(savedTheme);
+            themeBtn.addEventListener('click', () => {
+                const isDark = document.body.classList.contains('dark');
+                setTheme(isDark ? 'light' : 'dark');
+            });
+            
+            // Датчики: iOS жест + автоматический старт
+            if (window.DeviceMotionEvent) {
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    document.body.addEventListener('touchstart', function onFirstTouch() {
+                        requestMotionPermission();
+                        document.body.removeEventListener('touchstart', onFirstTouch);
+                    });
+                    document.body.addEventListener('click', function onClickOnce() {
+                        requestMotionPermission();
+                        document.body.removeEventListener('click', onClickOnce);
+                    });
+                } else {
+                    window.addEventListener('devicemotion', handleDeviceMotion);
+                }
+            }
+            
+            // Для десктопа: стрелки (тестовый режим с правильным направлением для клавиатуры)
+            window.addEventListener('keydown', (e) => {
+                if(gameWin) return;
+                if(e.key === 'ArrowLeft') tiltX = -0.6;
+                if(e.key === 'ArrowRight') tiltX = 0.6;
+                if(e.key === 'ArrowUp') tiltY = -0.6;   // Вверх — шарик вверх
+                if(e.key === 'ArrowDown') tiltY = 0.6;   // Вниз — шарик вниз
+                e.preventDefault();
+            });
+            window.addEventListener('keyup', (e) => {
+                if(e.key.startsWith('Arrow')) { 
+                    tiltX = 0; 
+                    tiltY = 0; 
+                }
+            });
+            
+            gameLoop();
+        }
+        
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const maxSize = Math.min(container.clientWidth, 550);
+            canvas.style.width = `${maxSize}px`;
+            canvas.style.height = `${maxSize}px`;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        
+        init();
+    })();
+</script>
+</body>
+</html>
