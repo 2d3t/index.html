@@ -1,139 +1,114 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>KlikEdit Pro 🎀 — Редактор кода с поддержкой множества форматов</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KlikEdit 🎀</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
     body {
       margin: 0;
-      font-family: 'Segoe UI', 'Roboto', monospace, sans-serif;
-      background: #1e1e2f;
-      color: #e0e0e0;
+      font-family: sans-serif;
+      background: #f5f5f5;
     }
     .toolbar {
       display: flex;
-      gap: 8px;
-      padding: 12px 16px;
-      background: #2d2d3a;
+      gap: 5px;
+      padding: 10px;
+      background: #333;
+      color: white;
       flex-wrap: wrap;
-      align-items: center;
-      border-bottom: 1px solid #3e3e4e;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .toolbar input, .toolbar button, .toolbar label {
-      font-size: 13px;
-      font-weight: 500;
     }
     .toolbar input {
-      background: #1e1e2a;
-      border: 1px solid #4a4a5a;
-      color: white;
-      border-radius: 6px;
-      padding: 6px 10px;
+      padding: 5px;
     }
-    .toolbar button, .toolbar label[for="fileUpload"] {
-      padding: 6px 14px;
+    /* Общие стили для всех кнопок и кнопкообразных элементов */
+    .toolbar button,
+    .toolbar label[for="fileUpload"] {
+      padding: 6px 10px;
       border: none;
-      border-radius: 8px;
-      background: #3a3a4a;
+      border-radius: 5px;
+      background: #555;
       color: white;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background 0.3s;
+      font-size: 14px;
       font-family: inherit;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      line-height: normal;
+      height: auto;
+      text-align: center;
+      box-sizing: border-box;
+      margin: 0;
+      display: inline-block;
+      text-decoration: none;
     }
-    .toolbar button:hover, .toolbar label[for="fileUpload"]:hover {
-      background: #5a5a7a;
-      transform: translateY(-1px);
+    .toolbar button:hover,
+    .toolbar label[for="fileUpload"]:hover {
+      background: #777;
     }
     .toolbar button.copied {
-      background: #2e7d32;
-      box-shadow: 0 0 6px #4caf50;
+      background: #4CAF50;
     }
-    .file-badge {
-      background: #1e88e5;
-      border-radius: 20px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: bold;
-      margin-left: 6px;
-    }
-    .editor-container {
+    .editor {
       display: flex;
-      height: calc(100vh - 70px);
+      height: calc(100vh - 60px);
       overflow: hidden;
     }
     .line-numbers {
-      background: #252533;
-      color: #8a8a9e;
-      padding: 10px 0;
+      background: #eee;
+      color: #666;
+      padding: 5px 0;
       text-align: right;
       user-select: none;
       overflow: hidden;
-      width: 58px;
-      font-family: 'Fira Code', 'Cascadia Code', monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      border-right: 1px solid #3e3e4e;
+      width: 50px;
+      box-sizing: border-box;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.4;
     }
     .line-numbers div {
-      padding: 0 12px;
+      padding: 0 10px;
     }
     textarea {
       flex: 1;
       border: none;
       outline: none;
       resize: none;
-      padding: 10px 14px;
-      font-family: 'Fira Code', 'Cascadia Code', monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      background: #1e1e2a;
-      color: #f0f0f0;
-      caret-color: #ffb74d;
+      padding: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow: auto;
     }
     .active-line {
-      background: #3a3a5a;
-      color: #ffd966;
+      background: rgba(100, 150, 250, 0.3);
     }
     .preview {
       width: 100%;
-      height: calc(100vh - 70px);
+      height: calc(100vh - 60px);
       border: none;
-      background: white;
+      margin: 0;
+      padding: 0;
       opacity: 0;
       visibility: hidden;
-      transition: opacity 0.25s ease;
-      position: absolute;
-      top: 70px;
-      left: 0;
-      z-index: 20;
+      transition: opacity 0.5s ease;
     }
     .preview.active {
       opacity: 1;
       visibility: visible;
-      position: relative;
-      top: 0;
     }
-    .editor-panel {
-      width: 100%;
-      display: flex;
-      transition: all 0.2s;
+    /* Скрываем стандартный input file */
+    .file-input {
+      display: none;
     }
+    /* Кнопка выхода из полноэкранного режима - внутри iframe */
     .fullscreen-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: #0a0a1a;
+      background: white;
       z-index: 10000;
       display: none;
     }
@@ -142,80 +117,69 @@
     }
     .fullscreen-exit-btn {
       position: fixed;
-      top: 25px;
-      right: 25px;
+      top: 30px; /* Опустил ниже, было 20px */
+      right: 20px;
       z-index: 10001;
-      padding: 12px 20px;
-      background: rgba(0,0,0,0.85);
+      padding: 12px 18px; /* Увеличил отступы для лучшей видимости */
+      background: rgba(0, 0, 0, 0.8);
       color: white;
       border: none;
-      border-radius: 40px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
       font-weight: bold;
-      backdrop-filter: blur(4px);
-      font-family: monospace;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     }
     .fullscreen-exit-btn:hover {
-      background: black;
-      transform: scale(1.03);
-    }
-    .status-msg {
-      font-size: 12px;
-      background: #2c2c3a;
-      padding: 4px 12px;
-      border-radius: 20px;
-      margin-left: 12px;
-      color: #bbbbdd;
-    }
-    @media (max-width: 700px) {
-      .toolbar button, .toolbar label { padding: 4px 10px; font-size: 11px; }
-      .toolbar input { width: auto; max-width: 90px; }
+      background: rgba(0, 0, 0, 0.95);
+      transform: scale(1.05);
+      transition: transform 0.2s;
     }
   </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <input type="number" id="lineNumber" min="1" placeholder="Строка" style="width:75px;">
+  <input type="number" id="lineNumber" min="1" placeholder="Строка">
   <button onclick="goToLine()">Перейти 🔀</button>
   
-  <input type="text" id="searchInput" placeholder="Поиск 🔎" style="width:110px;">
-  <button onclick="findNext()">Далее ▶️</button>
+  <input type="text" id="searchInput" placeholder="Поиск 🔎" style="width:120px;">
+  <button onclick="findNext()">Найти ▶️</button>
   <button onclick="findPrev()">Назад ◀️</button>
 
-  <button id="copyButton" onclick="copyText()">Копировать 📋</button>
+  <button id="copyButton" onclick="copyText()">Скопировать 📃</button>
   <button onclick="clearAll()">Очистить ❌</button>
   <button onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход 🚸</button>
   <button onclick="undo()">Отменить ↩️</button>
   <button onclick="redo()">Повторить ↪️</button>
   <button onclick="shareCode()">Скачать ⬇️</button>
-  <button onclick="showEditor()">Редактор ✏️</button>
-  <button onclick="runCode()">Просмотр 🌐</button>
+  <button onclick="showEditor()">Редактор 🛠️</button>
+  <button onclick="runCode()">Просмотр 🖥️</button>
+  
+  <!-- Кнопка для полноэкранного режима -->
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
-  <label for="fileUpload" style="background:#5e3a7a;">📂 Открыть файл</label>
-  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.csv,.md,.c,.cpp,.h,.java,.rb,.go,.php,.sql,.sh,.bat,.ps1,.ini,.cfg" style="display:none;" onchange="loadFile(event)">
+  <!-- Кнопка для загрузки файлов - расширенные возможности -->
+  <label for="fileUpload" title="Открыть файл (поддерживаются: .py, .js, .html, .css, .txt, .json, .xml и другие текстовые форматы)">Файлы 📂</label>
+  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="loadFile(event)">
+</div>
   
-  <span id="fileStatus" class="status-msg">📁 Готов</span>
-</div>
-
-<div class="editor-container">
+<div class="editor">
   <div class="line-numbers" id="lineNumbers"></div>
-  <textarea id="codeArea" placeholder="✍️ Вставьте или откройте код... Поддерживается .py, .js, .html, .css, .json и др." oninput="updateLineNumbers(); saveState()" onscroll="syncScroll()"></textarea>
+  <textarea id="codeArea" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
 </div>
 
-<iframe class="preview" id="previewFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+<iframe class="preview" id="previewFrame"></iframe>
 
+<!-- Оверлей для полноэкранного режима -->
 <div class="fullscreen-overlay" id="fullscreenOverlay">
-  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✖ Выйти из полноэкранного режима</button>
+  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти из полного экрана</button>
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
 </div>
 
 <script>
-  // --- DOM элементы ---
   const textarea = document.getElementById('codeArea');
-  const lineNumbersDiv = document.getElementById('lineNumbers');
+  const lineNumbers = document.getElementById('lineNumbers');
   const previewFrame = document.getElementById('previewFrame');
   const copyButton = document.getElementById('copyButton');
   const searchInput = document.getElementById('searchInput');
@@ -223,268 +187,213 @@
   const fullscreenButton = document.getElementById('fullscreenButton');
   const fullscreenOverlay = document.getElementById('fullscreenOverlay');
   const fullscreenFrame = document.getElementById('fullscreenFrame');
-  const fileStatusSpan = document.getElementById('fileStatus');
 
-  // --- история (undo/redo) ---
-  let historyStack = [];
+  let history = [];
   let redoStack = [];
-  let ignoreNextInput = false;
+  let isFullscreen = false;
 
-  function saveState() {
-    if (ignoreNextInput) {
-      ignoreNextInput = false;
-      return;
+  function updateLineNumbers() {
+    const lines = textarea.value.split('\n').length;
+    const extraLines = Math.ceil(lines * 0.5);
+    const totalLines = lines + extraLines;
+
+    lineNumbers.innerHTML = '';
+    for (let i = 1; i <= totalLines; i++) {
+      const div = document.createElement("div");
+      div.textContent = i;
+      lineNumbers.appendChild(div);
     }
-    const current = textarea.value;
-    if (historyStack.length === 0 || historyStack[historyStack.length-1] !== current) {
-      historyStack.push(current);
-      redoStack = [];
-      // ограничим историю для памяти
-      if (historyStack.length > 200) historyStack.shift();
+    highlightActiveLine();
+  }
+
+  function syncScroll() {
+    lineNumbers.scrollTop = textarea.scrollTop;
+  }
+
+  function goToLine() {
+    const line = parseInt(document.getElementById('lineNumber').value);
+    const lines = textarea.value.split('\n');
+    const extraLines = Math.ceil(lines.length * 0.5);
+    const totalLines = lines.length + extraLines;
+
+    if (!isNaN(line) && line > 0 && line <= totalLines) {
+        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+        const linePos = (line - 1) * lineHeight;
+        const visibleHeight = textarea.clientHeight;
+        const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
+        
+        textarea.scrollTop = Math.max(0, scrollPos);
+        highlightActiveLine(line);
+    } else {
+        alert("Неверный номер строки!");
     }
   }
 
+  function highlightActiveLine(line) {
+    const lineElements = Array.from(lineNumbers.children);
+    lineElements.forEach((el, index) => {
+      el.classList.remove('active-line');
+      if (line && index === (line - 1)) {
+        el.classList.add('active-line');
+      }
+    });
+  }
+
+  function copyText() {
+    textarea.select();
+    document.execCommand('copy');
+    
+    copyButton.classList.add('copied');
+    copyButton.textContent = "Скопировано"; 
+    setTimeout(() => {
+      copyButton.classList.remove('copied');
+      copyButton.textContent = "Скопировать 📃"; 
+    }, 1000); 
+  }
+
+  function clearAll() {
+    textarea.value = '';
+    updateLineNumbers();
+  }
+
+  function runCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    previewFrame.src = url;
+    
+    // Также загружаем код в fullscreenFrame
+    fullscreenFrame.src = url;
+
+    previewFrame.classList.add("active");
+    document.querySelector('.editor').style.display = "none";
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showEditor() {
+    // Выход из полноэкранного режима если он был активен
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    
+    previewFrame.classList.remove("active");
+    setTimeout(() => {
+      document.querySelector('.editor').style.display = "flex";
+    }, 500);
+  }
+
+  function shareCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'code.html';
+    link.click();
+  }
+
+  function saveState() {
+    history.push(textarea.value);
+    redoStack = [];
+  }
+
   function undo() {
-    if (historyStack.length > 1) {
-      redoStack.push(historyStack.pop());
-      const previous = historyStack[historyStack.length-1];
-      ignoreNextInput = true;
-      textarea.value = previous;
+    if (history.length > 0) {
+      redoStack.push(textarea.value);
+      textarea.value = history.pop();
       updateLineNumbers();
-    } else {
-      // лёгкий фидбек
-      fileStatusSpan.innerText = "⚠️ Нет действий для отмены";
-      setTimeout(() => { if(fileStatusSpan) fileStatusSpan.innerText = "📁 Готов"; }, 1000);
     }
   }
 
   function redo() {
     if (redoStack.length > 0) {
-      const nextVal = redoStack.pop();
-      historyStack.push(nextVal);
-      ignoreNextInput = true;
-      textarea.value = nextVal;
+      history.push(textarea.value);
+      textarea.value = redoStack.pop();
       updateLineNumbers();
-    } else {
-      fileStatusSpan.innerText = "⏪ Нет повтора";
-      setTimeout(() => fileStatusSpan.innerText = "📁 Готов", 800);
     }
   }
 
-  // --- Нумерация строк и синхронизация ---
-  function updateLineNumbers() {
-    const lines = textarea.value.split('\n').length;
-    const extraBuffer = 30; // добавляем запас для плавного скролла
-    const total = lines + extraBuffer;
-    lineNumbersDiv.innerHTML = '';
-    for (let i = 1; i <= total; i++) {
-      const div = document.createElement('div');
-      div.textContent = i;
-      if (i === currentHighlightLine) div.classList.add('active-line');
-      lineNumbersDiv.appendChild(div);
-    }
-    highlightActiveLineByScroll();
-  }
-
-  let currentHighlightLine = null;
-  function highlightActiveLineByScroll() {
-    if (!textarea) return;
-    const scrollTop = textarea.scrollTop;
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 18;
-    const firstVisibleLine = Math.floor(scrollTop / lineHeight) + 1;
-    const lineElements = lineNumbersDiv.children;
-    for (let i = 0; i < lineElements.length; i++) {
-      lineElements[i].classList.remove('active-line');
-    }
-    if (lineElements[firstVisibleLine-1]) {
-      lineElements[firstVisibleLine-1].classList.add('active-line');
-      currentHighlightLine = firstVisibleLine;
-    }
-  }
-
-  function syncScroll() {
-    lineNumbersDiv.scrollTop = textarea.scrollTop;
-    highlightActiveLineByScroll();
-  }
-
-  textarea.addEventListener('scroll', syncScroll);
-
-  function goToLine() {
-    const lineInput = document.getElementById('lineNumber');
-    let line = parseInt(lineInput.value);
-    const linesTotal = textarea.value.split('\n').length;
-    if (isNaN(line)) line = 1;
-    if (line < 1) line = 1;
-    if (line > linesTotal) line = linesTotal;
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 18;
-    const targetScroll = (line - 1) * lineHeight;
-    textarea.scrollTop = Math.max(0, targetScroll - textarea.clientHeight/3);
-    textarea.focus();
-    // подсветка строки в нумерации
-    const lineDivs = lineNumbersDiv.children;
-    for (let i=0; i<lineDivs.length; i++) lineDivs[i].classList.remove('active-line');
-    if (lineDivs[line-1]) lineDivs[line-1].classList.add('active-line');
-    currentHighlightLine = line;
-    setTimeout(() => {
-      const selLine = textarea.value.split('\n')[line-1];
-      if (selLine !== undefined) {
-        // визуальный эффект
-      }
-    }, 20);
-  }
-
-  function highlightActiveLine(lineNum) {
-    const lineDivs = lineNumbersDiv.children;
-    for (let i=0; i<lineDivs.length; i++) lineDivs[i].classList.remove('active-line');
-    if (lineNum && lineDivs[lineNum-1]) lineDivs[lineNum-1].classList.add('active-line');
-    if (lineNum) currentHighlightLine = lineNum;
-  }
-
-  function copyText() {
-    textarea.select();
-    navigator.clipboard.writeText(textarea.value).then(() => {
-      copyButton.classList.add('copied');
-      copyButton.textContent = "✅ Скопировано!";
-      setTimeout(() => {
-        copyButton.classList.remove('copied');
-        copyButton.textContent = "Копировать 📋";
-      }, 1200);
-    }).catch(() => {
-      document.execCommand('copy');
-      copyButton.classList.add('copied');
-      setTimeout(() => copyButton.classList.remove('copied'), 1000);
-    });
-    textarea.blur();
-  }
-
-  function clearAll() {
-    if (confirm("Очистить весь редактор?")) {
-      textarea.value = '';
-      updateLineNumbers();
-      saveState();
-      fileStatusSpan.innerText = "🧹 Очищено";
-      setTimeout(() => fileStatusSpan.innerText = "📁 Готов", 1200);
-    }
-  }
-
-  function runCode() {
-    const code = textarea.value;
-    // Для безопасного просмотра HTML и других текстовых данных (если не HTML, покажем как текст)
-    let contentToShow = code;
-    const isHtml = code.trim().toLowerCase().startsWith("<!doctype") || code.includes("<html") || (code.includes("<body") && code.includes("</html>"));
-    let blob;
-    if (isHtml) {
-      blob = new Blob([code], { type: 'text/html' });
-    } else {
-      // Для не HTML (py, js, json и т.д) показываем в iframe как обычный текст
-      const wrapped = `<html><head><meta charset="UTF-8"><title>Превью кода</title><style>body{background:#0f0f1a;color:#eef;font-family:monospace;padding:20px;white-space:pre-wrap;}</style></head><body><pre>${escapeHtml(code)}</pre></body></html>`;
-      blob = new Blob([wrapped], { type: 'text/html' });
-    }
-    const url = URL.createObjectURL(blob);
-    previewFrame.src = url;
-    fullscreenFrame.src = url;
-    previewFrame.classList.add("active");
-    document.querySelector('.editor-container').style.display = "none";
-    document.querySelector('.editor-container').style.display = "none";
-    // скрываем редактор, показываем фрейм
-    const editorPanel = document.querySelector('.editor-container');
-    if(editorPanel) editorPanel.style.display = "none";
-    window.scrollTo(0,0);
-    fileStatusSpan.innerText = "👁️ Просмотр активен";
-  }
-
-  function showEditor() {
-    if (isFullscreen) exitFullscreen();
-    previewFrame.classList.remove("active");
-    const editorContainer = document.querySelector('.editor-container');
-    if(editorContainer) editorContainer.style.display = "flex";
-    fileStatusSpan.innerText = "✏️ Редактор";
-    setTimeout(() => fileStatusSpan.innerText = "📁 Готов", 1500);
-  }
-
-  function shareCode() {
-    const code = textarea.value;
-    let ext = "html";
-    if (fileUpload.files && fileUpload.files[0]) {
-      const originalName = fileUpload.files[0].name;
-      const parts = originalName.split('.');
-      if(parts.length > 1) ext = parts.pop();
-    }
-    const blob = new Blob([code], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `code_${Date.now()}.${ext}`;
-    link.click();
-    fileStatusSpan.innerText = "💾 Скачано";
-    setTimeout(() => fileStatusSpan.innerText = "📁 Готов", 1000);
-  }
-
-  // ====================== РАСШИРЕННАЯ ЗАГРУЗКА ФАЙЛОВ ======================
-  // Поддержка: .py, .js, .css, .json, .xml, .c, .cpp, .h, .java, .rb, .go, .php, .sql, .sh, .bat, .ps1, .ini, .cfg, .md, .csv и классические .html/.txt
-  const SUPPORTED_EXTS = [
-    'html', 'htm', 'txt', 'py', 'js', 'css', 'json', 'xml', 'csv', 'md',
-    'c', 'cpp', 'h', 'hpp', 'java', 'rb', 'go', 'php', 'sql', 'sh', 'bash',
-    'bat', 'ps1', 'ini', 'cfg', 'conf', 'log', 'ts', 'jsx', 'tsx', 'vue'
-  ];
-
+  // ========== ФУНКЦИЯ ЗАГРУЗКИ ФАЙЛА - РАСШИРЕННЫЕ ВОЗМОЖНОСТИ ==========
   function loadFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-
-    const fileName = file.name;
-    const fileExt = fileName.split('.').pop().toLowerCase();
     
-    if (!SUPPORTED_EXTS.includes(fileExt)) {
-      alert(`Формат .${fileExt} не поддерживается для открытия. Разрешены: ${SUPPORTED_EXTS.join(', ')}`);
-      fileUpload.value = '';
+    // Получаем расширение файла
+    const fileName = file.name;
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    
+    // Список поддерживаемых текстовых расширений
+    const supportedExtensions = [
+      'html', 'htm', 'txt', 'py', 'js', 'css', 'json', 'xml', 'md', 'csv', 
+      'log', 'ini', 'cfg', 'conf', 'sh', 'bat', 'ps1', 'rb', 'php', 'java', 
+      'c', 'cpp', 'h', 'cs', 'go', 'rs', 'swift', 'kt', 'sql', 'yaml', 'yml', 
+      'toml', 'pl', 'pm', 'r', 'lua', 'vim', 'ts', 'jsx', 'tsx', 'vue', 'scss', 
+      'less', 'sass', 'styl'
+    ];
+    
+    // Проверяем, поддерживается ли расширение
+    if (!supportedExtensions.includes(fileExtension)) {
+      alert(`Файлы с расширением .${fileExtension} не поддерживаются.\n\nПоддерживаемые форматы:\n${supportedExtensions.join(', ')}`);
+      event.target.value = '';
       return;
     }
-
+    
     const reader = new FileReader();
+    
     reader.onload = function(e) {
       const content = e.target.result;
       textarea.value = content;
       updateLineNumbers();
-      // Сохраняем состояние в историю после загрузки
-      historyStack = [];
-      redoStack = [];
-      saveState();  // добавляем текущее состояние
-      fileStatusSpan.innerText = `✅ Загружен: ${fileName}`;
-      setTimeout(() => {
-        if(fileStatusSpan.innerText.includes(fileName)) fileStatusSpan.innerText = "📁 Готов";
-      }, 3000);
-      // дополнительно сбросить выделение
+      
+      // Показываем уведомление о успешной загрузке
+      alert(`Файл "${file.name}" успешно загружен!`);
+      
+      // Очищаем input, чтобы можно было загрузить тот же файл снова
       event.target.value = '';
     };
-    reader.onerror = () => {
-      alert('Ошибка чтения файла. Попробуйте другой файл.');
-      fileUpload.value = '';
+    
+    reader.onerror = function() {
+      alert('Ошибка при чтении файла');
+      event.target.value = '';
     };
+    
     reader.readAsText(file, 'UTF-8');
   }
 
   // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
-  let isFullscreen = false;
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
-      alert('Сначала нажмите "Просмотр 🌐", чтобы открыть страницу.');
+      alert('Сначала запустите просмотр страницы!');
       return;
     }
-    if (isFullscreen) exitFullscreen();
-    else enterFullscreen();
+    
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      enterFullscreen();
+    }
   }
 
   function enterFullscreen() {
     if (!previewFrame.classList.contains('active')) return;
+    
     fullscreenOverlay.classList.add('active');
     isFullscreen = true;
-    fullscreenButton.textContent = 'Обычный экран 🖵';
-    fullscreenButton.style.background = '#2e5c3e';
+    fullscreenButton.textContent = 'Обычный экран ⛶';
+    fullscreenButton.style.background = '#4CAF50';
+    
+    // Скрываем обычный просмотр и тулбар
     previewFrame.classList.remove('active');
     document.querySelector('.toolbar').style.display = 'none';
-    document.addEventListener('keydown', handleEscape);
+    
+    // Обработка клавиши ESC для выхода из полноэкранного режима
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    // Используем Fullscreen API если поддерживается
     if (fullscreenOverlay.requestFullscreen) {
-      fullscreenOverlay.requestFullscreen().catch(err => console.warn(err));
+      fullscreenOverlay.requestFullscreen().catch(err => {
+        console.log(`Ошибка полноэкранного режима: ${err.message}`);
+      });
     }
   }
 
@@ -493,125 +402,122 @@
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
+    
+    // Показываем обычный просмотр и тулбар
     previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
-    if (document.exitFullscreen) document.exitFullscreen();
-    document.removeEventListener('keydown', handleEscape);
+    
+    // Выход из Fullscreen API
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    
+    // Удаляем обработчик клавиши ESC
+    document.removeEventListener('keydown', handleEscapeKey);
   }
 
-  function handleEscape(e) {
-    if (e.key === 'Escape' && isFullscreen) exitFullscreen();
+  function handleEscapeKey(event) {
+    if (event.key === 'Escape' && isFullscreen) {
+      exitFullscreen();
+    }
   }
 
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement && isFullscreen) exitFullscreen();
+  // Обработка выхода из полноэкранного режима через браузерные методы
+  document.addEventListener('fullscreenchange', function() {
+    if (!document.fullscreenElement && isFullscreen) {
+      exitFullscreen();
+    }
   });
 
-  // ---------- ПОИСК с поддержкой кириллицы ----------
-  let searchPositions = [];
-  let currentIdx = -1;
-  let lastSearchTerm = '';
+  textarea.addEventListener('input', saveState);
 
-  function findAllIndices(term) {
+  // ---------- ПОИСК ----------
+  let searchResults = [];
+  let currentResult = -1;
+  let lastSearch = "";
+
+  function findAll(term) {
+    searchResults = [];
+    currentResult = -1;
+    if (!term) return;
+
     const text = textarea.value;
-    const positions = [];
-    let idx = text.indexOf(term);
-    while (idx !== -1) {
-      positions.push(idx);
-      idx = text.indexOf(term, idx + term.length);
+    let index = text.indexOf(term);
+    while (index !== -1) {
+      searchResults.push(index);
+      index = text.indexOf(term, index + term.length);
     }
-    return positions;
   }
 
-  function highlightSearchMatch(index, term) {
-    if (!term || index === -1 || searchPositions.length === 0) return false;
-    const pos = searchPositions[index];
+  function highlightMatch() {
+    if (searchResults.length === 0) return;
+
+    const pos = searchResults[currentResult];
+    const term = searchInput.value;
+
     textarea.focus();
     textarea.setSelectionRange(pos, pos + term.length);
-    const linesBefore = textarea.value.substring(0, pos).split('\n').length;
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 18;
-    textarea.scrollTop = Math.max(0, (linesBefore - 2) * lineHeight);
-    fileStatusSpan.innerText = `🔍 Найдено: ${index+1}/${searchPositions.length}`;
-    setTimeout(() => { if(fileStatusSpan.innerText.includes("Найдено")) fileStatusSpan.innerText = "📁 Готов"; }, 1500);
-    return true;
+
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+    const before = textarea.value.substring(0, pos).split("\n").length;
+    const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2;
+    textarea.scrollTop = Math.max(0, scrollPos);
   }
 
   function findNext() {
-    let term = searchInput.value;
+    const term = searchInput.value;
     if (!term) return;
-    if (term !== lastSearchTerm) {
-      searchPositions = findAllIndices(term);
-      lastSearchTerm = term;
-      currentIdx = -1;
+
+    if (term !== lastSearch) {
+      findAll(term);
+      lastSearch = term;
     }
-    if (searchPositions.length === 0) {
-      alert(`Слово "${term}" не найдено`);
+    if (searchResults.length === 0) {
+      alert("Совпадений не найдено");
       return;
     }
-    currentIdx = (currentIdx + 1) % searchPositions.length;
-    highlightSearchMatch(currentIdx, term);
+    currentResult = (currentResult + 1) % searchResults.length;
+    highlightMatch();
   }
 
   function findPrev() {
-    let term = searchInput.value;
+    const term = searchInput.value;
     if (!term) return;
-    if (term !== lastSearchTerm) {
-      searchPositions = findAllIndices(term);
-      lastSearchTerm = term;
-      currentIdx = searchPositions.length;
+
+    if (term !== lastSearch) {
+      findAll(term);
+      lastSearch = term;
     }
-    if (searchPositions.length === 0) {
-      alert(`Ничего не найдено для "${term}"`);
+    if (searchResults.length === 0) {
+      alert("Совпадений не найдено");
       return;
     }
-    currentIdx = (currentIdx - 1 + searchPositions.length) % searchPositions.length;
-    highlightSearchMatch(currentIdx, term);
+    currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
+    highlightMatch();
   }
 
-  searchInput.addEventListener('input', () => {
-    lastSearchTerm = '';
-    searchPositions = [];
-    currentIdx = -1;
+  searchInput.addEventListener("input", () => {
+    lastSearch = "";
+    searchResults = [];
+    currentResult = -1;
   });
 
-  // Доп. эскейп для строки
-  document.getElementById('lineNumber').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); goToLine(); }
+  updateLineNumbers();
+  document.getElementById('lineNumber').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      goToLine();
+    }
   });
 
-  // Функция для экранирования HTML в предпросмотре не-HTML кода
-  function escapeHtml(str) {
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-      return c;
-    });
-  }
-
-  // Автосохранение истории при ручном вводе
-  textarea.addEventListener('input', () => {
-    updateLineNumbers();
-    saveState();
+  // Инициализация
+  window.addEventListener('DOMContentLoaded', () => {
+    // Проверяем поддержку File API
+    if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
+      alert('Ваш браузер не поддерживает загрузку файлов. Пожалуйста, обновите браузер.');
+    }
   });
-
-  
-  
-
-  // Синхронизация смены вкладок (корректная прокрутка)
-  window.addEventListener('resize', () => {
-    updateLineNumbers();
-    syncScroll();
-  });
-  
-  // фикс отображения preview и editor при загрузке
-  previewFrame.classList.remove('active');
-  document.querySelector('.editor-container').style.display = "flex";
-  
-  // дополнительная обработка для сброса полноэкранного при клике на редактор
-  console.log("KlikEdit PRO — открытие .py и множества форматов активно");
 </script>
+
 </body>
 </html>
