@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>🎮 Поле чудес: Реальный магнитометр</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #0b0f14;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            padding: 12px;
+            margin: 0;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            max-width: 420px;
+            width: 100%;
+            background: #1a242b;
+            border-radius: 48px 48px 32px 32px;
+            padding: 20px 16px 24px;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.8), 0 0 0 2px #4a3f2a;
+            border: 1px solid #b5944b;
+        }
+
+        /* Магнитный индикатор - реальный датчик */
+        .magnetic-indicator {
+            background: #0c1820;
+            border-radius: 80px;
+            padding: 8px 16px 8px 20px;
+            margin-bottom: 18px;
+            border: 2px solid #e4b138;
+            box-shadow: 0 0 12px rgba(228, 177, 56, 0.4), inset 0 1px 3px #00000066;
+            backdrop-filter: blur(2px);
+            transition: all 0.2s;
+        }
+
+        .mag-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: #ffeaac;
+            text-shadow: 0 2px 2px black;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        .mag-icon {
+            font-size: 1.7rem;
+            filter: drop-shadow(0 0 4px #ffb347);
+            transition: transform 0.1s ease;
+        }
+
+        .mag-value-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .mag-meter {
+            background: #2c2c2c;
+            border-radius: 20px;
+            height: 14px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: inset 0 1px 4px #00000088;
+        }
+
+        .mag-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #5fbb9c, #f5d742, #ff884d, #e34d4d);
+            border-radius: 20px;
+            transition: width 0.05s linear;
+            box-shadow: 0 0 6px #ffc285;
+        }
+
+        .mag-numbers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #ddcca5;
+            text-shadow: 0 1px 0 black;
+        }
+
+        .mag-anomaly {
+            background: #4a1f2c;
+            padding: 6px 12px;
+            border-radius: 36px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            color: #ffbc7a;
+            border-left: 4px solid #ff6644;
+            white-space: nowrap;
+            box-shadow: 0 0 8px rgba(255, 80, 40, 0.6);
+        }
+
+        .mag-status {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            color: #b8a87c;
+        }
+
+        @keyframes pulseAlert {
+            0% { text-shadow: 0 0 0 #ff6633; background: #4a1f2c; border-left-color: #ff6644; }
+            100% { text-shadow: 0 0 8px #ff3300; background: #8b3c3c; border-left-color: #ffaa77; }
+        }
+        
+        .anomaly-alert {
+            animation: pulseAlert 0.6s infinite alternate;
+        }
+
+        .sensor-permission {
+            background: #2a3a2a;
+            padding: 8px 12px;
+            border-radius: 28px;
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 8px;
+            color: #c0e0c0;
+            border: 1px solid #6f9e4f;
+        }
+
+        .sensor-permission button {
+            background: #eebb55;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: bold;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
+        /* Остальные стили игры (без изменений) */
+        .question-panel {
+            background: #1e2c36;
+            padding: 18px 12px 12px;
+            border-radius: 36px 36px 24px 24px;
+            margin-bottom: 18px;
+            border: 2px solid #e4b138;
+            box-shadow: inset 0 -3px 0 #7f5f28, 0 6px 0 #0a1219;
+        }
+
+        .question-input {
+            background: #2c3f4d;
+            border: 2px solid #dbb257;
+            border-radius: 40px;
+            padding: 16px 18px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #fff6d9;
+            outline: none;
+            width: 100%;
+            font-family: inherit;
+            box-shadow: inset 0 2px 5px #00000055;
+        }
+
+        .answers-edit {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 8px 0 5px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .answer-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #1e2f3b;
+            border-radius: 60px;
+            padding: 4px 4px 4px 18px;
+            border: 1px solid #e4b138;
+            box-shadow: inset 0 1px 3px black;
+        }
+
+        .answer-input-row input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            font-size: 1.05rem;
+            color: #ffe8b5;
+            font-weight: 500;
+            outline: none;
+        }
+
+        .remove-answer {
+            background: #c05454;
+            color: white;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 1.8rem;
+            font-weight: bold;
+            box-shadow: 0 5px 0 #6d2f2f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.05s linear;
+        }
+
+        .remove-answer:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #6d2f2f;
+        }
+
+        .add-answer-btn {
+            background: #3f9e6b;
+            border: none;
+            border-radius: 50px;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 0 #1d5438;
+            box-shadow: 0 5px 0 #1d5438;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: 0.05s linear;
+            width: 100%;
+        }
+
+        .add-answer-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #1d5438;
+        }
+
+        .answers-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 10px;
+            margin: 16px 0 8px;
+            padding: 0 4px;
+        }
+
+        .answer-chip {
+            background: #fedb9f;
+            padding: 8px 16px;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1f2c35;
+            box-shadow: 0 5px 0 #ad7a4b, 0 6px 8px black;
+            border: 1px solid #ffcd7e;
+            display: inline-block;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .grid-arena {
+            background: #1f313d;
+            padding: 14px;
+            border-radius: 44px;
+            border: 4px solid #cf9f4a;
+            box-shadow: inset 0 -3px 0 #624d2e, 0 12px 18px rgba(0,0,0,0.9);
+            margin: 12px 0 20px;
+        }
+
+        .cells-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            aspect-ratio: 1 / 1;
+        }
+
+        .cell {
+            border-radius: 24px;
+            box-shadow: 0 8px 0 #3a2e1f, 0 10px 14px black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.15s ease;
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 3px 0 #000000, 0 0 12px #ffffffa0;
+            aspect-ratio: 1 / 1;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            border: 3px solid #f3d37c;
+            padding: 4px;
+        }
+
+        .cell[data-id="0"] { background: #E33B3B; }
+        .cell[data-id="1"] { background: #3DB86D; }
+        .cell[data-id="2"] { background: #2F6FDB; }
+        .cell[data-id="3"] { background: #FCDB40; color: #1a1a1a; text-shadow: 0 2px 0 white; }
+        .cell[data-id="4"] { background: #C55AC5; }
+        .cell[data-id="5"] { background: #FF9433; }
+        .cell[data-id="6"] { background: #3FC5C5; }
+        .cell[data-id="7"] { background: #F27C8C; }
+        .cell[data-id="8"] { background: #B58463; }
+
+        .cell.opened {
+            box-shadow: 0 3px 0 #3a2e1f, 0 8px 12px black;
+            transform: translateY(5px);
+            filter: brightness(1.2);
+            border-color: #fff9e6;
+        }
+
+        .cell:active:not(.opened) {
+            transform: translateY(4px);
+            box-shadow: 0 4px 0 #3a2e1f, 0 8px 12px black;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 16px 0 5px;
+        }
+
+        .game-btn {
+            background: #eebb55;
+            border: none;
+            padding: 16px 18px;
+            border-radius: 50px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #1e2b32;
+            text-shadow: 0 1px 0 #ffeeaa;
+            box-shadow: 0 7px 0 #9e762e, 0 8px 12px black;
+            transition: all 0.08s linear;
+            border: 1px solid #ffd966;
+            flex: 1 1 auto;
+            min-width: 140px;
+            cursor: pointer;
+        }
+
+        .game-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 2px 0 #9e762e, 0 5px 10px black;
+        }
+
+        .game-btn.reset-btn {
+            background: #b0c4de;
+            box-shadow: 0 7px 0 #6d7f9a;
+            border-color: #cfdef5;
+            color: #141f2c;
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 0 8px;
+            color: #ffdf9c;
+            font-weight: 700;
+            text-shadow: 0 2px 3px black;
+            font-size: 1.1rem;
+        }
+
+        .opened-counter {
+            background: #00000077;
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: 1px solid #c9a445;
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+<div class="game-container" id="gameApp">
+    
+    <!-- Реальный магнитный индикатор -->
+    <div class="magnetic-indicator" id="magneticWidget">
+        <div class="mag-label">
+            <span class="mag-icon" id="magIcon">🧲</span>
+            <span>РЕАЛЬНЫЙ МАГНИТОМЕТР</span>
+        </div>
+        <div class="mag-value-container">
+            <div class="mag-meter">
+                <div class="mag-fill" id="magFill"></div>
+            </div>
+            <div class="mag-numbers">
+                <span>🟢 норма</span>
+                <span>⚠️ аномалия</span>
+            </div>
+        </div>
+        <div class="mag-anomaly" id="anomalyText">
+            🔮 Ожидание датчика
+        </div>
+        <div class="mag-status" id="sensorStatus">
+            📡 датчик не активен
+        </div>
+        <div class="sensor-permission" id="permissionPanel" style="display: none;">
+            🔐 Требуется доступ к магнитометру
+            <button id="requestSensorBtn">✅ Разрешить</button>
+        </div>
+    </div>
+
+    <div class="question-panel">
+        <div class="question-edit-area">
+            <input type="text" class="question-input" id="questionInput" placeholder="Введи свой вопрос..." value="Столица Франции?">
+            <div class="answers-edit" id="answersEditContainer"></div>
+            <button class="add-answer-btn" id="addAnswerBtn">➕ добавить вариант ответа</button>
+        </div>
+        <div class="answers-row" id="answersList"></div>
+    </div>
+
+    <div class="grid-arena">
+        <div class="cells-grid" id="cellsGrid"></div>
+    </div>
+
+    <div class="controls">
+        <button class="game-btn" id="hideAnswersBtn">🎲 спрятать ответы</button>
+        <button class="game-btn reset-btn" id="restartBtn">⟲ рестарт</button>
+    </div>
+
+    <div class="footer-info">
+        <span class="opened-counter" id="statsCounter">📦 открыто 0/9</span>
+        <span style="font-size: 1.5rem;">🔮</span>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ========== ИГРОВЫЕ ДАННЫЕ ==========
+        let currentQuestion = "Столица Франции?";
+        let currentAnswers = ["Париж", "Лондон", "Берлин", "Мадрид"]; 
+        let hiddenAnswers = new Array(9).fill(null);
+        let openedState = new Array(9).fill(false);
+        let gameInitialized = false;
+
+        // DOM элементы игры
+        const questionInput = document.getElementById('questionInput');
+        const answersEditContainer = document.getElementById('answersEditContainer');
+        const addAnswerBtn = document.getElementById('addAnswerBtn');
+        const answersListEl = document.getElementById('answersList');
+        const cellsGridEl = document.getElementById('cellsGrid');
+        const hideBtn = document.getElementById('hideAnswersBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const statsCounter = document.getElementById('statsCounter');
+
+        // ========== РЕАЛЬНЫЙ МАГНИТОМЕТР ==========
+        let magnetometer = null;
+        let magneticStrength = 0.5; // 0-1, где 1 - максимальная аномалия
+        let sensorActive = false;
+        let demoMode = false;
+        
+        const magFill = document.getElementById('magFill');
+        const anomalySpan = document.getElementById('anomalyText');
+        const sensorStatusSpan = document.getElementById('sensorStatus');
+        const magIconSpan = document.getElementById('magIcon');
+        const permissionPanel = document.getElementById('permissionPanel');
+        
+        // Проверка поддержки Magnetometer API
+        if ('Magnetometer' in window) {
+            sensorStatusSpan.innerHTML = '📡 датчик доступен, требуется разрешение';
+            permissionPanel.style.display = 'block';
+        } else {
+            sensorStatusSpan.innerHTML = '⚠️ Магнитометр не поддерживается браузером. Работаем в демо-режиме.';
+            demoMode = true;
+            startDemoMode();
+        }
+        
+        // Запрос разрешения и запуск датчика
+        document.getElementById('requestSensorBtn')?.addEventListener('click', async () => {
+            try {
+                // Запрашиваем разрешение через создание экземпляра
+                magnetometer = new Magnetometer({ frequency: 60 });
+                
+                magnetometer.addEventListener('reading', () => {
+                    if (!sensorActive) sensorActive = true;
+                    // Получаем вектор магнитного поля (мкТл)
+                    let x = magnetometer.x || 0;
+                    let y = magnetometer.y || 0;
+                    let z = magnetometer.z || 0;
+                    
+                    // Вычисляем общую напряжённость (модуль вектора)
+                    let magnitude = Math.sqrt(x*x + y*y + z*z);
+                    
+                    // Нормализуем: обычное поле Земли ~25-65 мкТл, сильные магниты >100
+                    // Диапазон для индикатора: 20-120 мкТл
+                    let normalized = (magnitude - 20) / 100;
+                    normalized = Math.min(0.98, Math.max(0.02, normalized));
+                    
+                    // Добавляем небольшой шум для реализма
+                    magneticStrength = normalized * 0.7 + magneticStrength * 0.3;
+                    
+                    updateMagneticDisplay();
+                    
+                    // Эффект при сильном поле
+                    if (magnitude > 80 && navigator.vibrate) {
+                        navigator.vibrate(30);
+                    }
+                });
+                
+                magnetometer.addEventListener('error', (event) => {
+                    console.error('Magnetometer error:', event.error);
+                    sensorStatusSpan.innerHTML = '❌ Ошибка датчика. Включён демо-режим.';
+                    demoMode = true;
+                    startDemoMode();
+                });
+                
+                magnetometer.start();
+                permissionPanel.style.display = 'none';
+                sensorStatusSpan.innerHTML = '✅ Магнитометр активен! Подносите магнит!';
+                anomalySpan.innerHTML = '🌀 Датчик работает...';
+                
+                // Скрываем панель разрешений
+                setTimeout(() => {
+                    if (permissionPanel) permissionPanel.style.opacity = '0';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Не удалось запустить магнитометр:', error);
+                sensorStatusSpan.innerHTML = '⚠️ Нет доступа к датчику. Демо-режим.';
+                demoMode = true;
+                startDemoMode();
+            }
+        });
+        
+        // Демо-режим (если нет датчика)
+        function startDemoMode() {
+            demoMode = true;
+            sensorActive = false;
+            sensorStatusSpan.innerHTML = '🎮 ДЕМО: симуляция магнитного поля';
+            permissionPanel.style.display = 'none';
+            
+            // Имитируем магнитные возмущения
+            setInterval(() => {
+                if (demoMode && !sensorActive) {
+                    const totalClosed = 9 - openedState.filter(v => v).length;
+                    const closedRatio = totalClosed / 9;
+                    let targetValue = 0.3 + closedRatio * 0.6;
+                    targetValue += (Math.random() - 0.5) * 0.15;
+                    targetValue = Math.min(0.95, Math.max(0.05, targetValue));
+                    magneticStrength = magneticStrength * 0.8 + targetValue * 0.2;
+                    updateMagneticDisplay();
+                }
+            }, 100);
+        }
+        
+        // Обновление UI магнитного индикатора
+        function updateMagneticDisplay() {
+            const percent = Math.floor(magneticStrength * 100);
+            magFill.style.width = percent + "%";
+            
+            if (magneticStrength > 0.7) {
+                magFill.style.background = "linear-gradient(90deg, #ff884d, #e34d4d)";
+                anomalySpan.innerHTML = "⚠️ СИЛЬНАЯ МАГНИТНАЯ АНОМАЛИЯ! ⚠️";
+                anomalySpan.classList.add("anomaly-alert");
+                magIconSpan.innerHTML = "⚡🧲⚡";
+                magIconSpan.style.transform = "scale(1.2)";
+            } else if (magneticStrength > 0.4) {
+                magFill.style.background = "linear-gradient(90deg, #f5d742, #ff884d)";
+                anomalySpan.innerHTML = "🌀 Обнаружено возмущение поля";
+                anomalySpan.classList.remove("anomaly-alert");
+                magIconSpan.innerHTML = "🌀🧲";
+                magIconSpan.style.transform = "scale(1)";
+            } else {
+                magFill.style.background = "linear-gradient(90deg, #5fbb9c, #aae0c5)";
+                anomalySpan.innerHTML = "✨ Поле стабильно ✨";
+                anomalySpan.classList.remove("anomaly-alert");
+                magIconSpan.innerHTML = "🧲";
+                magIconSpan.style.transform = "scale(1)";
+            }
+            
+            // Если поле сильное, можно добавить визуальный эффект на контейнер
+            const widget = document.getElementById('magneticWidget');
+            if (magneticStrength > 0.8) {
+                widget.style.boxShadow = "0 0 20px rgba(255, 68, 34, 0.8)";
+            } else {
+                widget.style.boxShadow = "0 0 12px rgba(228, 177, 56, 0.4)";
+            }
+        }
+        
+        // Функция для применения всплеска при открытии карточки (если поле сильное)
+        function checkMagneticCuriosity() {
+            if (sensorActive && magneticStrength > 0.65) {
+                // Если поле аномальное, добавляем эффект при открытии
+                if (navigator.vibrate) navigator.vibrate(50);
+                anomalySpan.style.animation = 'pulseAlert 0.3s';
+                setTimeout(() => {
+                    anomalySpan.style.animation = '';
+                }, 300);
+            }
+        }
+        
+        // ========== ИГРОВАЯ ЛОГИКА (без изменений) ==========
+        function renderAnswerInputs() {
+            let html = '';
+            currentAnswers.forEach((ans, index) => {
+                const safeValue = ans.replace(/"/g, '&quot;').replace(/'/g, "&#39;");
+                html += `
+                    <div class="answer-input-row" data-index="${index}">
+                        <input type="text" class="answer-field" value="${safeValue}" placeholder="Ответ ${index+1}">
+                        <button class="remove-answer" data-index="${index}">−</button>
+                    </div>
+                `;
+            });
+            answersEditContainer.innerHTML = html;
+            document.querySelectorAll('.remove-answer').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const idx = this.dataset.index;
+                    if (idx !== undefined) removeAnswer(parseInt(idx));
+                });
+            });
+            document.querySelectorAll('.answer-field').forEach((input, idx) => {
+                input.addEventListener('input', function() {
+                    updateAnswerText(idx, this.value);
+                });
+            });
+        }
+
+        function updateAnswerText(index, newText) {
+            if (index >= 0 && index < currentAnswers.length) {
+                currentAnswers[index] = newText || '???';
+                renderAnswersChips();
+            }
+        }
+
+        function addNewAnswer() {
+            if (currentAnswers.length >= 9) {
+                alert('Максимум 9 вариантов (по числу клеток)');
+                return;
+            }
+            currentAnswers.push(`Вариант ${currentAnswers.length+1}`);
+            renderAnswerInputs();
+            renderAnswersChips();
+        }
+
+        function removeAnswer(index) {
+            if (currentAnswers.length <= 1) {
+                alert('Должен быть хотя бы один ответ');
+                return;
+            }
+            currentAnswers.splice(index, 1);
+            renderAnswerInputs();
+            renderAnswersChips();
+        }
+
+        function renderAnswersChips() {
+            let html = '';
+            currentAnswers.forEach(ans => {
+                html += `<span class="answer-chip">${ans}</span>`;
+            });
+            answersListEl.innerHTML = html;
+        }
+
+        function renderGrid() {
+            let cellsHtml = '';
+            for (let i = 0; i < 9; i++) {
+                let displayText = '';
+                if (openedState[i] && hiddenAnswers[i]) {
+                    displayText = hiddenAnswers[i];
+                } else if (openedState[i] && hiddenAnswers[i] === null) {
+                    displayText = '🌑';
+                } else {
+                    displayText = '?';
+                }
+                cellsHtml += `<div class="cell" data-id="${i}" data-index="${i}">${displayText}</div>`;
+            }
+            cellsGridEl.innerHTML = cellsHtml;
+        }
+
+        function countOpened() { return openedState.filter(v => v).length; }
+        function updateStats() { statsCounter.innerText = `📦 открыто ${countOpened()}/9`; }
+        function syncQuestionFromInput() { currentQuestion = questionInput.value.trim() || '❓ Без вопроса'; }
+
+        function scatterAnswers() {
+            syncQuestionFromInput();
+            openedState.fill(false);
+            const newHidden = new Array(9).fill(null);
+            const answersToHide = [...currentAnswers].slice(0, 9);
+            let indices = [0,1,2,3,4,5,6,7,8];
+            for (let i = indices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            for (let k = 0; k < answersToHide.length; k++) {
+                newHidden[indices[k]] = answersToHide[k];
+            }
+            hiddenAnswers = newHidden;
+            gameInitialized = true;
+            renderGrid();
+            updateStats();
+        }
+
+        function restartGame() {
+            syncQuestionFromInput();
+            hiddenAnswers = new Array(9).fill(null);
+            openedState.fill(false);
+            gameInitialized = false;
+            renderGrid();
+            updateStats();
+        }
+
+        function handleCellClick(e) {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            const index = cell.dataset.index;
+            if (index === undefined) return;
+            const idx = parseInt(index, 10);
+            if (openedState[idx]) return;
+            if (!gameInitialized) {
+                alert('🎲 Сначала нажми "спрятать ответы"!');
+                return;
+            }
+            
+            // Проверяем магнитное поле перед открытием
+            checkMagneticCuriosity();
+            
+            openedState[idx] = true;
+            renderGrid();
+            updateStats();
+        }
+        
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        function init() {
+            questionInput.value = currentQuestion;
+            renderAnswerInputs();
+            renderAnswersChips();
+            renderGrid();
+            updateStats();
+
+            cellsGridEl.addEventListener('click', handleCellClick);
+            cellsGridEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            hideBtn.addEventListener('click', () => { scatterAnswers(); });
+            restartBtn.addEventListener('click', () => { restartGame(); });
+            addAnswerBtn.addEventListener('click', addNewAnswer);
+            questionInput.addEventListener('input', syncQuestionFromInput);
+        }
+
+        init();
+    })();
+</script>
+</body>
+</html>
