@@ -1,0 +1,596 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Радужный рисователь | Живое видео</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: black;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: black;
+            cursor: crosshair;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 16px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            z-index: 20;
+            pointer-events: none;
+            flex-wrap: wrap;
+            padding: 0 12px;
+        }
+
+        button {
+            pointer-events: auto;
+            background: rgba(20,20,30,0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: scale(0.96);
+            background: rgba(60,50,90,0.9);
+        }
+
+        .reset-btn {
+            background: rgba(40,30,50,0.9);
+        }
+
+        .video-btn {
+            background: rgba(80,40,100,0.9);
+            border-color: #ff66cc;
+        }
+
+        .recording-indicator {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(255,0,80,0.8);
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            font-family: monospace;
+            z-index: 30;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+        .recording-indicator.active {
+            display: flex;
+        }
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: #ff3366;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .info {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+            padding: 6px 12px;
+            border-radius: 24px;
+            font-size: 11px;
+            color: #ccc;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        @media (max-width: 700px) {
+            button {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            .info {
+                font-size: 9px;
+                top: 12px;
+                left: 12px;
+            }
+            .recording-indicator {
+                top: 12px;
+                right: 12px;
+                font-size: 10px;
+                padding: 4px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<canvas id="rainbowCanvas"></canvas>
+<div class="controls">
+    <button class="reset-btn" id="resetBtn">🗑️ Очистить</button>
+    <button class="video-btn" id="videoBtn">🎥 Сохранить живое видео</button>
+</div>
+<div class="recording-indicator" id="recordingIndicator">
+    <span class="recording-dot"></span>
+    <span>ЗАПИСЬ... 5 сек</span>
+</div>
+<div class="info">🌈 Радужный след • рисуй пальцем • цвета переливаются 🌈</div>
+
+<script>
+    (function(){
+        // -------- КАНВАС И КОНТЕКСТ --------
+        const canvas = document.getElementById('rainbowCanvas');
+        let ctx = canvas.getContext('2d');
+        
+        let width, height;
+        
+        // -------- ДАННЫЕ ШТРИХОВ --------
+        let strokes = [];       // готовые штрихи
+        let currentStroke = null;
+        let isDrawing = false;
+        
+        // Настройки линии
+        let lineWidth = 14;
+        
+        // Скорость перелива радуги
+        const RAINBOW_SPEED = 1.2;   // цвет меняется плавно
+        
+        // Анимация
+        let animationFrameId = null;
+        
+        // Для записи видео
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingTimeout = null;
+        let captureStream = null;
+        
+        // ---------- ФУНКЦИИ ЦВЕТА ----------
+        function getCurrentHueForStroke(stroke, nowSec) {
+            const elapsed = nowSec - stroke.startTimeSec;
+            let hue = (elapsed * RAINBOW_SPEED * 60) % 360;
+            if (hue < 0) hue += 360;
+            return hue;
+        }
+        
+        function getRainbowColor(hue) {
+            return `hsl(${hue}, 100%, 65%)`;
+        }
+        
+        // ---------- ОТРИСОВКА ВСЕХ ШТРИХОВ (мгновенный след) ----------
+        function redrawAllStrokes() {
+            if (!ctx) return;
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, width, height);
+            
+            const nowSec = performance.now() / 1000;
+            
+            // Рисуем завершённые штрихи
+            for (let s of strokes) {
+                drawStroke(ctx, s, nowSec);
+            }
+            
+            // Рисуем текущий штрих (мгновенный отклик)
+            if (currentStroke && currentStroke.points && currentStroke.points.length >= 2) {
+                drawStroke(ctx, currentStroke, nowSec);
+            } else if (currentStroke && currentStroke.points && currentStroke.points.length === 1) {
+                const hue = getCurrentHueForStroke(currentStroke, nowSec);
+                const color = getRainbowColor(hue);
+                ctx.beginPath();
+                ctx.fillStyle = color;
+                const radius = lineWidth * 0.6;
+                const p = currentStroke.points[0];
+                ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+        
+        function drawStroke(context, stroke, nowSec) {
+            if (!stroke.points || stroke.points.length === 0) return;
+            
+            // Одиночная точка
+            if (stroke.points.length === 1 && stroke.isSinglePoint) {
+                const hue = getCurrentHueForStroke(stroke, nowSec);
+                const color = getRainbowColor(hue);
+                context.beginPath();
+                context.fillStyle = color;
+                const radius = (stroke.lineWidth || lineWidth) * 0.6;
+                const p = stroke.points[0];
+                context.arc(p.x, p.y, radius, 0, Math.PI*2);
+                context.fill();
+                return;
+            }
+            
+            if (stroke.points.length < 2) return;
+            
+            const hue = getCurrentHueForStroke(stroke, nowSec);
+            const color = getRainbowColor(hue);
+            context.beginPath();
+            context.strokeStyle = color;
+            context.lineWidth = stroke.lineWidth || lineWidth;
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            
+            context.moveTo(stroke.points[0].x, stroke.points[0].y);
+            for (let i = 1; i < stroke.points.length; i++) {
+                context.lineTo(stroke.points[i].x, stroke.points[i].y);
+            }
+            context.stroke();
+        }
+        
+        // ---------- АНИМАЦИОННЫЙ ЦИКЛ ----------
+        function animationLoop() {
+            redrawAllStrokes();
+            animationFrameId = requestAnimationFrame(animationLoop);
+        }
+        
+        // ---------- УПРАВЛЕНИЕ ШТРИХАМИ ----------
+        function finishCurrentStroke() {
+            if (currentStroke && currentStroke.points && currentStroke.points.length >= 2) {
+                strokes.push(currentStroke);
+            } else if (currentStroke && currentStroke.points && currentStroke.points.length === 1) {
+                currentStroke.isSinglePoint = true;
+                strokes.push(currentStroke);
+            }
+            currentStroke = null;
+            isDrawing = false;
+        }
+        
+        function startStroke(x, y, timestampMs) {
+            if (currentStroke) {
+                finishCurrentStroke();
+            }
+            const nowSec = timestampMs / 1000;
+            currentStroke = {
+                points: [{ x: x, y: y }],
+                startTimeSec: nowSec,
+                lineWidth: lineWidth,
+                isSinglePoint: false
+            };
+            isDrawing = true;
+            redrawAllStrokes();
+        }
+        
+        function addPointToStroke(x, y) {
+            if (!isDrawing || !currentStroke) return;
+            const lastPoint = currentStroke.points[currentStroke.points.length - 1];
+            const dx = lastPoint.x - x;
+            const dy = lastPoint.y - y;
+            const distance = Math.hypot(dx, dy);
+            if (distance > 2.0) {
+                currentStroke.points.push({ x: x, y: y });
+            } else if (distance > 0.3 && currentStroke.points.length < 3000) {
+                currentStroke.points.push({ x: x, y: y });
+            }
+        }
+        
+        // ---------- ПОЛУЧЕНИЕ КООРДИНАТ ----------
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let clientX, clientY;
+            
+            if (e.touches) {
+                if (e.touches.length === 0) return null;
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            let canvasX = (clientX - rect.left) * scaleX;
+            let canvasY = (clientY - rect.top) * scaleY;
+            canvasX = Math.min(Math.max(0, canvasX), canvas.width);
+            canvasY = Math.min(Math.max(0, canvasY), canvas.height);
+            return { x: canvasX, y: canvasY };
+        }
+        
+        // ----- ОБРАБОТЧИКИ -----
+        function onPointerStart(e) {
+            e.preventDefault();
+            const coords = getCanvasCoords(e);
+            if (!coords) return;
+            startStroke(coords.x, coords.y, performance.now());
+        }
+        
+        function onPointerMove(e) {
+            e.preventDefault();
+            if (!isDrawing || !currentStroke) return;
+            const coords = getCanvasCoords(e);
+            if (!coords) return;
+            addPointToStroke(coords.x, coords.y);
+        }
+        
+        function onPointerEnd(e) {
+            e.preventDefault();
+            if (currentStroke) {
+                finishCurrentStroke();
+            }
+            isDrawing = false;
+            redrawAllStrokes();
+        }
+        
+        // ---------- ОЧИСТКА ----------
+        function resetCanvas() {
+            strokes = [];
+            if (currentStroke) {
+                currentStroke = null;
+                isDrawing = false;
+            }
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Если идёт запись — остановим её, чтобы не сохранять пустоту
+            if (isRecording) {
+                stopRecordingAndSave();
+            }
+        }
+        
+        // ---------- ЗАПИСЬ ВИДЕО (живое переливание) ----------
+        async function startVideoRecording() {
+            if (isRecording) {
+                // Если уже идёт запись, остановим и сохраним предыдущую
+                await stopRecordingAndSave();
+                return;
+            }
+            
+            if (strokes.length === 0 && (!currentStroke || currentStroke.points.length === 0)) {
+                alert('🎨 Сначала нарисуйте что-нибудь! Создайте радужный рисунок.');
+                return;
+            }
+            
+            try {
+                // Захватываем поток с канваса (60fps, качество высокое)
+                // @ts-ignore
+                captureStream = canvas.captureStream(30);
+                if (!captureStream) throw new Error('captureStream not supported');
+                
+                // Определяем поддерживаемый MIME-тип
+                let mimeType = '';
+                const codecs = ['video/webm', 'video/mp4', 'video/webm;codecs=h264', 'video/webm;codecs=vp9'];
+                for (const codec of codecs) {
+                    if (MediaRecorder.isTypeSupported(codec)) {
+                        mimeType = codec;
+                        break;
+                    }
+                }
+                
+                if (!mimeType) {
+                    alert('Ваш браузер не поддерживает запись видео. Попробуйте Chrome, Edge или Safari.');
+                    return;
+                }
+                
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(captureStream, { mimeType: mimeType, videoBitsPerSecond: 5000000 });
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    if (recordedChunks.length === 0) {
+                        console.warn('Нет данных для сохранения');
+                        return;
+                    }
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `rainbow_live_${Date.now()}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    // Очищаем
+                    recordedChunks = [];
+                    if (captureStream) {
+                        captureStream.getTracks().forEach(track => track.stop());
+                        captureStream = null;
+                    }
+                    
+                    const indicator = document.getElementById('recordingIndicator');
+                    indicator.classList.remove('active');
+                    const btn = document.getElementById('videoBtn');
+                    btn.innerText = '🎥 Сохранить живое видео';
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
+                    isRecording = false;
+                    
+                    if (recordingTimeout) clearTimeout(recordingTimeout);
+                };
+                
+                // Записываем 6 секунд (достаточно, чтобы захватить переливание)
+                mediaRecorder.start();
+                isRecording = true;
+                
+                // Показываем индикатор записи
+                const indicator = document.getElementById('recordingIndicator');
+                indicator.classList.add('active');
+                const btn = document.getElementById('videoBtn');
+                btn.innerText = '⏹️ Остановить запись';
+                btn.style.opacity = '0.9';
+                
+                // Автоматическая остановка через 5.5 секунд (чтобы видео было небольшим, но с живым переливом)
+                recordingTimeout = setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        stopRecordingAndSave();
+                    }
+                }, 5500);
+                
+            } catch (err) {
+                console.error('Ошибка записи:', err);
+                alert('Не удалось начать запись. Убедитесь, что используете современный браузер (Chrome, Edge, Safari).');
+                if (captureStream) {
+                    captureStream.getTracks().forEach(track => track.stop());
+                }
+                const btn = document.getElementById('videoBtn');
+                btn.innerText = '🎥 Сохранить живое видео';
+                btn.disabled = false;
+                isRecording = false;
+                document.getElementById('recordingIndicator').classList.remove('active');
+            }
+        }
+        
+        async function stopRecordingAndSave() {
+            if (recordingTimeout) clearTimeout(recordingTimeout);
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                // Ждём последний кусок данных
+                mediaRecorder.requestData();
+                setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, 50);
+            }
+            // Индикатор сбросится в onstop
+        }
+        
+        // ---------- RESIZE И МАСШТАБ ----------
+        function resizeCanvas() {
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            
+            if (width && height && (width !== newWidth || height !== newHeight)) {
+                const scaleX = newWidth / width;
+                const scaleY = newHeight / height;
+                for (let s of strokes) {
+                    for (let p of s.points) {
+                        p.x = p.x * scaleX;
+                        p.y = p.y * scaleY;
+                    }
+                }
+                if (currentStroke) {
+                    for (let p of currentStroke.points) {
+                        p.x = p.x * scaleX;
+                        p.y = p.y * scaleY;
+                    }
+                }
+            }
+            
+            width = newWidth;
+            height = newHeight;
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+            ctx = canvas.getContext('2d');
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            redrawAllStrokes();
+        }
+        
+        // ---------- ПРИВЯЗКА СОБЫТИЙ ----------
+        function attachEvents() {
+            canvas.addEventListener('touchstart', onPointerStart, { passive: false });
+            canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+            canvas.addEventListener('touchend', onPointerEnd);
+            canvas.addEventListener('touchcancel', onPointerEnd);
+            
+            canvas.addEventListener('mousedown', onPointerStart);
+            window.addEventListener('mousemove', (e) => {
+                if (isDrawing && (e.buttons === 1)) {
+                    e.preventDefault();
+                    const coords = getCanvasCoords(e);
+                    if (coords) addPointToStroke(coords.x, coords.y);
+                } else if (isDrawing && e.buttons !== 1) {
+                    if (currentStroke) finishCurrentStroke();
+                    isDrawing = false;
+                }
+            });
+            window.addEventListener('mouseup', onPointerEnd);
+        }
+        
+        // ---------- ИНИЦИАЛИЗАЦИЯ ----------
+        function init() {
+            resizeCanvas();
+            attachEvents();
+            animationFrameId = requestAnimationFrame(animationLoop);
+            
+            const resetBtn = document.getElementById('resetBtn');
+            resetBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                resetCanvas();
+            });
+            resetBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                resetCanvas();
+            });
+            
+            const videoBtn = document.getElementById('videoBtn');
+            videoBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (isRecording) {
+                    stopRecordingAndSave();
+                } else {
+                    startVideoRecording();
+                }
+            });
+            videoBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (isRecording) {
+                    stopRecordingAndSave();
+                } else {
+                    startVideoRecording();
+                }
+            });
+            
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+            });
+        }
+        
+        init();
+    })();
+</script>
+</body>
+</html>
