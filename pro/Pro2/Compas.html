@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Компас с ручной калибровкой</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .compass-card {
+            background: #16213e;
+            border-radius: 48px;
+            padding: 20px 20px 30px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        .compass {
+            width: 260px;
+            height: 260px;
+            margin: 20px auto;
+            position: relative;
+            background: #0f3460;
+            border-radius: 50%;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 0 0 2px #2a4a7a;
+            border: 3px solid #e94560;
+        }
+
+        .needle {
+            position: absolute;
+            width: 6px;
+            height: 120px;
+            background: #e94560;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: 50% 100%;
+            transform: translateX(-50%) rotate(0deg);
+            border-radius: 10px;
+            z-index: 4;
+            box-shadow: 0 0 5px rgba(233, 69, 96, 0.8);
+        }
+
+        .needle::after {
+            content: "N";
+            position: absolute;
+            top: -28px;
+            left: -10px;
+            color: #e94560;
+            font-weight: bold;
+            font-size: 20px;
+            text-shadow: 0 0 3px black;
+        }
+
+        .needle::before {
+            content: "";
+            position: absolute;
+            bottom: -12px;
+            left: -8px;
+            width: 22px;
+            height: 22px;
+            background: #e94560;
+            border-radius: 50%;
+            z-index: 5;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .center-dot {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 6;
+            box-shadow: 0 0 4px cyan;
+        }
+
+        .direction-text {
+            font-size: 58px;
+            font-weight: 800;
+            margin: 15px 0 5px;
+            letter-spacing: 6px;
+            background: linear-gradient(135deg, #fff, #e94560);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .degrees {
+            font-size: 26px;
+            font-weight: 500;
+            background: #0f3460;
+            display: inline-block;
+            padding: 6px 20px;
+            border-radius: 60px;
+            margin: 8px 0;
+        }
+
+        /* Панель калибровки */
+        .calibration-panel {
+            background: #0a1a2f;
+            border-radius: 48px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            border: 1px solid #2a4a7a;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input[type="range"] {
+            flex: 2;
+            min-width: 160px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #2a4a7a;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        input[type="range"]:focus {
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            background: #e94560;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px #ff6b6b;
+            border: none;
+        }
+
+        .correction-badge {
+            background: #e94560;
+            padding: 6px 14px;
+            border-radius: 36px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-width: 70px;
+        }
+
+        button {
+            background: #e94560;
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 14px 20px;
+            border-radius: 60px;
+            width: 90%;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 5px 0 #8e2a3e;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #8e2a3e;
+        }
+
+        .status {
+            background: #2c3e66;
+            padding: 8px 12px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            margin: 12px auto;
+            display: inline-block;
+        }
+
+        .note {
+            font-size: 12px;
+            background: #0f212e;
+            padding: 12px;
+            border-radius: 28px;
+            margin-top: 20px;
+            color: #bbd9ff;
+        }
+
+        .flex-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .reset-btn {
+            background: #2c3e66;
+            box-shadow: none;
+            width: auto;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="compass-card">
+    <h2>🧭 КОМПАС + КАЛИБРОВКА</h2>
+    <div id="statusMessage" class="status">⏳ Ожидание запуска</div>
+
+    <div class="compass">
+        <div class="needle" id="needle"></div>
+        <div class="center-dot"></div>
+        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-weight: bold; font-size: 18px;">N</div>
+        <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-weight: bold;">S</div>
+        <div style="position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-weight: bold;">E</div>
+        <div style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-weight: bold;">W</div>
+    </div>
+
+    <div class="direction-text" id="direction">---</div>
+    <div class="degrees" id="degrees">0°</div>
+
+    <!-- Панель ручной подстройки (калибровка под карту) -->
+    <div class="calibration-panel">
+        <div style="margin-bottom: 12px;">🎯 Подстройка под карту</div>
+        <div class="slider-container">
+            <span>◀ ЗАПАД</span>
+            <input type="range" id="calibrationSlider" value="0" min="-30" max="30" step="0.5">
+            <span>ВОСТОК ▶</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px;">
+            <span>📐 Поправка:</span>
+            <span class="correction-badge" id="calibrationValue">0.0°</span>
+            <button id="resetCalibBtn" class="reset-btn" style="background:#2c3e66; padding: 6px 16px;">Сброс</button>
+        </div>
+        <div style="font-size: 13px; margin-top: 12px; background:#00000030; border-radius: 40px; padding: 6px;">
+            🔄 Покрутите ползунок, пока СЕВЕР на компасе не совпадёт с севером на карте
+        </div>
+    </div>
+
+    <button id="activateBtn">🔓 АКТИВИРОВАТЬ КОМПАС</button>
+
+    <div class="note">
+        💡 <strong>Важно:</strong> На iPhone нажмите кнопку активации и разрешите доступ.<br>
+        🧲 Магнитное склонение компенсируется вручную. Настройка сохранится в телефоне.
+    </div>
+</div>
+
+<script>
+    // --- Элементы DOM ---
+    const statusDiv = document.getElementById('statusMessage');
+    const needle = document.getElementById('needle');
+    const directionSpan = document.getElementById('direction');
+    const degreesSpan = document.getElementById('degrees');
+    const activateBtn = document.getElementById('activateBtn');
+    const slider = document.getElementById('calibrationSlider');
+    const calibrationSpan = document.getElementById('calibrationValue');
+    const resetCalibBtn = document.getElementById('resetCalibBtn');
+
+    // --- Переменные ---
+    let userCorrection = 0;        // ручная поправка (градусы)
+    let currentRawHeading = 0;     // последнее сырое значение с датчика
+    let compassActive = false;
+
+    // --- Преобразование градусов в название стороны (16 направлений для красоты)---
+    function getDirection(degrees) {
+        const directions = [
+            'С', 'ССВ', 'СВ', 'ВСВ',
+            'В', 'ВЮВ', 'ЮВ', 'ЮЮВ',
+            'Ю', 'ЮЮЗ', 'ЮЗ', 'ЗЮЗ',
+            'З', 'ЗСЗ', 'СЗ', 'ССЗ'
+        ];
+        const index = Math.round(degrees / 22.5) % 16;
+        return directions[index];
+    }
+
+    // --- Обновление интерфейса (с учётом ручной поправки)---
+    function updateUIWithCorrection() {
+        if (!compassActive && currentRawHeading === undefined) return;
+        
+        // Применяем поправку (то, что крутит пользователь)
+        let corrected = currentRawHeading + userCorrection;
+        corrected = ((corrected % 360) + 360) % 360;
+        
+        // Обновляем градусы и текст
+        degreesSpan.innerText = Math.round(corrected) + "°";
+        const dirName = getDirection(corrected);
+        directionSpan.innerText = dirName;
+        
+        // Вращаем стрелку
+        needle.style.transform = `translateX(-50%) rotate(${corrected}deg)`;
+    }
+
+    // --- Обработчик показаний с датчика ---
+    function handleOrientation(event) {
+        let heading = event.alpha;
+        
+        // iOS иногда выдаёт данные через webkitCompassHeading
+        if (event.webkitCompassHeading !== undefined) {
+            heading = event.webkitCompassHeading;
+        }
+        
+        if (heading === null || heading === undefined) {
+            if (compassActive) {
+                statusDiv.innerText = "⚠️ Нет сигнала компаса";
+                statusDiv.style.background = "#e67e22";
+            }
+            return;
+        }
+        
+        // Сохраняем сырое значение
+        currentRawHeading = heading;
+        compassActive = true;
+        
+        // Обновляем экран с учётом поправки пользователя
+        updateUIWithCorrection();
+        
+        // Меняем статус на зелёный, если всё ок
+        if (statusDiv.innerText.includes("Ожидание") || statusDiv.innerText.includes("активирован") || statusDiv.innerText.includes("Нет сигнала")) {
+            statusDiv.innerText = "✅ Компас работает";
+            statusDiv.style.background = "#2ecc71";
+        }
+    }
+
+    // --- Запуск слежения за датчиком ---
+    function startCompassListener() {
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', handleOrientation);
+            // Проверка, что данные пошли
+            setTimeout(() => {
+                if (currentRawHeading === undefined) {
+                    statusDiv.innerText = "🔄 Поверните телефон для активации датчиков";
+                    statusDiv.style.background = "#f39c12";
+                }
+            }, 1200);
+        } else {
+            statusDiv.innerText = "❌ Ваш браузер не поддерживает компас";
+            statusDiv.style.background = "#c0392b";
+        }
+    }
+
+    // --- Функция запроса разрешения (iOS и браузеры с политикой разрешений)---
+    function requestCompassAccess() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS: требуется явное разрешение по клику
+            statusDiv.innerText = "📱 Запрос разрешения... Нажмите «Разрешить»";
+            statusDiv.style.background = "#f39c12";
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        statusDiv.innerText = "✅ Доступ получен! Компас активирован";
+                        statusDiv.style.background = "#2ecc71";
+                        startCompassListener();
+                    } else {
+                        statusDiv.innerText = "❌ Доступ запрещён. Обновите страницу и попробуйте снова.";
+                        statusDiv.style.background = "#c0392b";
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    statusDiv.innerText = "⚠️ Ошибка запроса. Нажмите ещё раз.";
+                    statusDiv.style.background = "#e67e22";
+                });
+        } else {
+            // Android / Desktop — запускаем сразу
+            statusDiv.innerText = "🤖 Активация датчиков...";
+            statusDiv.style.background = "#2c3e66";
+            startCompassListener();
+        }
+    }
+
+    // --- Ручная калибровка (сохранение и загрузка)---
+    function loadSavedCorrection() {
+        const saved = localStorage.getItem('compassManualCorrection');
+        if (saved !== null && !isNaN(parseFloat(saved))) {
+            userCorrection = parseFloat(saved);
+            slider.value = userCorrection;
+            calibrationSpan.innerText = userCorrection.toFixed(1) + "°";
+            updateUIWithCorrection();  // сразу обновить стрелку
+        }
+    }
+
+    function saveCorrection(value) {
+        localStorage.setItem('compassManualCorrection', value);
+    }
+
+    // --- События ползунка ---
+    slider.addEventListener('input', (e) => {
+        userCorrection = parseFloat(e.target.value);
+        calibrationSpan.innerText = userCorrection.toFixed(1) + "°";
+        saveCorrection(userCorrection);
+        if (compassActive || currentRawHeading !== undefined) {
+            updateUIWithCorrection();
+        }
+    });
+
+    // Сброс калибровки
+    resetCalibBtn.addEventListener('click', () => {
+        userCorrection = 0;
+        slider.value = 0;
+        calibrationSpan.innerText = "0.0°";
+        saveCorrection(0);
+        if (compassActive || currentRawHeading !== undefined) {
+            updateUIWithCorrection();
+        }
+        // Визуальный фидбек
+        statusDiv.innerText = "🔧 Калибровка сброшена до 0°";
+        setTimeout(() => {
+            if (compassActive) statusDiv.innerText = "✅ Компас работает";
+            else statusDiv.innerText = "⏳ Нажмите кнопку активации";
+        }, 1500);
+    });
+
+    // --- Кнопка активации компаса ---
+    activateBtn.addEventListener('click', () => {
+        requestCompassAccess();
+    });
+
+    // --- Восстановление сохранённой калибровки при загрузке страницы ---
+    loadSavedCorrection();
+
+    // Напоминание для пользователей Android / прочих
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') {
+        statusDiv.innerText = "🤖 Нажмите кнопку для запуска";
+        statusDiv.style.background = "#3498db";
+    } else if (typeof DeviceOrientationEvent !== 'undefined') {
+        statusDiv.innerText = "🍏 Требуется разрешение. Нажмите кнопку.";
+    } else {
+        statusDiv.innerText = "⚠️ Браузер не поддерживает компас.";
+    }
+
+    // Небольшой хинт про https (если file:// — подскажем)
+    if (location.protocol === 'file:' && confirm("Вы открыли файл локально. Компас может не работать без HTTPS. Хотите увидеть подсказку?")) {
+        const warn = document.createElement('div');
+        warn.style.background = "#000000aa";
+        warn.style.padding = "10px";
+        warn.style.borderRadius = "20px";
+        warn.style.fontSize = "12px";
+        warn.innerText = "⚠️ Для стабильной работы компаса используйте локальный сервер или хостинг с HTTPS.";
+        document.body.prepend(warn);
+    }
+</script>
+</body>
+</html>
