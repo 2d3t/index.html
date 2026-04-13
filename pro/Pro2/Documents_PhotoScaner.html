@@ -1,0 +1,625 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>QuickScan - Сканер документов</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Улучшение тактильного взаимодействия, но текст инпутов остаётся */
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #1e1e2f;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+        }
+
+        /* карточка приложения */
+        .app-container {
+            max-width: 550px;
+            width: 100%;
+            background: #f8fafc;
+            border-radius: 42px;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.4);
+            overflow: hidden;
+            padding: 20px 18px 28px;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 4px 0;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d3a4e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .sub {
+            font-size: 0.8rem;
+            color: #475569;
+            margin-bottom: 20px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 10px;
+        }
+
+        /* зона превью с canvas */
+        .canvas-area {
+            background: #eef2ff;
+            border-radius: 32px;
+            padding: 12px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 1px 4px #0001, 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            background: #1e293b;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            cursor: crosshair;
+            touch-action: none;  /* для перетаскивания вручную */
+            background: #0f172a;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* кнопки и панель инструментов */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0 16px;
+            justify-content: center;
+        }
+
+        button {
+            background: #ffffff;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 10px 18px;
+            border-radius: 60px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.15s;
+            font-family: inherit;
+            background: #f1f5f9;
+            color: #0f172a;
+            border: 0.5px solid #cbd5e1;
+        }
+
+        button:active {
+            transform: scale(0.96);
+            background: #e2e8f0;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            border-color: #2563eb;
+            color: white;
+            box-shadow: 0 4px 8px #3b82f630;
+        }
+
+        .btn-primary:active {
+            background: #2563eb;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            border-color: #dc2626;
+            color: white;
+        }
+
+        .upload-label {
+            background: #f1f5f9;
+            padding: 10px 18px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 0.5px solid #cbd5e1;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .status {
+            background: #e6f0ff;
+            padding: 8px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            color: #1e40af;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            background: #e9ecef;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        hr {
+            margin: 16px 0;
+            border: none;
+            border-top: 1px solid #cbd5e180;
+        }
+
+        .instruction {
+            font-size: 0.7rem;
+            color: #475569;
+            text-align: center;
+            background: #f1f5f9;
+            padding: 8px;
+            border-radius: 30px;
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 16px;
+            }
+            button, .upload-label {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+            .toolbar {
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <h1>📄 QuickScan</h1>
+    <div class="sub">ч/б + обрезка краёв · как сканер документов</div>
+
+    <div class="canvas-area">
+        <div class="canvas-wrapper">
+            <canvas id="imageCanvas" width="500" height="400" style="width:100%; height:auto; max-width:500px; aspect-attr:auto"></canvas>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <label class="upload-label">
+            📸 Загрузить фото
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/heic,image/jpg">
+        </label>
+        <button id="toBWBtn">⚫️ В ч/б</button>
+        <button id="resetEditsBtn">🔄 Сброс правок</button>
+    </div>
+
+    <div class="toolbar">
+        <button id="cropModeBtn" class="btn-primary">✂️ Ручное выделение</button>
+        <button id="applyCropBtn" style="background:#10b981; border-color:#059669; color:white;">✅ Применить обрезку</button>
+        <button id="downloadBtn" style="background:#1e293b; color:white;">⬇️ Сохранить результат</button>
+    </div>
+
+    <div class="status" id="statusMsg">
+        💡 Статус: готов. Загрузите фото
+    </div>
+    <div class="instruction">
+        🖍️ <strong>Ручное выделение:</strong> нажмите «Ручное выделение» → на canvas пальцем/мышкой выделите прямоугольную область (обрезка краёв).<br>
+        Затем «Применить обрезку». Ч/Б можно применить до/после обрезки.
+    </div>
+</div>
+
+<script>
+    (function(){
+        // ----- Элементы DOM -----
+        const canvas = document.getElementById('imageCanvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('fileInput');
+        const toBWBtn = document.getElementById('toBWBtn');
+        const resetEditsBtn = document.getElementById('resetEditsBtn');
+        const cropModeBtn = document.getElementById('cropModeBtn');
+        const applyCropBtn = document.getElementById('applyCropBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const statusDiv = document.getElementById('statusMsg');
+
+        // ----- Состояние приложения -----
+        let originalImageData = null;        // ImageBitmap или HTMLImageElement (оригинал, без обрезки и ч/б)
+        let currentImageBitmap = null;       // Текущее растровое изображение (после всех трансформаций: обрезка, ч/б)
+        let isBWApplied = false;              // Флаг: применён ли ч/б к текущему изображению (для оптимизации)
+        let cropSelection = null;             // { startX, startY, endX, endY } в координатах canvas отображения (нормализованные)
+        let isDrawingCrop = false;
+        let cropActive = false;               // режим рисования обрезки активен
+        let canvasWidth = 0, canvasHeight = 0; // актуальные размеры canvas (в px отображения)
+
+        // Храним оригинальную немодифицированную битмапу (без обрезки и без ч/б) после загрузки
+        let loadedRawBitmap = null;            // полное изображение в исходном масштабе
+
+        // ---------- Вспомогательные функции ----------
+        function updateStatus(msg, isError = false) {
+            statusDiv.innerHTML = msg;
+            statusDiv.style.background = isError ? '#fee2e2' : '#e6f0ff';
+            statusDiv.style.color = isError ? '#b91c1c' : '#1e40af';
+            setTimeout(() => {
+                if(!isError && statusDiv.innerHTML === msg) {
+                    // не сбрасываем если было другое сообщение
+                    if(statusDiv.innerHTML === msg && !isError) {
+                        // через 2 сек вернуть обычный вид, но не перезаписывать важные ошибки
+                    }
+                }
+            }, 2500);
+        }
+
+        // загрузить изображение в canvas и сохранить оригинал
+        function loadImageFromFile(file) {
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Устанавливаем размеры canvas под размеры изображения, но с ограничением по ширине экрана телефона
+                    let maxWidth = Math.min(img.width, 550);   // ограничение по ширине контейнера
+                    let ratio = img.height / img.width;
+                    let newWidth = maxWidth;
+                    let newHeight = newWidth * ratio;
+                    canvas.width = newWidth;
+                    canvas.height = newHeight;
+                    canvasWidth = newWidth;
+                    canvasHeight = newHeight;
+
+                    // Рисуем исходное изображение
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    // Сохраняем "сырую" битмапу для сброса и повторных операций
+                    // Создаём ImageBitmap из img для производительности (или клонируем canvas)
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = canvas.width;
+                    offCanvas.height = canvas.height;
+                    const offCtx = offCanvas.getContext('2d');
+                    offCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    offCanvas.toBlob(async (blob) => {
+                        const bitmap = await createImageBitmap(blob);
+                        loadedRawBitmap = bitmap;
+                        originalImageData = bitmap;   // оригинал без фильтров
+                        currentImageBitmap = bitmap;
+                        isBWApplied = false;
+                        cropSelection = null;
+                        cropActive = false;
+                        // Перерисовать оригинал
+                        redrawFromCurrentBitmap();
+                        updateStatus("✅ Фото загружено. Можно делать ч/б или обрезку.");
+                    });
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Перерисовать canvas из currentImageBitmap (текущая битмапа)
+        async function redrawFromCurrentBitmap() {
+            if(!currentImageBitmap) return;
+            // Убедимся что canvas размеры соответствуют битмапе
+            if(canvas.width !== currentImageBitmap.width || canvas.height !== currentImageBitmap.height) {
+                canvas.width = currentImageBitmap.width;
+                canvas.height = currentImageBitmap.height;
+                canvasWidth = canvas.width;
+                canvasHeight = canvas.height;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(currentImageBitmap, 0, 0);
+            // Если есть активное выделение (в режиме рисования) показываем прямоугольник
+            if(cropActive && cropSelection) {
+                drawCropOverlay();
+            }
+        }
+
+        // отрисовка рамки выделения поверх текущего canvas (не стирая содержимого)
+        function drawCropOverlay() {
+            if(!cropSelection || !cropActive) return;
+            const { startX, startY, endX, endY } = cropSelection;
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
+            const w = Math.abs(endX - startX);
+            const h = Math.abs(endY - startY);
+            if(w < 2 || h < 2) return;
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(x, y, w, h);
+            ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, w, h);
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(x, y, w, h);
+            ctx.restore();
+        }
+
+        // Преобразование координат касания/мыши в canvas координаты
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;   // canvas intrinsic width / отображаемый ширина
+            const scaleY = canvas.height / rect.height;
+            let clientX, clientY;
+            if(e.touches) {
+                if(e.touches.length === 0) return null;
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            let canvasX = (clientX - rect.left) * scaleX;
+            let canvasY = (clientY - rect.top) * scaleY;
+            canvasX = Math.min(Math.max(0, canvasX), canvas.width);
+            canvasY = Math.min(Math.max(0, canvasY), canvas.height);
+            return { x: canvasX, y: canvasY };
+        }
+
+        // Начало выделения
+        function startCropDraw(e) {
+            if(!cropActive) return;
+            e.preventDefault();
+            const coords = getCanvasCoords(e);
+            if(!coords) return;
+            cropSelection = {
+                startX: coords.x,
+                startY: coords.y,
+                endX: coords.x,
+                endY: coords.y
+            };
+            isDrawingCrop = true;
+        }
+
+        function moveCropDraw(e) {
+            if(!cropActive || !isDrawingCrop || !cropSelection) return;
+            e.preventDefault();
+            const coords = getCanvasCoords(e);
+            if(!coords) return;
+            cropSelection.endX = coords.x;
+            cropSelection.endY = coords.y;
+            redrawFromCurrentBitmap();  // перерисуем картинку и overlay
+            if(cropActive && cropSelection) drawCropOverlay();
+        }
+
+        function endCropDraw(e) {
+            if(!cropActive || !isDrawingCrop) return;
+            e.preventDefault();
+            isDrawingCrop = false;
+            if(cropSelection) {
+                // фиксируем выделение
+                let { startX, startY, endX, endY } = cropSelection;
+                if(Math.abs(endX - startX) < 5 || Math.abs(endY - startY) < 5) {
+                    cropSelection = null;
+                    updateStatus("Выделение слишком маленькое, попробуйте снова", false);
+                    redrawFromCurrentBitmap();
+                } else {
+                    updateStatus("Область выделена. Нажмите «Применить обрезку»", false);
+                    redrawFromCurrentBitmap();
+                }
+            }
+        }
+
+        // Функция обрезки по текущему cropSelection (в координатах canvas)
+        async function applyCrop() {
+            if(!currentImageBitmap) {
+                updateStatus("Нет загруженного изображения", true);
+                return;
+            }
+            if(!cropSelection) {
+                updateStatus("Сначала выделите область (Ручное выделение)", true);
+                return;
+            }
+            let { startX, startY, endX, endY } = cropSelection;
+            let left = Math.min(startX, endX);
+            let top = Math.min(startY, endY);
+            let right = Math.max(startX, endX);
+            let bottom = Math.max(startY, endY);
+            let cropW = right - left;
+            let cropH = bottom - top;
+            if(cropW < 4 || cropH < 4) {
+                updateStatus("Область слишком мала, повторите выделение", true);
+                return;
+            }
+            // Обрезаем текущее изображение currentImageBitmap
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = cropW;
+            offCanvas.height = cropH;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.drawImage(currentImageBitmap, left, top, cropW, cropH, 0, 0, cropW, cropH);
+            const croppedBlob = await new Promise(resolve => offCanvas.toBlob(resolve));
+            const newBitmap = await createImageBitmap(croppedBlob);
+            // Обновляем текущее состояние
+            currentImageBitmap = newBitmap;
+            // после обрезки сбрасываем флаг ч/б потому что изображение новое
+            isBWApplied = false;
+            // Сброс выделения и выход из режима обрезки
+            cropSelection = null;
+            cropActive = false;
+            cropModeBtn.textContent = "✂️ Ручное выделение";
+            cropModeBtn.classList.remove("btn-primary");
+            cropModeBtn.classList.add("btn-primary"); // сохраняем стиль
+            // Обновляем canvas под новый размер
+            canvas.width = newBitmap.width;
+            canvas.height = newBitmap.height;
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+            redrawFromCurrentBitmap();
+            updateStatus("✅ Обрезка применена! Можно сохранить или перевести в ч/б.");
+        }
+
+        // Перевод в черно-белый (на основе текущего currentImageBitmap)
+        async function convertToBW() {
+            if(!currentImageBitmap) {
+                updateStatus("Нет изображения", true);
+                return;
+            }
+            // Создаём canvas с текущими размерами и применяем grayscale
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = currentImageBitmap.width;
+            offCanvas.height = currentImageBitmap.height;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.drawImage(currentImageBitmap, 0, 0);
+            const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i+1];
+                const b = data[i+2];
+                // Классическая формула яркости для чб
+                const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                data[i] = gray;
+                data[i+1] = gray;
+                data[i+2] = gray;
+            }
+            offCtx.putImageData(imageData, 0, 0);
+            const bwBlob = await new Promise(resolve => offCanvas.toBlob(resolve));
+            const bwBitmap = await createImageBitmap(bwBlob);
+            currentImageBitmap = bwBitmap;
+            isBWApplied = true;
+            // Обновляем canvas размеры (могут не измениться)
+            canvas.width = bwBitmap.width;
+            canvas.height = bwBitmap.height;
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+            redrawFromCurrentBitmap();
+            updateStatus("⚫️ Изображение переведено в чёрно-белый режим");
+        }
+
+        // Сброс всех правок (возврат к исходному загруженному изображению)
+        async function resetToOriginal() {
+            if(!loadedRawBitmap) {
+                updateStatus("Нет исходного фото", true);
+                return;
+            }
+            // клонируем loadedRawBitmap
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = loadedRawBitmap.width;
+            offCanvas.height = loadedRawBitmap.height;
+            const offCtx = offCanvas.getContext('2d');
+            offCtx.drawImage(loadedRawBitmap, 0, 0);
+            const resetBlob = await new Promise(resolve => offCanvas.toBlob(resolve));
+            const freshBitmap = await createImageBitmap(resetBlob);
+            currentImageBitmap = freshBitmap;
+            isBWApplied = false;
+            cropSelection = null;
+            cropActive = false;
+            cropModeBtn.textContent = "✂️ Ручное выделение";
+            canvas.width = freshBitmap.width;
+            canvas.height = freshBitmap.height;
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+            redrawFromCurrentBitmap();
+            updateStatus("🔄 Сброшены все изменения (оригинал)");
+        }
+
+        // Скачать результат (текущий canvas в формате PNG)
+        function downloadResult() {
+            if(!currentImageBitmap) {
+                updateStatus("Нет изображения для сохранения", true);
+                return;
+            }
+            // используем canvas напрямую
+            const link = document.createElement('a');
+            link.download = 'scanned_result.png';
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+                updateStatus("📁 Файл сохранён: scanned_result.png");
+            });
+        }
+
+        // Активация режима ручного выделения
+        function toggleCropMode() {
+            if(!currentImageBitmap) {
+                updateStatus("Загрузите изображение перед выделением", true);
+                return;
+            }
+            cropActive = !cropActive;
+            if(cropActive) {
+                cropSelection = null;
+                isDrawingCrop = false;
+                cropModeBtn.textContent = "🔴 Выход (выделение)";
+                updateStatus("Режим выделения активен: проведите пальцем/мышкой прямоугольник", false);
+                redrawFromCurrentBitmap();
+            } else {
+                cropModeBtn.textContent = "✂️ Ручное выделение";
+                cropSelection = null;
+                redrawFromCurrentBitmap();
+                updateStatus("Режим выделения отключён", false);
+            }
+        }
+
+        // ----- Инициализация событий для мыши и тач -----
+        function attachCanvasEvents() {
+            // мышь
+            canvas.addEventListener('mousedown', startCropDraw);
+            window.addEventListener('mousemove', (e) => {
+                if(isDrawingCrop && cropActive) moveCropDraw(e);
+            });
+            window.addEventListener('mouseup', endCropDraw);
+            // тач события
+            canvas.addEventListener('touchstart', startCropDraw, {passive: false});
+            canvas.addEventListener('touchmove', moveCropDraw, {passive: false});
+            canvas.addEventListener('touchend', endCropDraw);
+            // отключаем контекстное меню на canvas
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        // загрузка через инпут
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files && e.target.files[0]) {
+                loadImageFromFile(e.target.files[0]);
+            }
+        });
+
+        toBWBtn.addEventListener('click', convertToBW);
+        resetEditsBtn.addEventListener('click', resetToOriginal);
+        cropModeBtn.addEventListener('click', toggleCropMode);
+        applyCropBtn.addEventListener('click', applyCrop);
+        downloadBtn.addEventListener('click', downloadResult);
+
+        // Сбросить активный режим рисования при клике вне? но не нужно
+        // зададим начальный placeholder canvas
+        const placeHolderCtx = canvas.getContext('2d');
+        canvas.width = 500;
+        canvas.height = 350;
+        canvasWidth = 500;
+        canvasHeight = 350;
+        placeHolderCtx.fillStyle = "#334155";
+        placeHolderCtx.fillRect(0,0,canvas.width,canvas.height);
+        placeHolderCtx.fillStyle = "#cbd5e1";
+        placeHolderCtx.font = "16px system-ui";
+        placeHolderCtx.textAlign = "center";
+        placeHolderCtx.fillText("Загрузите фото документа", canvas.width/2, canvas.height/2);
+        
+        attachCanvasEvents();
+        // инициализируем глобальный флаг
+        updateStatus("📱 Готов к работе. Загрузите фото");
+    })();
+</script>
+</body>
+</html>
