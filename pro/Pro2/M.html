@@ -2,147 +2,59 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ЭМИ Детектор — измерение магнитного поля</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Детектор поля — через компас</title>
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
             margin: 0;
             min-height: 100vh;
             background: #0a0f1e;
-            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            font-family: system-ui, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 16px;
-            color: #eee;
+            color: white;
         }
-
-        .detector {
-            background: rgba(10, 20, 30, 0.85);
+        .card {
+            background: rgba(0,0,0,0.7);
             backdrop-filter: blur(12px);
-            border-radius: 56px;
-            padding: 20px 18px 30px;
-            width: 100%;
+            border-radius: 48px;
+            padding: 24px;
             max-width: 500px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-            border: 1px solid #2a4c6e;
+            width: 100%;
         }
-
-        h1 {
-            font-size: 1.6rem;
-            margin: 0 0 4px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .sub {
-            text-align: center;
-            font-size: 0.7rem;
-            color: #8aaec0;
-            margin-bottom: 20px;
-        }
-
-        /* Индикатор уровня (цветная шкала) */
+        h1 { text-align: center; margin: 0 0 8px; font-size: 1.6rem; }
+        .sub { text-align: center; font-size: 0.75rem; opacity: 0.7; margin-bottom: 24px; }
         .meter {
             background: #1a2a34;
             border-radius: 60px;
-            height: 24px;
+            height: 30px;
             width: 100%;
-            margin: 15px 0;
+            margin: 20px 0;
             overflow: hidden;
-            box-shadow: inset 0 1px 4px #00000055;
         }
-
         .meter-fill {
             width: 0%;
             height: 100%;
             background: linear-gradient(90deg, #2ecc71, #f1c40f, #e67e22, #e74c3c);
-            border-radius: 60px;
-            transition: width 0.08s linear;
+            transition: width 0.1s ease;
         }
-
-        /* Основной показатель */
-        .field-value {
-            background: #00000066;
-            border-radius: 80px;
-            padding: 20px 10px;
+        .value {
             text-align: center;
-            margin: 20px 0;
-            border: 1px solid #3a6e8c;
-        }
-
-        .value-number {
-            font-size: 4rem;
-            font-weight: 800;
-            font-family: monospace;
-            line-height: 1;
-            letter-spacing: 4px;
-            color: #ffe5a3;
-        }
-
-        .unit {
-            font-size: 1.3rem;
-            font-weight: 500;
-        }
-
-        .status-text {
-            font-size: 0.9rem;
-            margin-top: 6px;
-            color: #bbd4e8;
-        }
-
-        /* График (простой canvas) */
-        .graph-container {
-            background: #07121b;
-            border-radius: 32px;
-            padding: 12px;
-            margin: 20px 0;
-        }
-
-        canvas {
-            display: block;
-            width: 100%;
-            background: #030c14;
-            border-radius: 24px;
-            height: 100px;
-        }
-
-        /* Оси XYZ */
-        .axes {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin: 16px 0;
-            font-size: 0.75rem;
-        }
-
-        .axis-card {
-            background: #0e1a24;
-            border-radius: 28px;
-            padding: 8px;
-            text-align: center;
-            flex: 1;
-        }
-
-        .axis-label {
+            font-size: 3rem;
             font-weight: bold;
-            color: #ffb347;
-        }
-
-        .axis-value {
             font-family: monospace;
-            font-size: 1rem;
+            margin: 16px 0;
         }
-
+        .status {
+            text-align: center;
+            font-size: 0.9rem;
+            margin: 12px 0;
+            padding: 8px;
+            border-radius: 40px;
+            background: #00000044;
+        }
         button {
             background: #2c6e9e;
             border: none;
@@ -152,254 +64,133 @@
             font-weight: bold;
             border-radius: 60px;
             color: white;
-            margin-top: 15px;
-            cursor: pointer;
-            transition: 0.1s;
-        }
-
-        button:active {
-            transform: scale(0.97);
-            background: #1f557c;
-        }
-
-        .info-note {
-            font-size: 0.7rem;
-            background: #0a141f;
-            border-radius: 28px;
-            padding: 12px;
             margin-top: 16px;
-            text-align: center;
-            color: #9fb8cc;
+            cursor: pointer;
         }
-
-        .danger {
-            color: #ffaa88;
+        .note {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 20px;
+            opacity: 0.6;
         }
     </style>
 </head>
 <body>
+<div class="card">
+    <h1>🧲 ДЕТЕКТОР ПОЛЯ</h1>
+    <div class="sub">через компас · работает везде</div>
 
-<div class="detector">
-    <h1>🧲 ЭМИ ДЕТЕКТОР</h1>
-    <div class="sub">магнитное поле · мкТл</div>
-
-    <!-- Цветная шкала -->
     <div class="meter">
         <div class="meter-fill" id="meterFill"></div>
     </div>
 
-    <!-- Показания поля -->
-    <div class="field-value">
-        <div class="value-number">
-            <span id="fieldValue">0.00</span><span class="unit"> мкТл</span>
-        </div>
-        <div class="status-text" id="statusDesc">🟢 Нормальное поле</div>
+    <div class="value">
+        <span id="fieldValue">0</span><span style="font-size: 1.2rem;">%</span>
     </div>
 
-    <!-- График в реальном времени -->
-    <div class="graph-container">
-        <canvas id="emfCanvas" width="600" height="120" style="width:100%; height:120px;"></canvas>
-    </div>
+    <div class="status" id="statusMsg">⏳ Нажмите кнопку</div>
 
-    <!-- Оси X, Y, Z -->
-    <div class="axes">
-        <div class="axis-card"><div class="axis-label">X</div><div class="axis-value" id="xVal">0.0</div></div>
-        <div class="axis-card"><div class="axis-label">Y</div><div class="axis-value" id="yVal">0.0</div></div>
-        <div class="axis-card"><div class="axis-label">Z</div><div class="axis-value" id="zVal">0.0</div></div>
-    </div>
+    <button id="activateBtn">🔓 АКТИВИРОВАТЬ</button>
 
-    <button id="activateBtn">🔓 АКТИВИРОВАТЬ ДАТЧИКИ</button>
-
-    <div class="info-note">
-        ⚡ <strong>Как пользоваться:</strong><br>
-        • Подносите телефон к работающим проводам, розеткам, блоку питания, ЛЭП.<br>
-        • Нормальный фон Земли ≈ 25–65 мкТл. Превышение > 1.5–2× фона — есть источник.<br>
-        • Чем ближе к кабелю с током — тем выше показания.<br>
-        🧠 <em>Магнитометр чувствует ТОК, а не напряжение. Провод должен быть под нагрузкой.</em>
+    <div class="note">
+        ⚡ Подносите телефон к работающим проводам, розеткам, блоку питания.<br>
+        Чем выше процент — тем сильнее магнитное поле.<br>
+        📱 Работает на Android и iPhone.
     </div>
 </div>
 
 <script>
-    // --- Элементы ---
-    const fieldSpan = document.getElementById('fieldValue');
-    const statusDesc = document.getElementById('statusDesc');
     const meterFill = document.getElementById('meterFill');
-    const xSpan = document.getElementById('xVal');
-    const ySpan = document.getElementById('yVal');
-    const zSpan = document.getElementById('zVal');
+    const fieldSpan = document.getElementById('fieldValue');
+    const statusMsg = document.getElementById('statusMsg');
     const activateBtn = document.getElementById('activateBtn');
 
-    // Для графика (храним последние 50 значений)
-    let readingsHistory = new Array(50).fill(0);
-    let canvas = document.getElementById('emfCanvas');
-    let ctx = canvas.getContext('2d');
+    let lastHeading = 0;
+    let disturbance = 0;
+    let isActive = false;
 
-    // Функция обновления графика
-    function updateGraph(value) {
-        readingsHistory.push(value);
-        if (readingsHistory.length > 50) readingsHistory.shift();
-        
-        if (!ctx) return;
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        canvas.width = w;
-        canvas.height = h;
-        
-        ctx.clearRect(0, 0, w, h);
-        ctx.beginPath();
-        ctx.strokeStyle = "#f39c12";
-        ctx.lineWidth = 2;
-        
-        let maxVal = 200;   // шкала до 200 мкТл (на графике)
-        let stepX = w / (readingsHistory.length - 1);
-        
-        for (let i = 0; i < readingsHistory.length; i++) {
-            let x = i * stepX;
-            let y = h - (readingsHistory[i] / maxVal) * h;
-            if (y < 0) y = 0;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-        
-        // рисуем отметку фонового уровня (примерно 50 мкТл)
-        ctx.beginPath();
-        ctx.setLineDash([5, 5]);
-        ctx.strokeStyle = "#2ecc71aa";
-        let bgLineY = h - (50 / maxVal) * h;
-        ctx.moveTo(0, bgLineY);
-        ctx.lineTo(w, bgLineY);
-        ctx.stroke();
-        ctx.setLineDash([]);
-    }
-
-    // Обновление интерфейса (значение, цвет, шкала)
-    function updateUI(totalField, x, y, z) {
-        fieldSpan.innerText = totalField.toFixed(2);
-        xSpan.innerText = x.toFixed(1);
-        ySpan.innerText = y.toFixed(1);
-        zSpan.innerText = z.toFixed(1);
-        
-        let percent = Math.min(100, (totalField / 150) * 100);
+    // Функция обновления UI по уровню возмущения
+    function updateUI(levelPercent) {
+        let percent = Math.min(100, Math.max(0, levelPercent));
         meterFill.style.width = percent + "%";
-        
-        if (totalField < 70) {
-            statusDesc.innerHTML = "🟢 Фоновое поле · норма";
-            statusDesc.style.color = "#a3e4c1";
-        } else if (totalField < 100) {
-            statusDesc.innerHTML = "🟡 Повышенное поле · возможно влияние";
-            statusDesc.style.color = "#f5d371";
-        } else if (totalField < 200) {
-            statusDesc.innerHTML = "🟠 Сильное поле · рядом источник тока!";
-            statusDesc.style.color = "#f39c12";
+        fieldSpan.innerText = Math.floor(percent);
+
+        if (percent < 15) {
+            statusMsg.innerHTML = "🟢 Фоновое поле · норма";
+            statusMsg.style.background = "#1a5a3a44";
+        } else if (percent < 40) {
+            statusMsg.innerHTML = "🟡 Слабое возмущение · возможно, рядом провод";
+            statusMsg.style.background = "#9a7b2e44";
+        } else if (percent < 70) {
+            statusMsg.innerHTML = "🟠 Сильное поле · источник тока рядом!";
+            statusMsg.style.background = "#c0681e44";
         } else {
-            statusDesc.innerHTML = "🔴 ОПАСНО · очень высокий уровень!";
-            statusDesc.style.color = "#e67e22";
+            statusMsg.innerHTML = "🔴 ОЧЕНЬ СИЛЬНО! · прибор поднесён вплотную";
+            statusMsg.style.background = "#a5222244";
         }
-        
-        updateGraph(totalField);
     }
-    
-    // --- Обработчик магнитометра ---
-    function handleMagnetometer(event) {
-        // Данные с магнитометра приходят в мкТл (микротесла)
-        let x = event.x || event.magneticField?.x || 0;
-        let y = event.y || event.magneticField?.y || 0;
-        let z = event.z || event.magneticField?.z || 0;
-        
-        // Если данные в другом формате (иногда приходят в качестве объекта)
-        if (event.magneticField) {
-            x = event.magneticField.x;
-            y = event.magneticField.y;
-            z = event.magneticField.z;
+
+    // Обработчик показаний компаса
+    function handleOrientation(event) {
+        if (!isActive) return;
+
+        let heading = event.alpha;
+        if (event.webkitCompassHeading !== undefined) {
+            heading = event.webkitCompassHeading;
         }
+        if (heading === null || heading === undefined) return;
+
+        // Вычисляем резкость изменения угла (отклонение от предыдущего)
+        let delta = Math.abs(heading - lastHeading);
+        // Нормализуем через 360°
+        if (delta > 180) delta = 360 - delta;
         
-        let totalField = Math.sqrt(x*x + y*y + z*z);
-        updateUI(totalField, x, y, z);
+        // Сглаживаем: новое возмущение = 70% старого + 30% нового скачка
+        disturbance = disturbance * 0.7 + delta * 0.3;
+        
+        // Преобразуем в проценты: скачок 15° -> ~50%, 30° -> 100%
+        let percent = Math.min(100, (disturbance / 25) * 100);
+        updateUI(percent);
+        
+        lastHeading = heading;
     }
-    
-    // --- Запрос разрешения и запуск ---
-    let magnetometerActive = false;
-    
-    function startMagnetometer() {
-        if ('Magnetometer' in window) {
-            // Современный Generic Sensor API
-            try {
-                let sensor = new Magnetometer({ frequency: 30 });
-                sensor.addEventListener('reading', () => {
-                    let x = sensor.x || 0;
-                    let y = sensor.y || 0;
-                    let z = sensor.z || 0;
-                    let total = Math.sqrt(x*x + y*y + z*z);
-                    updateUI(total, x, y, z);
-                });
-                sensor.start();
-                magnetometerActive = true;
-                statusDesc.innerHTML = "🟢 Датчик активен. Ищите источники поля!";
-                return;
-            } catch(e) { console.warn("Magnetometer API не доступен", e); }
-        }
-        
-        // Fallback: используем DeviceOrientationEvent для получения магнитных данных?
-        // К сожалению, стандартный DeviceOrientationEvent не даёт сырых значений магнитометра.
-        // Поэтому используем экспериментальный webkitCompass или предупредим.
+
+    // Запуск с разрешением (для iOS)
+    function startDetector() {
         if (window.DeviceOrientationEvent) {
-            statusDesc.innerHTML = "⚠️ Браузер не отдаёт сырой магнитометр через веб-стандарт. Но компас показывает ориентацию. К сожалению, для измерения силы поля нужен Generic Sensor API (Magnetometer).";
+            window.addEventListener('deviceorientation', handleOrientation);
+            isActive = true;
+            statusMsg.innerHTML = "✅ Детектор активен! Подносите к проводам.";
+            statusMsg.style.background = "#2e7d5e44";
         } else {
-            statusDesc.innerHTML = "❌ Магнитометр не поддерживается в этом браузере";
+            statusMsg.innerHTML = "❌ Датчики не поддерживаются";
         }
     }
-    
-    // iOS / Android с разрешением
-    function requestSensorAccess() {
-        if (typeof Magnetometer !== 'undefined') {
-            // Пытаемся запросить разрешение через Permissions API (для iOS с Sensor API)
-            if (navigator.permissions) {
-                navigator.permissions.query({ name: 'magnetometer' }).then(result => {
-                    if (result.state === 'granted') {
-                        startMagnetometer();
-                    } else if (result.state === 'prompt') {
-                        startMagnetometer(); // Браузер сам запросит
+
+    function requestPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            statusMsg.innerHTML = "📱 Требуется разрешение...";
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        startDetector();
                     } else {
-                        statusDesc.innerHTML = "❌ Доступ к магнитометру запрещён";
+                        statusMsg.innerHTML = "❌ Доступ запрещён";
                     }
-                }).catch(() => startMagnetometer());
-            } else {
-                startMagnetometer();
-            }
+                })
+                .catch(() => statusMsg.innerHTML = "⚠️ Ошибка запроса");
         } else {
-            statusDesc.innerHTML = "⚠️ Ваш браузер не поддерживает Magnetometer API. Нужен Chrome/Edge/Android WebView с включёнными флагами или современный браузер. На iOS данная функция пока недоступна в вебе.";
+            startDetector();
         }
     }
-    
+
     activateBtn.addEventListener('click', () => {
-        statusDesc.innerHTML = "🔄 Запрос доступа к датчику...";
-        requestSensorAccess();
+        requestPermission();
     });
-    
-    // Для совместимости показываем заглушку на canvas
-    function drawBackgroundGraph() {
-        if (!ctx) return;
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        canvas.width = w;
-        canvas.height = h;
-        ctx.fillStyle = "#030c14";
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = "#2c6e9e";
-        ctx.font = "10px monospace";
-        ctx.fillText("Ожидание активации датчика...", 20, 30);
-    }
-    drawBackgroundGraph();
-    
-    // Заполнение нулями перед стартом
-    for(let i=0;i<50;i++) readingsHistory[i] = 0;
-    
-    // Инструкция
-    if (!('Magnetometer' in window)) {
-        statusDesc.innerHTML = "⚠️ Браузер не поддерживает Magnetometer API. В Android Chrome обычно работает. В iOS Safari — пока нет доступа к сырому магнитометру из веба.";
-    } else {
-        statusDesc.innerHTML = "🟢 Нажмите кнопку, чтобы начать измерение поля";
+
+    // Подсказка
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') {
+        statusMsg.innerHTML = "▶️ Нажмите кнопку для активации";
     }
 </script>
 </body>
