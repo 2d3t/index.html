@@ -1,0 +1,460 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Весёлая цифровая школа — учим цифры голосом</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2b6c9e 0%, #1a4a6e 100%);
+            font-family: 'Segoe UI', 'Comic Neue', 'Comic Neue', system-ui, sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Игровая зона */
+        .game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(circle at 30% 20%, #ffefc0, #ffd89a);
+            margin: 12px;
+            border-radius: 64px;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.1), 0 12px 25px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* Весёлые облачка */
+        .cloud {
+            position: absolute;
+            background: rgba(255,255,240,0.9);
+            border-radius: 80% 20% 80% 20% / 60% 40% 60% 40%;
+            filter: blur(8px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .cloud1 { width: 120px; height: 70px; top: 20px; left: 20px; }
+        .cloud2 { width: 180px; height: 100px; bottom: 30px; right: 20px; background: rgba(255,250,210,0.8);}
+        .cloud3 { width: 90px; height: 55px; top: 100px; right: 60px;}
+
+        .digit-card {
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(8px);
+            width: 280px;
+            height: 320px;
+            border-radius: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+            z-index: 10;
+            border: 4px solid #ffb347;
+            transition: 0.2s;
+        }
+
+        .big-number {
+            font-size: 180px;
+            font-weight: 800;
+            color: #ff8c42;
+            text-shadow: 5px 5px 0 #ffe0a3;
+            line-height: 1;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+
+        .word-hint {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4a6e2c;
+            background: #fff3cf;
+            padding: 6px 20px;
+            border-radius: 60px;
+            margin-top: 10px;
+        }
+
+        .score-area {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            background: #f5a623;
+            padding: 8px 18px;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 15;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Панель управления */
+        .control-panel {
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(12px);
+            padding: 12px 16px;
+            border-top: 1px solid #ffdd99;
+            z-index: 30;
+        }
+
+        .status-area {
+            background: #2c2c2c;
+            border-radius: 60px;
+            padding: 10px 15px;
+            margin-bottom: 12px;
+            text-align: center;
+            color: #f9f3c1;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background: #ff9f4a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #2d2b1f;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            flex: 1;
+            min-width: 110px;
+        }
+
+        button:active { transform: scale(0.96); }
+        .btn-mic {
+            background: #3fa63f;
+            color: white;
+        }
+        .btn-mic.active {
+            background: #c0392b;
+            animation: pulseMic 1s infinite;
+        }
+        @keyframes pulseMic {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .btn-next { background: #5dade2; color: white; }
+        .btn-reset { background: #e67e22; color: white; }
+
+        .feedback {
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 8px;
+            color: #ffecb3;
+        }
+
+        @keyframes bounce {
+            0%,100%{ transform: scale(1);}
+            50%{ transform: scale(1.05);}
+        }
+        .correct-bounce {
+            animation: bounce 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-area" id="gameArea">
+    <div class="cloud cloud1"></div>
+    <div class="cloud cloud2"></div>
+    <div class="cloud cloud3"></div>
+    <div class="score-area" id="scoreDisplay">🏆 Очков: 0</div>
+    <div class="digit-card" id="digitCard">
+        <div class="big-number" id="bigNumber">1</div>
+        <div class="word-hint" id="wordHint">один</div>
+    </div>
+</div>
+
+<div class="control-panel">
+    <div class="status-area" id="statusMessage">🎤 Нажми микрофон и скажи название цифры!</div>
+    <div class="button-row">
+        <button id="micBtn" class="btn-mic">🎙️ Сказать цифру</button>
+        <button id="nextBtn" class="btn-next">➡️ Следующая цифра</button>
+        <button id="resetBtn" class="btn-reset">🔄 Сбросить счёт</button>
+    </div>
+    <div class="feedback" id="feedbackMsg">✨ Попробуй сказать: "один", "два", "три"...</div>
+</div>
+
+<script>
+    // Данные цифр (число и текстовое написание)
+    const numbersData = [
+        { value: 1, word: "один", variants: ["один", "1", "one"] },
+        { value: 2, word: "два", variants: ["два", "2", "two"] },
+        { value: 3, word: "три", variants: ["три", "3", "three"] },
+        { value: 4, word: "четыре", variants: ["четыре", "4", "four"] },
+        { value: 5, word: "пять", variants: ["пять", "5", "five"] },
+        { value: 6, word: "шесть", variants: ["шесть", "6", "six"] },
+        { value: 7, word: "семь", variants: ["семь", "7", "seven"] },
+        { value: 8, word: "восемь", variants: ["восемь", "8", "eight"] },
+        { value: 9, word: "девять", variants: ["девять", "9", "nine"] },
+        { value: 10, word: "десять", variants: ["десять", "10", "ten"] }
+    ];
+
+    let currentIndex = 0;          // текущая цифра (0 = 1)
+    let score = 0;
+    let isListening = false;
+    let recognition = null;
+
+    // Элементы DOM
+    const bigNumberEl = document.getElementById('bigNumber');
+    const wordHintEl = document.getElementById('wordHint');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const statusMessage = document.getElementById('statusMessage');
+    const feedbackMsg = document.getElementById('feedbackMsg');
+    const micBtn = document.getElementById('micBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const digitCard = document.getElementById('digitCard');
+
+    // Функция синтеза речи (браузерный голос)
+    function speakText(text, isError = false) {
+        if (!window.speechSynthesis) return;
+        // Останавливаем текущую речь, чтобы не накладывалось
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ru-RU';
+        utterance.rate = 0.9;
+        utterance.pitch = isError ? 1.1 : 1.2;
+        // выбираем женский голос, если доступен
+        if (window.speechSynthesis.getVoices) {
+            const voices = window.speechSynthesis.getVoices();
+            const ruVoice = voices.find(v => v.lang === 'ru-RU' && v.name.includes('Google'));
+            if (ruVoice) utterance.voice = ruVoice;
+        }
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // Обновить интерфейс цифры
+    function updateCurrentNumber() {
+        const num = numbersData[currentIndex];
+        bigNumberEl.textContent = num.value;
+        wordHintEl.textContent = num.word;
+        // легкая анимация появления
+        digitCard.classList.add('correct-bounce');
+        setTimeout(() => digitCard.classList.remove('correct-bounce'), 300);
+    }
+
+    // Проверка ответа
+    function checkAnswer(spokenText) {
+        if (!spokenText) return;
+        const normalized = spokenText.trim().toLowerCase().replace(/[^а-яё0-9]/g, '');
+        const current = numbersData[currentIndex];
+        
+        // Проверяем, совпадает ли с правильным вариантом или синонимом
+        let isCorrect = false;
+        // точное совпадение со словом
+        if (normalized === current.word) {
+            isCorrect = true;
+        } else if (normalized === current.value.toString()) {
+            isCorrect = true;
+        } else {
+            // проверка по вариантам
+            isCorrect = current.variants.some(v => v === normalized || v === spokenText.trim().toLowerCase());
+        }
+
+        if (isCorrect) {
+            // Правильный ответ!
+            score++;
+            updateScoreUI();
+            statusMessage.innerHTML = `✅ Правильно! ${current.value} — это ${current.word}! +1 очко 🌟`;
+            feedbackMsg.innerHTML = `🎉 Молодец! Скажи следующую цифру или нажми "Следующая"`;
+            speakText(`Молодец! ${current.value} — это ${current.word}. Отлично!`, false);
+            // автоматически перейти к следующей цифре через 1.2 секунды
+            setTimeout(() => {
+                nextNumber();
+            }, 1300);
+        } else {
+            // Ошибка: добрый робот объясняет
+            statusMessage.innerHTML = `❌ Неправильно. Ты сказал(а) «${spokenText}». А это цифра ${current.value} — ${current.word}. Попробуй ещё!`;
+            feedbackMsg.innerHTML = `🔊 Скажи ещё раз: «${current.word}»`;
+            speakText(`На самом деле это цифра ${current.value} — ${current.word}. Давай попробуем ещё раз!`, true);
+            // не переключаем цифру, даём шанс повторить
+        }
+        // Небольшая задержка для очистки статуса
+        setTimeout(() => {
+            if (!isListening) {
+                statusMessage.innerHTML = '🎤 Нажми микрофон и скажи название цифры!';
+            } else {
+                statusMessage.innerHTML = '🎙️ Слушаю... скажи цифру!';
+            }
+        }, 2800);
+    }
+
+    function updateScoreUI() {
+        scoreDisplay.innerHTML = `🏆 Очков: ${score}`;
+    }
+
+    // Переключиться на следующую цифру (циклически)
+    function nextNumber() {
+        currentIndex = (currentIndex + 1) % numbersData.length;
+        updateCurrentNumber();
+        // Сбрасываем подсказку, но статус не трогаем
+        feedbackMsg.innerHTML = `🔢 Теперь цифра ${numbersData[currentIndex].value}. Скажи её название!`;
+        if (!isListening) {
+            statusMessage.innerHTML = `🎤 Нажми микрофон и скажи «${numbersData[currentIndex].word}»`;
+        } else {
+            statusMessage.innerHTML = `🎙️ Скажи: «${numbersData[currentIndex].word}»`;
+        }
+    }
+
+    function resetScore() {
+        score = 0;
+        updateScoreUI();
+        statusMessage.innerHTML = '🔄 Счёт сброшен. Продолжай учить цифры!';
+        feedbackMsg.innerHTML = '🎯 Теперь набери новые очки! Скажи правильное название цифры.';
+        speakText('Счёт сброшен. Давай начнём заново!', false);
+        setTimeout(() => {
+            if (!isListening) statusMessage.innerHTML = '🎤 Нажми микрофон и скажи название цифры!';
+        }, 1800);
+    }
+
+    // Голосовое распознавание
+    function startVoiceRecognition() {
+        if (isListening) {
+            // выключить микрофон
+            if (recognition) {
+                try { recognition.abort(); } catch(e) {}
+            }
+            isListening = false;
+            recognition = null;
+            micBtn.innerHTML = '🎙️ Сказать цифру';
+            micBtn.classList.remove('active');
+            statusMessage.innerHTML = '🎤 Микрофон выключен. Нажми кнопку, чтобы ответить.';
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            statusMessage.innerHTML = '❌ Ваш браузер не поддерживает голос. Используйте кнопку "Следующая цифра" для игры.';
+            return;
+        }
+
+        const recog = new SpeechRecognition();
+        recog.continuous = false;      // слушаем одну фразу
+        recog.interimResults = false;
+        recog.lang = 'ru-RU';
+        
+        recog.onstart = () => {
+            isListening = true;
+            micBtn.innerHTML = '🔴 Выключить микрофон';
+            micBtn.classList.add('active');
+            statusMessage.innerHTML = `🎙️ Слушаю! Назови цифру, которую видишь (${numbersData[currentIndex].word})...`;
+            feedbackMsg.innerHTML = '🗣️ Говори чётко!';
+        };
+        
+        recog.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                statusMessage.innerHTML = '🔇 Разрешите доступ к микрофону в браузере';
+            } else {
+                statusMessage.innerHTML = `⚠️ Ошибка микрофона: ${event.error}. Попробуй ещё раз.`;
+            }
+            isListening = false;
+            micBtn.innerHTML = '🎙️ Сказать цифру';
+            micBtn.classList.remove('active');
+        };
+        
+        recog.onend = () => {
+            if (isListening) {
+                // Если слушали, но не получили результат (тишина)
+                isListening = false;
+                micBtn.innerHTML = '🎙️ Сказать цифру';
+                micBtn.classList.remove('active');
+                if (statusMessage.innerHTML.includes('Слушаю')) {
+                    statusMessage.innerHTML = '🤔 Не услышал ответа. Нажми микрофон и скажи цифру!';
+                    feedbackMsg.innerHTML = '💡 Попробуй сказать: "' + numbersData[currentIndex].word + '"';
+                }
+            }
+        };
+        
+        recog.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            console.log('Распознано:', transcript);
+            // Отключаем микрофон сразу после ответа
+            if (recognition) {
+                try { recognition.abort(); } catch(e) {}
+            }
+            isListening = false;
+            micBtn.innerHTML = '🎙️ Сказать цифру';
+            micBtn.classList.remove('active');
+            // Проверяем ответ
+            checkAnswer(transcript);
+        };
+        
+        recognition = recog;
+        try {
+            recog.start();
+        } catch(e) {
+            statusMessage.innerHTML = '❌ Не удалось запустить микрофон.';
+            isListening = false;
+            micBtn.classList.remove('active');
+        }
+    }
+
+    // Обработчики кнопок
+    micBtn.addEventListener('click', startVoiceRecognition);
+    nextBtn.addEventListener('click', () => {
+        // Если микрофон активен, выключим для плавности
+        if (isListening) {
+            if (recognition) recognition.abort();
+            isListening = false;
+            micBtn.innerHTML = '🎙️ Сказать цифру';
+            micBtn.classList.remove('active');
+        }
+        nextNumber();
+    });
+    resetBtn.addEventListener('click', () => {
+        if (isListening) {
+            if (recognition) recognition.abort();
+            isListening = false;
+            micBtn.innerHTML = '🎙️ Сказать цифру';
+            micBtn.classList.remove('active');
+        }
+        resetScore();
+    });
+
+    // Дополнительно: если ребёнок нажимает на цифру (в карточку) — проговариваем подсказку голосом
+    digitCard.addEventListener('click', () => {
+        const current = numbersData[currentIndex];
+        speakText(`Это цифра ${current.value} — ${current.word}. Скажи её в микрофон!`, false);
+        feedbackMsg.innerHTML = `🔊 Повторяю: ${current.value} — это ${current.word}`;
+    });
+
+    // Стартовая инициализация
+    updateCurrentNumber();
+    updateScoreUI();
+    statusMessage.innerHTML = '🎤 Нажми на микрофон и скажи название цифры!';
+    feedbackMsg.innerHTML = '✨ Например: "один", "два", "три"... Играй и учись!';
+    
+    // Подгрузка голосов для синтеза (необязательно)
+    window.speechSynthesis?.getVoices();
+</script>
+</body>
+</html>
