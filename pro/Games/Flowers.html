@@ -1,0 +1,644 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Волшебный букет — создай цветы голосом</title>
+    <style>
+        * {
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #2d5a2c 0%, #1e3a1e 100%);
+            font-family: system-ui, 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Поле для букета */
+        .bouquet-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 30% 20%, #5a8f4a, #2a4a1a);
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.3), 0 8px 20px rgba(0,0,0,0.3);
+            border-bottom: 3px solid #d4a259;
+            cursor: pointer;
+        }
+
+        /* Трава/земля */
+        .grass {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, #5e8c3e 0%, #3b5e1a 100%);
+            border-radius: 40px 40px 0 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Стебли и листья — декоративные */
+        .stem-deco {
+            position: absolute;
+            bottom: 40px;
+            left: 15%;
+            width: 6px;
+            height: 80px;
+            background: #2b6e2b;
+            border-radius: 4px;
+            transform-origin: bottom;
+            animation: swayStem 4s infinite ease-in-out;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .stem-deco2 {
+            left: 85%;
+            height: 70px;
+            animation-delay: 1.5s;
+        }
+
+        @keyframes swayStem {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        /* Каждый цветок — абсолютный элемент */
+        .flower {
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2));
+            z-index: 20;
+            will-change: left, top;
+        }
+
+        .flower:active {
+            transform: scale(0.96);
+        }
+
+        /* Панель управления */
+        .control-panel {
+            background: rgba(30, 20, 15, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 10px 14px;
+            border-top: 1px solid rgba(255,215,150,0.4);
+            z-index: 30;
+        }
+
+        .status-bar {
+            background: rgba(0,0,0,0.5);
+            border-radius: 40px;
+            padding: 6px 12px;
+            margin-bottom: 8px;
+            text-align: center;
+            color: #fff9e8;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        button {
+            background: #7b3f1a;
+            border: none;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            flex: 1;
+            min-width: 110px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        button:active { transform: scale(0.96); }
+
+        .btn-microphone {
+            background: #2c6e2c;
+        }
+        .btn-microphone.active {
+            background: #c0392b;
+            animation: pulseMic 1.2s infinite;
+        }
+        @keyframes pulseMic {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .btn-gift {
+            background: #d4a017;
+            color: #2c1a0a;
+        }
+        .btn-clear {
+            background: #8b3c2c;
+        }
+
+        /* Радуга цветов */
+        .color-rainbow {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 6px 0 8px 0;
+            background: rgba(0,0,0,0.4);
+            border-radius: 50px;
+            padding: 6px 12px;
+        }
+        .color-chip {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 2px solid rgba(255,240,180,0.9);
+            box-shadow: 0 1px 4px black;
+        }
+        .color-chip:active { transform: scale(0.92); }
+
+        /* Галерея видов цветов */
+        .flower-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 6px;
+            background: rgba(0,0,0,0.35);
+            border-radius: 32px;
+            padding: 6px 10px;
+        }
+        .gallery-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,245,200,0.15);
+            border-radius: 28px;
+            padding: 4px 12px;
+            gap: 2px;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid rgba(255,215,130,0.5);
+        }
+        .gallery-item:active { transform: scale(0.96); background: rgba(255,235,170,0.3);}
+        .gallery-svg {
+            width: 48px;
+            height: 48px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+            pointer-events: none;
+        }
+        .gallery-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #fff3cf;
+            text-shadow: 0 1px 1px black;
+        }
+
+        .flower-count {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #f9e7b3;
+            margin-top: 6px;
+        }
+        .hint {
+            font-size: 0.65rem;
+            text-align: center;
+            color: #e9dba9;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="bouquet-area" id="bouquetArea">
+    <div class="grass"></div>
+    <div class="stem-deco"></div>
+    <div class="stem-deco stem-deco2"></div>
+</div>
+
+<div class="control-panel">
+    <div class="status-bar" id="statusBar">🌸 Нажмите кнопку и скажите: "Роза красная" или "Тюльпан жёлтый"</div>
+
+    <!-- Радуга цветов -->
+    <div class="color-rainbow" id="colorRainbow"></div>
+
+    <div class="buttons">
+        <button id="micBtn" class="btn-microphone">🎤 Включить голос</button>
+        <button id="giftBtn" class="btn-gift">🎁 Подарить букет 💾</button>
+        <button id="clearBtn" class="btn-clear">🌿 Убрать все цветы</button>
+    </div>
+
+    <!-- Галерея видов (образцы) -->
+    <div class="flower-gallery" id="flowerGallery"></div>
+
+    <div class="flower-count" id="flowerCount">🌼 Цветов в букете: 0</div>
+    <div class="hint">💐 Голосом: "Роза красная", "Тюльпан синий", "Ромашка белая", "Пион розовый"<br>👆 Нажми на цветок — он исчезнет. 🎨 Кликни на цвет или картинку для быстрого добавления.</div>
+</div>
+
+<script>
+    // ========== ТИПЫ ЦВЕТОВ С SVG (красивые, разные) ==========
+    const flowerTypes = {
+        'роза': {
+            name: 'Роза',
+            draw: (color) => `<svg viewBox="0 0 60 60" width="52" height="52">
+                                <circle cx="30" cy="28" r="16" fill="${color}" stroke="#6b3e1a" stroke-width="1.2"/>
+                                <path d="M22 28 Q30 18 38 28 Q30 34 22 28" fill="${color}" stroke="#6b3e1a" stroke-width="0.8"/>
+                                <circle cx="30" cy="27" r="4" fill="#ffdd88"/>
+                                <path d="M30 44 L30 58" stroke="#2b6e2b" stroke-width="3" fill="none"/>
+                                <path d="M24 50 L18 54 M36 50 L42 54" stroke="#2b6e2b" stroke-width="2.5" fill="none"/>
+                            </svg>`
+        },
+        'тюльпан': {
+            name: 'Тюльпан',
+            draw: (color) => `<svg viewBox="0 0 60 60" width="52" height="52">
+                                <path d="M30 20 Q18 28 20 38 Q22 45 30 46 Q38 45 40 38 Q42 28 30 20Z" fill="${color}" stroke="#5a2e0e" stroke-width="1"/>
+                                <path d="M30 46 L30 58" stroke="#2b6e2b" stroke-width="3" fill="none"/>
+                                <path d="M24 50 L18 54 M36 50 L42 54" stroke="#2b6e2b" stroke-width="2" fill="none"/>
+                            </svg>`
+        },
+        'ромашка': {
+            name: 'Ромашка',
+            draw: (color) => `<svg viewBox="0 0 60 60" width="52" height="52">
+                                <ellipse cx="30" cy="27" rx="10" ry="12" fill="white" stroke="#d4b87a" stroke-width="0.8"/>
+                                <circle cx="30" cy="27" r="5" fill="${color}"/>
+                                <path d="M30 39 L30 58" stroke="#2b6e2b" stroke-width="3" fill="none"/>
+                                <path d="M24 50 L18 54 M36 50 L42 54" stroke="#2b6e2b" stroke-width="2" fill="none"/>
+                            </svg>`
+        },
+        'пион': {
+            name: 'Пион',
+            draw: (color) => `<svg viewBox="0 0 60 60" width="52" height="52">
+                                <circle cx="30" cy="28" r="18" fill="${color}" stroke="#7a3e1a" stroke-width="1"/>
+                                <circle cx="22" cy="24" r="5" fill="${color}" opacity="0.8"/>
+                                <circle cx="38" cy="24" r="5" fill="${color}" opacity="0.8"/>
+                                <circle cx="30" cy="20" r="6" fill="${color}" opacity="0.9"/>
+                                <circle cx="30" cy="28" r="4" fill="#ffdd99"/>
+                                <path d="M30 46 L30 58" stroke="#2b6e2b" stroke-width="3.5" fill="none"/>
+                                <path d="M24 52 L18 56 M36 52 L42 56" stroke="#2b6e2b" stroke-width="2.5" fill="none"/>
+                            </svg>`
+        },
+        'лилия': {
+            name: 'Лилия',
+            draw: (color) => `<svg viewBox="0 0 60 60" width="52" height="52">
+                                <path d="M30 16 L20 34 L30 42 L40 34 Z" fill="${color}" stroke="#6b2e0a" stroke-width="1"/>
+                                <path d="M30 42 L30 58" stroke="#2b6e2b" stroke-width="3" fill="none"/>
+                                <path d="M24 50 L18 54 M36 50 L42 54" stroke="#2b6e2b" stroke-width="2" fill="none"/>
+                                <circle cx="30" cy="34" r="3" fill="#fce570"/>
+                            </svg>`
+        }
+    };
+
+    // Цветовая палитра
+    const colors = {
+        'красная': '#e34234', 'красный': '#e34234',
+        'розовая': '#ff99cc', 'розовый': '#ff99cc',
+        'жёлтая': '#f5d742', 'жёлтый': '#f5d742', 'желтая': '#f5d742', 'желтый': '#f5d742',
+        'синяя': '#5a9cff', 'синий': '#5a9cff',
+        'белая': '#ffffff', 'белый': '#ffffff',
+        'оранжевая': '#ff8c42', 'оранжевый': '#ff8c42',
+        'фиолетовая': '#b77ae0', 'фиолетовый': '#b77ae0',
+        'голубая': '#7bc8f7', 'голубой': '#7bc8f7',
+        'алая': '#d62728', 'алый': '#d62728'
+    };
+
+    // Радужные цвета для быстрой подсказки
+    const rainbowColors = [
+        { name: 'красная', hex: '#e34234' },
+        { name: 'розовая', hex: '#ff99cc' },
+        { name: 'жёлтая', hex: '#f5d742' },
+        { name: 'оранжевая', hex: '#ff8c42' },
+        { name: 'синяя', hex: '#5a9cff' },
+        { name: 'фиолетовая', hex: '#b77ae0' },
+        { name: 'белая', hex: '#ffffff' },
+        { name: 'алая', hex: '#d62728' }
+    ];
+
+    // Галерея видов
+    const galleryFlowers = [
+        { key: 'роза', name: 'Роза', defaultColor: 'красная', hex: '#e34234' },
+        { key: 'тюльпан', name: 'Тюльпан', defaultColor: 'жёлтая', hex: '#f5d742' },
+        { key: 'ромашка', name: 'Ромашка', defaultColor: 'белая', hex: '#ffffff' },
+        { key: 'пион', name: 'Пион', defaultColor: 'розовая', hex: '#ff99cc' },
+        { key: 'лилия', name: 'Лилия', defaultColor: 'оранжевая', hex: '#ff8c42' }
+    ];
+
+    let flowers = [];          // массив цветов
+    let animationId = null;
+    let recognition = null;
+    let isListening = false;
+    const bouquetArea = document.getElementById('bouquetArea');
+    const statusBar = document.getElementById('statusBar');
+    const flowerCountSpan = document.getElementById('flowerCount');
+    const micBtn = document.getElementById('micBtn');
+    const giftBtn = document.getElementById('giftBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const colorRainbowDiv = document.getElementById('colorRainbow');
+    const flowerGalleryDiv = document.getElementById('flowerGallery');
+
+    function updateFlowerCount() {
+        flowerCountSpan.innerHTML = `🌼 Цветов в букете: ${flowers.length}`;
+    }
+
+    // Удаление цветка
+    function removeFlower(flower, immediate = false) {
+        const idx = flowers.indexOf(flower);
+        if (idx !== -1) flowers.splice(idx, 1);
+        if (flower.element) {
+            if (immediate) {
+                flower.element.remove();
+            } else {
+                flower.element.style.transition = 'transform 0.12s ease, opacity 0.1s';
+                flower.element.style.transform = 'scale(0)';
+                flower.element.style.opacity = '0';
+                setTimeout(() => {
+                    if (flower.element) flower.element.remove();
+                }, 130);
+            }
+        }
+        updateFlowerCount();
+    }
+
+    // Добавление цветка (вид, цвет)
+    function addFlower(flowerTypeKey, colorName, forceHex = null) {
+        const flowerDef = flowerTypes[flowerTypeKey];
+        let colorHex = forceHex || colors[colorName];
+        if (!flowerDef || !colorHex) return false;
+
+        // случайная позиция в области букета (но не слишком низко, чтобы стебли не уходили за траву)
+        const maxX = bouquetArea.clientWidth - 70;
+        const maxY = bouquetArea.clientHeight - 90;
+        const x = Math.random() * (maxX - 60) + 30;
+        const y = Math.random() * (maxY - 50) + 30;
+
+        const flower = {
+            id: Date.now() + Math.random(),
+            type: flowerTypeKey,
+            typeName: flowerDef.name,
+            colorName: colorName,
+            colorHex: colorHex,
+            x: x, y: y,
+            element: null
+        };
+
+        const div = document.createElement('div');
+        div.className = 'flower';
+        div.style.left = flower.x + 'px';
+        div.style.top = flower.y + 'px';
+        div.innerHTML = flowerDef.draw(colorHex);
+        div.setAttribute('data-id', flower.id);
+
+        // Клик по цветку — он исчезает (завял или убрали)
+        div.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeFlower(flower);
+            statusBar.innerHTML = `🌷 ${flower.typeName} (${flower.colorName}) убран(а) из букета.`;
+            setTimeout(() => {
+                if (isListening) statusBar.innerHTML = '🎙️ Говорите: "Роза красная" или "Тюльпан синий"';
+                else statusBar.innerHTML = '🎤 Нажмите кнопку и скажите название цветка';
+            }, 1500);
+        });
+
+        bouquetArea.appendChild(div);
+        flower.element = div;
+        flowers.push(flower);
+        updateFlowerCount();
+        return true;
+    }
+
+    function clearAllFlowers() {
+        for (let f of flowers) {
+            if (f.element) f.element.remove();
+        }
+        flowers = [];
+        updateFlowerCount();
+        statusBar.innerHTML = '🌾 Букет очищен. Создайте новый голосом или через образцы!';
+        setTimeout(() => {
+            if (isListening) statusBar.innerHTML = '🎙️ Скажите: "Роза красная", "Пион розовый"';
+            else statusBar.innerHTML = '🎤 Нажмите кнопку и скажите цветок';
+        }, 1800);
+    }
+
+    // Сохранить букет как картинку (подарить)
+    async function saveBouquetAsImage() {
+        if (flowers.length === 0) {
+            statusBar.innerHTML = '💔 Букет пуст! Добавьте цветы голосом или из галереи.';
+            setTimeout(() => {
+                if (isListening) statusBar.innerHTML = '🎙️ Скажите: "Роза красная"';
+                else statusBar.innerHTML = '🎤 Нажмите микрофон и добавьте цветы';
+            }, 2000);
+            return;
+        }
+
+        statusBar.innerHTML = '✨ Создаём открытку с букетом... Подождите секунду ✨';
+        
+        // Используем html2canvas для захвата области букета
+        // Динамически подгружаем библиотеку если её нет
+        if (typeof html2canvas === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = () => captureBouquet();
+            document.head.appendChild(script);
+        } else {
+            captureBouquet();
+        }
+
+        function captureBouquet() {
+            html2canvas(bouquetArea, {
+                backgroundColor: '#4c7a3a',
+                scale: 2,
+                logging: false,
+                useCORS: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'magic_bouquet.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                statusBar.innerHTML = '🎁 Букет подарен! Картинка сохранена. 🌸 Продолжайте собирать!';
+                setTimeout(() => {
+                    if (isListening) statusBar.innerHTML = '🎙️ Говорите: "Лилия синяя", "Ромашка белая"';
+                    else statusBar.innerHTML = '🎤 Голос готов к новым цветам';
+                }, 2500);
+            }).catch(err => {
+                console.warn(err);
+                statusBar.innerHTML = '❌ Ошибка сохранения, но букет красивый! Попробуйте ещё.';
+            });
+        }
+    }
+
+    // Голосовые команды
+    function parseVoiceCommand(text) {
+        text = text.toLowerCase().trim();
+        console.log('Распознано:', text);
+        let foundType = null;
+        for (let type in flowerTypes) {
+            if (text.includes(type)) { foundType = type; break; }
+        }
+        let foundColor = null;
+        for (let col in colors) {
+            if (text.includes(col)) { foundColor = col; break; }
+        }
+
+        if (foundType && foundColor) {
+            const success = addFlower(foundType, foundColor);
+            if (success) statusBar.innerHTML = `✅ Добавлен ${flowerTypes[foundType].name} ${foundColor}! 🌺`;
+            else statusBar.innerHTML = `❌ Не удалось добавить цветок`;
+        } else if (foundType && !foundColor) {
+            statusBar.innerHTML = `🎨 Скажите цвет для ${flowerTypes[foundType].name}: "красная", "розовая"...`;
+        } else if (!foundType && foundColor) {
+            statusBar.innerHTML = `🌸 Скажите вид: "Роза", "Тюльпан", "Ромашка", "Пион" или "Лилия" с цветом`;
+        } else {
+            statusBar.innerHTML = `❓ Не понял. Пример: "Роза алая", "Пион розовый", "Лилия оранжевая"`;
+        }
+        setTimeout(() => {
+            if (isListening && (statusBar.innerHTML.includes('✅') || statusBar.innerHTML.includes('❓'))) {
+                statusBar.innerHTML = '🎙️ Скажите, например: "Ромашка белая" или "Тюльпан синий"';
+            }
+        }, 2500);
+    }
+
+    function startVoice() {
+        if (isListening) {
+            if (recognition) { try { recognition.abort(); } catch(e) {} }
+            isListening = false;
+            recognition = null;
+            micBtn.innerHTML = '🎤 Включить голос';
+            micBtn.classList.remove('active');
+            statusBar.innerHTML = '🎤 Голос выключен. Нажмите кнопку для создания цветов';
+            return;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            statusBar.innerHTML = '❌ Ваш браузер не поддерживает голос';
+            return;
+        }
+        const recog = new SpeechRecognition();
+        recog.continuous = true;
+        recog.interimResults = false;
+        recog.lang = 'ru-RU';
+        recog.onstart = () => {
+            isListening = true;
+            micBtn.innerHTML = '🔴 Выключить голос';
+            micBtn.classList.add('active');
+            statusBar.innerHTML = '🎙️ Слушаю! Скажите: "Роза красная", "Тюльпан жёлтый" ...';
+        };
+        recog.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                statusBar.innerHTML = '🔇 Разрешите микрофон в браузере';
+                isListening = false;
+                micBtn.innerHTML = '🎤 Включить голос';
+                micBtn.classList.remove('active');
+            }
+        };
+        recog.onend = () => {
+            if (isListening) {
+                setTimeout(() => { if (isListening) try { recog.start(); } catch(e) {} }, 200);
+            }
+        };
+        recog.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                parseVoiceCommand(event.results[i][0].transcript);
+            }
+        };
+        recognition = recog;
+        try { recog.start(); } catch(e) { statusBar.innerHTML = '❌ Ошибка микрофона'; }
+    }
+
+    // Построить радугу
+    function buildColorRainbow() {
+        colorRainbowDiv.innerHTML = '';
+        rainbowColors.forEach(c => {
+            const chip = document.createElement('div');
+            chip.className = 'color-chip';
+            chip.style.backgroundColor = c.hex;
+            chip.style.border = c.name === 'белая' ? '1px solid #aaa' : '2px solid #ffefb0';
+            chip.title = c.name;
+            chip.addEventListener('click', () => {
+                statusBar.innerHTML = `🎨 Цвет «${c.name}» выбран. Теперь скажите вид цветка голосом или нажмите на образец!`;
+                setTimeout(() => {
+                    if (isListening) statusBar.innerHTML = '🎙️ Скажите вид, например "Роза"';
+                    else statusBar.innerHTML = `🎤 Нажмите микрофон и скажите, например "Роза ${c.name}"`;
+                }, 1800);
+            });
+            colorRainbowDiv.appendChild(chip);
+        });
+    }
+
+    // Галерея цветов
+    function buildFlowerGallery() {
+        flowerGalleryDiv.innerHTML = '';
+        galleryFlowers.forEach(gf => {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            const svgWrap = document.createElement('div');
+            svgWrap.className = 'gallery-svg';
+            svgWrap.innerHTML = flowerTypes[gf.key].draw(gf.hex);
+            const label = document.createElement('span');
+            label.className = 'gallery-label';
+            label.innerText = gf.name;
+            item.appendChild(svgWrap);
+            item.appendChild(label);
+            item.addEventListener('click', () => {
+                const added = addFlower(gf.key, gf.defaultColor, gf.hex);
+                if (added) statusBar.innerHTML = `🌼 Добавлен ${gf.name} (${gf.defaultColor})!`;
+                else statusBar.innerHTML = `❌ Ошибка добавления ${gf.name}`;
+                setTimeout(() => {
+                    if (isListening && statusBar.innerHTML.includes('🌼')) statusBar.innerHTML = '🎙️ Продолжайте голосовые команды';
+                }, 1200);
+            });
+            flowerGalleryDiv.appendChild(item);
+        });
+    }
+
+    // Анимация не нужна для статики, но добавим лёгкое покачивание для живого вида
+    function gentleSway() {
+        for (let fl of flowers) {
+            if (fl.element) {
+                const time = Date.now() / 800;
+                const rot = Math.sin(time * fl.id) * 1.2;
+                fl.element.style.transform = `rotate(${rot}deg)`;
+            }
+        }
+        requestAnimationFrame(gentleSway);
+    }
+
+    function init() {
+        buildColorRainbow();
+        buildFlowerGallery();
+        micBtn.addEventListener('click', startVoice);
+        giftBtn.addEventListener('click', saveBouquetAsImage);
+        clearBtn.addEventListener('click', clearAllFlowers);
+        gentleSway();
+        // демо-цветы для примера
+        setTimeout(() => {
+            if (flowers.length === 0) {
+                addFlower('роза', 'красная', '#e34234');
+                addFlower('тюльпан', 'жёлтая', '#f5d742');
+                addFlower('ромашка', 'белая', '#ffffff');
+                statusBar.innerHTML = '🌹 Демо-букет готов! Говорите или кликайте на цвета/образцы. Нажмите "Подарить букет", чтобы сохранить картинку.';
+            }
+        }, 400);
+    }
+
+    init();
+</script>
+</body>
+</html>
