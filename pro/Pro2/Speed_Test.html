@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeedTest | Анализатор скорости интернета</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: linear-gradient(145deg, #1a1a2e, #16213e);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid #0f3460;
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(90deg, #e94560, #53d8fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .speed-gauge {
+            background: #0f0f1a;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            border: 1px solid #0f3460;
+        }
+
+        .speed-value {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #53d8fb;
+            line-height: 1;
+        }
+
+        .speed-unit {
+            font-size: 1.2rem;
+            color: #888;
+        }
+
+        .speed-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #0f0f1a;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #0f3460;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: #e94560;
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e94560;
+            margin-top: 5px;
+        }
+
+        .progress-bar {
+            background: #0f0f1a;
+            border-radius: 10px;
+            height: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #e94560, #53d8fb);
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #e94560, #0f3460);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(233, 69, 96, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            color: #53d8fb;
+            font-size: 0.9rem;
+        }
+
+        .history {
+            margin-top: 30px;
+            border-top: 1px solid #0f3460;
+            padding-top: 20px;
+        }
+
+        .history-title {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #0f0f1a;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            border-left: 3px solid #e94560;
+        }
+
+        .history-speed {
+            color: #53d8fb;
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .badge-fast { background: #00ff88; color: #000; }
+        .badge-good { background: #53d8fb; color: #000; }
+        .badge-slow { background: #e94560; color: #fff; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .testing {
+            animation: pulse 1s infinite;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            .speed-value { font-size: 2.5rem; }
+            .stat-value { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 SpeedTest Analyzer</h1>
+        <div class="subtitle">Анализ скорости интернета в реальном времени</div>
+
+        <div class="speed-gauge">
+            <div class="speed-value" id="speedValue">0.00</div>
+            <div class="speed-unit" id="speedUnit">Мбит/с</div>
+            <div class="speed-label" id="speedLabel">Нажмите «Начать тест»</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📥</div>
+                <div class="stat-label">Скорость загрузки</div>
+                <div class="stat-value" id="downloadSpeed">0.00</div>
+                <div class="speed-unit" style="font-size:0.7rem">Мбит/с</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📤</div>
+                <div class="stat-label">Скорость отдачи</div>
+                <div class="stat-value" id="uploadSpeed">0.00</div>
+                <div class="speed-unit" style="font-size:0.7rem">Мбит/с</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-label">Пинг (латентность)</div>
+                <div class="stat-value" id="ping">0</div>
+                <div class="speed-unit" style="font-size:0.7rem">мс</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-label">Jitter (вариация)</div>
+                <div class="stat-value" id="jitter">0</div>
+                <div class="speed-unit" style="font-size:0.7rem">мс</div>
+            </div>
+        </div>
+
+        <button id="startBtn" onclick="startSpeedTest()">▶ Начать тест скорости</button>
+        <div class="status" id="status">Готов к тестированию</div>
+
+        <div class="history">
+            <div class="history-title">📜 История тестов (последние 5)</div>
+            <div class="history-list" id="historyList">
+                <div style="text-align:center; color:#555;">Нет данных</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Настройки теста
+        const TEST_FILE_URL = 'https://speed.cloudflare.com/__down?bytes=';  // Cloudflare test file
+        const TEST_DURATION = 5000; // 5 секунд на каждый тест
+        let isTesting = false;
+
+        // Функция для измерения пинга и джиттера
+        async function measureLatency() {
+            const pings = [];
+            const PING_COUNT = 5;
+            
+            for (let i = 0; i < PING_COUNT; i++) {
+                const start = performance.now();
+                try {
+                    await fetch('https://www.cloudflare.com/cdn-cgi/trace', { 
+                        cache: 'no-store',
+                        method: 'HEAD'
+                    });
+                    const end = performance.now();
+                    pings.push(end - start);
+                } catch (e) {
+                    pings.push(100);
+                }
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            const avgPing = pings.reduce((a, b) => a + b, 0) / pings.length;
+            const jitter = calculateJitter(pings);
+            return { ping: Math.round(avgPing), jitter: Math.round(jitter) };
+        }
+
+        function calculateJitter(pings) {
+            let jitter = 0;
+            for (let i = 1; i < pings.length; i++) {
+                jitter += Math.abs(pings[i] - pings[i-1]);
+            }
+            return jitter / (pings.length - 1);
+        }
+
+        // Функция измерения скорости загрузки
+        async function measureDownloadSpeed() {
+            const testFileSizes = [10, 25, 50]; // MB
+            let totalBits = 0;
+            let totalTime = 0;
+            
+            document.getElementById('status').innerHTML = '📥 Измерение скорости ЗАГРУЗКИ...';
+            document.getElementById('speedLabel').innerHTML = 'Загрузка данных...';
+            
+            for (const sizeMB of testFileSizes) {
+                const bytes = sizeMB * 1024 * 1024;
+                const url = `${TEST_FILE_URL}${bytes}`;
+                
+                const startTime = performance.now();
+                try {
+                    const response = await fetch(url, { cache: 'no-store' });
+                    const data = await response.arrayBuffer();
+                    const endTime = performance.now();
+                    
+                    const durationSeconds = (endTime - startTime) / 1000;
+                    const bitsLoaded = data.byteLength * 8;
+                    
+                    if (durationSeconds > 0.1) {
+                        totalBits += bitsLoaded;
+                        totalTime += durationSeconds;
+                    }
+                } catch (e) {
+                    console.warn('Ошибка загрузки:', e);
+                }
+                
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            const speedMbps = totalTime > 0 ? (totalBits / totalTime / 1000000) : 0;
+            return Math.min(speedMbps, 1000); // Ограничиваем до 1000 Мбит/с
+        }
+
+        // Функция измерения скорости отдачи (через POST запрос)
+        async function measureUploadSpeed() {
+            document.getElementById('status').innerHTML = '📤 Измерение скорости ОТДАЧИ...';
+            document.getElementById('speedLabel').innerHTML = 'Отправка данных...';
+            
+            const payloadSizes = [5, 10, 20]; // MB
+            let totalBits = 0;
+            let totalTime = 0;
+            
+            for (const sizeMB of payloadSizes) {
+                const bytes = sizeMB * 1024 * 1024;
+                const payload = new Uint8Array(bytes);
+                // Заполняем случайными данными
+                for (let i = 0; i < bytes; i += 1024) {
+                    payload[i] = Math.floor(Math.random() * 256);
+                }
+                
+                const startTime = performance.now();
+                try {
+                    await fetch('https://httpbin.org/post', {
+                        method: 'POST',
+                        body: payload.buffer,
+                        cache: 'no-store'
+                    });
+                    const endTime = performance.now();
+                    
+                    const durationSeconds = (endTime - startTime) / 1000;
+                    const bitsLoaded = bytes * 8;
+                    
+                    if (durationSeconds > 0.1) {
+                        totalBits += bitsLoaded;
+                        totalTime += durationSeconds;
+                    }
+                } catch (e) {
+                    console.warn('Ошибка отправки:', e);
+                }
+                
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            const speedMbps = totalTime > 0 ? (totalBits / totalTime / 1000000) : 0;
+            return Math.min(speedMbps, 500);
+        }
+
+        // Обновление прогресс-бара
+        function updateProgress(step, totalSteps) {
+            const percent = (step / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+
+        // Оценка качества соединения
+        function getQualityBadge(speedMbps) {
+            if (speedMbps >= 100) return '<span class="badge badge-fast">🚀 Молниеносный</span>';
+            if (speedMbps >= 50) return '<span class="badge badge-good">⚡ Отличный</span>';
+            if (speedMbps >= 20) return '<span class="badge badge-good">✅ Хороший</span>';
+            if (speedMbps >= 10) return '<span class="badge badge-slow">📱 Средний</span>';
+            return '<span class="badge badge-slow">🐢 Медленный</span>';
+        }
+
+        // Сохранение в историю
+        function addToHistory(download, upload, ping) {
+            const history = JSON.parse(localStorage.getItem('speedHistory') || '[]');
+            history.unshift({
+                date: new Date().toLocaleTimeString(),
+                download: download.toFixed(2),
+                upload: upload.toFixed(2),
+                ping: ping
+            });
+            
+            while (history.length > 5) history.pop();
+            localStorage.setItem('speedHistory', JSON.stringify(history));
+            displayHistory();
+        }
+
+        function displayHistory() {
+            const history = JSON.parse(localStorage.getItem('speedHistory') || '[]');
+            const container = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#555;">Нет данных</div>';
+                return;
+            }
+            
+            container.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <span>${item.date}</span>
+                    <span>📥 ${item.download} / 📤 ${item.upload} Мбит/с</span>
+                    <span class="history-speed">⏱️ ${item.ping} мс</span>
+                </div>
+            `).join('');
+        }
+
+        // Анимация счетчика
+        function animateValue(element, start, end, duration) {
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    clearInterval(timer);
+                    current = end;
+                }
+                element.textContent = current.toFixed(2);
+            }, 16);
+        }
+
+        // Главная функция теста
+        async function startSpeedTest() {
+            if (isTesting) return;
+            isTesting = true;
+            
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ Тестирование...';
+            
+            document.getElementById('speedLabel').innerHTML = 'Инициализация...';
+            document.getElementById('progressFill').style.width = '0%';
+            
+            try {
+                // Шаг 1: Пинг и джиттер
+                updateProgress(1, 4);
+                const { ping, jitter } = await measureLatency();
+                document.getElementById('ping').textContent = ping;
+                document.getElementById('jitter').textContent = jitter;
+                document.getElementById('status').innerHTML = `✅ Пинг: ${ping} мс, Джиттер: ${jitter} мс`;
+                
+                // Шаг 2: Скорость загрузки
+                updateProgress(2, 4);
+                const downloadSpeed = await measureDownloadSpeed();
+                document.getElementById('downloadSpeed').textContent = downloadSpeed.toFixed(2);
+                animateValue(document.getElementById('speedValue'), 0, downloadSpeed, 1000);
+                
+                // Шаг 3: Скорость отдачи
+                updateProgress(3, 4);
+                const uploadSpeed = await measureUploadSpeed();
+                document.getElementById('uploadSpeed').textContent = uploadSpeed.toFixed(2);
+                
+                // Шаг 4: Финальная оценка
+                updateProgress(4, 4);
+                const quality = getQualityBadge(downloadSpeed);
+                document.getElementById('speedLabel').innerHTML = `Качество соединения: ${quality}`;
+                document.getElementById('status').innerHTML = `✅ Тест завершён! Скорость: ${downloadSpeed.toFixed(2)} Мбит/с`;
+                
+                // Сохраняем в историю
+                addToHistory(downloadSpeed, uploadSpeed, ping);
+                
+                // Меняем цвет в зависимости от скорости
+                const speedElement = document.getElementById('speedValue');
+                if (downloadSpeed >= 50) speedElement.style.color = '#00ff88';
+                else if (downloadSpeed >= 20) speedElement.style.color = '#53d8fb';
+                else speedElement.style.color = '#e94560';
+                
+            } catch (error) {
+                console.error('Ошибка теста:', error);
+                document.getElementById('status').innerHTML = '❌ Ошибка при выполнении теста. Проверьте подключение!';
+                document.getElementById('speedLabel').innerHTML = 'Ошибка измерения';
+            } finally {
+                isTesting = false;
+                startBtn.disabled = false;
+                startBtn.textContent = '🔄 Начать тест скорости';
+                setTimeout(() => {
+                    document.getElementById('progressFill').style.width = '0%';
+                }, 2000);
+            }
+        }
+
+        // Загрузка истории при старте
+        displayHistory();
+        
+        // Предзагрузка для быстрого первого теста
+        console.log('SpeedTest готов к работе!');
+    </script>
+</body>
+</html>
