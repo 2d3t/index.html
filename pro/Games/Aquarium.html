@@ -1,0 +1,613 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Волшебный аквариум — создай рыбок голосом</title>
+    <style>
+        * {
+            user-select: none;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            color-scheme: light only;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a2f6c 0%, #0a4c8c 100%);
+            font-family: system-ui, 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        .aquarium {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at 30% 40%, #1a6a9e, #0a3a5a);
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.3);
+            border-bottom: 4px solid #8B5E3C;
+        }
+        .aquarium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .sand {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(180deg, #d4a259 0%, #b8860b 100%);
+            border-radius: 20px 20px 0 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .seaweed {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 15px;
+            height: 60px;
+            background: linear-gradient(90deg, #2d6b2d, #1a4a1a);
+            border-radius: 10px;
+            transform-origin: bottom;
+            animation: sway 3s infinite ease-in-out;
+            pointer-events: none;
+        }
+        .seaweed2 { left: 80px; width: 12px; height: 45px; animation-delay: 1s; }
+        .seaweed3 { left: 140px; width: 18px; height: 70px; animation-delay: 2s; }
+        @keyframes sway {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(5deg); }
+        }
+        
+        .fish {
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            z-index: 20;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            will-change: left, top, transform;
+        }
+        .fish:active {
+            transform: scale(0.96);
+        }
+        
+        .control-panel {
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(12px);
+            padding: 10px 14px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            z-index: 30;
+        }
+        .status-bar {
+            background: rgba(255,255,255,0.15);
+            border-radius: 40px;
+            padding: 6px 12px;
+            margin-bottom: 8px;
+            text-align: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        button {
+            background: #2c6e9e;
+            border: none;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            flex: 1;
+            min-width: 100px;
+        }
+        button:active { transform: scale(0.96); }
+        .btn-clear { background: #c0392b; }
+        .btn-microphone { background: #27ae60; }
+        .btn-microphone.active { background: #e74c3c; animation: pulse-light 1.5s infinite; }
+        @keyframes pulse-light {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Цветовая радуга (сноска для быстрого выбора цвета) */
+        .color-rainbow {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin: 6px 0 8px 0;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50px;
+            padding: 6px 12px;
+        }
+        .color-chip {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.1s ease;
+            border: 2px solid rgba(255,255,255,0.7);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .color-chip:active { transform: scale(0.9); }
+        .color-chip:hover { transform: scale(1.05); border-color: white; }
+        
+        /* Галерея видов рыбок (образцы) */
+        .fish-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 6px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 28px;
+            padding: 8px 12px;
+            backdrop-filter: blur(4px);
+        }
+        .gallery-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 4px 10px;
+            gap: 2px;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .gallery-item:active { transform: scale(0.96); background: rgba(255,255,255,0.2);}
+        .gallery-svg {
+            width: 48px;
+            height: 32px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+            pointer-events: none;
+        }
+        .gallery-label {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: white;
+            text-shadow: 0 1px 1px black;
+        }
+        .fish-count { font-size: 0.7rem; opacity: 0.8; text-align: center; color: white; margin-top: 6px; }
+        .hint { font-size: 0.65rem; text-align: center; color: rgba(255,255,255,0.65); margin-top: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="aquarium" id="aquarium">
+    <div class="sand"></div>
+    <div class="seaweed"></div>
+    <div class="seaweed seaweed2"></div>
+    <div class="seaweed seaweed3"></div>
+</div>
+
+<div class="control-panel">
+    <div class="status-bar" id="statusBar">🎙️ Нажмите кнопку и скажите: "Скалярия красная" или "Меченосец оранжевый"</div>
+    
+    <!-- Радуга цветов: быстрый выбор и подсказка -->
+    <div class="color-rainbow" id="colorRainbow"></div>
+    
+    <div class="buttons">
+        <button id="micBtn" class="btn-microphone">🎤 Включить голос</button>
+        <button id="clearBtn" class="btn-clear">🧹 Убрать всех рыбок</button>
+    </div>
+    
+    <!-- Галерея видов (образцы) -->
+    <div class="fish-gallery" id="fishGallery"></div>
+    
+    <div class="fish-count" id="fishCount">🐠 Рыбок: 0</div>
+    <div class="hint">💡 Голос: "Скалярия красная", "Меченосец синий", "Неон зелёный", "Золотая рыбка жёлтая"<br>👆 Нажми на рыбку — она уплывёт. 🌈 Нажми на цвет или картинку — быстрый пример!</div>
+</div>
+
+<script>
+    // ========== ВСЕ ТИПЫ РЫБОК С ПРАВИЛЬНЫМ SVG (ГОЛОВА ВСЕГДА СПРАВА) ==========
+    // Каждый SVG ориентирован так: голова (глаз) находится справа, хвост слева.
+    const fishTypes = {
+        'скалярия': {
+            name: 'Скалярия',
+            draw: (color) => `<svg viewBox="0 0 60 40" width="58" height="40">
+                                <path d="M5 5 L50 20 L5 35 L25 20 Z" fill="${color}" stroke="#222" stroke-width="1.2"/>
+                                <circle cx="42" cy="16" r="3.5" fill="white"/>
+                                <circle cx="44" cy="15" r="1.8" fill="black"/>
+                                <path d="M3 12 L0 8 M3 28 L0 32" stroke="#222" stroke-width="1.5" fill="none"/>
+                            </svg>`
+        },
+        'данио': {
+            name: 'Данио',
+            draw: (color) => `<svg viewBox="0 0 60 30" width="58" height="30">
+                                <ellipse cx="30" cy="15" rx="25" ry="10" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <polygon points="55,15 60,10 60,20" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <circle cx="18" cy="12" r="3" fill="white"/>
+                                <circle cx="20" cy="11.5" r="1.5" fill="black"/>
+                                <path d="M5 8 L1 5 M5 22 L1 25" stroke="#222" stroke-width="1.2" fill="none"/>
+                            </svg>`
+        },
+        'гуппи': {
+            name: 'Гуппи',
+            draw: (color) => `<svg viewBox="0 0 70 38" width="66" height="36">
+                                <ellipse cx="28" cy="18" rx="20" ry="10" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <path d="M48 10 Q62 18 48 26 Q56 18 48 10" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <circle cx="13" cy="15" r="3" fill="white"/>
+                                <circle cx="15" cy="14.5" r="1.5" fill="black"/>
+                                <path d="M4 11 L0 8 M4 25 L0 28" stroke="#222" stroke-width="1.2" fill="none"/>
+                            </svg>`
+        },
+        'меченосец': {
+            name: 'Меченосец',
+            draw: (color) => `<svg viewBox="0 0 68 34" width="64" height="34">
+                                <ellipse cx="30" cy="16" rx="22" ry="9" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <polygon points="52,16 68,8 68,24" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <path d="M52 10 L62 4 M52 22 L62 28" stroke="#222" stroke-width="1.2" fill="none"/>
+                                <circle cx="14" cy="13" r="2.8" fill="white"/>
+                                <circle cx="16" cy="12.5" r="1.4" fill="black"/>
+                            </svg>`
+        },
+        'неон': {
+            name: 'Неон',
+            draw: (color) => `<svg viewBox="0 0 58 28" width="55" height="28">
+                                <ellipse cx="28" cy="14" rx="22" ry="8" fill="${color}" stroke="#222" stroke-width="0.8"/>
+                                <polygon points="50,14 56,10 56,18" fill="${color}" stroke="#222" stroke-width="0.8"/>
+                                <circle cx="12" cy="11" r="2.5" fill="white"/>
+                                <circle cx="14" cy="10.5" r="1.2" fill="black"/>
+                                <path d="M4 7 L0 5 M4 21 L0 23" stroke="#222" stroke-width="1" fill="none"/>
+                                <line x1="24" y1="12" x2="36" y2="12" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+                            </svg>`
+        },
+        'золотая рыбка': {
+            name: 'Золотая рыбка',
+            draw: (color) => `<svg viewBox="0 0 64 38" width="62" height="38">
+                                <ellipse cx="32" cy="18" rx="24" ry="11" fill="${color}" stroke="#b8860b" stroke-width="1.2"/>
+                                <path d="M56 12 Q64 18 56 24 Q62 18 56 12" fill="${color}" stroke="#b8860b" stroke-width="1"/>
+                                <circle cx="16" cy="15" r="3.2" fill="white"/>
+                                <circle cx="18" cy="14.5" r="1.6" fill="black"/>
+                                <path d="M6 10 L2 7 M6 26 L2 29" stroke="#b8860b" stroke-width="1.5"/>
+                                <path d="M30 12 Q32 9 34 12" stroke="orange" stroke-width="1.2" fill="none"/>
+                            </svg>`
+        }
+    };
+    
+    // Цветовая палитра + синонимы
+    const colors = {
+        'красная': '#e74c3c', 'красный': '#e74c3c',
+        'синяя': '#3498db', 'синий': '#3498db',
+        'зелёная': '#2ecc71', 'зелёный': '#2ecc71', 'зеленая': '#2ecc71', 'зеленый': '#2ecc71',
+        'жёлтая': '#f1c40f', 'жёлтый': '#f1c40f', 'желтая': '#f1c40f', 'желтый': '#f1c40f',
+        'оранжевая': '#e67e22', 'оранжевый': '#e67e22',
+        'розовая': '#ff69b4', 'розовый': '#ff69b4',
+        'фиолетовая': '#9b59b6', 'фиолетовый': '#9b59b6',
+        'голубая': '#5dade2', 'голубой': '#5dade2',
+        'золотая': '#f39c12', 'золотой': '#f39c12',
+        'бирюзовая': '#1abc9c', 'бирюзовый': '#1abc9c',
+        'коралловая': '#ff7f50', 'коралловый': '#ff7f50'
+    };
+    
+    // Порядок для радуги (наглядные цвета)
+    const rainbowColors = [
+        { name: 'красная', hex: '#e74c3c' },
+        { name: 'оранжевая', hex: '#e67e22' },
+        { name: 'жёлтая', hex: '#f1c40f' },
+        { name: 'зелёная', hex: '#2ecc71' },
+        { name: 'голубая', hex: '#5dade2' },
+        { name: 'синяя', hex: '#3498db' },
+        { name: 'фиолетовая', hex: '#9b59b6' },
+        { name: 'розовая', hex: '#ff69b4' },
+        { name: 'золотая', hex: '#f39c12' }
+    ];
+    
+    // Список видов для галереи (образцы)
+    const gallerySpecies = [
+        { key: 'скалярия', displayName: 'Скалярия', defaultColor: 'красная', colorHex: '#e74c3c' },
+        { key: 'данио', displayName: 'Данио', defaultColor: 'синяя', colorHex: '#3498db' },
+        { key: 'гуппи', displayName: 'Гуппи', defaultColor: 'розовая', colorHex: '#ff69b4' },
+        { key: 'меченосец', displayName: 'Меченосец', defaultColor: 'оранжевая', colorHex: '#e67e22' },
+        { key: 'неон', displayName: 'Неон', defaultColor: 'зелёная', colorHex: '#2ecc71' },
+        { key: 'золотая рыбка', displayName: 'Золотая', defaultColor: 'золотая', colorHex: '#f39c12' }
+    ];
+    
+    let fishes = [];
+    let animationId = null;
+    let recognition = null;
+    let isListening = false;
+    const aquariumEl = document.getElementById('aquarium');
+    const statusBar = document.getElementById('statusBar');
+    const fishCountSpan = document.getElementById('fishCount');
+    const micBtn = document.getElementById('micBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const colorRainbowDiv = document.getElementById('colorRainbow');
+    const fishGalleryDiv = document.getElementById('fishGallery');
+    
+    function updateFishCount() {
+        fishCountSpan.innerHTML = `🐠 Рыбок: ${fishes.length}`;
+    }
+    
+    function removeFish(fish, immediate = false) {
+        const index = fishes.indexOf(fish);
+        if (index !== -1) fishes.splice(index, 1);
+        if (fish.element) {
+            if (immediate) {
+                fish.element.remove();
+            } else {
+                fish.element.style.transition = 'transform 0.15s ease, opacity 0.1s';
+                fish.element.style.transform = 'scale(0)';
+                fish.element.style.opacity = '0';
+                setTimeout(() => {
+                    if (fish.element) fish.element.remove();
+                }, 150);
+            }
+        }
+        updateFishCount();
+    }
+    
+    // Универсальное добавление рыбки с корректной ориентацией (голова всегда вперёд по направлению vx)
+    function addFish(fishTypeKey, colorName, forceColorHex = null) {
+        const fishType = fishTypes[fishTypeKey];
+        let colorHex = forceColorHex || colors[colorName];
+        if (!fishType || !colorHex) return false;
+        
+        const x = Math.random() * (aquariumEl.clientWidth - 80) + 20;
+        const y = Math.random() * (aquariumEl.clientHeight - 100) + 40;
+        // Скорость: всегда положительная по X для начальной ориентации вправо (vx > 0)
+        // Случайно, но гарантируем что голова будет смотреть вперёд при старте: scaleX(1)
+        const vx = (Math.random() * 1.2) + 0.5;   // всегда положительная => плывёт вправо (голова вперёд)
+        const vy = (Math.random() - 0.5) * 0.9;
+        
+        const fish = {
+            id: Date.now() + Math.random(),
+            type: fishTypeKey,
+            typeName: fishType.name,
+            colorName: colorName,
+            colorHex: colorHex,
+            x: x, y: y, vx: vx, vy: vy,
+            width: 62, height: 42,
+            element: null
+        };
+        
+        const fishDiv = document.createElement('div');
+        fishDiv.className = 'fish';
+        fishDiv.style.left = fish.x + 'px';
+        fishDiv.style.top = fish.y + 'px';
+        fishDiv.innerHTML = fishType.draw(colorHex);
+        fishDiv.setAttribute('data-id', fish.id);
+        // начальная ориентация: всегда вперёд (вправо)
+        fishDiv.style.transform = `scaleX(1)`;
+        
+        fishDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeFish(fish);
+            statusBar.innerHTML = `🐟 ${fish.typeName} (${fish.colorName}) уплыла!`;
+            setTimeout(() => {
+                if (isListening) statusBar.innerHTML = '🎙️ Говорите: "Скалярия красная", "Меченосец синий"';
+                else statusBar.innerHTML = '🎤 Нажмите кнопку и скажите название рыбки';
+            }, 1500);
+        });
+        
+        aquariumEl.appendChild(fishDiv);
+        fish.element = fishDiv;
+        fishes.push(fish);
+        updateFishCount();
+        return true;
+    }
+    
+    function clearAllFishes() {
+        for (let fish of fishes) {
+            if (fish.element) fish.element.remove();
+        }
+        fishes = [];
+        updateFishCount();
+        statusBar.innerHTML = '🧹 Все рыбки уплыли! Создайте новых голосом или через образцы.';
+        setTimeout(() => {
+            if (isListening) statusBar.innerHTML = '🎙️ Говорите: "Скалярия красная" или "Неон зелёный"';
+            else statusBar.innerHTML = '🎤 Нажмите кнопку и скажите название рыбки с цветом';
+        }, 2000);
+    }
+    
+    // Анимация: все рыбки плавают вперёд головой (scaleX в зависимости от направления vx)
+    function animateFishes() {
+        if (!aquariumEl) return;
+        const maxX = aquariumEl.clientWidth - 68;
+        const maxY = aquariumEl.clientHeight - 58;
+        const minX = 12;
+        const minY = 30;
+        
+        for (let fish of fishes) {
+            if (!fish.element) continue;
+            fish.x += fish.vx;
+            fish.y += fish.vy;
+            
+            if (fish.x > maxX) { fish.x = maxX; fish.vx = -fish.vx; }
+            if (fish.x < minX) { fish.x = minX; fish.vx = -fish.vx; }
+            if (fish.y > maxY) { fish.y = maxY; fish.vy = -fish.vy; }
+            if (fish.y < minY) { fish.y = minY; fish.vy = -fish.vy; }
+            
+            // Ориентация: голова всегда по направлению движения
+            // если vx > 0 (плывёт вправо) -> scaleX(1); если vx < 0 (влево) -> scaleX(-1)
+            const scaleX = fish.vx > 0 ? 1 : -1;
+            fish.element.style.transform = `scaleX(${scaleX})`;
+            fish.element.style.left = fish.x + 'px';
+            fish.element.style.top = fish.y + 'px';
+        }
+        animationId = requestAnimationFrame(animateFishes);
+    }
+    
+    // Парсинг голосовых команд
+    function parseVoiceCommand(text) {
+        text = text.toLowerCase().trim();
+        console.log('Распознано:', text);
+        
+        let foundType = null;
+        for (let type in fishTypes) {
+            if (text.includes(type)) { foundType = type; break; }
+        }
+        let foundColor = null;
+        for (let color in colors) {
+            if (text.includes(color)) { foundColor = color; break; }
+        }
+        
+        if (foundType && foundColor) {
+            const success = addFish(foundType, foundColor);
+            if (success) statusBar.innerHTML = `✅ Добавлена ${fishTypes[foundType].name} ${foundColor}! 🐠`;
+            else statusBar.innerHTML = `❌ Ошибка: не могу создать рыбку`;
+        } else if (foundType && !foundColor) {
+            statusBar.innerHTML = `🎨 Скажите ещё цвет для ${fishTypes[foundType].name}: "красная", "синяя"...`;
+        } else if (!foundType && foundColor) {
+            statusBar.innerHTML = `🐠 Скажите тип рыбки: "Скалярия", "Данио", "Гуппи", "Меченосец", "Неон" или "Золотая рыбка" с цветом`;
+        } else {
+            statusBar.innerHTML = `❓ Не понял. Скажите, например: "Меченосец оранжевый" или "Неон зелёный"`;
+        }
+        setTimeout(() => {
+            if (isListening && (statusBar.innerHTML.includes('✅') || statusBar.innerHTML.includes('❓') || statusBar.innerHTML.includes('🎨'))) {
+                statusBar.innerHTML = '🎙️ Говорите: "Скалярия красная", "Меченосец синий" или "Золотая рыбка жёлтая"';
+            }
+        }, 2500);
+    }
+    
+    function startVoice() {
+        if (isListening) {
+            if (recognition) { try { recognition.abort(); } catch(e) {} }
+            isListening = false;
+            recognition = null;
+            micBtn.innerHTML = '🎤 Включить голос';
+            micBtn.classList.remove('active');
+            statusBar.innerHTML = '🎤 Голос выключен. Нажмите кнопку для создания рыбок';
+            return;
+        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            statusBar.innerHTML = '❌ Ваш браузер не поддерживает голос';
+            return;
+        }
+        const recog = new SpeechRecognition();
+        recog.continuous = true;
+        recog.interimResults = false;
+        recog.lang = 'ru-RU';
+        recog.onstart = () => {
+            isListening = true;
+            micBtn.innerHTML = '🔴 Выключить голос';
+            micBtn.classList.add('active');
+            statusBar.innerHTML = '🎙️ Слушаю! Скажите: "Скалярия красная", "Меченосец синяя"...';
+        };
+        recog.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                statusBar.innerHTML = '🔇 Разрешите микрофон в браузере';
+                isListening = false;
+                micBtn.innerHTML = '🎤 Включить голос';
+                micBtn.classList.remove('active');
+            }
+        };
+        recog.onend = () => {
+            if (isListening) {
+                setTimeout(() => { if (isListening) try { recog.start(); } catch(e) {} }, 200);
+            }
+        };
+        recog.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                parseVoiceCommand(event.results[i][0].transcript);
+            }
+        };
+        recognition = recog;
+        try { recog.start(); } catch(e) { statusBar.innerHTML = '❌ Ошибка запуска микрофона'; }
+    }
+    
+    // Создание радуги (быстрый выбор цвета)
+    function buildColorRainbow() {
+        colorRainbowDiv.innerHTML = '';
+        rainbowColors.forEach(c => {
+            const chip = document.createElement('div');
+            chip.className = 'color-chip';
+            chip.style.backgroundColor = c.hex;
+            chip.title = c.name;
+            chip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                statusBar.innerHTML = `🎨 Цвет «${c.name}» выбран. Скажите тип рыбки голосом или нажмите на образец!`;
+                // сохраним в "буфер", можно добавить быструю подсказку — необязательно. Но даём понять.
+                setTimeout(() => {
+                    if (isListening) statusBar.innerHTML = '🎙️ Скажите вид рыбки, например "Скалярия"';
+                    else statusBar.innerHTML = `🎤 Нажмите микрофон и скажите, например "Скалярия ${c.name}"`;
+                }, 1800);
+            });
+            colorRainbowDiv.appendChild(chip);
+        });
+    }
+    
+    // Галерея: при клике создаём рыбку этого вида с цветом по умолчанию (или рандомный яркий)
+    function buildFishGallery() {
+        fishGalleryDiv.innerHTML = '';
+        gallerySpecies.forEach(species => {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            const svgContainer = document.createElement('div');
+            svgContainer.className = 'gallery-svg';
+            // отрисовываем образец с его цветом по умолчанию
+            svgContainer.innerHTML = fishTypes[species.key].draw(species.colorHex);
+            const label = document.createElement('span');
+            label.className = 'gallery-label';
+            label.innerText = species.displayName;
+            galleryItem.appendChild(svgContainer);
+            galleryItem.appendChild(label);
+            galleryItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Создаём рыбку с цветом по умолчанию (можно добавить рандомный оттенок из палитры, но оставим стандартный)
+                const added = addFish(species.key, species.defaultColor, species.colorHex);
+                if (added) {
+                    statusBar.innerHTML = `🐠 ${species.displayName} (${species.defaultColor}) появилась!`;
+                    setTimeout(() => {
+                        if (isListening) statusBar.innerHTML = '🎙️ Говорите дальше или используйте радугу';
+                        else statusBar.innerHTML = '🎤 Нажмите микрофон для голосовых команд';
+                    }, 1800);
+                } else {
+                    statusBar.innerHTML = `❌ Не удалось создать ${species.displayName}`;
+                }
+            });
+            fishGalleryDiv.appendChild(galleryItem);
+        });
+    }
+    
+    // Инициализация
+    function init() {
+        buildColorRainbow();
+        buildFishGallery();
+        micBtn.addEventListener('click', startVoice);
+        clearBtn.addEventListener('click', clearAllFishes);
+        animateFishes();
+        // Демо-рыбки: добавляем пару с правильной ориентацией
+        setTimeout(() => {
+            if (fishes.length === 0) {
+                addFish('скалярия', 'красная', '#e74c3c');
+                addFish('меченосец', 'оранжевая', '#e67e22');
+                addFish('неон', 'зелёная', '#2ecc71');
+                statusBar.innerHTML = '🐟 Демо-рыбки плавают! Нажми на рыбку, чтобы убрать, или создай новых голосом.';
+            }
+        }, 400);
+    }
+    
+    window.addEventListener('resize', () => {});
+    updateFishCount();
+    init();
+</script>
+</body>
+</html>
