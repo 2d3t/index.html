@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -133,7 +132,6 @@
             50% { opacity: 0.7; }
         }
         
-        /* Цветовая радуга (сноска для быстрого выбора цвета) */
         .color-rainbow {
             display: flex;
             flex-wrap: wrap;
@@ -156,7 +154,6 @@
         .color-chip:active { transform: scale(0.9); }
         .color-chip:hover { transform: scale(1.05); border-color: white; }
         
-        /* Галерея видов рыбок (образцы) */
         .fish-gallery {
             display: flex;
             flex-wrap: wrap;
@@ -209,7 +206,6 @@
 <div class="control-panel">
     <div class="status-bar" id="statusBar">🎙️ Нажмите кнопку и скажите: "Скалярия красная" или "Меченосец оранжевый"</div>
     
-    <!-- Радуга цветов: быстрый выбор и подсказка -->
     <div class="color-rainbow" id="colorRainbow"></div>
     
     <div class="buttons">
@@ -217,7 +213,6 @@
         <button id="clearBtn" class="btn-clear">🧹 Убрать всех рыбок</button>
     </div>
     
-    <!-- Галерея видов (образцы) -->
     <div class="fish-gallery" id="fishGallery"></div>
     
     <div class="fish-count" id="fishCount">🐠 Рыбок: 0</div>
@@ -225,73 +220,97 @@
 </div>
 
 <script>
-    // ========== ВСЕ ТИПЫ РЫБОК С ПРАВИЛЬНЫМ SVG (ГОЛОВА ВСЕГДА СПРАВА) ==========
-    // Каждый SVG ориентирован так: голова (глаз) находится справа, хвост слева.
+    // ========== ВСЕ РЫБКИ С ПРАВИЛЬНОЙ АНАТОМИЕЙ: ХВОСТ СЛЕВА, ГОЛОВА СПРАВА ==========
     const fishTypes = {
         'скалярия': {
             name: 'Скалярия',
             draw: (color) => `<svg viewBox="0 0 60 40" width="58" height="40">
+                                <!-- Тело-треугольник: хвост слева (x=5), голова справа (x=50) -->
                                 <path d="M5 5 L50 20 L5 35 L25 20 Z" fill="${color}" stroke="#222" stroke-width="1.2"/>
+                                <!-- Глаз справа (голова) -->
                                 <circle cx="42" cy="16" r="3.5" fill="white"/>
                                 <circle cx="44" cy="15" r="1.8" fill="black"/>
+                                <!-- Хвостовые плавники слева -->
                                 <path d="M3 12 L0 8 M3 28 L0 32" stroke="#222" stroke-width="1.5" fill="none"/>
                             </svg>`
         },
         'данио': {
             name: 'Данио',
             draw: (color) => `<svg viewBox="0 0 60 30" width="58" height="30">
+                                <!-- Тело-эллипс: центр в x=30, хвост слева -->
                                 <ellipse cx="30" cy="15" rx="25" ry="10" fill="${color}" stroke="#222" stroke-width="1"/>
-                                <polygon points="55,15 60,10 60,20" fill="${color}" stroke="#222" stroke-width="1"/>
-                                <circle cx="18" cy="12" r="3" fill="white"/>
-                                <circle cx="20" cy="11.5" r="1.5" fill="black"/>
-                                <path d="M5 8 L1 5 M5 22 L1 25" stroke="#222" stroke-width="1.2" fill="none"/>
+                                <!-- Хвостовой плавник (треугольник) слева -->
+                                <polygon points="5,15 0,8 0,22" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <!-- Глаз справа -->
+                                <circle cx="46" cy="12" r="3" fill="white"/>
+                                <circle cx="48" cy="11.5" r="1.5" fill="black"/>
+                                <!-- Хвостовые нити слева -->
+                                <path d="M8 8 L2 5 M8 22 L2 25" stroke="#222" stroke-width="1.2" fill="none"/>
                             </svg>`
         },
         'гуппи': {
             name: 'Гуппи',
             draw: (color) => `<svg viewBox="0 0 70 38" width="66" height="36">
-                                <ellipse cx="28" cy="18" rx="20" ry="10" fill="${color}" stroke="#222" stroke-width="1"/>
-                                <path d="M48 10 Q62 18 48 26 Q56 18 48 10" fill="${color}" stroke="#222" stroke-width="1"/>
-                                <circle cx="13" cy="15" r="3" fill="white"/>
-                                <circle cx="15" cy="14.5" r="1.5" fill="black"/>
-                                <path d="M4 11 L0 8 M4 25 L0 28" stroke="#222" stroke-width="1.2" fill="none"/>
+                                <!-- Тело -->
+                                <ellipse cx="30" cy="18" rx="20" ry="10" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <!-- Роскошный хвост гуппи СЛЕВА (а не справа!) -->
+                                <path d="M10 10 Q2 18 10 26 Q4 18 10 10" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <!-- Глаз справа -->
+                                <circle cx="44" cy="15" r="3" fill="white"/>
+                                <circle cx="46" cy="14.5" r="1.5" fill="black"/>
+                                <!-- Нижние плавники слева -->
+                                <path d="M8 11 L2 8 M8 25 L2 28" stroke="#222" stroke-width="1.2" fill="none"/>
                             </svg>`
         },
         'меченосец': {
             name: 'Меченосец',
             draw: (color) => `<svg viewBox="0 0 68 34" width="64" height="34">
+                                <!-- Тело -->
                                 <ellipse cx="30" cy="16" rx="22" ry="9" fill="${color}" stroke="#222" stroke-width="1"/>
-                                <polygon points="52,16 68,8 68,24" fill="${color}" stroke="#222" stroke-width="1"/>
-                                <path d="M52 10 L62 4 M52 22 L62 28" stroke="#222" stroke-width="1.2" fill="none"/>
-                                <circle cx="14" cy="13" r="2.8" fill="white"/>
-                                <circle cx="16" cy="12.5" r="1.4" fill="black"/>
+                                <!-- Меч-хвост СЛЕВА (вытянутый треугольник влево) -->
+                                <polygon points="8,16 0,6 0,26" fill="${color}" stroke="#222" stroke-width="1"/>
+                                <!-- Нити меченосца слева -->
+                                <path d="M12 9 L2 4 M12 23 L2 28" stroke="#222" stroke-width="1.2" fill="none"/>
+                                <!-- Глаз справа -->
+                                <circle cx="46" cy="13" r="2.8" fill="white"/>
+                                <circle cx="48" cy="12.5" r="1.4" fill="black"/>
                             </svg>`
         },
         'неон': {
             name: 'Неон',
             draw: (color) => `<svg viewBox="0 0 58 28" width="55" height="28">
+                                <!-- Тело -->
                                 <ellipse cx="28" cy="14" rx="22" ry="8" fill="${color}" stroke="#222" stroke-width="0.8"/>
-                                <polygon points="50,14 56,10 56,18" fill="${color}" stroke="#222" stroke-width="0.8"/>
-                                <circle cx="12" cy="11" r="2.5" fill="white"/>
-                                <circle cx="14" cy="10.5" r="1.2" fill="black"/>
-                                <path d="M4 7 L0 5 M4 21 L0 23" stroke="#222" stroke-width="1" fill="none"/>
-                                <line x1="24" y1="12" x2="36" y2="12" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+                                <!-- Хвост СЛЕВА -->
+                                <polygon points="6,14 0,9 0,19" fill="${color}" stroke="#222" stroke-width="0.8"/>
+                                <!-- Глаз справа -->
+                                <circle cx="44" cy="11" r="2.5" fill="white"/>
+                                <circle cx="46" cy="10.5" r="1.2" fill="black"/>
+                                <!-- Хвостовые нити слева -->
+                                <path d="M8 7 L2 5 M8 21 L2 23" stroke="#222" stroke-width="1" fill="none"/>
+                                <!-- Неоновая полоска на теле -->
+                                <line x1="16" y1="12" x2="38" y2="12" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
                             </svg>`
         },
         'золотая рыбка': {
             name: 'Золотая рыбка',
             draw: (color) => `<svg viewBox="0 0 64 38" width="62" height="38">
+                                <!-- Тело -->
                                 <ellipse cx="32" cy="18" rx="24" ry="11" fill="${color}" stroke="#b8860b" stroke-width="1.2"/>
-                                <path d="M56 12 Q64 18 56 24 Q62 18 56 12" fill="${color}" stroke="#b8860b" stroke-width="1"/>
-                                <circle cx="16" cy="15" r="3.2" fill="white"/>
-                                <circle cx="18" cy="14.5" r="1.6" fill="black"/>
-                                <path d="M6 10 L2 7 M6 26 L2 29" stroke="#b8860b" stroke-width="1.5"/>
-                                <path d="M30 12 Q32 9 34 12" stroke="orange" stroke-width="1.2" fill="none"/>
+                                <!-- Двойной хвост СЛЕВА (как у золотой рыбки) -->
+                                <path d="M8 12 Q2 18 8 24 Q2 18 8 12" fill="${color}" stroke="#b8860b" stroke-width="1"/>
+                                <!-- Глаз справа -->
+                                <circle cx="50" cy="15" r="3.2" fill="white"/>
+                                <circle cx="52" cy="14.5" r="1.6" fill="black"/>
+                                <!-- Хвостовые лопасти слева -->
+                                <path d="M10 10 L3 7 M10 26 L3 29" stroke="#b8860b" stroke-width="1.5"/>
+                                <!-- Рот/губки -->
+                                <path d="M38 12 Q40 9 42 12" stroke="orange" stroke-width="1.2" fill="none"/>
                             </svg>`
         }
     };
     
-    // Цветовая палитра + синонимы
+    // Цветовая палитра
     const colors = {
         'красная': '#e74c3c', 'красный': '#e74c3c',
         'синяя': '#3498db', 'синий': '#3498db',
@@ -306,7 +325,6 @@
         'коралловая': '#ff7f50', 'коралловый': '#ff7f50'
     };
     
-    // Порядок для радуги (наглядные цвета)
     const rainbowColors = [
         { name: 'красная', hex: '#e74c3c' },
         { name: 'оранжевая', hex: '#e67e22' },
@@ -319,7 +337,6 @@
         { name: 'золотая', hex: '#f39c12' }
     ];
     
-    // Список видов для галереи (образцы)
     const gallerySpecies = [
         { key: 'скалярия', displayName: 'Скалярия', defaultColor: 'красная', colorHex: '#e74c3c' },
         { key: 'данио', displayName: 'Данио', defaultColor: 'синяя', colorHex: '#3498db' },
@@ -363,7 +380,6 @@
         updateFishCount();
     }
     
-    // Универсальное добавление рыбки с корректной ориентацией (голова всегда вперёд по направлению vx)
     function addFish(fishTypeKey, colorName, forceColorHex = null) {
         const fishType = fishTypes[fishTypeKey];
         let colorHex = forceColorHex || colors[colorName];
@@ -371,9 +387,7 @@
         
         const x = Math.random() * (aquariumEl.clientWidth - 80) + 20;
         const y = Math.random() * (aquariumEl.clientHeight - 100) + 40;
-        // Скорость: всегда положительная по X для начальной ориентации вправо (vx > 0)
-        // Случайно, но гарантируем что голова будет смотреть вперёд при старте: scaleX(1)
-        const vx = (Math.random() * 1.2) + 0.5;   // всегда положительная => плывёт вправо (голова вперёд)
+        const vx = (Math.random() * 1.2) + 0.5;
         const vy = (Math.random() - 0.5) * 0.9;
         
         const fish = {
@@ -393,7 +407,6 @@
         fishDiv.style.top = fish.y + 'px';
         fishDiv.innerHTML = fishType.draw(colorHex);
         fishDiv.setAttribute('data-id', fish.id);
-        // начальная ориентация: всегда вперёд (вправо)
         fishDiv.style.transform = `scaleX(1)`;
         
         fishDiv.addEventListener('click', (e) => {
@@ -426,7 +439,6 @@
         }, 2000);
     }
     
-    // Анимация: все рыбки плавают вперёд головой (scaleX в зависимости от направления vx)
     function animateFishes() {
         if (!aquariumEl) return;
         const maxX = aquariumEl.clientWidth - 68;
@@ -445,7 +457,6 @@
             if (fish.y < minY) { fish.y = minY; fish.vy = -fish.vy; }
             
             // Ориентация: голова всегда по направлению движения
-            // если vx > 0 (плывёт вправо) -> scaleX(1); если vx < 0 (влево) -> scaleX(-1)
             const scaleX = fish.vx > 0 ? 1 : -1;
             fish.element.style.transform = `scaleX(${scaleX})`;
             fish.element.style.left = fish.x + 'px';
@@ -454,7 +465,6 @@
         animationId = requestAnimationFrame(animateFishes);
     }
     
-    // Парсинг голосовых команд
     function parseVoiceCommand(text) {
         text = text.toLowerCase().trim();
         console.log('Распознано:', text);
@@ -533,7 +543,6 @@
         try { recog.start(); } catch(e) { statusBar.innerHTML = '❌ Ошибка запуска микрофона'; }
     }
     
-    // Создание радуги (быстрый выбор цвета)
     function buildColorRainbow() {
         colorRainbowDiv.innerHTML = '';
         rainbowColors.forEach(c => {
@@ -544,7 +553,6 @@
             chip.addEventListener('click', (e) => {
                 e.stopPropagation();
                 statusBar.innerHTML = `🎨 Цвет «${c.name}» выбран. Скажите тип рыбки голосом или нажмите на образец!`;
-                // сохраним в "буфер", можно добавить быструю подсказку — необязательно. Но даём понять.
                 setTimeout(() => {
                     if (isListening) statusBar.innerHTML = '🎙️ Скажите вид рыбки, например "Скалярия"';
                     else statusBar.innerHTML = `🎤 Нажмите микрофон и скажите, например "Скалярия ${c.name}"`;
@@ -554,7 +562,6 @@
         });
     }
     
-    // Галерея: при клике создаём рыбку этого вида с цветом по умолчанию (или рандомный яркий)
     function buildFishGallery() {
         fishGalleryDiv.innerHTML = '';
         gallerySpecies.forEach(species => {
@@ -562,7 +569,6 @@
             galleryItem.className = 'gallery-item';
             const svgContainer = document.createElement('div');
             svgContainer.className = 'gallery-svg';
-            // отрисовываем образец с его цветом по умолчанию
             svgContainer.innerHTML = fishTypes[species.key].draw(species.colorHex);
             const label = document.createElement('span');
             label.className = 'gallery-label';
@@ -571,7 +577,6 @@
             galleryItem.appendChild(label);
             galleryItem.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Создаём рыбку с цветом по умолчанию (можно добавить рандомный оттенок из палитры, но оставим стандартный)
                 const added = addFish(species.key, species.defaultColor, species.colorHex);
                 if (added) {
                     statusBar.innerHTML = `🐠 ${species.displayName} (${species.defaultColor}) появилась!`;
@@ -587,14 +592,12 @@
         });
     }
     
-    // Инициализация
     function init() {
         buildColorRainbow();
         buildFishGallery();
         micBtn.addEventListener('click', startVoice);
         clearBtn.addEventListener('click', clearAllFishes);
         animateFishes();
-        // Демо-рыбки: добавляем пару с правильной ориентацией
         setTimeout(() => {
             if (fishes.length === 0) {
                 addFish('скалярия', 'красная', '#e74c3c');
