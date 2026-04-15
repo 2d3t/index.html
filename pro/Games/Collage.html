@@ -1,0 +1,674 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Детская игра — Коллаж из картинок по голосу!</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1e5f8e 0%, #0d3b55 100%);
+            font-family: 'Comic Neue', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+            padding: 16px;
+        }
+        .game-layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .main-panel {
+            flex: 2;
+            min-width: 280px;
+            background: rgba(255,248,225,0.95);
+            border-radius: 64px;
+            padding: 20px 24px 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .collage-panel {
+            flex: 1.2;
+            min-width: 240px;
+            background: rgba(255,241,214,0.97);
+            border-radius: 64px;
+            padding: 20px 18px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.3);
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 8px 0;
+            color: #ffdd77;
+            text-shadow: 3px 3px 0 #c26b00;
+            text-align: center;
+        }
+        .sub {
+            background: #f5e7d3;
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: #4a2e1f;
+            font-weight: bold;
+            margin-bottom: 18px;
+            text-align: center;
+            width: 100%;
+        }
+        .mic-status {
+            background: #2b2b2b;
+            border-radius: 100px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        .led-big {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #00000066;
+            padding: 4px 14px;
+            border-radius: 50px;
+        }
+        .led-light {
+            width: 14px;
+            height: 14px;
+            border-radius: 14px;
+            background-color: #4caf50;
+            box-shadow: 0 0 12px #4caf50;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1.2);}
+        }
+        .word-bubble {
+            background: #fff0d0;
+            border-radius: 50px;
+            padding: 12px;
+            font-weight: bold;
+            color: #b45f1b;
+            margin: 12px 0;
+            text-align: center;
+            font-size: 1.3rem;
+        }
+        .image-frame {
+            background: #e9e2d0;
+            border-radius: 48px;
+            padding: 16px;
+            margin: 12px 0;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-result {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 32px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+            object-fit: contain;
+        }
+        .placeholder-img {
+            font-size: 2.5rem;
+            text-align: center;
+            padding: 20px;
+            color: #b5926e;
+        }
+        button {
+            background: #ffaa33;
+            border: none;
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b4621a;
+            transition: 0.07s linear;
+            margin: 6px 4px;
+        }
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #b4621a;
+        }
+        .collage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 3px dashed #ffb347;
+            padding-bottom: 12px;
+        }
+        .collage-grid {
+            background: #f7e9cf;
+            border-radius: 48px;
+            min-height: 280px;
+            padding: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin: 12px 0;
+        }
+        .collage-item {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 24px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 3px solid white;
+            background: white;
+        }
+        .empty-collage {
+            text-align: center;
+            color: #aa8b5c;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+        .collage-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .badge {
+            background: #ffdc97;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-weight: bold;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2e7d32;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 999;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @media (max-width: 750px) {
+            .toast-msg { white-space: normal; width: 80%; text-align: center; font-size: 0.8rem; }
+            .collage-item { width: 70px; height: 70px; }
+        }
+        .footer {
+            text-align: center;
+            margin-top: 16px;
+            color: #ffefcf;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-layout">
+    <!-- ЛЕВАЯ ЧАСТЬ: Основная игра -->
+    <div class="main-panel">
+        <h1>🎤✨ Скажи слово → картинка<br><span style="font-size:1.2rem;">➕ добавь в коллаж!</span></h1>
+        <div class="sub">🐘 Говори, смотри и строй свой коллаж 🦒</div>
+        <div class="mic-status">
+            <div class="led-big"><span class="led-light"></span>🎙️ Микрофон всегда слушает</div>
+            <div>🗣️ скажи: "добавить" или "в коллаж"</div>
+        </div>
+        <div class="word-bubble">💬 <span id="spokenWord">...скажи слово...</span> 💬</div>
+        <div class="image-frame">
+            <div class="placeholder-img" id="imagePlaceholder">🖼️<br>✨ Жду слова ✨</div>
+            <img id="resultImage" class="image-result" style="display: none;" alt="картинка" crossorigin="anonymous">
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+            <button id="resetBtn">🔄 Очистить картинку</button>
+            <button id="saveSingleBtn">💾 Сохранить эту картинку</button>
+        </div>
+        <div class="sub" style="margin-top: 16px; font-size:0.8rem;">⭐ Примеры: жираф, слон, пицца, робот, единорог</div>
+    </div>
+
+    <!-- ПРАВАЯ ЧАСТЬ: КОЛЛАЖ -->
+    <div class="collage-panel">
+        <div class="collage-header">
+            <span style="font-size: 1.6rem;">🎨 МОЙ КОЛЛАЖ</span>
+            <span id="collageCount" class="badge">0</span>
+        </div>
+        <div id="collageGrid" class="collage-grid">
+            <div class="empty-collage">➕ Скажи "добавить", когда увидишь классную картинку</div>
+        </div>
+        <div class="collage-buttons">
+            <button id="makeCollageBtn" style="background:#6c9e4d; box-shadow:0 4px 0 #3c6622;">🖼️ Сделать коллаж и сохранить</button>
+            <button id="clearCollageBtn" style="background:#c27e3a;">🗑️ Очистить коллаж</button>
+        </div>
+        <div style="font-size:0.7rem; text-align:center; margin-top:12px;">🎤 Голосом: «сделай коллаж» или «очисти коллаж»</div>
+    </div>
+</div>
+<div class="footer">
+    🎤 Постоянное слушание. Скажи слово → покажу картинку. Если нравится, скажи «добавить» → попадёт в коллаж!
+</div>
+<div id="toastMsg" class="toast-msg">✨</div>
+
+<script>
+    // ---------- КОЛЛАЖ + ГОЛОС + КАРТИНКИ ----------
+    let recognition = null;
+    let isActive = true;
+    let isRestarting = false;
+    
+    // Текущая показанная картинка
+    let currentImageUrl = "";
+    let currentWord = "";
+    let isEmojiMode = false;   // если показана эмодзи-заглушка, добавлять в коллаж нельзя
+    
+    // Коллекция для коллажа: храним { url, word }
+    let collageItems = [];
+    
+    // DOM элементы
+    const spokenWordSpan = document.getElementById('spokenWord');
+    const resultImage = document.getElementById('resultImage');
+    const imagePlaceholder = document.getElementById('imagePlaceholder');
+    const resetBtn = document.getElementById('resetBtn');
+    const saveSingleBtn = document.getElementById('saveSingleBtn');
+    const collageGrid = document.getElementById('collageGrid');
+    const collageCountSpan = document.getElementById('collageCount');
+    const makeCollageBtn = document.getElementById('makeCollageBtn');
+    const clearCollageBtn = document.getElementById('clearCollageBtn');
+    const toastEl = document.getElementById('toastMsg');
+    
+    function showToast(msg, isError = false) {
+        toastEl.textContent = msg;
+        toastEl.style.background = isError ? '#b71c1c' : '#2e7d32';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 2300);
+    }
+    
+    // Обновить визуализацию коллажа
+    function renderCollage() {
+        collageGrid.innerHTML = "";
+        if (collageItems.length === 0) {
+            collageGrid.innerHTML = '<div class="empty-collage">✨ Добавь картинки: скажи "добавить" ✨</div>';
+            collageCountSpan.innerText = "0";
+            return;
+        }
+        collageCountSpan.innerText = collageItems.length;
+        collageItems.forEach((item, idx) => {
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.classList.add('collage-item');
+            img.alt = item.word;
+            img.title = `${item.word}`;
+            // Можно кликнуть, чтобы удалить (для удобства)
+            img.style.cursor = "pointer";
+            img.addEventListener('click', (e) => {
+                e.stopPropagation();
+                collageItems.splice(idx, 1);
+                renderCollage();
+                showToast(`🗑️ Убрали "${item.word}" из коллажа`, false);
+            });
+            collageGrid.appendChild(img);
+        });
+        // добавим подсказку: "нажми на картинку, чтобы убрать"
+        const hintSpan = document.createElement('div');
+        hintSpan.style.fontSize = '0.6rem';
+        hintSpan.style.color = '#ab8a54';
+        hintSpan.style.width = '100%';
+        hintSpan.style.textAlign = 'center';
+        hintSpan.innerText = '👆 нажми на картинку, чтобы убрать';
+        collageGrid.appendChild(hintSpan);
+    }
+    
+    // Добавить текущую картинку в коллаж
+    function addCurrentToCollage() {
+        if (!currentImageUrl || isEmojiMode || !currentWord) {
+            showToast("Сначала скажи слово, чтобы появилась настоящая картинка! 🖼️", true);
+            return false;
+        }
+        // Проверка на дубликат (по желанию, но можно добавлять сколько угодно)
+        collageItems.push({ url: currentImageUrl, word: currentWord });
+        renderCollage();
+        showToast(`➕ "${currentWord}" добавлен в коллаж!`, false);
+        return true;
+    }
+    
+    // Создать и скачать коллаж из всех накопленных картинок
+    async function downloadCollage() {
+        if (collageItems.length === 0) {
+            showToast("Коллаж пуст! Сначала добавь картинки через «добавить»", true);
+            return;
+        }
+        if (collageItems.length > 20) {
+            showToast("Слишком много картинок, для коллажа лучше не больше 12 😊", true);
+        }
+        showToast("🎨 Собираю коллаж... подожди секунду");
+        
+        // Создаём canvas
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const itemCount = collageItems.length;
+        // Определяем сетку: стараемся сделать квадратную/прямоугольную приятную
+        let cols = Math.ceil(Math.sqrt(itemCount));
+        let rows = Math.ceil(itemCount / cols);
+        const thumbSize = 200; // размер каждой миниатюры в пикселях
+        const gap = 12;
+        const padding = 30;     // рамочка
+        const canvasWidth = cols * thumbSize + (cols - 1) * gap + padding * 2;
+        const canvasHeight = rows * thumbSize + (rows - 1) * gap + padding * 2 + 60; // + место для заголовка
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        ctx.fillStyle = "#FFF4E6";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        
+        // Рисуем весёлую рамку
+        ctx.strokeStyle = "#FFB347";
+        ctx.lineWidth = 8;
+        ctx.strokeRect(10, 10, canvasWidth - 20, canvasHeight - 20);
+        
+        ctx.font = "bold 34px 'Comic Sans MS', 'Comic Neue', cursive";
+        ctx.fillStyle = "#C26B00";
+        ctx.shadowBlur = 0;
+        ctx.fillText("🎨 Мой волшебный коллаж", padding, 58);
+        
+        // Загружаем все изображения и отрисовываем
+        const loadImage = (url) => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = url;
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error(`не загрузилось: ${url}`));
+            });
+        };
+        
+        try {
+            const images = await Promise.all(collageItems.map(item => loadImage(item.url)));
+            let idx = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (idx >= images.length) break;
+                    const img = images[idx];
+                    const x = padding + col * (thumbSize + gap);
+                    const y = padding + 50 + row * (thumbSize + gap); // отступ после заголовка
+                    // Рисуем миниатюру с обрезкой под квадрат
+                    const size = Math.min(img.width, img.height);
+                    const sx = (img.width - size) / 2;
+                    const sy = (img.height - size) / 2;
+                    ctx.save();
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, thumbSize, thumbSize, 20);
+                    ctx.clip();
+                    ctx.drawImage(img, sx, sy, size, size, x, y, thumbSize, thumbSize);
+                    ctx.restore();
+                    // Рамка белая
+                    ctx.strokeStyle = "#FFFFFF";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x, y, thumbSize, thumbSize);
+                    // подпись словом
+                    ctx.font = "18px 'Comic Sans MS'";
+                    ctx.fillStyle = "#5A3A22";
+                    ctx.fillText(collageItems[idx].word, x + 10, y + thumbSize - 8);
+                    idx++;
+                }
+            }
+            // Подпись внизу
+            ctx.font = "18px 'Comic Sans MS'";
+            ctx.fillStyle = "#b45f1b";
+            ctx.fillText("✨ Сказано голосом — собрано в коллаж ✨", padding, canvasHeight - 20);
+            
+            // Скачиваем коллаж
+            canvas.toBlob(blob => {
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = `коллаж_${Date.now()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showToast("🎉 Коллаж сохранён в галерею!", false);
+            });
+        } catch (err) {
+            console.error(err);
+            showToast("Ошибка при создании коллажа, попробуй ещё раз", true);
+        }
+    }
+    
+    // -------- ПОИСК КАРТИНКИ через Wikimedia + эмодзи-фолбэк -------------
+    async function fetchImageFromWikimedia(query) {
+        const clean = encodeURIComponent(query.trim().toLowerCase());
+        const wikiApi = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*`;
+        try {
+            const res = await fetch(wikiApi);
+            const data = await res.json();
+            if (data.query && data.query.pages) {
+                for (let id in data.query.pages) {
+                    const page = data.query.pages[id];
+                    if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
+                        let imgUrl = page.imageinfo[0].url;
+                        if (imgUrl.startsWith('http://')) imgUrl = imgUrl.replace('http://', 'https://');
+                        return { success: true, url: imgUrl };
+                    }
+                }
+            }
+            return { success: false };
+        } catch (e) {
+            return { success: false };
+        }
+    }
+    
+    function showEmojiFallback(query) {
+        const emojiMap = {
+            'кот': '🐱','кошка':'🐱','собака':'🐶','пес':'🐶','слон':'🐘','жираф':'🦒','лев':'🦁','тигр':'🐯',
+            'медведь':'🐻','машина':'🚗','автомобиль':'🚙','самолет':'✈️','ракета':'🚀','пицца':'🍕','бургер':'🍔',
+            'мороженое':'🍦','яблоко':'🍎','банан':'🍌','мяч':'⚽','робот':'🤖','единорог':'🦄','динозавр':'🦖'
+        };
+        let emoji = '🖼️';
+        const low = query.toLowerCase();
+        for (let [k, v] of Object.entries(emojiMap)) {
+            if (low.includes(k)) { emoji = v; break; }
+        }
+        imagePlaceholder.style.display = "flex";
+        imagePlaceholder.innerHTML = `<div style="font-size: 4rem;">${emoji}</div><div style="font-size:1.4rem;">${query}</div><div style="font-size:0.7rem;">🎨 Весёлый значок</div>`;
+        resultImage.style.display = "none";
+        isEmojiMode = true;
+        currentImageUrl = "";
+        currentWord = query;
+    }
+    
+    async function showPictureForWord(word) {
+        if (!word) return;
+        currentWord = word;
+        isEmojiMode = false;
+        imagePlaceholder.style.display = "flex";
+        imagePlaceholder.innerHTML = `<div style="font-size:1.6rem;">🔍 Ищу ${word} ...</div>`;
+        resultImage.style.display = "none";
+        currentImageUrl = "";
+        
+        const wikiRes = await fetchImageFromWikimedia(word);
+        if (wikiRes.success && wikiRes.url) {
+            currentImageUrl = wikiRes.url;
+            resultImage.src = currentImageUrl;
+            resultImage.style.display = "block";
+            imagePlaceholder.style.display = "none";
+            resultImage.onerror = () => {
+                resultImage.style.display = "none";
+                showEmojiFallback(word);
+            };
+        } else {
+            showEmojiFallback(word);
+        }
+    }
+    
+    // ---------- Обработка голосовых команд (добавить, коллаж, очистить коллаж, обычные слова) ----------
+    async function processVoiceCommand(phrase) {
+        const lower = phrase.toLowerCase().trim();
+        // Команды для коллажа
+        if (lower.includes("добавить") || lower === "добавь" || lower.includes("в коллаж") || lower === "+") {
+            await addCurrentToCollage();
+            return true;
+        }
+        if (lower.includes("сделай коллаж") || lower.includes("сохрани коллаж") || lower === "коллаж") {
+            await downloadCollage();
+            return true;
+        }
+        if (lower.includes("очисти коллаж") || lower.includes("удали коллаж") || lower === "очистить коллаж") {
+            collageItems = [];
+            renderCollage();
+            showToast("🧹 Коллаж очищен! Можно добавлять новые картинки", false);
+            return true;
+        }
+        // команда сохранить текущую картинку (одиночную)
+        if (lower.includes("сохрани картинку") || lower.includes("скачай эту") || lower === "сохранить") {
+            if (currentImageUrl && !isEmojiMode) {
+                // имитируем скачивание одной картинки (как раньше)
+                try {
+                    const resp = await fetch(currentImageUrl, { mode: 'cors' });
+                    const blob = await resp.blob();
+                    const link = document.createElement('a');
+                    const blobUrl = URL.createObjectURL(blob);
+                    link.href = blobUrl;
+                    link.download = `${currentWord}_${Date.now()}.jpg`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                    showToast(`✅ "${currentWord}" сохранён в галерею!`, false);
+                } catch(e) {
+                    showToast("Не удалось сохранить, но можно сделать коллаж!", true);
+                }
+            } else {
+                showToast("Сначала получи картинку по слову", true);
+            }
+            return true;
+        }
+        // иначе считаем обычным словом для показа картинки
+        return false;
+    }
+    
+    // -------- Распознавание речи с постоянным слушанием ----------
+    function initSpeech() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            spokenWordSpan.innerText = "❌ браузер без голоса";
+            showToast("Ваш браузер не поддерживает распознавание речи", true);
+            return;
+        }
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'ru-RU';
+        recognition.maxAlternatives = 1;
+        
+        recognition.onstart = () => { isRestarting = false; };
+        recognition.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                spokenWordSpan.innerText = "🔇 Нет доступа к микрофону";
+                showToast("Разрешите микрофон для игры!", true);
+            } else if (event.error !== 'no-speech' && isActive) {
+                setTimeout(() => { if (isActive && recognition) recognition?.start(); }, 1000);
+            }
+        };
+        recognition.onend = () => {
+            if (isActive && !isRestarting) {
+                isRestarting = true;
+                setTimeout(() => {
+                    if (isActive && recognition) try { recognition.start(); } catch(e) {}
+                    isRestarting = false;
+                }, 400);
+            }
+        };
+        recognition.onresult = async (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                let text = event.results[i][0].transcript.trim();
+                if (text.length > 0) {
+                    spokenWordSpan.innerText = `"${text}"`;
+                    const isCommand = await processVoiceCommand(text);
+                    if (!isCommand) {
+                        // просто показать картинку по слову
+                        await showPictureForWord(text);
+                    }
+                }
+            }
+        };
+        try { recognition.start(); } catch(e) {}
+    }
+    
+    // --- Кнопки ---
+    resetBtn.addEventListener('click', () => {
+        imagePlaceholder.style.display = "flex";
+        imagePlaceholder.innerHTML = "🖼️ <br>✨ Скажи новое слово ✨";
+        resultImage.style.display = "none";
+        currentImageUrl = "";
+        currentWord = "";
+        isEmojiMode = false;
+        showToast("Очищено! Говори любое слово", false);
+    });
+    
+    saveSingleBtn.addEventListener('click', async () => {
+        if (currentImageUrl && !isEmojiMode) {
+            try {
+                const resp = await fetch(currentImageUrl, { mode: 'cors' });
+                const blob = await resp.blob();
+                const a = document.createElement('a');
+                const urlBlob = URL.createObjectURL(blob);
+                a.href = urlBlob;
+                a.download = `${currentWord || 'рисунок'}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(urlBlob);
+                showToast(`💾 "${currentWord}" сохранён!`, false);
+            } catch(e) { showToast("Не удалось сохранить, попробуй коллаж", true); }
+        } else { showToast("Нет настоящей картинки для сохранения", true); }
+    });
+    
+    makeCollageBtn.addEventListener('click', () => downloadCollage());
+    clearCollageBtn.addEventListener('click', () => {
+        collageItems = [];
+        renderCollage();
+        showToast("🧹 Коллаж очищен", false);
+    });
+    
+    window.addEventListener('load', () => {
+        initSpeech();
+        renderCollage();
+    });
+    
+    // вспомогательная функция roundRect
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x+r, y);
+            this.lineTo(x+w-r, y);
+            this.quadraticCurveTo(x+w, y, x+w, y+r);
+            this.lineTo(x+w, y+h-r);
+            this.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+            this.lineTo(x+r, y+h);
+            this.quadraticCurveTo(x, y+h, x, y+h-r);
+            this.lineTo(x, y+r);
+            this.quadraticCurveTo(x, y, x+r, y);
+            return this;
+        };
+    }
+</script>
+</body>
+</html>
