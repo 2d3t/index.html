@@ -1,0 +1,295 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Голосовой цвет — всегда слушает</title>
+    <style>
+        * {
+            user-select: none;
+        }
+        html {
+            color-scheme: light only;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background-color: #1e1e2f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, sans-serif;
+            transition: background-color 0.1s ease;
+        }
+        .card {
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(16px);
+            border-radius: 56px;
+            padding: 24px 28px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.25);
+            margin: 20px;
+            max-width: 85vw;
+        }
+        .title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: white;
+        }
+        .status {
+            font-size: 1.2rem;
+            padding: 12px 18px;
+            border-radius: 40px;
+            background: rgba(0,0,0,0.5);
+            color: #e0e0e0;
+            margin: 15px 0;
+        }
+        button {
+            background: #2c6e9e;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 500;
+            padding: 14px 28px;
+            border-radius: 60px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: inherit;
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        .hint {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            margin-top: 24px;
+            background: rgba(0,0,0,0.3);
+            padding: 12px 18px;
+            border-radius: 32px;
+            max-width: 80vw;
+            text-align: center;
+        }
+        .footer {
+            position: fixed;
+            bottom: 18px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.4);
+        }
+        .led {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 12px;
+            background-color: #4caf50;
+            box-shadow: 0 0 6px #4caf50;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="title">🎨 Голосовой цвет</div>
+    <div class="status" id="statusBox">
+        ⚪ Режим выключен<br>
+        <span style="font-size:0.9rem;">Нажмите «Включить постоянное слушание»</span>
+    </div>
+    <button id="startBtn">🎤 Включить постоянное слушание</button>
+    <div class="hint">
+        🗣️ После включения просто называйте цвет в любой момент:<br>
+        <span style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px;">
+            <span>🔴 красный</span> <span>🔵 синий</span> <span>🟡 жёлтый</span> <span>🟢 зелёный</span>
+            <span>🟠 оранжевый</span> <span>🩷 розовый</span> <span>🟣 фиолетовый</span>
+            <span>⚫ чёрный</span> <span>⚪ белый</span>
+        </span>
+        <br><br>
+        ⚠️ Будет щелчок на каждое слово (ограничение браузера)
+    </div>
+</div>
+<div class="footer">
+    🎙️ Всегда слушает — говорите в любой момент
+</div>
+
+<script>
+    // Словарь цветов
+    const colorMap = new Map([
+        ['красный', '#e34234'], ['красная', '#e34234'], ['красное', '#e34234'], ['алый', '#ff2400'],
+        ['синий', '#2c6e9e'], ['синяя', '#2c6e9e'], ['синее', '#2c6e9e'], ['голубой', '#6bb5e0'],
+        ['жёлтый', '#f3d03e'], ['жёлтая', '#f3d03e'], ['жёлтое', '#f3d03e'], ['желтый', '#f3d03e'],
+        ['зелёный', '#3cac5c'], ['зелёная', '#3cac5c'], ['зелёное', '#3cac5c'], ['зеленый', '#3cac5c'],
+        ['оранжевый', '#ff8c42'], ['оранжевая', '#ff8c42'], ['оранжевое', '#ff8c42'],
+        ['розовый', '#ff99cc'], ['розовая', '#ff99cc'], ['розовое', '#ff99cc'],
+        ['фиолетовый', '#aa6dc9'], ['фиолетовая', '#aa6dc9'], ['фиолетовое', '#aa6dc9'], ['пурпурный', '#c154e0'],
+        ['чёрный', '#1a1a1a'], ['чёрная', '#1a1a1a'], ['черный', '#1a1a1a'], ['черная', '#1a1a1a'],
+        ['белый', '#f5f5f5'], ['белая', '#f5f5f5'], ['белое', '#f5f5f5'],
+        ['серый', '#9ca3af'], ['серая', '#9ca3af'], ['серое', '#9ca3af'],
+        ['коричневый', '#b97f4b'], ['коричневая', '#b97f4b'],
+        ['red', '#e34234'], ['blue', '#2c6e9e'], ['yellow', '#f3d03e'], ['green', '#3cac5c'],
+        ['orange', '#ff8c42'], ['pink', '#ff99cc'], ['purple', '#aa6dc9'], ['black', '#1a1a1a'], ['white', '#f5f5f5']
+    ]);
+
+    let recognition = null;
+    let isActive = false;
+    let isRestarting = false;
+    let restartTimer = null;
+
+    const statusBox = document.getElementById('statusBox');
+    const startBtn = document.getElementById('startBtn');
+
+    function updateUI(message, isError = false, isActiveMode = false) {
+        if (!statusBox) return;
+        const led = isActiveMode ? '<span class="led"></span>' : '';
+        statusBox.innerHTML = `${led}${message}`;
+        statusBox.style.background = isError ? 'rgba(180, 50, 50, 0.7)' : 'rgba(0,0,0,0.5)';
+    }
+
+    function stopListening() {
+        if (restartTimer) {
+            clearTimeout(restartTimer);
+            restartTimer = null;
+        }
+        if (recognition) {
+            try {
+                recognition.abort();
+            } catch(e) {}
+        }
+        isActive = false;
+        isRestarting = false;
+    }
+
+    function restartListening() {
+        if (!isActive) return;
+        if (isRestarting) return;
+        
+        isRestarting = true;
+        
+        // Останавливаем старый экземпляр
+        if (recognition) {
+            try {
+                recognition.abort();
+            } catch(e) {}
+            recognition = null;
+        }
+        
+        // Создаём новый
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            updateUI('❌ Браузер не поддерживает голос', true);
+            isActive = false;
+            startBtn.innerText = '🎤 Включить постоянное слушание';
+            isRestarting = false;
+            return;
+        }
+        
+        const recog = new SpeechRecognition();
+        recog.continuous = true;
+        recog.interimResults = false;
+        recog.lang = 'ru-RU';
+        recog.maxAlternatives = 1;
+        
+        recog.onstart = () => {
+            updateUI('🎙️ Постоянное слушание активно<br><span style="font-size:0.9rem;">Говорите цвет в любой момент</span>', false, true);
+            isRestarting = false;
+        };
+        
+        recog.onerror = (event) => {
+            console.warn("Speech error:", event.error);
+            if (event.error === 'not-allowed') {
+                updateUI('🔇 Нет доступа к микрофону. Разрешите и нажмите снова.', true);
+                isActive = false;
+                startBtn.innerText = '🎤 Включить постоянное слушание';
+                isRestarting = false;
+            } else if (event.error === 'no-speech') {
+                // Тишина — ничего не делаем, просто ждём
+                isRestarting = false;
+            } else if (event.error === 'aborted') {
+                isRestarting = false;
+            } else {
+                // Другая ошибка — пробуем перезапустить через секунду
+                if (isActive) {
+                    setTimeout(() => {
+                        if (isActive) restartListening();
+                    }, 1000);
+                }
+                isRestarting = false;
+            }
+        };
+        
+        recog.onend = () => {
+            if (isActive && !isRestarting) {
+                // Перезапускаем, чтобы всегда слушал
+                restartListening();
+            }
+        };
+        
+        recog.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript.trim().toLowerCase();
+                console.log("Распознано:", transcript);
+                
+                let foundHex = null;
+                if (colorMap.has(transcript)) {
+                    foundHex = colorMap.get(transcript);
+                } else {
+                    for (let [word, hex] of colorMap.entries()) {
+                        if (transcript.includes(word)) {
+                            foundHex = hex;
+                            break;
+                        }
+                    }
+                }
+                
+                if (foundHex) {
+                    document.body.style.backgroundColor = foundHex;
+                    updateUI(`✅ "${transcript}" → фон изменён!<br><span style="font-size:0.85rem;">🎤 Продолжайте говорить</span>`, false, true);
+                    setTimeout(() => {
+                        if (isActive) {
+                            updateUI('🎙️ Постоянное слушание активно<br><span>Говорите следующий цвет</span>', false, true);
+                        }
+                    }, 1500);
+                } else if (transcript.length > 1) {
+                    updateUI(`❓ "${transcript}" — не цвет. Попробуйте: красный, синий, жёлтый...`, false, true);
+                    setTimeout(() => {
+                        if (isActive) updateUI('🎙️ Постоянное слушание активно', false, true);
+                    }, 1200);
+                }
+            }
+        };
+        
+        recognition = recog;
+        try {
+            recog.start();
+        } catch (err) {
+            console.error("Start failed:", err);
+            updateUI('❌ Ошибка запуска микрофона', true);
+            isActive = false;
+            startBtn.innerText = '🎤 Включить постоянное слушание';
+            isRestarting = false;
+        }
+    }
+
+    function toggleListening() {
+        if (isActive) {
+            // Выключаем
+            stopListening();
+            updateUI('⚪ Режим выключен<br><span>Нажмите кнопку для включения</span>');
+            startBtn.innerText = '🎤 Включить постоянное слушание';
+        } else {
+            // Включаем
+            isActive = true;
+            startBtn.innerText = '🔴 Выключить постоянное слушание';
+            restartListening();
+        }
+    }
+
+    startBtn.addEventListener('click', toggleListening);
+    updateUI('⚪ Режим выключен<br><span>Нажмите кнопку для включения</span>');
+</script>
+</body>
+</html>
