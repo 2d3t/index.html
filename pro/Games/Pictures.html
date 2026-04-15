@@ -1,0 +1,598 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Детская игра — скажи слово, увидишь и сохранишь картинку!</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+        html {
+            color-scheme: light only;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1e5f8e 0%, #0d3b55 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Neue', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+            transition: background 0.3s ease;
+            padding: 16px;
+        }
+        .game-container {
+            width: 100%;
+            max-width: 700px;
+            background: rgba(255,248,225,0.95);
+            border-radius: 72px;
+            padding: 20px 24px 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.5);
+            text-align: center;
+        }
+        h1 {
+            font-size: 2rem;
+            margin: 0 0 8px 0;
+            color: #ffdd77;
+            text-shadow: 3px 3px 0 #c26b00;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .sub {
+            font-size: 1rem;
+            background: #f5e7d3;
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: #4a2e1f;
+            margin-bottom: 18px;
+            font-weight: bold;
+        }
+        .mic-status {
+            background: #2b2b2b;
+            border-radius: 100px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: white;
+        }
+        .led-big {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #00000066;
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: bold;
+        }
+        .led-light {
+            width: 16px;
+            height: 16px;
+            border-radius: 16px;
+            background-color: #4caf50;
+            box-shadow: 0 0 12px #4caf50;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1.2);}
+        }
+        .word-bubble {
+            background: #fff0d0;
+            border-radius: 60px;
+            padding: 12px 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #b45f1b;
+            margin: 12px 0;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            border: 2px solid #ffc107;
+        }
+        .image-frame {
+            background: #e9e2d0;
+            border-radius: 48px;
+            padding: 16px;
+            margin: 16px 0;
+            min-height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 0 2px white, 0 8px 20px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .image-result {
+            max-width: 100%;
+            max-height: 280px;
+            border-radius: 32px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            background: white;
+            transition: 0.2s;
+            object-fit: contain;
+        }
+        .placeholder-img {
+            font-size: 4rem;
+            text-align: center;
+            padding: 40px;
+            color: #b5926e;
+        }
+        .download-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: #2e7d32;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .download-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+        button {
+            background: #ffaa33;
+            border: none;
+            font-family: inherit;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 12px 28px;
+            border-radius: 60px;
+            cursor: pointer;
+            color: #3c280f;
+            box-shadow: 0 5px 0 #b4621a;
+            transition: 0.07s linear;
+            margin-top: 8px;
+        }
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #b4621a;
+        }
+        .save-hint {
+            background: #c8e6d9;
+            border-radius: 32px;
+            padding: 10px 12px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: #1c5e2d;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .hint-panel {
+            background: #ffe3b5;
+            border-radius: 36px;
+            padding: 12px 16px;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: #784e1e;
+        }
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 12px 0 0;
+        }
+        .badge {
+            background: #ffdc97;
+            border-radius: 40px;
+            padding: 5px 14px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 16px;
+            font-size: 0.7rem;
+            color: #ffefcf;
+            text-align: center;
+        }
+        @media (max-width: 550px) {
+            .game-container { padding: 16px; }
+            h1 { font-size: 1.6rem; }
+            .download-toast { white-space: normal; width: 80%; text-align: center; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>
+        🎤✨ Скажи слово — 
+        <span style="background:#ffdd99; padding:0 12px; border-radius:50px;">увидишь и сохранишь!</span>
+    </h1>
+    <div class="sub">🐼 Игра для детей — говори, смотри и сохраняй рисунки! 🐘</div>
+
+    <div class="mic-status">
+        <div class="led-big">
+            <span class="led-light"></span>
+            <span>🎙️ МИКРОФОН ВКЛЮЧЁН</span>
+        </div>
+        <div>🔊 всегда слушает</div>
+    </div>
+
+    <div class="word-bubble" id="wordDisplay">
+        💬 <span id="spokenWord">...скажи слово...</span> 💬
+    </div>
+
+    <div class="image-frame" id="imageFrame">
+        <div class="placeholder-img" id="imagePlaceholder">
+            🖼️ <br>✨ Жду твоего слова ✨
+        </div>
+        <img id="resultImage" class="image-result" style="display: none;" alt="картинка" crossorigin="anonymous">
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: center; margin: 8px 0 0;">
+        <button id="resetBtn">🔄 Очистить и слушать дальше</button>
+        <button id="forceDownloadBtn" style="background: #5fa8f5; box-shadow:0 5px 0 #2a5a8c;">💾 Сохранить картинку</button>
+    </div>
+    
+    <div class="save-hint">
+        🧸✨ Подсказка: скажи <strong>"сохрани картинку"</strong> или <strong>"скачать рисунок"</strong> — и я сохраню текущее изображение в телефон!
+    </div>
+
+    <div class="hint-panel">
+        🧸 <strong>Как играть:</strong> просто назови любой предмет, животное, цвет, игрушку — например: 
+        <div class="examples">
+            <span class="badge">🐱 кот</span>
+            <span class="badge">🚗 машина</span>
+            <span class="badge">🍕 пицца</span>
+            <span class="badge">🐘 слон</span>
+            <span class="badge">🦄 единорог</span>
+            <span class="badge">⚽ мяч</span>
+        </div>
+        <div style="margin-top: 8px; font-size:0.8rem;">
+        ⭐ Скажи слово на русском — я покажу картинку! А потом скажи "скачай рисунок" — и рисунок сохранится в галерею ⭐
+        </div>
+    </div>
+</div>
+<div class="footer">
+    🎤 Постоянное слушание — говорите в любой момент! Картинки из открытого поиска Wikimedia + весёлые эмодзи.
+</div>
+
+<div id="downloadToast" class="download-toast">📸 Рисунок сохраняется...</div>
+
+<script>
+    // ---------- Детская игра: голос -> картинка, плюс команда "скачать рисунок" ----------
+    let recognition = null;
+    let isActive = true;         
+    let isRestarting = false;
+    let currentSearchQuery = "";       // последнее найденное слово
+    let currentImageUrl = "";          // текущий URL картинки (если загружена)
+    let isImageFromEmoji = false;       // если показываем эмодзи-заглушку, сохранять нельзя
+    
+    const spokenWordSpan = document.getElementById('spokenWord');
+    const resultImage = document.getElementById('resultImage');
+    const imagePlaceholder = document.getElementById('imagePlaceholder');
+    const resetBtn = document.getElementById('resetBtn');
+    const forceDownloadBtn = document.getElementById('forceDownloadBtn');
+    const toastEl = document.getElementById('downloadToast');
+    
+    // --- вспомогательные функции для уведомлений ---
+    function showToastMessage(message, isError = false) {
+        toastEl.textContent = message;
+        toastEl.style.background = isError ? '#b71c1c' : '#2e7d32';
+        toastEl.classList.add('show');
+        setTimeout(() => {
+            toastEl.classList.remove('show');
+            setTimeout(() => {
+                toastEl.style.background = '#2e7d32';
+            }, 300);
+        }, 2500);
+    }
+    
+    // --- Функция СОХРАНЕНИЯ картинки в память телефона (галерею) ---
+    async function downloadCurrentImage() {
+        // Проверяем, есть ли реальная картинка (изображение отображается и не заглушка)
+        if (!resultImage.style.display === 'block' || !currentImageUrl || isImageFromEmoji) {
+            // Если нет нормальной картинки или это эмодзи-заглушка
+            if (currentSearchQuery && !currentImageUrl) {
+                showToastMessage('Сначала скажи слово, чтобы появилась картинка! 🖼️', true);
+            } else if (isImageFromEmoji) {
+                showToastMessage('Сейчас показан весёлый смайлик, а не рисунок. Скажи другое слово для настоящей картинки! 😊', true);
+            } else {
+                showToastMessage('Нет картинки для сохранения. Попроси меня показать что-нибудь! 🎤', true);
+            }
+            return;
+        }
+        
+        // Убедимся, что изображение действительно загружено и имеет источник
+        const imgElement = resultImage;
+        if (!imgElement.complete || imgElement.naturalWidth === 0) {
+            showToastMessage('Картинка ещё не полностью загружена, подожди секундочку... ⏳', true);
+            return;
+        }
+        
+        showToastMessage('📥 Сохраняю рисунок... Пожалуйста, подожди');
+        
+        try {
+            // Скачивание через fetch + blob, чтобы обойти CORS и сохранить в галерею
+            // Используем прокси при необходимости? Wikimedia и большинство картинок поддерживают CORS, но на всякий случай делаем запрос.
+            const response = await fetch(currentImageUrl, { mode: 'cors' });
+            if (!response.ok) throw new Error('Не удалось загрузить рисунок');
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Создаем временную ссылку для скачивания
+            const link = document.createElement('a');
+            // Генерируем красивое имя файла
+            const fileName = `${currentSearchQuery || 'рисунок'}_${Date.now()}.jpg`;
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+            
+            showToastMessage(`✅ Рисунок "${currentSearchQuery}" сохранён в галерею! 📸`, false);
+        } catch (err) {
+            console.warn('Ошибка сохранения через fetch:', err);
+            // Fallback: пытаемся сохранить через canvas (работает почти всегда, даже если CORS мешает)
+            try {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = currentImageUrl;
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = () => reject(new Error('не удалось загрузить картинку для canvas'));
+                    setTimeout(() => reject(new Error('таймаут загрузки')), 5000);
+                });
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        showToastMessage('Не удалось создать файл картинки 🙁', true);
+                        return;
+                    }
+                    const fallbackUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = fallbackUrl;
+                    a.download = `${currentSearchQuery || 'рисунок'}_${Date.now()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(fallbackUrl);
+                    showToastMessage(`🎉 Рисунок "${currentSearchQuery}" сохранён!`, false);
+                }, 'image/png');
+            } catch (canvasErr) {
+                console.error(canvasErr);
+                showToastMessage('Не удалось сохранить картинку :( Попробуй другое слово', true);
+            }
+        }
+    }
+    
+    // --- Получение картинки через Wikimedia Commons (реальные изображения) ---
+    function fetchImageFromWikimedia(query) {
+        const clean = encodeURIComponent(query.trim().toLowerCase());
+        const wikiApi = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*`;
+        
+        return fetch(wikiApi)
+            .then(res => res.json())
+            .then(data => {
+                let firstImage = null;
+                if (data.query && data.query.pages) {
+                    for (let id in data.query.pages) {
+                        const page = data.query.pages[id];
+                        if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
+                            firstImage = page.imageinfo[0].url;
+                            break;
+                        }
+                    }
+                }
+                if (firstImage) {
+                    // Убедимся, что ссылка https
+                    if (firstImage.startsWith('http://')) firstImage = firstImage.replace('http://', 'https://');
+                    return { success: true, url: firstImage };
+                } else {
+                    return { success: false };
+                }
+            })
+            .catch(() => ({ success: false }));
+    }
+    
+    // --- Весёлый эмодзи-фолбэк, когда нет картинки (но дети всё равно радуются) ---
+    function showEmojiFallback(query) {
+        const emojiLib = {
+            'кот': '🐱', 'кошка': '🐱', 'котенок': '🐱', 'котик': '🐱',
+            'собака': '🐶', 'пес': '🐶', 'щенок': '🐶', 'собачка': '🐶',
+            'слон': '🐘', 'жираф': '🦒', 'лев': '🦁', 'тигр': '🐯', 'медведь': '🐻', 'мишка': '🐻',
+            'машина': '🚗', 'автомобиль': '🚙', 'грузовик': '🚚', 'самолет': '✈️', 'самолёт': '✈️', 'ракета': '🚀',
+            'пицца': '🍕', 'бургер': '🍔', 'мороженое': '🍦', 'торт': '🎂', 'яблоко': '🍎', 'банан': '🍌', 'вишня': '🍒', 'арбуз': '🍉',
+            'футбол': '⚽', 'баскетбол': '🏀', 'теннис': '🎾', 'мяч': '⚽',
+            'кукла': '🎎', 'робот': '🤖', 'динозавр': '🦖', 'единорог': '🦄', 'рыба': '🐟', 'птица': '🐦',
+            'цветок': '🌸', 'солнце': '☀️', 'звезда': '⭐', 'луна': '🌙'
+        };
+        let emoji = '🖼️';
+        const lowQuery = query.toLowerCase();
+        for (let [key, val] of Object.entries(emojiLib)) {
+            if (lowQuery.includes(key)) {
+                emoji = val;
+                break;
+            }
+        }
+        // В emoji-режиме не сохраняем настоящую картинку
+        imagePlaceholder.style.display = "flex";
+        imagePlaceholder.innerHTML = `<div style="font-size: 5rem;">${emoji}</div><div style="font-size:1.5rem; font-weight:bold;">${query}</div><div style="font-size:0.8rem; margin-top:8px;">🎨 Рисунок в пути, но ты молодец!</div>`;
+        resultImage.style.display = "none";
+        isImageFromEmoji = true;
+        currentImageUrl = "";   // нет URL для сохранения
+    }
+    
+    // Главная функция показа картинки после распознавания слова
+    async function onWordRecognized(word) {
+        if (!word || word.length < 1) return;
+        
+        // Проверка: не является ли фраза командой для скачивания?
+        const lowerWord = word.toLowerCase();
+        const downloadTriggers = ['скачать рисунок', 'сохрани картинку', 'сохранить рисунок', 'скачай картинку', 'скачай рисунок', 'сохранить картинку', 'скачать картинку', 'сохрани рисунок'];
+        let isDownloadCommand = false;
+        for (let trigger of downloadTriggers) {
+            if (lowerWord.includes(trigger) || lowerWord === trigger) {
+                isDownloadCommand = true;
+                break;
+            }
+        }
+        
+        // Если это команда сохранения и есть картинка — просто сохраняем, не меняем слово
+        if (isDownloadCommand) {
+            if (currentImageUrl && !isImageFromEmoji && resultImage.style.display === 'block') {
+                downloadCurrentImage();
+            } else {
+                showToastMessage('Сначала скажи слово (например, "кот"), чтобы появилась картинка, а потом проси сохранить! 🐣', true);
+            }
+            return;
+        }
+        
+        // Иначе обычное слово -> обновляем картинку
+        // Отображаем процесс поиска
+        spokenWordSpan.innerText = `"${word}"`;
+        currentSearchQuery = word;
+        isImageFromEmoji = false;
+        currentImageUrl = "";
+        
+        imagePlaceholder.style.display = "flex";
+        imagePlaceholder.innerHTML = `<div style="font-size: 2rem;">🔍 Ищу картинку для <strong>${word}</strong> ...</div>`;
+        resultImage.style.display = "none";
+        
+        // Пробуем получить реальное изображение из Wikimedia
+        const wikiResult = await fetchImageFromWikimedia(word);
+        if (wikiResult.success && wikiResult.url) {
+            // Отличная картинка найдена
+            currentImageUrl = wikiResult.url;
+            resultImage.src = currentImageUrl;
+            resultImage.style.display = "block";
+            imagePlaceholder.style.display = "none";
+            // Обработчик ошибки загрузки (если вдруг не показывается)
+            resultImage.onerror = () => {
+                // если картинка не грузится, показываем эмодзи вместо неё
+                resultImage.style.display = "none";
+                showEmojiFallback(word);
+                currentImageUrl = "";
+                isImageFromEmoji = true;
+            };
+            resultImage.onload = () => {
+                // успешно
+            };
+        } else {
+            // Не нашли в Wikimedia — показываем эмодзи
+            showEmojiFallback(word);
+        }
+    }
+    
+    // --- Инициализация распознавания речи с постоянным слушанием ---
+    function initSpeech() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            spokenWordSpan.innerText = "❌ браузер не поддерживает голос";
+            showToastMessage("Ваш браузер не поддерживает голосовое управление 😢", true);
+            return;
+        }
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'ru-RU';
+        recognition.maxAlternatives = 1;
+        
+        recognition.onstart = () => {
+            isRestarting = false;
+        };
+        
+        recognition.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                spokenWordSpan.innerText = "🔇 Нет доступа к микрофону";
+                showToastMessage("Разрешите доступ к микрофону, чтобы играть!", true);
+            } else if (event.error !== 'no-speech' && isActive) {
+                setTimeout(() => { if (isActive && recognition) recognition?.start(); }, 1000);
+            }
+        };
+        
+        recognition.onend = () => {
+            if (isActive && !isRestarting) {
+                isRestarting = true;
+                setTimeout(() => {
+                    if (isActive && recognition) {
+                        try { recognition.start(); } catch(e){}
+                        isRestarting = false;
+                    }
+                }, 300);
+            }
+        };
+        
+        recognition.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                let text = event.results[i][0].transcript.trim();
+                if (text.length > 0) {
+                    onWordRecognized(text);
+                }
+            }
+        };
+        
+        try {
+            recognition.start();
+        } catch(e) {
+            console.warn("start error", e);
+        }
+    }
+    
+    // --- Обработка кнопок ---
+    resetBtn.addEventListener('click', () => {
+        // Сброс картинки и текущего состояния, но микрофон продолжает слушать
+        imagePlaceholder.style.display = "flex";
+        imagePlaceholder.innerHTML = "🖼️ <br>✨ Скажи новое слово! ✨";
+        resultImage.style.display = "none";
+        spokenWordSpan.innerText = "...скажи слово...";
+        currentImageUrl = "";
+        currentSearchQuery = "";
+        isImageFromEmoji = false;
+        showToastMessage("Очистили! Теперь скажи новое слово 🎤", false);
+    });
+    
+    // Кнопка "Сохранить картинку" — явное действие
+    forceDownloadBtn.addEventListener('click', () => {
+        if (currentImageUrl && !isImageFromEmoji && resultImage.style.display === 'block') {
+            downloadCurrentImage();
+        } else {
+            if (isImageFromEmoji) {
+                showToastMessage('Сейчас на экране эмодзи-заглушка, скажи новое слово для настоящей картинки!', true);
+            } else if (!currentImageUrl) {
+                showToastMessage('Нет картинки для сохранения. Скажи слово: кот, собака, пицца...', true);
+            } else {
+                showToastMessage('Подожди, картинка ещё загружается...', true);
+            }
+        }
+    });
+    
+    // Запуск микрофона при загрузке
+    window.addEventListener('load', () => {
+        initSpeech();
+        // Дополнительно: разрешить касания на кнопках без всплытия
+    });
+</script>
+</body>
+</html>
