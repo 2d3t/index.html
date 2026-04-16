@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🎬 Видеоклип по тексту песни — генератор клипов из картинок</title>
+    <title>🎬 Клипмейкер по тексту песни — последовательная загрузка</title>
     <style>
         * {
             box-sizing: border-box;
@@ -14,7 +13,7 @@
             margin: 0;
             min-height: 100vh;
             background: linear-gradient(135deg, #0a0f1e 0%, #0a1a2a 100%);
-            font-family: 'Segoe UI', 'Comic Neue', system-ui, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             padding: 20px;
         }
         .container {
@@ -25,13 +24,14 @@
             text-align: center;
             color: #ffd966;
             text-shadow: 0 3px 0 #b45f1b;
-            font-size: 2rem;
-            margin: 0 0 10px 0;
+            font-size: 1.8rem;
+            margin: 0 0 5px 0;
         }
         .sub {
             text-align: center;
             color: #ccc;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
         }
         .two-columns {
             display: flex;
@@ -45,7 +45,6 @@
             border-radius: 48px;
             padding: 24px;
             backdrop-filter: blur(4px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .preview-panel {
             flex: 1;
@@ -57,13 +56,13 @@
         }
         textarea {
             width: 100%;
-            height: 280px;
+            height: 250px;
             background: #1e1e2a;
             border: 2px solid #ffaa44;
             border-radius: 32px;
             padding: 16px;
             color: #ffefcf;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-family: inherit;
             resize: vertical;
         }
@@ -81,33 +80,33 @@
             border-radius: 40px;
             margin: 5px;
             font-weight: bold;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
         button {
             background: #ffaa33;
             border: none;
             font-family: inherit;
             font-weight: bold;
-            font-size: 1.1rem;
-            padding: 12px 24px;
+            font-size: 1rem;
+            padding: 10px 20px;
             border-radius: 60px;
             cursor: pointer;
             transition: 0.07s linear;
-            box-shadow: 0 5px 0 #a2591a;
+            box-shadow: 0 4px 0 #a2591a;
             margin: 6px;
         }
         button:active {
-            transform: translateY(3px);
+            transform: translateY(2px);
             box-shadow: 0 1px 0 #a2591a;
         }
         .btn-primary {
             background: #4caf50;
-            box-shadow: 0 5px 0 #2e6b2f;
+            box-shadow: 0 4px 0 #2e6b2f;
             color: white;
         }
         .btn-danger {
             background: #e67e22;
-            box-shadow: 0 5px 0 #b45f1b;
+            box-shadow: 0 4px 0 #b45f1b;
         }
         .progress-area {
             margin: 20px 0;
@@ -123,7 +122,7 @@
             height: 100%;
             background: linear-gradient(90deg, #ffaa33, #ffdd77);
             border-radius: 60px;
-            transition: width 0.2s;
+            transition: width 0.3s;
         }
         .status-text {
             color: #ffdd99;
@@ -134,23 +133,48 @@
         .clip-preview {
             background: #0f0f1a;
             border-radius: 32px;
-            min-height: 200px;
+            min-height: 280px;
             margin-top: 16px;
             padding: 16px;
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 12px;
-            justify-content: center;
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
         }
+        .preview-item {
+            background: #1a1a2a;
+            border-radius: 24px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: 0.1s;
+        }
         .preview-thumb {
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             object-fit: cover;
-            border-radius: 20px;
+            border-radius: 18px;
             border: 2px solid #ffaa55;
             background: #2a2a3a;
+        }
+        .preview-info {
+            flex: 1;
+            color: #ffdd99;
+            font-size: 0.9rem;
+        }
+        .preview-duration {
+            background: #2a2a3a;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+        }
+        .btn-retry {
+            background: #5a5a7a;
+            box-shadow: 0 3px 0 #3a3a5a;
+            padding: 5px 12px;
+            font-size: 0.75rem;
         }
         .info-badge {
             background: #00000066;
@@ -159,6 +183,7 @@
             text-align: center;
             margin: 10px 0;
             color: #ffdd99;
+            font-size: 0.8rem;
         }
         .footer {
             text-align: center;
@@ -173,42 +198,61 @@
             flex-wrap: wrap;
             margin-top: 20px;
         }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-        .loading-spinner {
+        .loader-small {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #ffaa33;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffaa33;
             border-top-color: transparent;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 0.6s linear infinite;
+            margin-left: 8px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2e7d32;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 9999;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        @media (max-width: 700px) {
+            .toast { white-space: normal; width: 80%; text-align: center; }
+            .preview-item { flex-wrap: wrap; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🎵 СТВОРИ КЛИП ПО ТЕКСТУ ПЕСНИ 🎬</h1>
-    <div class="sub">Загрузи текст → Программа сама найдет ключевые слова → Подберет картинки → Видеоклип с рандомной длиной (1–5 сек)</div>
+    <h1>🎵 КЛИПМЕЙКЕР ПО ТЕКСТУ ПЕСНИ 🎬</h1>
+    <div class="sub">Загрузи текст → ключевые слова → последовательная загрузка картинок → клип (1–5 сек на кадр)</div>
 
     <div class="two-columns">
-        <!-- Левая панель: текст и управление -->
         <div class="input-panel">
-            <div style="font-weight: bold; margin-bottom: 8px;">📝 Текст песни (или стихи):</div>
-            <textarea id="songText" placeholder="Вставьте текст песни... Например:&#10;Звезды в ночи светят для нас,&#10;Ветер несет мечты,&#10;Солнце встает новый рассвет,&#10;Сердце стучит в такт любви..."></textarea>
+            <div style="font-weight: bold; margin-bottom: 8px;">📝 Текст песни:</div>
+            <textarea id="songText" placeholder="Вставьте текст песни..."></textarea>
             
             <div class="keywords-box">
                 <div>🔍 Ключевые слова (из текста):</div>
                 <div id="keywordsList" style="margin-top: 10px;">—</div>
-                <div style="font-size: 0.7rem; margin-top: 8px;">* программа берет существительные и значимые слова, максимум 20</div>
+                <div style="font-size: 0.65rem; margin-top: 8px;">* берутся значимые слова, максимум 16</div>
             </div>
 
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
                 <button id="extractBtn">📌 Извлечь ключевые слова</button>
-                <button id="startGenerateBtn" class="btn-primary">🎬 Сгенерировать клип (картинки + видео)</button>
+                <button id="startGenerateBtn" class="btn-primary">🎬 Загрузить картинки и сделать клип</button>
                 <button id="clearBtn" class="btn-danger">🗑️ Очистить всё</button>
             </div>
 
@@ -218,39 +262,41 @@
             </div>
 
             <div class="info-badge">
-                ⚡ Каждой картинке — случайная длительность: 1–5 секунд<br>
-                🖼️ Поиск картинок через Wikimedia Commons (свободные изображения)
+                ⚡ <strong>Последовательная загрузка</strong> — не зависает!<br>
+                🖼️ У каждой картинки есть кнопка <strong>«Переделать»</strong> — заменить на другую по тому же слову.<br>
+                🎲 Длительность каждого кадра: случайно 1–5 секунд.
             </div>
         </div>
 
-        <!-- Правая панель: превью коллекции и видео -->
         <div class="preview-panel">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>🎞️ КОЛЛЕКЦИЯ ДЛЯ КЛИПА</span>
+                <span>🎞️ КАРТИНКИ ДЛЯ КЛИПА</span>
                 <span id="clipCountBadge" style="background:#ffaa33; padding:4px 12px; border-radius:50px;">0</span>
             </div>
             <div id="previewGrid" class="clip-preview">
-                <div style="color:#aaa; text-align:center; width:100%;">Пока пусто. Нажми «Сгенерировать клип»</div>
+                <div style="color:#aaa; text-align:center; width:100%;">Пока пусто. Нажми «Загрузить картинки»</div>
             </div>
             <div class="video-download" id="videoDownloadArea" style="display: none;">
-                <button id="downloadVideoBtn" style="background:#2e7d32; box-shadow:0 5px 0 #1b4d1b;">📥 Скачать готовый клип (WEBM)</button>
+                <button id="downloadVideoBtn" style="background:#2e7d32;">📥 Скачать клип (WEBM)</button>
                 <button id="resetVideoBtn">🔄 Новый клип</button>
             </div>
         </div>
     </div>
     <div class="footer">
-        💡 Принцип: текст → ключевые слова → для каждого слова находится реальная картинка (Wikimedia).<br>
-        Затем из картинок создаётся видео с произвольной длиной показа. ВСЕ КАРТИНКИ БУДУТ В КЛИПЕ! Длительность клипа = сумма длин каждого слайда.
+        💡 Как работает: текст → извлечение слов → по очереди ищем картинки (Wikimedia Commons) → после загрузки всех нажимаем «Сделать клип» → видео с рандомной длительностью каждого кадра.
     </div>
 </div>
+<div id="toast" class="toast">✨</div>
 
 <script>
     (function(){
-        // ------------------- ГЛОБАЛЬНЫЕ -------------------
-        let clipSlides = [];          // { word, imageUrl, durationSec }
+        // ---------- СОСТОЯНИЕ ----------
+        let slidesData = [];            // { word, imageUrl, durationSec, loading, error }
+        let isGeneratingImages = false;
         let generatedVideoBlob = null;
-        let isGenerating = false;
+        let allImagesLoadedFlag = false;
         
+        // DOM элементы
         const songTextArea = document.getElementById('songText');
         const keywordsDiv = document.getElementById('keywordsList');
         const extractBtn = document.getElementById('extractBtn');
@@ -264,65 +310,39 @@
         const videoDownloadArea = document.getElementById('videoDownloadArea');
         const downloadVideoBtn = document.getElementById('downloadVideoBtn');
         const resetVideoBtn = document.getElementById('resetVideoBtn');
+        const toastEl = document.getElementById('toast');
         
         function showToast(msg, isError=false) {
-            let toast = document.getElementById('dynamicToast');
-            if(!toast){
-                toast = document.createElement('div');
-                toast.id = 'dynamicToast';
-                toast.style.position = 'fixed';
-                toast.style.bottom = '20px';
-                toast.style.left = '50%';
-                toast.style.transform = 'translateX(-50%)';
-                toast.style.backgroundColor = isError ? '#c62828' : '#2e7d32';
-                toast.style.color = 'white';
-                toast.style.padding = '12px 24px';
-                toast.style.borderRadius = '60px';
-                toast.style.fontWeight = 'bold';
-                toast.style.zIndex = '9999';
-                toast.style.fontFamily = 'sans-serif';
-                toast.style.boxShadow = '0 4px 15px black';
-                toast.style.pointerEvents = 'none';
-                document.body.appendChild(toast);
-            }
-            toast.textContent = msg;
-            toast.style.backgroundColor = isError ? '#c62828' : '#2e7d32';
-            toast.style.opacity = '1';
-            setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+            toastEl.textContent = msg;
+            toastEl.style.background = isError ? '#c62828' : '#2e7d32';
+            toastEl.style.opacity = '1';
+            setTimeout(() => { toastEl.style.opacity = '0'; }, 2500);
         }
         
-        // ---- 1. Извлечение ключевых слов из текста (существительные + значимые) ----
+        // ---- 1. Извлечение ключевых слов ----
         function extractKeywords(text) {
-            // Очищаем от знаков препинания, разбиваем на слова
-            const words = text.toLowerCase().split(/[\s,.\!?;:\"\'\(\)\[\]—\-…]+/).filter(w => w.length > 2);
-            // Стоп-слова (короткие, служебные)
-            const stopWords = new Set(['это', 'все', 'так', 'вот', 'там', 'тут', 'когда', 'зачем', 'очень', 'можно', 'небо', 'земля', 'будет', 'есть', 'как', 'для', 'без', 'или', 'но', 'за', 'под', 'над', 'уже', 'еще', 'же', 'ли', 'со', 'по', 'из', 'от', 'до', 'на', 'в', 'с', 'и', 'а', 'к', 'у', 'о', 'об', 'бы', 'что', 'чтобы', 'этот', 'эта', 'это', 'эти', 'тот', 'те', 'всех', 'всё', 'весь', 'свои', 'своя', 'мое', 'моя', 'твой', 'его', 'ее', 'их', 'нас', 'вас', 'них', 'них', 'кто', 'что', 'какой', 'такой', 'там', 'здесь', 'вдруг', 'даже']);
-            // фильтруем
+            const words = text.toLowerCase().split(/[\s,.\!?;:\"\'\(\)\[\]—\-…\n]+/).filter(w => w.length > 2);
+            const stopWords = new Set(['это', 'все', 'так', 'вот', 'там', 'тут', 'когда', 'зачем', 'очень', 'можно', 'небо', 'земля', 'будет', 'есть', 'как', 'для', 'без', 'или', 'но', 'за', 'под', 'над', 'уже', 'еще', 'же', 'ли', 'со', 'по', 'из', 'от', 'до', 'на', 'в', 'с', 'и', 'а', 'к', 'у', 'о', 'об', 'бы', 'что', 'чтобы', 'этот', 'эта', 'это', 'эти', 'тот', 'те', 'всех', 'всё', 'весь', 'свои', 'своя', 'мое', 'моя', 'твой', 'его', 'ее', 'их', 'нас', 'вас', 'них', 'кто', 'что', 'какой', 'такой', 'там', 'здесь', 'вдруг', 'даже', 'очень', 'такое', 'прямо', 'только']);
             let filtered = words.filter(w => !stopWords.has(w) && w.length >= 3 && !/^\d+$/.test(w));
-            // частотный подсчёт
             const freq = new Map();
             for(let w of filtered) freq.set(w, (freq.get(w)||0)+1);
-            // сортируем по частоте и берём уникальные топ 20
             const sorted = Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]);
-            const topWords = sorted.slice(0, 20).map(entry => entry[0]);
-            // удаляем дубликаты регистра
-            const unique = [...new Set(topWords)];
-            return unique.slice(0, 18); // не более 18 слов чтобы клип не был бесконечным
+            const top = sorted.slice(0, 16).map(e=>e[0]);
+            return [...new Set(top)];
         }
         
-        // Обновить отображение ключевых слов
         function renderKeywords(words) {
             if(!words.length) { keywordsDiv.innerHTML = '—'; return; }
             keywordsDiv.innerHTML = words.map(w => `<span class="keyword-tag">${w}</span>`).join('');
         }
         
-        // ---- 2. Поиск картинки через Wikimedia Commons ----
-        async function searchImageForWord(word, attempt = 0) {
-            const clean = encodeURIComponent(word.toLowerCase().trim());
-            const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*&gsrlimit=8`;
+        // ---- 2. Поиск одной картинки через Wikimedia (с повторами, чтобы найти нормальную) ----
+        async function fetchImageUrlForWord(word, attempt = 0) {
+            const clean = encodeURIComponent(word.trim().toLowerCase());
+            const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*&gsrlimit=12`;
             try {
-                const response = await fetch(url);
-                const data = await response.json();
+                const res = await fetch(url);
+                const data = await res.json();
                 let urls = [];
                 if(data.query && data.query.pages){
                     for(let id in data.query.pages){
@@ -335,81 +355,137 @@
                     }
                 }
                 if(urls.length > 0){
-                    // пробуем взять рандомную из найденных, чтобы разнообразие
                     const randomIndex = Math.floor(Math.random() * urls.length);
                     return { success: true, url: urls[randomIndex] };
                 }
-                // fallback эмодзи-заглушка не нужна, но для клипа лучше вернуть false
                 return { success: false, url: null };
             } catch(e){
                 return { success: false, url: null };
             }
         }
         
-        // ---- 3. Основная генерация: для каждого ключевого слова грузим картинку, задаём рандомную длительность ----
-        async function generateClipFromKeywords(keywordsArray, onProgress) {
-            const slides = [];
+        // ---- 3. ПОСЛЕДОВАТЕЛЬНАЯ ЗАГРУЗКА картинок для массива слов (по очереди, не всё сразу) ----
+        async function loadImagesSequentially(keywordsArray, onItemLoaded, onProgress) {
+            const results = [];
             let completed = 0;
             const total = keywordsArray.length;
             
             for(let i=0; i<keywordsArray.length; i++){
                 const word = keywordsArray[i];
-                if(onProgress) onProgress(completed, total, `Поиск картинки: "${word}" (${i+1}/${total})`);
-                const imgRes = await searchImageForWord(word);
-                let finalUrl = null;
-                if(imgRes.success && imgRes.url){
-                    finalUrl = imgRes.url;
-                } else {
-                    // если картинка не нашлась – пропускаем слово, но чтобы клип не пустовал, но мы можем пропустить
-                    showToast(`⚠️ Для "${word}" не нашлось картинки, пропускаем`, true);
+                if(onProgress) onProgress(completed, total, `Загрузка ${i+1}/${total}: "${word}"...`);
+                
+                // Пытаемся найти картинку (до 2 попыток)
+                let imageUrl = null;
+                let success = false;
+                for(let attempt=0; attempt<2; attempt++){
+                    const res = await fetchImageUrlForWord(word);
+                    if(res.success && res.url){
+                        // Проверим, что картинка реально грузится (короткая проверка)
+                        imageUrl = res.url;
+                        success = true;
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 150));
+                }
+                
+                if(!success){
+                    showToast(`⚠️ Для "${word}" не найдено картинок, пропускаем`, true);
                     completed++;
                     if(onProgress) onProgress(completed, total, `Пропущено: "${word}"`);
                     continue;
                 }
-                // рандомная длительность от 1 до 5 секунд
-                const duration = Math.floor(Math.random() * 5) + 1; // 1-5 сек
-                slides.push({
+                
+                // Длительность рандом 1-5 сек
+                const durationSec = Math.floor(Math.random() * 5) + 1;
+                const slide = {
                     word: word,
-                    imageUrl: finalUrl,
-                    durationSec: duration
-                });
+                    imageUrl: imageUrl,
+                    durationSec: durationSec,
+                    loading: false,
+                    error: false
+                };
+                results.push(slide);
+                if(onItemLoaded) onItemLoaded(slide, results.length-1);
                 completed++;
-                if(onProgress) onProgress(completed, total, `Готово: "${word}" (${duration} сек)`);
-                // маленькая задержка чтобы не перегружать API
-                await new Promise(r => setTimeout(r, 180));
+                if(onProgress) onProgress(completed, total, `Готово: "${word}" (${durationSec} сек)`);
+                
+                // Небольшая пауза между запросами, чтобы не перегружать API
+                await new Promise(r => setTimeout(r, 200));
             }
-            return slides;
+            return results;
         }
         
-        // Обновление превью миниатюр в правой панели
-        function updatePreviewGrid(slides) {
-            previewGrid.innerHTML = '';
-            if(!slides.length){
-                previewGrid.innerHTML = '<div style="color:#aaa; text-align:center; width:100%;">Нет картинок. Сгенерируйте клип.</div>';
+        // ---- Отрисовка превью с кнопками "Переделать" ----
+        function renderPreviewList() {
+            if(!slidesData.length){
+                previewGrid.innerHTML = '<div style="color:#aaa; text-align:center; width:100%;">Нет картинок. Нажмите «Загрузить картинки».</div>';
                 clipCountBadge.innerText = '0';
                 return;
             }
-            clipCountBadge.innerText = slides.length;
-            for(let slide of slides){
+            clipCountBadge.innerText = slidesData.length;
+            previewGrid.innerHTML = '';
+            
+            slidesData.forEach((slide, idx) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'preview-item';
+                
                 const img = document.createElement('img');
                 img.src = slide.imageUrl;
                 img.className = 'preview-thumb';
-                img.title = `${slide.word} — ${slide.durationSec} сек`;
                 img.onerror = () => { img.style.opacity = '0.5'; };
-                previewGrid.appendChild(img);
-            }
-            const infoSpan = document.createElement('div');
-            infoSpan.style.width = '100%';
-            infoSpan.style.fontSize = '0.7rem';
-            infoSpan.style.textAlign = 'center';
-            infoSpan.style.color = '#ffcc77';
-            infoSpan.innerText = `🎬 Всего слайдов: ${slides.length} | Длительность клипа: ${slides.reduce((sum,s)=>sum+s.durationSec,0)} сек`;
-            previewGrid.appendChild(infoSpan);
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'preview-info';
+                infoDiv.innerHTML = `<strong>${slide.word}</strong><br><span class="preview-duration">⏱️ ${slide.durationSec} сек</span>`;
+                
+                const btnRetry = document.createElement('button');
+                btnRetry.textContent = '🔄 Переделать';
+                btnRetry.className = 'btn-retry';
+                btnRetry.style.background = '#5a5a7a';
+                btnRetry.style.fontSize = '0.7rem';
+                btnRetry.onclick = async () => {
+                    // Заменяем картинку по этому же слову
+                    btnRetry.textContent = '🔄 Замена...';
+                    btnRetry.disabled = true;
+                    const newImgRes = await fetchImageUrlForWord(slide.word);
+                    if(newImgRes.success && newImgRes.url){
+                        slide.imageUrl = newImgRes.url;
+                        img.src = newImgRes.url;
+                        showToast(`✅ "${slide.word}" — картинка заменена`, false);
+                    } else {
+                        showToast(`❌ Не удалось заменить картинку для "${slide.word}"`, true);
+                    }
+                    btnRetry.textContent = '🔄 Переделать';
+                    btnRetry.disabled = false;
+                    // после замены видео нужно пересоздать, сбрасываем старый blob
+                    generatedVideoBlob = null;
+                    videoDownloadArea.style.display = 'none';
+                    allImagesLoadedFlag = true;
+                };
+                
+                itemDiv.appendChild(img);
+                itemDiv.appendChild(infoDiv);
+                itemDiv.appendChild(btnRetry);
+                previewGrid.appendChild(itemDiv);
+            });
+            
+            // Добавляем итоговую информацию
+            const totalSec = slidesData.reduce((sum,s)=>sum+s.durationSec,0);
+            const totalInfo = document.createElement('div');
+            totalInfo.style.fontSize = '0.7rem';
+            totalInfo.style.textAlign = 'center';
+            totalInfo.style.color = '#ffcc77';
+            totalInfo.style.marginTop = '8px';
+            totalInfo.style.padding = '8px';
+            totalInfo.style.background = '#1a1a2e';
+            totalInfo.style.borderRadius = '20px';
+            totalInfo.innerHTML = `🎬 Слайдов: ${slidesData.length} | Общая длина клипа: ${totalSec} сек | Нажми «Сделать клип»`;
+            previewGrid.appendChild(totalInfo);
         }
         
-        // ---- 4. СОЗДАНИЕ ВИДЕО (КЛИПА) из загруженных картинок с РАНДОМНОЙ ДЛИТЕЛЬНОСТЬЮ ----
-        async function renderVideoFromSlides(slides, onFrameCallback) {
-            if(!slides.length) throw new Error("Нет слайдов для видео");
+        // ---- 4. СОЗДАНИЕ ВИДЕО (рендер после загрузки всех картинок) ----
+        async function renderVideoFromSlides(slides) {
+            if(!slides.length) throw new Error("Нет слайдов");
             
             const fps = 30;
             const width = 1024;
@@ -419,37 +495,28 @@
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             
-            // предзагружаем все картинки
-            const loadImage = (url) => {
+            // Предзагрузка изображений в память (теперь они уже загружены в DOM, но для видео перезагрузим)
+            const loadImg = (url) => {
                 return new Promise((resolve, reject) => {
                     const img = new Image();
                     img.crossOrigin = "Anonymous";
                     img.src = url;
                     img.onload = () => resolve(img);
-                    img.onerror = () => reject(new Error(`Не загрузить: ${url}`));
+                    img.onerror = () => reject(new Error(`Ошибка: ${url}`));
                 });
             };
             
-            let loadedImages = [];
-            try {
-                const loadPromises = slides.map(s => loadImage(s.imageUrl));
-                loadedImages = await Promise.all(loadPromises);
-            } catch(e){
-                throw new Error("Ошибка загрузки картинок для видео: "+e.message);
-            }
+            const loadedImages = await Promise.all(slides.map(s => loadImg(s.imageUrl)));
             
-            // Вычисляем общее количество кадров: сумма (durationSec * fps) для каждого слайда
             let totalFrames = 0;
-            for(let i=0; i<slides.length; i++){
-                totalFrames += slides[i].durationSec * fps;
-            }
+            for(let s of slides) totalFrames += s.durationSec * fps;
             
             let currentFrame = 0;
             let recordingComplete = false;
             const stream = canvas.captureStream(fps);
             const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
             let chunks = [];
-            mediaRecorder.ondataavailable = (e) => { if(e.data.size > 0) chunks.push(e.data); };
+            mediaRecorder.ondataavailable = (e) => { if(e.data.size) chunks.push(e.data); };
             
             return new Promise((resolve, reject) => {
                 mediaRecorder.onstop = () => {
@@ -459,68 +526,57 @@
                 mediaRecorder.start(100);
                 
                 let startTime = performance.now();
-                let animationId = null;
+                let animId = null;
                 
-                function drawSlide(img, word, progressPercent, slideIndex, totalSlides, durationSec) {
-                    ctx.fillStyle = "#1A1A2E";
+                function drawSlide(img, word, progressPercent, idx, total, duration) {
+                    ctx.fillStyle = "#0F0F1A";
                     ctx.fillRect(0, 0, width, height);
-                    // стильный градиент
-                    const grad = ctx.createLinearGradient(0,0, width, 0);
-                    grad.addColorStop(0, "#2c1e16");
-                    grad.addColorStop(1, "#1e2a2a");
+                    const grad = ctx.createLinearGradient(0,0,width,0);
+                    grad.addColorStop(0, "#1e1a2f");
+                    grad.addColorStop(1, "#0a1a2a");
                     ctx.fillStyle = grad;
                     ctx.fillRect(0,0,width,height);
                     
-                    // картинка по центру с сохранением пропорций
                     const maxW = width - 120;
                     const maxH = height - 160;
-                    let drawW = img.width;
-                    let drawH = img.height;
-                    if(drawW > maxW){ drawH = (drawH * maxW) / drawW; drawW = maxW; }
-                    if(drawH > maxH){ drawW = (drawW * maxH) / drawH; drawH = maxH; }
-                    const x = (width - drawW)/2;
-                    const y = (height - drawH)/2 - 30;
-                    ctx.shadowBlur = 8;
+                    let dw = img.width, dh = img.height;
+                    if(dw > maxW){ dh = (dh * maxW) / dw; dw = maxW; }
+                    if(dh > maxH){ dw = (dw * maxH) / dh; dh = maxH; }
+                    const x = (width - dw)/2;
+                    const y = (height - dh)/2 - 30;
+                    ctx.shadowBlur = 10;
                     ctx.shadowColor = "black";
-                    ctx.drawImage(img, x, y, drawW, drawH);
+                    ctx.drawImage(img, x, y, dw, dh);
                     ctx.shadowBlur = 0;
                     
-                    // текст слова
-                    ctx.font = "bold 48px 'Segoe UI', 'Comic Neue'";
+                    ctx.font = "bold 46px 'Segoe UI'";
                     ctx.fillStyle = "#FFDDAA";
-                    ctx.shadowBlur = 4;
-                    ctx.fillText(word.toUpperCase(), width/2 - ctx.measureText(word.toUpperCase()).width/2, height - 45);
-                    ctx.font = "24px monospace";
+                    ctx.fillText(word.toUpperCase(), width/2 - ctx.measureText(word.toUpperCase()).width/2, height - 50);
+                    ctx.font = "22px monospace";
                     ctx.fillStyle = "#FFB347";
-                    ctx.fillText(`${slideIndex}/${totalSlides} · ${durationSec}с`, 30, 70);
+                    ctx.fillText(`${idx}/${total} · ${duration}с`, 30, 70);
                     
-                    // прогресс-бар слайда
-                    const barWidth = width - 100;
+                    const barW = width - 100;
                     const barX = 50;
-                    const barY = height - 18;
-                    ctx.fillStyle = "#4a3a2a";
-                    ctx.fillRect(barX, barY, barWidth, 10);
+                    const barY = height - 20;
+                    ctx.fillStyle = "#3a2a2a";
+                    ctx.fillRect(barX, barY, barW, 8);
                     ctx.fillStyle = "#ffaa33";
-                    ctx.fillRect(barX, barY, barWidth * (progressPercent/100), 10);
+                    ctx.fillRect(barX, barY, barW * (progressPercent/100), 8);
                 }
                 
-                function generateFrame(now) {
+                function frameLoop(now) {
                     if(recordingComplete) return;
                     const elapsed = (performance.now() - startTime) / 1000;
                     const expectedFrame = Math.floor(elapsed * fps);
                     if(expectedFrame > currentFrame){
                         currentFrame = expectedFrame;
                         if(currentFrame >= totalFrames){
-                            // запись завершена
-                            if(mediaRecorder && mediaRecorder.state === 'recording'){
-                                recordingComplete = true;
-                                mediaRecorder.stop();
-                            }
-                            if(animationId) cancelAnimationFrame(animationId);
+                            if(mediaRecorder.state === 'recording') mediaRecorder.stop();
+                            recordingComplete = true;
+                            if(animId) cancelAnimationFrame(animId);
                             return;
                         }
-                        
-                        // найти текущий слайд
                         let frameCursor = 0;
                         let slideIdx = -1;
                         let frameInSlide = 0;
@@ -536,41 +592,32 @@
                         if(slideIdx !== -1){
                             const slide = slides[slideIdx];
                             const img = loadedImages[slideIdx];
-                            const slideDurationFrames = slide.durationSec * fps;
-                            const progress = (frameInSlide / slideDurationFrames) * 100;
+                            const slideFrames = slide.durationSec * fps;
+                            const progress = (frameInSlide / slideFrames) * 100;
                             drawSlide(img, slide.word, progress, slideIdx+1, slides.length, slide.durationSec);
-                        } else {
-                            // fallback: последний слайд
-                            const last = slides[slides.length-1];
-                            drawSlide(loadedImages[loadedImages.length-1], last.word, 100, slides.length, slides.length, last.durationSec);
                         }
                     }
-                    if(!recordingComplete){
-                        animationId = requestAnimationFrame(generateFrame);
-                    }
+                    if(!recordingComplete) animId = requestAnimationFrame(frameLoop);
                 }
                 
                 startTime = performance.now();
-                animationId = requestAnimationFrame(generateFrame);
+                animId = requestAnimationFrame(frameLoop);
                 
-                // безопасный таймер: через maxDuration+2 сек принудительно стоп
-                const maxDurationSec = slides.reduce((s,it)=>s+it.durationSec,0) + 2;
+                const maxDur = slides.reduce((a,b)=>a+b.durationSec,0) + 2;
                 setTimeout(() => {
-                    if(mediaRecorder && mediaRecorder.state === 'recording'){
+                    if(mediaRecorder.state === 'recording'){
                         recordingComplete = true;
                         mediaRecorder.stop();
-                        if(animationId) cancelAnimationFrame(animationId);
+                        if(animId) cancelAnimationFrame(animId);
                     }
-                }, maxDurationSec * 1000);
+                }, maxDur * 1000);
             });
         }
         
-        // ---- Основной процесс: извлечь слова -> загрузить картинки -> сделать видео ----
-        let currentSlides = [];
-        
-        async function fullGeneratePipeline() {
-            if(isGenerating){
-                showToast("Уже идёт генерация, подождите!", true);
+        // ---- ОСНОВНОЙ ПРОЦЕСС (последовательная загрузка + создание клипа) ----
+        async function fullGenerate() {
+            if(isGeneratingImages){
+                showToast("Уже идёт загрузка, подождите!", true);
                 return;
             }
             const text = songTextArea.value.trim();
@@ -580,84 +627,89 @@
             }
             const keywords = extractKeywords(text);
             if(keywords.length === 0){
-                showToast("Не удалось выделить ключевые слова. Напишите более длинный текст.", true);
+                showToast("Не удалось выделить ключевые слова. Добавьте больше значимых слов.", true);
                 return;
             }
             renderKeywords(keywords);
-            showToast(`🔑 Найдено ключевых слов: ${keywords.length}`, false);
+            showToast(`🔑 Найдено слов: ${keywords.length}. Начинаем последовательную загрузку...`, false);
             
-            // Начинаем процесс генерации картинок
-            isGenerating = true;
+            isGeneratingImages = true;
             progressArea.style.display = 'block';
             progressFill.style.width = '0%';
-            statusMsgSpan.innerHTML = '🖼️ Загрузка картинок...';
+            statusMsgSpan.innerHTML = '🖼️ Загрузка картинок (по очереди, не зависает)...';
             
-            let slides = [];
             try {
-                slides = await generateClipFromKeywords(keywords, (completed, total, msg) => {
-                    const percent = (completed / total) * 100;
-                    progressFill.style.width = percent + '%';
-                    statusMsgSpan.innerHTML = msg + ` (${completed}/${total})`;
-                });
-                if(slides.length === 0){
-                    throw new Error("Не удалось загрузить ни одной картинки, проверьте интернет или попробуйте другие слова.");
+                // ПОСЛЕДОВАТЕЛЬНАЯ загрузка
+                const loadedSlides = await loadImagesSequentially(keywords, 
+                    (slide, idx) => {
+                        // коллбэк когда каждый элемент загружен - обновляем UI
+                        slidesData = [...slidesData, slide];
+                        renderPreviewList();
+                    },
+                    (completed, total, msg) => {
+                        const percent = (completed / total) * 100;
+                        progressFill.style.width = percent + '%';
+                        statusMsgSpan.innerHTML = msg;
+                    }
+                );
+                
+                slidesData = loadedSlides;
+                renderPreviewList();
+                
+                if(slidesData.length === 0){
+                    throw new Error("Не загружено ни одной картинки. Попробуйте другой текст.");
                 }
-                currentSlides = slides;
-                updatePreviewGrid(slides);
-                statusMsgSpan.innerHTML = '✅ Картинки готовы! Создаём видео...';
-                await new Promise(r => setTimeout(r, 300));
                 
-                // Рендерим видео
-                statusMsgSpan.innerHTML = '🎬 Монтируем клип с рандомной длительностью слайдов...';
-                const videoBlob = await renderVideoFromSlides(slides, null);
+                statusMsgSpan.innerHTML = '✅ Все картинки загружены! Создаём видео...';
+                showToast(`Загружено ${slidesData.length} картинок. Формируем клип...`, false);
+                
+                // Теперь создаём видео
+                const videoBlob = await renderVideoFromSlides(slidesData);
                 generatedVideoBlob = videoBlob;
-                
-                // Показываем кнопку скачивания
                 videoDownloadArea.style.display = 'flex';
-                statusMsgSpan.innerHTML = '🎉 Клип готов! Нажмите "Скачать клип"!';
+                statusMsgSpan.innerHTML = '🎉 Клип готов! Нажмите "Скачать клип"';
                 progressFill.style.width = '100%';
-                showToast(`Клип создан! ${slides.length} слайдов, общая длина ${slides.reduce((s,it)=>s+it.durationSec,0)} сек`, false);
+                allImagesLoadedFlag = true;
+                showToast(`Клип создан! Длительность: ${slidesData.reduce((s,it)=>s+it.durationSec,0)} сек`, false);
                 
             } catch(err){
                 console.error(err);
                 showToast("Ошибка: "+err.message, true);
-                statusMsgSpan.innerHTML = '❌ Ошибка генерации. Попробуйте другой текст или позже.';
+                statusMsgSpan.innerHTML = '❌ Ошибка. Попробуйте другой текст.';
             } finally {
-                isGenerating = false;
+                isGeneratingImages = false;
             }
         }
         
-        // ---- Скачивание видео ----
         function downloadVideo() {
             if(!generatedVideoBlob){
-                showToast("Нет готового клипа. Сначала сгенерируйте.", true);
+                showToast("Нет готового клипа. Сначала загрузите картинки и создайте клип.", true);
                 return;
             }
             const url = URL.createObjectURL(generatedVideoBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `music_clip_${Date.now()}.webm`;
+            a.download = `videoclip_${Date.now()}.webm`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast("📀 Клип скачан! Можешь добавить музыку в редакторе.", false);
+            showToast("📀 Клип сохранён! Можно добавить музыку в любом редакторе.", false);
         }
         
         function resetAll() {
-            currentSlides = [];
+            slidesData = [];
             generatedVideoBlob = null;
-            clipSlides = [];
-            updatePreviewGrid([]);
+            allImagesLoadedFlag = false;
+            renderPreviewList();
             videoDownloadArea.style.display = 'none';
             progressArea.style.display = 'none';
             progressFill.style.width = '0%';
-            statusMsgSpan.innerHTML = '';
             keywordsDiv.innerHTML = '—';
-            showToast("Сброшено. Вставьте новый текст.", false);
+            showToast("Всё очищено.", false);
         }
         
-        // Обработчики
+        // ---- НАВЕШИВАНИЕ СОБЫТИЙ ----
         extractBtn.addEventListener('click', () => {
             const text = songTextArea.value.trim();
             if(!text) { showToast("Введите текст", true); return; }
@@ -666,7 +718,7 @@
             showToast(`Извлечено ${kw.length} ключевых слов`, false);
         });
         
-        startGenerateBtn.addEventListener('click', fullGeneratePipeline);
+        startGenerateBtn.addEventListener('click', fullGenerate);
         clearBtn.addEventListener('click', resetAll);
         downloadVideoBtn.addEventListener('click', downloadVideo);
         resetVideoBtn.addEventListener('click', () => {
@@ -675,13 +727,11 @@
             showToast("Видео сброшено. Можно создать новый клип.", false);
         });
         
-        // Пример начального текста для демонстрации
-        songTextArea.value = "Звезды в ночи светят для нас, Ветер несет мечты, Солнце встает новый рассвет, Сердце стучит в такт любви. Океан волнуется, небо зовет, Радуга яркая счастье дает.";
-        
-        // предзаполним ключевые слова при загрузке
+        // Пример текста при загрузке
+        songTextArea.value = "Звезды в ночи светят для нас, Ветер несет мечты, Солнце встает новый рассвет, Сердце стучит в такт любви. Океан волнуется, радуга сияет, Космос зовет нас с собой.";
         setTimeout(() => {
-            const initKw = extractKeywords(songTextArea.value);
-            renderKeywords(initKw);
+            const kw = extractKeywords(songTextArea.value);
+            renderKeywords(kw);
         }, 200);
     })();
 </script>
