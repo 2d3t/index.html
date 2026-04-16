@@ -1,879 +1,595 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>🎬 Клип из картинок по голосу + Музыка — Детская игра</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebM to MP4 Converter</title>
     <style>
         * {
-            user-select: none;
             box-sizing: border-box;
-        }
-        body {
             margin: 0;
-            min-height: 100vh;
-            background: linear-gradient(145deg, #1e5f8e 0%, #0d3b55 100%);
-            font-family: 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
-            padding: 16px;
+            padding: 0;
         }
-        .game-layout {
-            max-width: 1200px;
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
             margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f7fafc;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .upload-area.dragover {
+            border-color: #48bb78;
+            background: #f0fff4;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            color: #4a5568;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .video-preview {
+            width: 100%;
+            max-width: 600px;
+            margin: 25px auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-width: 180px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .progress-container {
+            background: #e2e8f0;
+            border-radius: 50px;
+            height: 24px;
+            margin: 30px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 50px;
+            position: relative;
+        }
+
+        .progress-text {
+            position: absolute;
+            right: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 24px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .status.info {
+            background: #ebf8ff;
+            color: #3182ce;
+            border: 1px solid #bee3f8;
+        }
+
+        .status.success {
+            background: #f0fff4;
+            color: #38a169;
+            border: 1px solid #c6f6d5;
+        }
+
+        .status.error {
+            background: #fff5f5;
+            color: #e53e3e;
+            border: 1px solid #fed7d7;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .format-options {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+
+        .option-group {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             justify-content: center;
         }
-        .main-panel {
-            flex: 2;
-            min-width: 280px;
-            background: rgba(255,248,225,0.95);
-            border-radius: 64px;
-            padding: 20px 24px 28px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+
+        .option {
+            flex: 1;
+            min-width: 200px;
         }
-        .collage-panel {
-            flex: 1.2;
-            min-width: 240px;
-            background: rgba(255,241,214,0.97);
-            border-radius: 64px;
-            padding: 20px 18px;
-            box-shadow: 0 20px 30px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
+
+        .option label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 600;
         }
-        h1 {
-            font-size: 1.8rem;
-            margin: 0 0 8px 0;
-            color: #ffdd77;
-            text-shadow: 3px 3px 0 #c26b00;
-            text-align: center;
-        }
-        .sub {
-            background: #f5e7d3;
-            display: inline-block;
-            padding: 6px 18px;
-            border-radius: 40px;
-            color: #4a2e1f;
-            font-weight: bold;
-            margin-bottom: 18px;
-            text-align: center;
+
+        .option select {
             width: 100%;
-        }
-        .mic-status {
-            background: #2b2b2b;
-            border-radius: 100px;
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
-            color: white;
-        }
-        .led-big {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #00000066;
-            padding: 4px 14px;
-            border-radius: 50px;
-        }
-        .led-light {
-            width: 14px;
-            height: 14px;
-            border-radius: 14px;
-            background-color: #4caf50;
-            box-shadow: 0 0 12px #4caf50;
-            animation: pulse 1.2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 0.4; transform: scale(0.9);}
-            100% { opacity: 1; transform: scale(1.2);}
-        }
-        .word-bubble {
-            background: #fff0d0;
-            border-radius: 50px;
-            padding: 12px;
-            font-weight: bold;
-            color: #b45f1b;
-            margin: 12px 0;
-            text-align: center;
-            font-size: 1.3rem;
-        }
-        .image-frame {
-            background: #e9e2d0;
-            border-radius: 48px;
-            padding: 16px;
-            margin: 12px 0;
-            min-height: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .image-result {
-            max-width: 100%;
-            max-height: 260px;
-            border-radius: 32px;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.2);
-            object-fit: contain;
-        }
-        .placeholder-img {
-            font-size: 2.5rem;
-            text-align: center;
-            padding: 20px;
-            color: #b5926e;
-        }
-        button {
-            background: #ffaa33;
-            border: none;
-            font-family: inherit;
-            font-size: 1.1rem;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 60px;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #b4621a;
-            transition: 0.07s linear;
-            margin: 6px 4px;
-        }
-        button:active {
-            transform: translateY(3px);
-            box-shadow: 0 1px 0 #b4621a;
-        }
-        .collage-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
-            border-bottom: 3px dashed #ffb347;
-            padding-bottom: 12px;
-        }
-        .collage-grid {
-            background: #f7e9cf;
-            border-radius: 48px;
-            min-height: 280px;
-            max-height: 380px;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: center;
-            align-items: center;
-            margin: 12px 0;
-        }
-        .collage-item {
-            width: 85px;
-            height: 85px;
-            object-fit: cover;
-            border-radius: 24px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            border: 3px solid white;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
             background: white;
-            cursor: pointer;
-            transition: 0.1s;
+            font-size: 14px;
         }
-        .collage-item:hover {
-            transform: scale(0.97);
-        }
-        .empty-collage {
+
+        .specs {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            font-size: 14px;
+            color: #718096;
             text-align: center;
-            color: #aa8b5c;
-            padding: 20px;
-            font-size: 0.9rem;
         }
-        .collage-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 12px;
+
+        .icon {
+            font-size: 20px;
         }
-        .badge {
-            background: #ffdc97;
-            border-radius: 40px;
-            padding: 4px 12px;
-            font-weight: bold;
-        }
-        .toast-msg {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #2e7d32;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-weight: bold;
-            z-index: 999;
-            opacity: 0;
-            transition: 0.2s;
-            pointer-events: none;
-            white-space: nowrap;
-        }
-        /* стили для музыкального блока */
-        .music-controls {
-            background: #f1e2c0;
-            border-radius: 40px;
-            padding: 10px 12px;
-            margin-top: 12px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-        .music-label {
-            font-size: 0.8rem;
-            background: #ffb347;
-            padding: 4px 10px;
-            border-radius: 50px;
-            font-weight: bold;
-        }
-        .music-file-input {
-            font-size: 0.7rem;
-            flex: 2;
-            min-width: 120px;
-        }
-        .music-indicator {
-            font-size: 0.7rem;
-            font-weight: bold;
-            color: #2c6e2c;
-        }
-        @media (max-width: 750px) {
-            .toast-msg { white-space: normal; width: 80%; text-align: center; font-size: 0.8rem; }
-            .collage-item { width: 70px; height: 70px; }
-        }
-        .footer {
-            text-align: center;
-            margin-top: 16px;
-            color: #ffefcf;
-            font-size: 0.7rem;
-        }
-        .video-progress {
-            margin: 8px 0;
-            background: #ffd966;
-            border-radius: 60px;
-            padding: 6px;
-            text-align: center;
-            font-weight: bold;
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
         }
     </style>
 </head>
 <body>
-
-<div class="game-layout">
-    <div class="main-panel">
-        <h1>🎤✨ Скажи слово → картинка<br><span style="font-size:1.2rem;">➕ добавь в коллекцию для КЛИПА + МУЗЫКА!</span></h1>
-        <div class="sub">🐘 Говори, смотри, меняй картинки («другая») и строй свой клип 🎬</div>
-        <div class="mic-status">
-            <div class="led-big"><span class="led-light"></span>🎙️ Микрофон всегда слушает</div>
-            <div>🗣️ команды: «добавить», «другая», «сделай клип», «очисти»</div>
-        </div>
-        <div class="word-bubble">💬 <span id="spokenWord">...скажи слово...</span> 💬</div>
-        <div class="image-frame">
-            <div class="placeholder-img" id="imagePlaceholder">🖼️<br>✨ Жду слова ✨</div>
-            <img id="resultImage" class="image-result" style="display: none;" alt="картинка" crossorigin="anonymous">
-        </div>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
-            <button id="resetBtn">🔄 Очистить картинку</button>
-            <button id="nextImageBtn">🎲 Другая картинка</button>
-            <button id="saveSingleBtn">💾 Сохранить эту</button>
-        </div>
-        <div class="sub" style="margin-top: 16px; font-size:0.8rem;">⭐ Примеры: жираф, слон, пицца, робот, единорог, космос</div>
+    <div class="container">
+        <h1>🎬 Конвертер WebM в MP4</h1>
+        <p class="subtitle">Конвертируйте видеофайлы прямо в браузере</p>
         
-        <!-- БЛОК ДЛЯ МУЗЫКИ -->
-        <div class="music-controls">
-            <span class="music-label">🎵 Фоновая музыка</span>
-            <input type="file" id="musicFileInput" accept="audio/*" class="music-file-input" />
-            <button id="stopMusicBtn" style="background:#b8860b; font-size:0.9rem;">⏹️ Остановить музыку</button>
-            <span id="musicStatus" class="music-indicator">🎼 (выбери файл)</span>
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Перетащите WebM файл сюда</h3>
+            <p>или</p>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                <span class="icon">📂</span> Выберите файл
+            </button>
+            <div class="file-name" id="fileName"></div>
+            <input type="file" id="fileInput" class="file-input" accept="video/*">
+        </div>
+        
+        <video id="videoPreview" class="video-preview" controls></video>
+        
+        <div class="format-options">
+            <h3 style="text-align: center; margin-bottom: 20px; color: #4a5568;">Настройки конвертации</h3>
+            <div class="option-group">
+                <div class="option">
+                    <label for="videoQuality">Качество видео:</label>
+                    <select id="videoQuality">
+                        <option value="high">Высокое (CRF 18)</option>
+                        <option value="medium" selected>Среднее (CRF 23)</option>
+                        <option value="low">Низкое (CRF 28)</option>
+                    </select>
+                </div>
+                <div class="option">
+                    <label for="audioQuality">Качество звука:</label>
+                    <select id="audioQuality">
+                        <option value="192">Высокое (192k)</option>
+                        <option value="128" selected>Стандартное (128k)</option>
+                        <option value="64">Низкое (64k)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar">
+                <span class="progress-text" id="progressText">0%</span>
+            </div>
+        </div>
+        
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div class="status info" id="status"></div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="convertBtn" disabled>
+                <span class="icon">🔄</span> Конвертировать в MP4
+            </button>
+            <button class="btn btn-success" id="downloadBtn" disabled>
+                <span class="icon">💾</span> Скачать MP4
+            </button>
+        </div>
+        
+        <div class="specs">
+            <p>💡 Это приложение работает полностью в вашем браузере. Файлы не загружаются на сервер.</p>
+            <p>⚠️ Первая конвертация может занять 10-30 секунд из-за загрузки FFmpeg (около 25 МБ)</p>
+            <p>📱 Поддерживается на Chrome, Edge, Safari 16+</p>
         </div>
     </div>
 
-    <div class="collage-panel">
-        <div class="collage-header">
-            <span style="font-size: 1.6rem;">🎬 КОЛЛЕКЦИЯ ДЛЯ КЛИПА</span>
-            <span id="collageCount" class="badge">0</span>
-        </div>
-        <div id="collageGrid" class="collage-grid">
-            <div class="empty-collage">✨ Добавь картинки: скажи «добавить» или нажми кнопку</div>
-        </div>
-        <div class="collage-buttons">
-            <button id="makeVideoBtn" style="background:#a55d35; box-shadow:0 4px 0 #5e2e14;">🎬 Сделать КЛИП (5 сек на картинку)</button>
-            <button id="clearCollageBtn" style="background:#c27e3a;">🗑️ Очистить всё</button>
-        </div>
-        <div style="font-size:0.7rem; text-align:center; margin-top:12px;">
-            🎤 «сделай клип», «очисти коллекцию», «другая»
-        </div>
-    </div>
-</div>
-<div class="footer">
-    🎥 Собери картинки → выбери музыку → нажми «Сделать клип» → видео с музыкой и твоими словами! 
-    Если картинка не нравится, скажи «Другая» — найдём новую.
-</div>
-<div id="toastMsg" class="toast-msg">✨</div>
+    <script>
+        // Ждем загрузки страницы
+        (function() {
+            let ffmpeg = null;
+            let convertedVideoUrl = null;
+            let currentFile = null;
+            let ffmpegReady = false;
 
-<script>
-    (function(){
-        // ---------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
-        let recognition = null;
-        let isActive = true;
-        let isRestarting = false;
-        
-        let currentImageUrl = "";
-        let currentWord = "";
-        let isEmojiMode = false;
-        
-        // Для "другой картинки"
-        let lastSearchQuery = "";
-        let alternativeUrls = [];
-        let altIndex = -1;
-        
-        // Коллекция для клипа
-        let clipItems = [];   // { url, word }
-        
-        // --- ПЕРЕМЕННЫЕ ДЛЯ МУЗЫКИ ---
-        let backgroundAudio = null;           // HTMLAudioElement
-        let musicBlobUrl = null;              // для очистки памяти
-        
-        // DOM элементы
-        const spokenWordSpan = document.getElementById('spokenWord');
-        const resultImage = document.getElementById('resultImage');
-        const imagePlaceholder = document.getElementById('imagePlaceholder');
-        const resetBtn = document.getElementById('resetBtn');
-        const nextImageBtn = document.getElementById('nextImageBtn');
-        const saveSingleBtn = document.getElementById('saveSingleBtn');
-        const collageGrid = document.getElementById('collageGrid');
-        const collageCountSpan = document.getElementById('collageCount');
-        const makeVideoBtn = document.getElementById('makeVideoBtn');
-        const clearCollageBtn = document.getElementById('clearCollageBtn');
-        const toastEl = document.getElementById('toastMsg');
-        
-        // элементы музыки
-        const musicFileInput = document.getElementById('musicFileInput');
-        const stopMusicBtn = document.getElementById('stopMusicBtn');
-        const musicStatusSpan = document.getElementById('musicStatus');
-        
-        function showToast(msg, isError = false) {
-            toastEl.textContent = msg;
-            toastEl.style.background = isError ? '#b71c1c' : '#2e7d32';
-            toastEl.style.opacity = '1';
-            setTimeout(() => { toastEl.style.opacity = '0'; }, 2500);
-        }
-        
-        // Рендер коллекции для клипа
-        function renderClipCollection() {
-            collageGrid.innerHTML = "";
-            if (clipItems.length === 0) {
-                collageGrid.innerHTML = '<div class="empty-collage">✨ Добавь картинки: скажи "добавить" ✨</div>';
-                collageCountSpan.innerText = "0";
-                return;
-            }
-            collageCountSpan.innerText = clipItems.length;
-            clipItems.forEach((item, idx) => {
-                const img = document.createElement('img');
-                img.src = item.url;
-                img.classList.add('collage-item');
-                img.alt = item.word;
-                img.title = `${item.word} (нажми, чтобы убрать)`;
-                img.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    clipItems.splice(idx, 1);
-                    renderClipCollection();
-                    showToast(`🗑️ Убрали "${item.word}" из коллекции`, false);
-                });
-                collageGrid.appendChild(img);
-            });
-            const hintSpan = document.createElement('div');
-            hintSpan.style.fontSize = '0.6rem';
-            hintSpan.style.color = '#ab8a54';
-            hintSpan.style.width = '100%';
-            hintSpan.style.textAlign = 'center';
-            hintSpan.innerText = '👆 нажми на картинку, чтобы удалить';
-            collageGrid.appendChild(hintSpan);
-        }
-        
-        // Добавить текущую картинку в коллекцию для клипа
-        function addCurrentToClip() {
-            if (!currentImageUrl || isEmojiMode || !currentWord) {
-                showToast("Сначала скажи слово, чтобы появилась настоящая картинка! 🖼️", true);
-                return false;
-            }
-            clipItems.push({ url: currentImageUrl, word: currentWord });
-            renderClipCollection();
-            showToast(`➕ "${currentWord}" добавлен в коллекцию для клипа!`, false);
-            return true;
-        }
-        
-        // ---- ПОИСК КАРТИНОК (Wikimedia) ----
-        async function searchImagesForWord(query, maxResults = 5) {
-            const clean = encodeURIComponent(query.trim().toLowerCase());
-            const wikiApi = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*&gsrlimit=${maxResults}`;
-            try {
-                const res = await fetch(wikiApi);
-                const data = await res.json();
-                let urls = [];
-                if (data.query && data.query.pages) {
-                    for (let id in data.query.pages) {
-                        const page = data.query.pages[id];
-                        if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
-                            let imgUrl = page.imageinfo[0].url;
-                            if (imgUrl.startsWith('http://')) imgUrl = imgUrl.replace('http://', 'https://');
-                            urls.push(imgUrl);
-                        }
-                    }
-                }
-                return { success: urls.length > 0, urls };
-            } catch (e) {
-                return { success: false, urls: [] };
-            }
-        }
-        
-        function showEmojiFallback(query) {
-            const emojiMap = {
-                'кот':'🐱','кошка':'🐱','собака':'🐶','пес':'🐶','слон':'🐘','жираф':'🦒','лев':'🦁','тигр':'🐯',
-                'медведь':'🐻','машина':'🚗','автомобиль':'🚙','самолет':'✈️','ракета':'🚀','пицца':'🍕','бургер':'🍔',
-                'мороженое':'🍦','яблоко':'🍎','банан':'🍌','мяч':'⚽','робот':'🤖','единорог':'🦄','динозавр':'🦖','космос':'🌌'
-            };
-            let emoji = '🖼️';
-            const low = query.toLowerCase();
-            for (let [k, v] of Object.entries(emojiMap)) {
-                if (low.includes(k)) { emoji = v; break; }
-            }
-            imagePlaceholder.style.display = "flex";
-            imagePlaceholder.innerHTML = `<div style="font-size: 4rem;">${emoji}</div><div style="font-size:1.4rem;">${query}</div><div style="font-size:0.7rem;">🎨 Весёлый значок</div>`;
-            resultImage.style.display = "none";
-            isEmojiMode = true;
-            currentImageUrl = "";
-            currentWord = query;
-            alternativeUrls = [];
-            altIndex = -1;
-        }
-        
-        async function setPictureByUrl(url, word) {
-            if (!url) return false;
-            currentImageUrl = url;
-            currentWord = word;
-            isEmojiMode = false;
-            resultImage.src = url;
-            resultImage.style.display = "block";
-            imagePlaceholder.style.display = "none";
-            resultImage.onerror = () => {
-                if (resultImage.style.display !== "none") {
-                    resultImage.style.display = "none";
-                    showEmojiFallback(word);
-                }
-            };
-            return true;
-        }
-        
-        async function showPictureForWord(word, useSpecificIndex = -1) {
-            if (!word) return;
-            currentWord = word;
-            if (word === lastSearchQuery && alternativeUrls.length > 0) {
-                let newIdx = (useSpecificIndex !== -1) ? useSpecificIndex : altIndex + 1;
-                if (newIdx >= alternativeUrls.length) newIdx = 0;
-                if (newIdx < 0) newIdx = 0;
-                altIndex = newIdx;
-                const newUrl = alternativeUrls[altIndex];
-                if (newUrl) {
-                    await setPictureByUrl(newUrl, word);
-                    showToast(`🖼️ Другая картинка для "${word}" (${altIndex+1}/${alternativeUrls.length})`, false);
-                    return;
-                }
-            }
-            imagePlaceholder.style.display = "flex";
-            imagePlaceholder.innerHTML = `<div style="font-size:1.6rem;">🔍 Ищу ${word} ...</div>`;
-            resultImage.style.display = "none";
-            currentImageUrl = "";
-            const searchRes = await searchImagesForWord(word, 8);
-            if (searchRes.success && searchRes.urls.length > 0) {
-                alternativeUrls = searchRes.urls;
-                altIndex = 0;
-                lastSearchQuery = word;
-                await setPictureByUrl(alternativeUrls[0], word);
-            } else {
-                alternativeUrls = [];
-                altIndex = -1;
-                lastSearchQuery = "";
-                showEmojiFallback(word);
-            }
-        }
-        
-        async function nextAlternativePicture() {
-            if (!lastSearchQuery || alternativeUrls.length === 0) {
-                if (currentWord) {
-                    await showPictureForWord(currentWord);
-                } else {
-                    showToast("Сначала скажи слово", true);
-                }
-                return;
-            }
-            let nextIdx = altIndex + 1;
-            if (nextIdx >= alternativeUrls.length) nextIdx = 0;
-            altIndex = nextIdx;
-            await setPictureByUrl(alternativeUrls[altIndex], lastSearchQuery);
-            showToast(`🎲 Другая картинка "${lastSearchQuery}" (${altIndex+1}/${alternativeUrls.length})`, false);
-        }
-        
-        // ---------- ВИДЕО-КЛИП С МУЗЫКОЙ (фоновая дорожка) ----------
-        async function createVideoFromClip() {
-            if (clipItems.length === 0) {
-                showToast("Нет картинок! Добавь хотя бы одну через «добавить»", true);
-                return;
-            }
-            if (clipItems.length > 15) {
-                showToast("Много картинок, клип будет долгим, но сделаем! 🎬", false);
-            }
-            showToast("🎬 Создаём клип с музыкой... подожди немного", false);
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const durationPerSlide = 5; // 5 секунд
-            const fps = 30;
-            const width = 1024;
-            const height = 768;
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Загружаем изображения
-            const loadImage = (url) => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.crossOrigin = "Anonymous";
-                    img.src = url;
-                    img.onload = () => resolve(img);
-                    img.onerror = () => reject(new Error(`Ошибка загрузки: ${url}`));
-                });
-            };
-            
-            let loadedImages = [];
-            try {
-                loadedImages = await Promise.all(clipItems.map(item => loadImage(item.url)));
-            } catch(e) {
-                showToast("Не удалось загрузить некоторые картинки для клипа", true);
-                return;
-            }
-            
-            // --- РАБОТА С АУДИО (если выбрано) ---
-            let audioContext = null;
-            let audioSource = null;
-            let audioBuffer = null;
-            let mediaStreamDestination = null;
-            let hasActiveMusic = false;
-            
-            // Если есть загруженный аудиофайл, декодируем его для микширования
-            if (backgroundAudio && backgroundAudio.src && backgroundAudio.src !== "") {
-                try {
-                    // Создаем AudioContext для микширования с видео
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    // Скачиваем файл как ArrayBuffer
-                    const response = await fetch(backgroundAudio.src);
-                    const arrayBuffer = await response.arrayBuffer();
-                    audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    // Создаем destination для захвата в поток
-                    mediaStreamDestination = audioContext.createMediaStreamDestination();
-                    hasActiveMusic = true;
-                    showToast("🎵 Музыка будет в клипе!", false);
-                } catch(e) {
-                    console.warn("Ошибка декодирования музыки:", e);
-                    showToast("Не удалось обработать музыку, клип без неё", true);
-                    hasActiveMusic = false;
-                }
-            }
-            
-            // Поток видео + аудио (если есть музыка)
-            let finalStream;
-            const canvasStream = canvas.captureStream(fps);
-            
-            if (hasActiveMusic && audioContext && mediaStreamDestination) {
-                // Создаем источник и подключаем к destination
-                audioSource = audioContext.createBufferSource();
-                audioSource.buffer = audioBuffer;
-                audioSource.loop = true;   // зациклим пока длится клип
-                audioSource.connect(mediaStreamDestination);
-                // Объединяем видео-поток и аудио-поток
-                const audioTracks = mediaStreamDestination.stream.getAudioTracks();
-                const videoTracks = canvasStream.getVideoTracks();
-                finalStream = new MediaStream([...videoTracks, ...audioTracks]);
-                // Запускаем звук (осторожно, AudioContext должен быть активным)
-                if (audioContext.state === 'suspended') {
-                    await audioContext.resume();
-                }
-                audioSource.start();
-            } else {
-                finalStream = canvasStream;
-            }
-            
-            const mediaRecorder = new MediaRecorder(finalStream, { mimeType: 'video/webm' });
-            let chunks = [];
-            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-            
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `клип_с_музыкой_${Date.now()}.webm`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showToast("🎉 Клип готов! Скачан в папку Загрузки", false);
-                chunks = [];
-                // Останавливаем аудиоконтекст и освобождаем
-                if (audioSource) {
-                    try { audioSource.stop(); } catch(e) {}
-                }
-                if (audioContext) {
-                    audioContext.close();
-                }
-            };
-            
-            mediaRecorder.start(100);
-            
-            const totalFrames = clipItems.length * durationPerSlide * fps;
-            let slideIndex = 0;
-            let frameInSlide = 0;
-            const framesPerSlide = durationPerSlide * fps;
-            
-            function drawSlide(img, word, progressPercent) {
-                ctx.fillStyle = "#FFF0D4";
-                ctx.fillRect(0, 0, width, height);
-                ctx.strokeStyle = "#FFB347";
-                ctx.lineWidth = 12;
-                ctx.strokeRect(15, 15, width-30, height-30);
-                const maxW = width - 100;
-                const maxH = height - 180;
-                let drawW = img.width;
-                let drawH = img.height;
-                if (drawW > maxW) { drawH = (drawH * maxW) / drawW; drawW = maxW; }
-                if (drawH > maxH) { drawW = (drawW * maxH) / drawH; drawH = maxH; }
-                const x = (width - drawW)/2;
-                const y = (height - drawH)/2 - 20;
-                ctx.drawImage(img, x, y, drawW, drawH);
-                ctx.font = "bold 46px 'Comic Sans MS', 'Comic Neue'";
-                ctx.fillStyle = "#C26B00";
-                ctx.fillText(`✨ ${word} ✨`, width/2 - ctx.measureText(`✨ ${word} ✨`).width/2, height - 50);
-                const barWidth = width - 100;
-                const barX = 50;
-                const barY = height - 20;
-                ctx.fillStyle = "#FFDDAA";
-                ctx.fillRect(barX, barY, barWidth, 12);
-                ctx.fillStyle = "#FF8C42";
-                ctx.fillRect(barX, barY, barWidth * (progressPercent / 100), 12);
-                ctx.font = "24px monospace";
-                ctx.fillStyle = "#9b6a3b";
-                ctx.fillText(`${slideIndex+1} / ${clipItems.length}`, 30, 70);
-            }
-            
-            function animateFrame() {
-                if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
-                if (slideIndex >= clipItems.length) {
-                    mediaRecorder.stop();
-                    return;
-                }
-                const img = loadedImages[slideIndex];
-                const slideProgress = (frameInSlide / framesPerSlide) * 100;
-                drawSlide(img, clipItems[slideIndex].word, slideProgress);
-                frameInSlide++;
-                if (frameInSlide >= framesPerSlide) {
-                    frameInSlide = 0;
-                    slideIndex++;
-                }
-                requestAnimationFrame(() => {
-                    setTimeout(animateFrame, 1000 / fps);
-                });
-            }
-            
-            animateFrame();
-            
-            // Защитный таймер
-            setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop();
-                }
-            }, (clipItems.length * durationPerSlide + 2) * 1000);
-        }
-        
-        // Обработчик выбора музыки (создаём локальный URL для Audio)
-        function handleMusicUpload(file) {
-            if (!file) return;
-            if (backgroundAudio) {
-                backgroundAudio.pause();
-                if (musicBlobUrl) URL.revokeObjectURL(musicBlobUrl);
-            }
-            const blobUrl = URL.createObjectURL(file);
-            musicBlobUrl = blobUrl;
-            const audioElem = new Audio();
-            audioElem.src = blobUrl;
-            audioElem.loop = true;
-            backgroundAudio = audioElem;
-            musicStatusSpan.innerHTML = `🎵 "${file.name}" загружена, будет в клипе`;
-            showToast(`Музыка "${file.name}" готова!`, false);
-            // Автоматически не проигрываем, только для клипа используем в AudioContext
-            // Но можно тестово запустить по кнопке стоп
-        }
-        
-        function stopBackgroundMusic() {
-            if (backgroundAudio) {
-                backgroundAudio.pause();
-                backgroundAudio.currentTime = 0;
-                musicStatusSpan.innerHTML = `⏸️ Музыка остановлена (файл выбран)`;
-                showToast("Музыка остановлена, но в клипе всё равно будет использоваться (файл сохранён)", false);
-            } else {
-                showToast("Нет загруженной музыки", true);
-            }
-        }
-        
-        // -------- ОБРАБОТКА ГОЛОСОВЫХ КОМАНД ----------
-        async function processVoiceCommand(phrase) {
-            const lower = phrase.toLowerCase().trim();
-            if (lower.includes("добавить") || lower === "добавь" || lower.includes("в коллекцию") || lower === "+") {
-                await addCurrentToClip();
-                return true;
-            }
-            if (lower.includes("другая") || lower.includes("ещё") || lower.includes("другую") || lower === "следующая") {
-                await nextAlternativePicture();
-                return true;
-            }
-            if (lower.includes("сделай клип") || lower.includes("создай клип") || lower === "клип" || lower.includes("запиши клип")) {
-                await createVideoFromClip();
-                return true;
-            }
-            if (lower.includes("очисти коллекцию") || lower.includes("очисти всё") || lower === "очистить клип") {
-                clipItems = [];
-                renderClipCollection();
-                showToast("🧹 Коллекция очищена!", false);
-                return true;
-            }
-            if (lower.includes("сохрани картинку") || lower.includes("скачай эту") || lower === "сохранить") {
-                if (currentImageUrl && !isEmojiMode) {
-                    try {
-                        const resp = await fetch(currentImageUrl, { mode: 'cors' });
-                        const blob = await resp.blob();
-                        const link = document.createElement('a');
-                        const blobUrl = URL.createObjectURL(blob);
-                        link.href = blobUrl;
-                        link.download = `${currentWord}_${Date.now()}.jpg`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(blobUrl);
-                        showToast(`✅ "${currentWord}" сохранён!`, false);
-                    } catch(e) { showToast("Не удалось сохранить", true); }
-                } else { showToast("Нет картинки для сохранения", true); }
-                return true;
-            }
-            return false;
-        }
-        
-        // -------- РАСПОЗНАВАНИЕ РЕЧИ ----------
-        function initSpeech() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                spokenWordSpan.innerText = "❌ браузер без голоса";
-                showToast("Браузер не поддерживает речь", true);
-                return;
-            }
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = false;
-            recognition.lang = 'ru-RU';
-            recognition.onstart = () => { isRestarting = false; };
-            recognition.onerror = (event) => {
-                if (event.error === 'not-allowed') {
-                    spokenWordSpan.innerText = "🔇 Нет доступа к микрофону";
-                    showToast("Разрешите микрофон для игры!", true);
-                } else if (event.error !== 'no-speech' && isActive) {
-                    setTimeout(() => { if (isActive && recognition) recognition?.start(); }, 1000);
-                }
-            };
-            recognition.onend = () => {
-                if (isActive && !isRestarting) {
-                    isRestarting = true;
+            // DOM элементы
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const videoPreview = document.getElementById('videoPreview');
+            const convertBtn = document.getElementById('convertBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const statusDiv = document.getElementById('status');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const videoQuality = document.getElementById('videoQuality');
+            const audioQuality = document.getElementById('audioQuality');
+
+            function showStatus(message, type = 'info') {
+                statusDiv.textContent = message;
+                statusDiv.className = `status ${type}`;
+                statusDiv.style.display = 'block';
+                
+                if (type === 'success') {
                     setTimeout(() => {
-                        if (isActive && recognition) try { recognition.start(); } catch(e) {}
-                        isRestarting = false;
-                    }, 400);
-                }
-            };
-            recognition.onresult = async (event) => {
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    let text = event.results[i][0].transcript.trim();
-                    if (text.length > 0) {
-                        spokenWordSpan.innerText = `"${text}"`;
-                        const isCmd = await processVoiceCommand(text);
-                        if (!isCmd) {
-                            await showPictureForWord(text);
+                        if (statusDiv.style.display !== 'none') {
+                            statusDiv.style.display = 'none';
                         }
+                    }, 5000);
+                }
+            }
+
+            function updateProgress(percent) {
+                const roundedPercent = Math.round(percent);
+                progressBar.style.width = `${roundedPercent}%`;
+                progressText.textContent = `${roundedPercent}%`;
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            async function loadFFmpeg() {
+                if (ffmpegReady) return;
+                
+                try {
+                    showStatus('Загрузка FFmpeg (около 25 МБ)... Пожалуйста, подождите', 'info');
+                    loadingSpinner.style.display = 'block';
+                    
+                    // Динамически загружаем скрипт FFmpeg
+                    if (typeof FFmpeg === 'undefined') {
+                        await new Promise((resolve, reject) => {
+                            const script = document.createElement('script');
+                            script.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js';
+                            script.onload = resolve;
+                            script.onerror = reject;
+                            document.head.appendChild(script);
+                        });
+                    }
+                    
+                    // Создаем экземпляр FFmpeg
+                    const { createFFmpeg, fetchFile } = FFmpeg;
+                    ffmpeg = createFFmpeg({
+                        log: true,
+                        progress: ({ ratio }) => {
+                            const percent = ratio * 100;
+                            updateProgress(percent);
+                        }
+                    });
+                    
+                    await ffmpeg.load();
+                    ffmpegReady = true;
+                    showStatus('FFmpeg успешно загружен! Можно конвертировать видео.', 'success');
+                    
+                    if (currentFile) {
+                        convertBtn.disabled = false;
+                    }
+                    
+                } catch (error) {
+                    console.error('Ошибка загрузки FFmpeg:', error);
+                    showStatus('Ошибка загрузки FFmpeg. Проверьте интернет-соединение.', 'error');
+                } finally {
+                    loadingSpinner.style.display = 'none';
+                }
+            }
+
+            function handleFileSelect(file) {
+                if (!file || !file.type.startsWith('video/')) {
+                    showStatus('Пожалуйста, выберите видеофайл', 'error');
+                    return;
+                }
+
+                currentFile = file;
+                fileName.textContent = `📹 Файл: ${file.name} (${formatFileSize(file.size)})`;
+                
+                // Превью
+                if (videoPreview.src) {
+                    URL.revokeObjectURL(videoPreview.src);
+                }
+                const previewUrl = URL.createObjectURL(file);
+                videoPreview.src = previewUrl;
+                videoPreview.style.display = 'block';
+                
+                if (ffmpegReady) {
+                    convertBtn.disabled = false;
+                } else {
+                    convertBtn.disabled = true;
+                    loadFFmpeg();
+                }
+                
+                showStatus('Файл загружен! Нажмите "Конвертировать"', 'info');
+            }
+
+            async function convertVideo() {
+                if (!currentFile) {
+                    showStatus('Сначала выберите файл', 'error');
+                    return;
+                }
+                
+                if (!ffmpegReady) {
+                    showStatus('FFmpeg еще загружается. Пожалуйста, подождите...', 'info');
+                    await loadFFmpeg();
+                    if (!ffmpegReady) {
+                        showStatus('Не удалось загрузить FFmpeg', 'error');
+                        return;
                     }
                 }
-            };
-            try { recognition.start(); } catch(e) {}
-        }
-        
-        // ---------- КНОПКИ ----------
-        resetBtn.addEventListener('click', () => {
-            imagePlaceholder.style.display = "flex";
-            imagePlaceholder.innerHTML = "🖼️ <br>✨ Скажи новое слово ✨";
-            resultImage.style.display = "none";
-            currentImageUrl = "";
-            currentWord = "";
-            isEmojiMode = false;
-            alternativeUrls = [];
-            lastSearchQuery = "";
-            showToast("Очищено! Говори слово", false);
-        });
-        
-        nextImageBtn.addEventListener('click', () => {
-            nextAlternativePicture();
-        });
-        
-        saveSingleBtn.addEventListener('click', async () => {
-            if (currentImageUrl && !isEmojiMode) {
+                
                 try {
-                    const resp = await fetch(currentImageUrl, { mode: 'cors' });
-                    const blob = await resp.blob();
+                    convertBtn.disabled = true;
+                    downloadBtn.disabled = true;
+                    progressContainer.style.display = 'block';
+                    loadingSpinner.style.display = 'block';
+                    updateProgress(0);
+                    
+                    showStatus('Подготовка к конвертации...', 'info');
+                    
+                    const { fetchFile } = FFmpeg;
+                    
+                    // Записываем входной файл
+                    ffmpeg.FS('writeFile', 'input.webm', await fetchFile(currentFile));
+                    
+                    // Настройки качества
+                    const videoQ = videoQuality.value;
+                    const audioQ = audioQuality.value;
+                    
+                    let crf = '23';
+                    if (videoQ === 'high') crf = '18';
+                    if (videoQ === 'low') crf = '28';
+                    
+                    showStatus('Конвертация видео... Это может занять несколько минут', 'info');
+                    
+                    // Запускаем конвертацию
+                    await ffmpeg.run(
+                        '-i', 'input.webm',
+                        '-c:v', 'libx264',
+                        '-preset', 'fast',
+                        '-crf', crf,
+                        '-c:a', 'aac',
+                        '-b:a', `${audioQ}k`,
+                        '-movflags', '+faststart',
+                        'output.mp4'
+                    );
+                    
+                    // Читаем результат
+                    const data = ffmpeg.FS('readFile', 'output.mp4');
+                    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                    
+                    if (convertedVideoUrl) {
+                        URL.revokeObjectURL(convertedVideoUrl);
+                    }
+                    
+                    convertedVideoUrl = URL.createObjectURL(blob);
+                    videoPreview.src = convertedVideoUrl;
+                    downloadBtn.disabled = false;
+                    
+                    // Очищаем временные файлы
+                    ffmpeg.FS('unlink', 'input.webm');
+                    ffmpeg.FS('unlink', 'output.mp4');
+                    
+                    updateProgress(100);
+                    showStatus('Конвертация успешно завершена!', 'success');
+                    
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showStatus(`Ошибка конвертации: ${error.message || 'Неизвестная ошибка'}`, 'error');
+                    updateProgress(0);
+                } finally {
+                    loadingSpinner.style.display = 'none';
+                    convertBtn.disabled = false;
+                    setTimeout(() => {
+                        if (progressContainer.style.display !== 'none') {
+                            // Не скрываем сразу, чтобы пользователь видел 100%
+                        }
+                    }, 1000);
+                }
+            }
+
+            // Обработчики событий
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+
+            convertBtn.addEventListener('click', convertVideo);
+            
+            downloadBtn.addEventListener('click', () => {
+                if (convertedVideoUrl) {
                     const a = document.createElement('a');
-                    const urlBlob = URL.createObjectURL(blob);
-                    a.href = urlBlob;
-                    a.download = `${currentWord || 'картинка'}.jpg`;
+                    a.href = convertedVideoUrl;
+                    a.download = 'converted_video.mp4';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
-                    URL.revokeObjectURL(urlBlob);
-                    showToast(`💾 "${currentWord}" сохранён!`, false);
-                } catch(e) { showToast("Не удалось сохранить", true); }
-            } else { showToast("Нет настоящей картинки", true); }
-        });
-        
-        makeVideoBtn.addEventListener('click', () => createVideoFromClip());
-        clearCollageBtn.addEventListener('click', () => {
-            clipItems = [];
-            renderClipCollection();
-            showToast("🧹 Коллекция для клипа очищена", false);
-        });
-        
-        musicFileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files.length > 0) {
-                handleMusicUpload(e.target.files[0]);
-            }
-        });
-        stopMusicBtn.addEventListener('click', stopBackgroundMusic);
-        
-        window.addEventListener('load', () => {
-            initSpeech();
-            renderClipCollection();
-        });
-        
-    })();
-</script>
+                    showStatus('Скачивание началось!', 'success');
+                }
+            });
+
+            // Автоматическая загрузка FFmpeg
+            loadFFmpeg();
+            showStatus('Готов к работе! Загрузите видео файл', 'info');
+        })();
+    </script>
 </body>
 </html>
