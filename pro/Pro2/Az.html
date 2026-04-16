@@ -328,7 +328,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/index.js"></script>
     <script>
         class VideoAudioMergerForTelegram {
             constructor() {
@@ -351,11 +352,14 @@
                     this.updateStatus('🔄 Загрузка FFmpeg... Пожалуйста, подождите', 'processing');
                     
                     const { createFFmpeg } = FFmpeg;
+                    const { toBlobURL } = FFmpegUtil;
                     
-                    // Создаём экземпляр с логами для отладки
+                    // Используем более стабильные URL для загрузки
+                    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+                    
                     this.ffmpeg = createFFmpeg({ 
                         log: true,
-                        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+                        corePath: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript')
                     });
                     
                     // Отслеживаем прогресс загрузки
@@ -383,8 +387,8 @@
                     
                 } catch (error) {
                     console.error('FFmpeg load error:', error);
-                    this.updateStatus('❌ Ошибка загрузки FFmpeg. Обновите страницу и попробуйте снова', 'error');
-                    document.getElementById('ffmpegStatus').textContent = 'Ошибка загрузки. Обновите страницу';
+                    this.updateStatus('❌ Ошибка загрузки FFmpeg. Попробуйте другой браузер (Chrome или Edge)', 'error');
+                    document.getElementById('ffmpegStatus').textContent = 'Ошибка загрузки. Попробуйте Chrome или Edge';
                 }
             }
 
