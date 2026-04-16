@@ -1,0 +1,788 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎬 Клип из картинок по голосу — Детская игра</title>
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1e5f8e 0%, #0d3b55 100%);
+            font-family: 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+            padding: 16px;
+        }
+        .game-layout {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .main-panel {
+            flex: 2;
+            min-width: 280px;
+            background: rgba(255,248,225,0.95);
+            border-radius: 64px;
+            padding: 20px 24px 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .collage-panel {
+            flex: 1.2;
+            min-width: 240px;
+            background: rgba(255,241,214,0.97);
+            border-radius: 64px;
+            padding: 20px 18px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin: 0 0 8px 0;
+            color: #ffdd77;
+            text-shadow: 3px 3px 0 #c26b00;
+            text-align: center;
+        }
+        .sub {
+            background: #f5e7d3;
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: #4a2e1f;
+            font-weight: bold;
+            margin-bottom: 18px;
+            text-align: center;
+            width: 100%;
+        }
+        .mic-status {
+            background: #2b2b2b;
+            border-radius: 100px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        .led-big {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #00000066;
+            padding: 4px 14px;
+            border-radius: 50px;
+        }
+        .led-light {
+            width: 14px;
+            height: 14px;
+            border-radius: 14px;
+            background-color: #4caf50;
+            box-shadow: 0 0 12px #4caf50;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1.2);}
+        }
+        .word-bubble {
+            background: #fff0d0;
+            border-radius: 50px;
+            padding: 12px;
+            font-weight: bold;
+            color: #b45f1b;
+            margin: 12px 0;
+            text-align: center;
+            font-size: 1.3rem;
+        }
+        .image-frame {
+            background: #e9e2d0;
+            border-radius: 48px;
+            padding: 16px;
+            margin: 12px 0;
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-result {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 32px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+            object-fit: contain;
+        }
+        .placeholder-img {
+            font-size: 2.5rem;
+            text-align: center;
+            padding: 20px;
+            color: #b5926e;
+        }
+        button {
+            background: #ffaa33;
+            border: none;
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b4621a;
+            transition: 0.07s linear;
+            margin: 6px 4px;
+        }
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #b4621a;
+        }
+        .collage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 3px dashed #ffb347;
+            padding-bottom: 12px;
+        }
+        .collage-grid {
+            background: #f7e9cf;
+            border-radius: 48px;
+            min-height: 280px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin: 12px 0;
+        }
+        .collage-item {
+            width: 85px;
+            height: 85px;
+            object-fit: cover;
+            border-radius: 24px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 3px solid white;
+            background: white;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .collage-item:hover {
+            transform: scale(0.97);
+        }
+        .empty-collage {
+            text-align: center;
+            color: #aa8b5c;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+        .collage-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .badge {
+            background: #ffdc97;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-weight: bold;
+        }
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2e7d32;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 999;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @media (max-width: 750px) {
+            .toast-msg { white-space: normal; width: 80%; text-align: center; font-size: 0.8rem; }
+            .collage-item { width: 70px; height: 70px; }
+        }
+        .footer {
+            text-align: center;
+            margin-top: 16px;
+            color: #ffefcf;
+            font-size: 0.7rem;
+        }
+        .video-progress {
+            margin: 8px 0;
+            background: #ffd966;
+            border-radius: 60px;
+            padding: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-layout">
+    <div class="main-panel">
+        <h1>🎤✨ Скажи слово → картинка<br><span style="font-size:1.2rem;">➕ добавь в коллекцию для КЛИПА!</span></h1>
+        <div class="sub">🐘 Говори, смотри, меняй картинки («другая») и строй свой клип 🎬</div>
+        <div class="mic-status">
+            <div class="led-big"><span class="led-light"></span>🎙️ Микрофон всегда слушает</div>
+            <div>🗣️ команды: «добавить», «другая», «сделай клип», «очисти»</div>
+        </div>
+        <div class="word-bubble">💬 <span id="spokenWord">...скажи слово...</span> 💬</div>
+        <div class="image-frame">
+            <div class="placeholder-img" id="imagePlaceholder">🖼️<br>✨ Жду слова ✨</div>
+            <img id="resultImage" class="image-result" style="display: none;" alt="картинка" crossorigin="anonymous">
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+            <button id="resetBtn">🔄 Очистить картинку</button>
+            <button id="nextImageBtn">🎲 Другая картинка</button>
+            <button id="saveSingleBtn">💾 Сохранить эту</button>
+        </div>
+        <div class="sub" style="margin-top: 16px; font-size:0.8rem;">⭐ Примеры: жираф, слон, пицца, робот, единорог, космос</div>
+    </div>
+
+    <div class="collage-panel">
+        <div class="collage-header">
+            <span style="font-size: 1.6rem;">🎬 КОЛЛЕКЦИЯ ДЛЯ КЛИПА</span>
+            <span id="collageCount" class="badge">0</span>
+        </div>
+        <div id="collageGrid" class="collage-grid">
+            <div class="empty-collage">✨ Добавь картинки: скажи «добавить» или нажми кнопку</div>
+        </div>
+        <div class="collage-buttons">
+            <button id="makeVideoBtn" style="background:#a55d35; box-shadow:0 4px 0 #5e2e14;">🎬 Сделать КЛИП (5 сек на картинку)</button>
+            <button id="clearCollageBtn" style="background:#c27e3a;">🗑️ Очистить всё</button>
+        </div>
+        <div style="font-size:0.7rem; text-align:center; margin-top:12px;">
+            🎤 «сделай клип», «очисти коллекцию», «другая»
+        </div>
+    </div>
+</div>
+<div class="footer">
+    🎥 Собери картинки → нажми «Сделать клип» → видео с твоими словами! 
+    Если картинка не нравится, скажи «Другая» — найдём новую.
+</div>
+<div id="toastMsg" class="toast-msg">✨</div>
+
+<script>
+    (function(){
+        // ---------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
+        let recognition = null;
+        let isActive = true;
+        let isRestarting = false;
+        
+        let currentImageUrl = "";
+        let currentWord = "";
+        let isEmojiMode = false;
+        
+        // Для "другой картинки" храним последний запрос и альтернативные URL
+        let lastSearchQuery = "";
+        let alternativeUrls = [];     // массив url для текущего слова
+        let altIndex = -1;            // индекс текущей показываемой картинки
+        
+        // Коллекция для клипа (коллаж -> видео)
+        let clipItems = [];   // { url, word }
+        
+        // DOM элементы
+        const spokenWordSpan = document.getElementById('spokenWord');
+        const resultImage = document.getElementById('resultImage');
+        const imagePlaceholder = document.getElementById('imagePlaceholder');
+        const resetBtn = document.getElementById('resetBtn');
+        const nextImageBtn = document.getElementById('nextImageBtn');
+        const saveSingleBtn = document.getElementById('saveSingleBtn');
+        const collageGrid = document.getElementById('collageGrid');
+        const collageCountSpan = document.getElementById('collageCount');
+        const makeVideoBtn = document.getElementById('makeVideoBtn');
+        const clearCollageBtn = document.getElementById('clearCollageBtn');
+        const toastEl = document.getElementById('toastMsg');
+        
+        function showToast(msg, isError = false) {
+            toastEl.textContent = msg;
+            toastEl.style.background = isError ? '#b71c1c' : '#2e7d32';
+            toastEl.style.opacity = '1';
+            setTimeout(() => { toastEl.style.opacity = '0'; }, 2500);
+        }
+        
+        // Рендер коллекции для клипа
+        function renderClipCollection() {
+            collageGrid.innerHTML = "";
+            if (clipItems.length === 0) {
+                collageGrid.innerHTML = '<div class="empty-collage">✨ Добавь картинки: скажи "добавить" ✨</div>';
+                collageCountSpan.innerText = "0";
+                return;
+            }
+            collageCountSpan.innerText = clipItems.length;
+            clipItems.forEach((item, idx) => {
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.classList.add('collage-item');
+                img.alt = item.word;
+                img.title = `${item.word} (нажми, чтобы убрать)`;
+                img.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    clipItems.splice(idx, 1);
+                    renderClipCollection();
+                    showToast(`🗑️ Убрали "${item.word}" из коллекции`, false);
+                });
+                collageGrid.appendChild(img);
+            });
+            const hintSpan = document.createElement('div');
+            hintSpan.style.fontSize = '0.6rem';
+            hintSpan.style.color = '#ab8a54';
+            hintSpan.style.width = '100%';
+            hintSpan.style.textAlign = 'center';
+            hintSpan.innerText = '👆 нажми на картинку, чтобы удалить';
+            collageGrid.appendChild(hintSpan);
+        }
+        
+        // Добавить текущую картинку в коллекцию для клипа
+        function addCurrentToClip() {
+            if (!currentImageUrl || isEmojiMode || !currentWord) {
+                showToast("Сначала скажи слово, чтобы появилась настоящая картинка! 🖼️", true);
+                return false;
+            }
+            clipItems.push({ url: currentImageUrl, word: currentWord });
+            renderClipCollection();
+            showToast(`➕ "${currentWord}" добавлен в коллекцию для клипа!`, false);
+            return true;
+        }
+        
+        // ---- ПОИСК КАРТИНОК (Wikimedia) с возможностью нескольких результатов ----
+        async function searchImagesForWord(query, maxResults = 5) {
+            const clean = encodeURIComponent(query.trim().toLowerCase());
+            const wikiApi = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*&gsrlimit=${maxResults}`;
+            try {
+                const res = await fetch(wikiApi);
+                const data = await res.json();
+                let urls = [];
+                if (data.query && data.query.pages) {
+                    for (let id in data.query.pages) {
+                        const page = data.query.pages[id];
+                        if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
+                            let imgUrl = page.imageinfo[0].url;
+                            if (imgUrl.startsWith('http://')) imgUrl = imgUrl.replace('http://', 'https://');
+                            urls.push(imgUrl);
+                        }
+                    }
+                }
+                return { success: urls.length > 0, urls };
+            } catch (e) {
+                return { success: false, urls: [] };
+            }
+        }
+        
+        function showEmojiFallback(query) {
+            const emojiMap = {
+                'кот':'🐱','кошка':'🐱','собака':'🐶','пес':'🐶','слон':'🐘','жираф':'🦒','лев':'🦁','тигр':'🐯',
+                'медведь':'🐻','машина':'🚗','автомобиль':'🚙','самолет':'✈️','ракета':'🚀','пицца':'🍕','бургер':'🍔',
+                'мороженое':'🍦','яблоко':'🍎','банан':'🍌','мяч':'⚽','робот':'🤖','единорог':'🦄','динозавр':'🦖','космос':'🌌'
+            };
+            let emoji = '🖼️';
+            const low = query.toLowerCase();
+            for (let [k, v] of Object.entries(emojiMap)) {
+                if (low.includes(k)) { emoji = v; break; }
+            }
+            imagePlaceholder.style.display = "flex";
+            imagePlaceholder.innerHTML = `<div style="font-size: 4rem;">${emoji}</div><div style="font-size:1.4rem;">${query}</div><div style="font-size:0.7rem;">🎨 Весёлый значок</div>`;
+            resultImage.style.display = "none";
+            isEmojiMode = true;
+            currentImageUrl = "";
+            currentWord = query;
+            alternativeUrls = [];
+            altIndex = -1;
+        }
+        
+        async function setPictureByUrl(url, word) {
+            if (!url) return false;
+            currentImageUrl = url;
+            currentWord = word;
+            isEmojiMode = false;
+            resultImage.src = url;
+            resultImage.style.display = "block";
+            imagePlaceholder.style.display = "none";
+            // обработчик ошибки загрузки
+            resultImage.onerror = () => {
+                if (resultImage.style.display !== "none") {
+                    resultImage.style.display = "none";
+                    showEmojiFallback(word);
+                }
+            };
+            return true;
+        }
+        
+        // Основная функция показа картинки с сохранением альтернатив
+        async function showPictureForWord(word, useSpecificIndex = -1) {
+            if (!word) return;
+            currentWord = word;
+            
+            // Если слово не изменилось и есть альтернативы — можно листать
+            if (word === lastSearchQuery && alternativeUrls.length > 0) {
+                let newIdx = (useSpecificIndex !== -1) ? useSpecificIndex : altIndex + 1;
+                if (newIdx >= alternativeUrls.length) newIdx = 0;
+                if (newIdx < 0) newIdx = 0;
+                altIndex = newIdx;
+                const newUrl = alternativeUrls[altIndex];
+                if (newUrl) {
+                    await setPictureByUrl(newUrl, word);
+                    showToast(`🖼️ Другая картинка для "${word}" (${altIndex+1}/${alternativeUrls.length})`, false);
+                    return;
+                }
+            }
+            
+            // Новый поиск
+            imagePlaceholder.style.display = "flex";
+            imagePlaceholder.innerHTML = `<div style="font-size:1.6rem;">🔍 Ищу ${word} ...</div>`;
+            resultImage.style.display = "none";
+            currentImageUrl = "";
+            
+            const searchRes = await searchImagesForWord(word, 8);
+            if (searchRes.success && searchRes.urls.length > 0) {
+                alternativeUrls = searchRes.urls;
+                altIndex = 0;
+                lastSearchQuery = word;
+                await setPictureByUrl(alternativeUrls[0], word);
+            } else {
+                alternativeUrls = [];
+                altIndex = -1;
+                lastSearchQuery = "";
+                showEmojiFallback(word);
+            }
+        }
+        
+        // Получить следующую альтернативную картинку для текущего слова
+        async function nextAlternativePicture() {
+            if (!lastSearchQuery || alternativeUrls.length === 0) {
+                if (currentWord) {
+                    // если есть текущее слово, перезапускаем поиск с новым запросом
+                    await showPictureForWord(currentWord);
+                } else {
+                    showToast("Сначала скажи слово", true);
+                }
+                return;
+            }
+            // листаем дальше
+            let nextIdx = altIndex + 1;
+            if (nextIdx >= alternativeUrls.length) nextIdx = 0;
+            altIndex = nextIdx;
+            await setPictureByUrl(alternativeUrls[altIndex], lastSearchQuery);
+            showToast(`🎲 Другая картинка "${lastSearchQuery}" (${altIndex+1}/${alternativeUrls.length})`, false);
+        }
+        
+        // ---------- ВИДЕО-КЛИП ИЗ КАРТИНОК ----------
+        async function createVideoFromClip() {
+            if (clipItems.length === 0) {
+                showToast("Нет картинок! Добавь хотя бы одну через «добавить»", true);
+                return;
+            }
+            if (clipItems.length > 12) {
+                showToast("Много картинок, клип будет долгим, но сделаем! 🎬", false);
+            }
+            showToast("🎬 Создаём клип... подожди немного", false);
+            
+            // Используем MediaRecorder + canvas + аудиодорожка (тишина + возможно звук)
+            // Создаём поток из canvas, добавляем каждый слайд по 5 секунд
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const durationPerSlide = 5; // 5 секунд
+            const fps = 30;
+            const width = 1024;
+            const height = 768;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Загружаем все изображения
+            const loadImage = (url) => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.crossOrigin = "Anonymous";
+                    img.src = url;
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error(`Ошибка загрузки: ${url}`));
+                });
+            };
+            
+            let loadedImages = [];
+            try {
+                loadedImages = await Promise.all(clipItems.map(item => loadImage(item.url)));
+            } catch(e) {
+                showToast("Не удалось загрузить некоторые картинки для клипа", true);
+                return;
+            }
+            
+            const totalFrames = Math.ceil(clipItems.length * durationPerSlide * fps);
+            let frameIndex = 0;
+            let slideIndex = 0;
+            let frameInSlide = 0;
+            const framesPerSlide = durationPerSlide * fps;
+            
+            // Настройка записи
+            const stream = canvas.captureStream(fps);
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            let chunks = [];
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+            
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `клип_${Date.now()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast("🎉 Клип готов и сохранён! Смотри в папке Загрузки", false);
+                chunks = [];
+            };
+            
+            mediaRecorder.start(100);
+            
+            function drawSlide(img, word, progressPercent) {
+                ctx.fillStyle = "#FFF0D4";
+                ctx.fillRect(0, 0, width, height);
+                // Рамка
+                ctx.strokeStyle = "#FFB347";
+                ctx.lineWidth = 12;
+                ctx.strokeRect(15, 15, width-30, height-30);
+                
+                // Рисуем картинку по центру с сохранением пропорций
+                const maxW = width - 100;
+                const maxH = height - 180;
+                let drawW = img.width;
+                let drawH = img.height;
+                if (drawW > maxW) { drawH = (drawH * maxW) / drawW; drawW = maxW; }
+                if (drawH > maxH) { drawW = (drawW * maxH) / drawH; drawH = maxH; }
+                const x = (width - drawW)/2;
+                const y = (height - drawH)/2 - 20;
+                ctx.drawImage(img, x, y, drawW, drawH);
+                
+                // Подпись слова
+                ctx.font = "bold 46px 'Comic Sans MS', 'Comic Neue'";
+                ctx.fillStyle = "#C26B00";
+                ctx.shadowBlur = 0;
+                ctx.fillText(`✨ ${word} ✨`, width/2 - ctx.measureText(`✨ ${word} ✨`).width/2, height - 50);
+                
+                // Прогресс-бар
+                const barWidth = width - 100;
+                const barX = 50;
+                const barY = height - 20;
+                ctx.fillStyle = "#FFDDAA";
+                ctx.fillRect(barX, barY, barWidth, 12);
+                ctx.fillStyle = "#FF8C42";
+                ctx.fillRect(barX, barY, barWidth * (progressPercent / 100), 12);
+                
+                // Номер слайда
+                ctx.font = "24px monospace";
+                ctx.fillStyle = "#9b6a3b";
+                ctx.fillText(`${slideIndex+1} / ${clipItems.length}`, 30, 70);
+            }
+            
+            function animateFrame() {
+                if (!mediaRecorder || mediaRecorder.state !== 'recording') return;
+                if (slideIndex >= clipItems.length) {
+                    mediaRecorder.stop();
+                    return;
+                }
+                const img = loadedImages[slideIndex];
+                const slideProgress = (frameInSlide / framesPerSlide) * 100;
+                drawSlide(img, clipItems[slideIndex].word, slideProgress);
+                
+                frameIndex++;
+                frameInSlide++;
+                if (frameInSlide >= framesPerSlide) {
+                    frameInSlide = 0;
+                    slideIndex++;
+                }
+                requestAnimationFrame(() => {
+                    setTimeout(animateFrame, 1000 / fps);
+                });
+            }
+            
+            animateFrame();
+            
+            // Таймер принудительной остановки (макс длина)
+            setTimeout(() => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, (clipItems.length * durationPerSlide + 1) * 1000);
+        }
+        
+        // ---------- ОБРАБОТКА ГОЛОСОВЫХ КОМАНД ----------
+        async function processVoiceCommand(phrase) {
+            const lower = phrase.toLowerCase().trim();
+            // добавить в коллекцию
+            if (lower.includes("добавить") || lower === "добавь" || lower.includes("в коллекцию") || lower === "+") {
+                await addCurrentToClip();
+                return true;
+            }
+            // другая картинка / ещё
+            if (lower.includes("другая") || lower.includes("ещё") || lower.includes("другую") || lower === "следующая") {
+                await nextAlternativePicture();
+                return true;
+            }
+            // сделать клип
+            if (lower.includes("сделай клип") || lower.includes("создай клип") || lower === "клип" || lower.includes("запиши клип")) {
+                await createVideoFromClip();
+                return true;
+            }
+            // очистить коллекцию
+            if (lower.includes("очисти коллекцию") || lower.includes("очисти всё") || lower === "очистить клип") {
+                clipItems = [];
+                renderClipCollection();
+                showToast("🧹 Коллекция очищена!", false);
+                return true;
+            }
+            // сохранить текущую картинку (одиночную)
+            if (lower.includes("сохрани картинку") || lower.includes("скачай эту") || lower === "сохранить") {
+                if (currentImageUrl && !isEmojiMode) {
+                    try {
+                        const resp = await fetch(currentImageUrl, { mode: 'cors' });
+                        const blob = await resp.blob();
+                        const link = document.createElement('a');
+                        const blobUrl = URL.createObjectURL(blob);
+                        link.href = blobUrl;
+                        link.download = `${currentWord}_${Date.now()}.jpg`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl);
+                        showToast(`✅ "${currentWord}" сохранён!`, false);
+                    } catch(e) { showToast("Не удалось сохранить", true); }
+                } else { showToast("Нет картинки для сохранения", true); }
+                return true;
+            }
+            return false;
+        }
+        
+        // -------- РАСПОЗНАВАНИЕ РЕЧИ ----------
+        function initSpeech() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                spokenWordSpan.innerText = "❌ браузер без голоса";
+                showToast("Браузер не поддерживает речь", true);
+                return;
+            }
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'ru-RU';
+            
+            recognition.onstart = () => { isRestarting = false; };
+            recognition.onerror = (event) => {
+                if (event.error === 'not-allowed') {
+                    spokenWordSpan.innerText = "🔇 Нет доступа к микрофону";
+                    showToast("Разрешите микрофон для игры!", true);
+                } else if (event.error !== 'no-speech' && isActive) {
+                    setTimeout(() => { if (isActive && recognition) recognition?.start(); }, 1000);
+                }
+            };
+            recognition.onend = () => {
+                if (isActive && !isRestarting) {
+                    isRestarting = true;
+                    setTimeout(() => {
+                        if (isActive && recognition) try { recognition.start(); } catch(e) {}
+                        isRestarting = false;
+                    }, 400);
+                }
+            };
+            recognition.onresult = async (event) => {
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    let text = event.results[i][0].transcript.trim();
+                    if (text.length > 0) {
+                        spokenWordSpan.innerText = `"${text}"`;
+                        const isCmd = await processVoiceCommand(text);
+                        if (!isCmd) {
+                            await showPictureForWord(text);
+                        }
+                    }
+                }
+            };
+            try { recognition.start(); } catch(e) {}
+        }
+        
+        // ---------- КНОПКИ ----------
+        resetBtn.addEventListener('click', () => {
+            imagePlaceholder.style.display = "flex";
+            imagePlaceholder.innerHTML = "🖼️ <br>✨ Скажи новое слово ✨";
+            resultImage.style.display = "none";
+            currentImageUrl = "";
+            currentWord = "";
+            isEmojiMode = false;
+            alternativeUrls = [];
+            lastSearchQuery = "";
+            showToast("Очищено! Говори слово", false);
+        });
+        
+        nextImageBtn.addEventListener('click', () => {
+            nextAlternativePicture();
+        });
+        
+        saveSingleBtn.addEventListener('click', async () => {
+            if (currentImageUrl && !isEmojiMode) {
+                try {
+                    const resp = await fetch(currentImageUrl, { mode: 'cors' });
+                    const blob = await resp.blob();
+                    const a = document.createElement('a');
+                    const urlBlob = URL.createObjectURL(blob);
+                    a.href = urlBlob;
+                    a.download = `${currentWord || 'картинка'}.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(urlBlob);
+                    showToast(`💾 "${currentWord}" сохранён!`, false);
+                } catch(e) { showToast("Не удалось сохранить", true); }
+            } else { showToast("Нет настоящей картинки", true); }
+        });
+        
+        makeVideoBtn.addEventListener('click', () => createVideoFromClip());
+        clearCollageBtn.addEventListener('click', () => {
+            clipItems = [];
+            renderClipCollection();
+            showToast("🧹 Коллекция для клипа очищена", false);
+        });
+        
+        window.addEventListener('load', () => {
+            initSpeech();
+            renderClipCollection();
+        });
+        
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2*r) r = w/2;
+                if (h < 2*r) r = h/2;
+                this.moveTo(x+r, y);
+                this.lineTo(x+w-r, y);
+                this.quadraticCurveTo(x+w, y, x+w, y+r);
+                this.lineTo(x+w, y+h-r);
+                this.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+                this.lineTo(x+r, y+h);
+                this.quadraticCurveTo(x, y+h, x, y+h-r);
+                this.lineTo(x, y+r);
+                this.quadraticCurveTo(x, y, x+r, y);
+                return this;
+            };
+        }
+    })();
+</script>
+</body>
+</html>
