@@ -1,599 +1,715 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Объединитель аудио и видео — ГОТОВО ДЛЯ TELEGRAM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🎙️ Голосовой календарь — создай свой календарь с картинками!</title>
     <style>
         * {
+            user-select: none;
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
             min-height: 100vh;
+            background: linear-gradient(145deg, #1e5f8e 0%, #0d3b55 100%);
+            font-family: 'Comic Neue', 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', system-ui, sans-serif;
+            padding: 20px 16px;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        .game-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: rgba(255, 248, 225, 0.92);
+            border-radius: 72px;
+            padding: 24px 20px 30px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4);
         }
 
         h1 {
+            font-size: 1.9rem;
+            margin: 0 0 6px 0;
+            color: #ffdd77;
+            text-shadow: 3px 3px 0 #c26b00;
             text-align: center;
-            margin-bottom: 10px;
-            color: #2d3748;
         }
 
-        .subtitle {
+        .sub {
+            background: #f5e7d3;
+            display: inline-block;
+            padding: 6px 24px;
+            border-radius: 40px;
+            color: #4a2e1f;
+            font-weight: bold;
+            margin-bottom: 18px;
             text-align: center;
-            color: #718096;
-            margin-bottom: 30px;
+            width: auto;
         }
 
-        .upload-section {
+        /* Верхняя панель — календарная сетка с картинками */
+        .calendar-header-area {
+            background: #fef3e2;
+            border-radius: 56px;
+            padding: 18px 16px 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+
+        .calendar-title h2 {
+            margin: 0;
+            font-size: 1.7rem;
+            color: #b45f1b;
+        }
+
+        .month-badge {
+            background: #ffaa33;
+            border-radius: 50px;
+            padding: 6px 18px;
+            font-weight: bold;
+            color: #3d2a1a;
+        }
+
+        /* Сетка календаря 7x6 (дни недели + ячейки) */
+        .calendar-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            background: #fff4e6;
+            border-radius: 48px;
+            padding: 12px;
         }
 
-        @media (max-width: 768px) {
-            .upload-section {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .upload-box {
-            border: 3px dashed #cbd5e0;
-            border-radius: 15px;
-            padding: 40px 20px;
+        .weekday {
             text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            background: #f8fafc;
+            font-weight: bold;
+            background: #ffdca8;
+            border-radius: 32px;
+            padding: 8px 4px;
+            font-size: 0.9rem;
+            color: #5c381c;
         }
 
-        .upload-box:hover {
-            border-color: #667eea;
-            background: #edf2f7;
-        }
-
-        .upload-box.active {
-            border-color: #48bb78;
-            background: #f0fff4;
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            color: #a0aec0;
-        }
-
-        .upload-box.active .upload-icon {
-            color: #48bb78;
-        }
-
-        .file-info {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #718096;
-        }
-
-        .controls {
+        .calendar-day {
+            background: white;
+            border-radius: 28px;
+            min-height: 90px;
+            padding: 8px 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            transition: 0.1s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            margin: 30px 0;
+            text-align: center;
+            position: relative;
         }
 
-        .format-selector {
-            background: #f7fafc;
-            padding: 15px;
-            border-radius: 10px;
+        .day-number {
+            font-weight: bold;
+            font-size: 1.2rem;
+            background: #ffefcf;
+            display: inline-block;
+            width: 32px;
+            border-radius: 40px;
+            margin-bottom: 6px;
+            color: #a05e1a;
+        }
+
+        .day-image {
+            max-width: 48px;
+            max-height: 48px;
+            object-fit: cover;
+            border-radius: 16px;
+            margin-top: 4px;
+            border: 2px solid #ffcd94;
+            background: #fdf5e6;
+            cursor: pointer;
+        }
+
+        .empty-day-img {
+            font-size: 1.6rem;
+            opacity: 0.5;
+            cursor: pointer;
+        }
+
+        /* Основная игровая зона (микрофон + картинка) */
+        .mic-picture-panel {
+            background: #fff7ea;
+            border-radius: 64px;
+            padding: 18px 22px;
+            margin-bottom: 24px;
             display: flex;
-            gap: 20px;
-            justify-content: center;
             flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .format-option {
+        .mic-area {
+            flex: 1;
+            min-width: 220px;
+            background: #2b2b2b;
+            border-radius: 80px;
+            padding: 12px 18px;
+            color: white;
+        }
+
+        .led-status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.2s;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: space-between;
         }
 
-        .format-option input {
-            cursor: pointer;
+        .led-light {
+            width: 14px;
+            height: 14px;
+            border-radius: 14px;
+            background-color: #4caf50;
+            box-shadow: 0 0 12px #4caf50;
+            animation: pulse 1.2s infinite;
+            display: inline-block;
         }
 
-        .format-option:hover {
-            background: #edf2f7;
+        @keyframes pulse {
+            0% { opacity: 0.4; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1.2);}
         }
 
-        .format-badge {
-            font-weight: 600;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-        }
-
-        .telegram-badge {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
+        .spoken-bubble {
+            background: #fff0d0;
             border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 12px 16px;
+            font-weight: bold;
+            color: #b45f1b;
+            text-align: center;
+            margin: 12px 0;
+            font-size: 1.2rem;
+        }
+
+        .preview-card {
+            flex: 1;
+            background: #e9e2d0;
+            border-radius: 60px;
+            padding: 16px;
+            text-align: center;
             min-width: 200px;
         }
 
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .progress-container {
-            width: 100%;
-            max-width: 500px;
-            background: #e2e8f0;
-            border-radius: 10px;
-            overflow: hidden;
-            height: 20px;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #4caf50, #8bc34a);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        .status {
-            text-align: center;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 10px;
-            background: #f8fafc;
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .preview-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        @media (max-width: 768px) {
-            .preview-section {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .preview-box {
-            border-radius: 10px;
-            overflow: hidden;
-            background: #1a202c;
-        }
-
-        .preview-box h3 {
-            background: #2d3748;
-            color: white;
-            padding: 10px;
-            margin: 0;
-            text-align: center;
-        }
-
-        video, audio {
-            width: 100%;
-            display: block;
-            max-height: 300px;
-        }
-
-        .download-section {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .loader {
-            display: none;
-            width: 40px;
-            height: 40px;
+        .preview-img {
+            max-width: 140px;
+            max-height: 140px;
+            border-radius: 40px;
+            object-fit: contain;
             margin: 0 auto;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 12px;
         }
 
-        .format-info {
-            background: #e6f7ff;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid #1890ff;
+        button {
+            background: #ffaa33;
+            border: none;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 8px 18px;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #b4621a;
+            transition: 0.07s linear;
         }
 
-        .warning-info {
-            background: #fff3e0;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            border-left: 4px solid #ff9800;
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #b4621a;
         }
 
-        .tips {
-            font-size: 14px;
-            color: #666;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #eaeaea;
+        .collage-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 12px;
+            flex-wrap: wrap;
         }
 
-        .compatibility-badge {
-            display: inline-block;
-            background: #48bb78;
+        .toast-msg {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2e7d32;
             color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-left: 8px;
+            padding: 10px 22px;
+            border-radius: 50px;
+            font-weight: bold;
+            z-index: 999;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 780px) {
+            .calendar-grid { gap: 5px; }
+            .calendar-day { min-height: 70px; padding: 4px; }
+            .day-image { max-width: 38px; max-height: 38px; }
+            .day-number { font-size: 0.9rem; width: 26px; }
+            .toast-msg { white-space: normal; width: 80%; text-align: center; }
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #fff0cf;
+            font-size: 0.7rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎬 Объединитель аудио и видео</h1>
-        <p class="subtitle">Создаёт видео, которые 100% откроются в Telegram</p>
-        
-        <div class="warning-info">
-            <strong>📱 ДЛЯ TELEGRAM:</strong><br>
-            • Видео будет сохранено в формате <strong>MP4 (H.264 + AAC)</strong> — единственный формат, который гарантированно работает в Telegram<br>
-            • После скачивания отправьте файл в Telegram как <strong>файл</strong> (не как сжатое видео)<br>
-            • Размер не должен превышать <strong>2 ГБ</strong> для обычной отправки<br>
-            • Видео будет полностью совместимо с iOS, Android и Desktop версиями Telegram
-        </div>
 
-        <div class="upload-section">
-            <div class="upload-box" id="videoUpload">
-                <div class="upload-icon">📹</div>
-                <h3>Загрузите видео</h3>
-                <p>Любое видео (лучше MP4 или WebM)</p>
-                <input type="file" id="videoInput" accept=".webm,.mp4,.mov,.avi,video/*" hidden>
-                <div class="file-info" id="videoInfo"></div>
+<div class="game-container">
+    <h1>📅🎤 Голосовой КАЛЕНДАРЬ</h1>
+    <div style="text-align:center;"><span class="sub">🐣 Скажи слово → картинка → нажми на день → картинка в календаре!</span></div>
+
+    <!-- КАЛЕНДАРЬ С КАРТИНКАМИ -->
+    <div class="calendar-header-area">
+        <div class="calendar-title">
+            <h2>📆 Апрель 2026</h2>
+            <div class="month-badge">🗣️ "добавить на 15 число"</div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid">
+            <!-- дни недели и ячейки будут заполнены скриптом -->
+        </div>
+        <div style="font-size:0.7rem; text-align:center; margin-top: 12px;">⭐ Нажми на любую картинку в календаре, чтобы удалить её</div>
+    </div>
+
+    <!-- ЗОНА МИКРОФОНА И ПРЕВЬЮ -->
+    <div class="mic-picture-panel">
+        <div class="mic-area">
+            <div class="led-status">
+                <div><span class="led-light"></span> 🎙️ Микрофон всегда слушает</div>
+                <div>🗣️ русский язык</div>
             </div>
+            <div class="spoken-bubble">💬 <span id="spokenWord">скажи слово...</span> 💬</div>
+            <div style="font-size:0.75rem; text-align:center;">✅ «добавить на 5» / «на 21 число» / «очистить календарь»</div>
+        </div>
 
-            <div class="upload-box" id="audioUpload">
-                <div class="upload-icon">🎵</div>
-                <h3>Загрузите аудио</h3>
-                <p>MP3, AAC, WAV, M4A</p>
-                <input type="file" id="audioInput" accept=".mp3,.aac,.wav,.m4a,audio/*" hidden>
-                <div class="file-info" id="audioInfo"></div>
+        <div class="preview-card">
+            <div style="font-weight:bold; margin-bottom:6px;">✨ Текущая картинка ✨</div>
+            <div id="previewContainer">
+                <div id="imagePlaceholder" style="font-size:1.2rem; color:#aa7c48;">🖼️ Скажи слово</div>
+                <img id="previewImage" class="preview-img" style="display:none;" alt="превью">
             </div>
-        </div>
-
-        <div class="controls">
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar" id="progressBar"></div>
+            <div class="button-group">
+                <button id="clearPreviewBtn">🔄 Очистить</button>
+                <button id="downloadSingleBtn">💾 Скачать картинку</button>
             </div>
-            
-            <button id="mergeBtn" disabled>Объединить для Telegram</button>
-            <div class="loader" id="loader"></div>
-        </div>
-
-        <div class="status" id="status">
-            Ожидание загрузки файлов...
-        </div>
-
-        <div class="preview-section">
-            <div class="preview-box">
-                <h3>Предпросмотр видео</h3>
-                <video id="videoPreview" controls></video>
-            </div>
-            <div class="preview-box">
-                <h3>Предпросмотр аудио</h3>
-                <audio id="audioPreview" controls></audio>
-            </div>
-        </div>
-
-        <div class="download-section" id="downloadSection" style="display: none;">
-            <a id="downloadLink" download="telegram_video.mp4">
-                <button>⬇ Скачать для Telegram</button>
-            </a>
-        </div>
-
-        <div class="tips">
-            <strong>💡 Важно для Telegram:</strong><br>
-            1. После скачивания отправьте файл через значок 📎 (скрепка) → "Файл"<br>
-            2. Не отправляйте как "Сжатое видео" — Telegram может его перекодировать<br>
-            3. Если видео не открывается в Telegram на телефоне, попробуйте:<br>
-            &nbsp;&nbsp;&nbsp;• Перезапустить приложение Telegram<br>
-            &nbsp;&nbsp;&nbsp;• Очистить кэш Telegram (Настройки → Данные и память → Использование памяти)<br>
-            &nbsp;&nbsp;&nbsp;• Открыть через внешний плеер (долгое нажатие → "Открыть вне Telegram")<br>
-            4. Видео с разрешением до 1080p и частотой 30 fps работают лучше всего
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/ffmpeg.js@4.2.9003/ffmpeg-mp4.min.js"></script>
-    <script>
-        class VideoAudioMergerForTelegram {
-            constructor() {
-                this.videoFile = null;
-                this.audioFile = null;
-                this.ffmpeg = null;
+    <!-- Панель быстрых команд -->
+    <div class="collage-actions">
+        <button id="exportCalendarBtn" style="background:#6c9e4d;">📸 Сохранить календарь как картинку</button>
+        <button id="clearAllCalendarBtn" style="background:#c27e3a;">🗑️ Очистить весь календарь</button>
+    </div>
+    <footer>
+        🎤 Скажи слово → появится картинка. Затем скажи «добавить на [число]» → картинка встанет на выбранный день!<br>
+        Примеры: «добавить на 12», «на 3 число», «поставь на 25», «очисти календарь».
+    </footer>
+</div>
+<div id="toastMsg" class="toast-msg">✨</div>
+
+<script>
+    // ------------------- КАЛЕНДАРЬ (апрель 2026) -------------------
+    const year = 2026;
+    const month = 3; // апрель (0-индекс: 3 = апрель)
+    const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    
+    function getDaysInMonth(year, month) {
+        return new Date(year, month + 1, 0).getDate();
+    }
+    
+    function getFirstDayIndex(year, month) {
+        // возвращает номер дня недели (0 = воскресенье, но нам удобнее понедельник первым)
+        let firstDay = new Date(year, month, 1).getDay();
+        // преобразуем: в русском календаре первый день - понедельник (1)
+        // в JS воскресенье=0, понедельник=1... суббота=6
+        // хотим понедельник = 0 в сетке
+        return firstDay === 0 ? 6 : firstDay - 1;
+    }
+    
+    // Данные календаря: для каждого дня (1..30) храним объект { imageUrl, word, dayNumber }
+    let calendarData = {}; // key: день (число) -> { url, word }
+    
+    // Текущее превью (последняя полученная картинка)
+    let currentImageUrl = "";
+    let currentWord = "";
+    let isEmojiMode = false;
+    
+    // DOM элементы
+    const calendarGridDiv = document.getElementById('calendarGrid');
+    const spokenWordSpan = document.getElementById('spokenWord');
+    const previewImage = document.getElementById('previewImage');
+    const imagePlaceholderDiv = document.getElementById('imagePlaceholder');
+    const clearPreviewBtn = document.getElementById('clearPreviewBtn');
+    const downloadSingleBtn = document.getElementById('downloadSingleBtn');
+    const exportCalendarBtn = document.getElementById('exportCalendarBtn');
+    const clearAllCalendarBtn = document.getElementById('clearAllCalendarBtn');
+    const toastEl = document.getElementById('toastMsg');
+    
+    function showToast(msg, isError = false) {
+        toastEl.textContent = msg;
+        toastEl.style.background = isError ? '#b71c1c' : '#2e7d32';
+        toastEl.style.opacity = '1';
+        setTimeout(() => { toastEl.style.opacity = '0'; }, 2300);
+    }
+    
+    // отрисовка календаря
+    function renderCalendar() {
+        const daysInMonth = getDaysInMonth(year, month);
+        const startOffset = getFirstDayIndex(year, month);
+        const totalCells = 42; // 6 недель
+        calendarGridDiv.innerHTML = '';
+        // заголовки дней недели (пн, вт, ср, чт, пт, сб, вс)
+        const weekdays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'];
+        weekdays.forEach(day => {
+            const weekdayDiv = document.createElement('div');
+            weekdayDiv.className = 'weekday';
+            weekdayDiv.innerText = day;
+            calendarGridDiv.appendChild(weekdayDiv);
+        });
+        
+        for (let i = 0; i < totalCells; i++) {
+            const dayNumber = i - startOffset + 1;
+            const isValid = (dayNumber >= 1 && dayNumber <= daysInMonth);
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'calendar-day';
+            
+            if (isValid) {
+                const numberSpan = document.createElement('div');
+                numberSpan.className = 'day-number';
+                numberSpan.innerText = dayNumber;
+                dayDiv.appendChild(numberSpan);
                 
-                this.init();
-            }
-
-            init() {
-                this.setupFileUploads();
-                this.setupMergeButton();
-                this.loadFFmpeg();
-            }
-
-            async loadFFmpeg() {
-                this.updateStatus('Загрузка FFmpeg...', 'processing');
-                try {
-                    this.ffmpeg = createFFmpeg({ log: false });
-                    await this.ffmpeg.load();
-                    this.updateStatus('FFmpeg загружен! Загрузите файлы', 'success');
-                } catch (error) {
-                    console.error('FFmpeg load error:', error);
-                    this.updateStatus('Ошибка загрузки FFmpeg. Обновите страницу', 'error');
+                const data = calendarData[dayNumber];
+                if (data && data.url) {
+                    const img = document.createElement('img');
+                    img.src = data.url;
+                    img.className = 'day-image';
+                    img.alt = data.word || 'картинка';
+                    img.title = `${data.word || 'картинка'} (нажми, чтобы удалить)`;
+                    img.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        delete calendarData[dayNumber];
+                        renderCalendar();
+                        showToast(`🗑️ Удалили картинку с ${dayNumber} апреля`, false);
+                    });
+                    dayDiv.appendChild(img);
+                    const caption = document.createElement('div');
+                    caption.style.fontSize = '0.6rem';
+                    caption.style.color = '#b87c3a';
+                    caption.innerText = data.word?.slice(0, 12) || '';
+                    dayDiv.appendChild(caption);
+                } else {
+                    const emptyIcon = document.createElement('div');
+                    emptyIcon.className = 'empty-day-img';
+                    emptyIcon.innerHTML = '🖼️+';
+                    emptyIcon.style.fontSize = '1.3rem';
+                    emptyIcon.title = 'скажи "добавить на число"';
+                    dayDiv.appendChild(emptyIcon);
                 }
-            }
-
-            setupFileUploads() {
-                const videoUpload = document.getElementById('videoUpload');
-                const audioUpload = document.getElementById('audioUpload');
-                const videoInput = document.getElementById('videoInput');
-                const audioInput = document.getElementById('audioInput');
-
-                videoUpload.addEventListener('click', () => videoInput.click());
-                videoUpload.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    videoUpload.classList.add('active');
-                });
-                videoUpload.addEventListener('dragleave', () => {
-                    videoUpload.classList.remove('active');
-                });
-                videoUpload.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    videoUpload.classList.remove('active');
-                    if (e.dataTransfer.files[0]) {
-                        this.handleVideoFile(e.dataTransfer.files[0]);
+                // Добавляем возможность вставить картинку кликом (альтернативно)
+                dayDiv.style.cursor = 'pointer';
+                dayDiv.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'IMG') return;
+                    if (currentImageUrl && !isEmojiMode && currentWord) {
+                        // спросим через тост, но просто добавим на этот день
+                        calendarData[dayNumber] = { url: currentImageUrl, word: currentWord };
+                        renderCalendar();
+                        showToast(`✨ "${currentWord}" добавлена на ${dayNumber} апреля!`, false);
+                    } else {
+                        showToast('Сначала скажи слово, чтобы появилась картинка', true);
                     }
                 });
-
-                videoInput.addEventListener('change', (e) => {
-                    if (e.target.files[0]) {
-                        this.handleVideoFile(e.target.files[0]);
+            } else {
+                dayDiv.style.background = '#f2e4cf';
+                dayDiv.style.opacity = '0.5';
+                const fake = document.createElement('div');
+                fake.innerText = '';
+                dayDiv.appendChild(fake);
+            }
+            calendarGridDiv.appendChild(dayDiv);
+        }
+    }
+    
+    // Добавление картинки на конкретный день голосом
+    function addCurrentToDay(dayNumber) {
+        if (!currentImageUrl || isEmojiMode || !currentWord) {
+            showToast("Сначала получи картинку — скажи любое слово! 🎤", true);
+            return false;
+        }
+        if (dayNumber < 1 || dayNumber > 30) {
+            showToast(`В апреле нет ${dayNumber} числа 😅`, true);
+            return false;
+        }
+        calendarData[dayNumber] = { url: currentImageUrl, word: currentWord };
+        renderCalendar();
+        showToast(`✅ "${currentWord}" помещена на ${dayNumber} апреля!`, false);
+        return true;
+    }
+    
+    // Очистить весь календарь
+    function clearFullCalendar() {
+        calendarData = {};
+        renderCalendar();
+        showToast("🧹 Календарь полностью очищен! Добавляйте новые картинки.", false);
+    }
+    
+    // Экспорт календаря в PNG
+    async function exportCalendarAsImage() {
+        const calendarElement = document.querySelector('.calendar-header-area');
+        if (!calendarElement) return;
+        showToast("📸 Создаём снимок календаря...");
+        try {
+            const html2canvasLib = await import('https://cdn.skypack.dev/html2canvas@1.4.1');
+            const canvas = await html2canvasLib.default(calendarElement, {
+                scale: 2,
+                backgroundColor: '#fef3e2',
+                logging: false
+            });
+            const link = document.createElement('a');
+            link.download = `календарь_апрель_${year}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            showToast("📷 Календарь сохранён в галерею!", false);
+        } catch(err) {
+            console.warn(err);
+            showToast("Не удалось сделать снимок, но можно сохранить календарь вручную (скриншот)", true);
+        }
+    }
+    
+    // ---------- ПОИСК КАРТИНКИ (Wikimedia + эмодзи) ----------
+    async function fetchImageFromWiki(query) {
+        const clean = encodeURIComponent(query.trim().toLowerCase());
+        const api = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*`;
+        try {
+            const res = await fetch(api);
+            const data = await res.json();
+            if (data.query && data.query.pages) {
+                for (let id in data.query.pages) {
+                    const page = data.query.pages[id];
+                    if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
+                        let imgUrl = page.imageinfo[0].url;
+                        if (imgUrl.startsWith('http://')) imgUrl = imgUrl.replace('http://', 'https://');
+                        return { success: true, url: imgUrl };
                     }
-                });
-
-                audioUpload.addEventListener('click', () => audioInput.click());
-                audioUpload.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    audioUpload.classList.add('active');
-                });
-                audioUpload.addEventListener('dragleave', () => {
-                    audioUpload.classList.remove('active');
-                });
-                audioUpload.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    audioUpload.classList.remove('active');
-                    if (e.dataTransfer.files[0]) {
-                        this.handleAudioFile(e.dataTransfer.files[0]);
-                    }
-                });
-
-                audioInput.addEventListener('change', (e) => {
-                    if (e.target.files[0]) {
-                        this.handleAudioFile(e.target.files[0]);
-                    }
-                });
-            }
-
-            handleVideoFile(file) {
-                this.videoFile = file;
-                document.getElementById('videoInfo').textContent = 
-                    `📹 ${file.name} (${this.formatFileSize(file.size)})`;
-                
-                const preview = document.getElementById('videoPreview');
-                if (preview.src) URL.revokeObjectURL(preview.src);
-                preview.src = URL.createObjectURL(file);
-                preview.load();
-                
-                this.checkFilesReady();
-                this.updateStatus('Видео загружено. Теперь загрузите аудио');
-            }
-
-            handleAudioFile(file) {
-                this.audioFile = file;
-                document.getElementById('audioInfo').textContent = 
-                    `🎵 ${file.name} (${this.formatFileSize(file.size)})`;
-                
-                const preview = document.getElementById('audioPreview');
-                if (preview.src) URL.revokeObjectURL(preview.src);
-                preview.src = URL.createObjectURL(file);
-                preview.load();
-                
-                this.checkFilesReady();
-                this.updateStatus('Аудио загружено. Готово к объединению!');
-            }
-
-            checkFilesReady() {
-                const mergeBtn = document.getElementById('mergeBtn');
-                mergeBtn.disabled = !(this.videoFile && this.audioFile && this.ffmpeg);
-            }
-
-            setupMergeButton() {
-                document.getElementById('mergeBtn').addEventListener('click', () => {
-                    this.mergeForTelegram();
-                });
-            }
-
-            async mergeForTelegram() {
-                if (!this.videoFile || !this.audioFile) {
-                    this.updateStatus('Ошибка: Загрузите оба файла', 'error');
-                    return;
-                }
-
-                if (!this.ffmpeg) {
-                    this.updateStatus('FFmpeg ещё не загружен. Подождите...', 'error');
-                    return;
-                }
-
-                this.updateStatus('Начинаю обработку для Telegram... Это может занять 1-3 минуты', 'processing');
-                this.showLoader(true);
-                this.showProgress(true);
-                
-                try {
-                    // Читаем файлы
-                    const videoData = await this.readFile(this.videoFile);
-                    const audioData = await this.readFile(this.audioFile);
-                    
-                    // Записываем в виртуальную файловую систему FFmpeg
-                    this.ffmpeg.FS('writeFile', 'input_video', new Uint8Array(videoData));
-                    this.ffmpeg.FS('writeFile', 'input_audio', new Uint8Array(audioData));
-                    
-                    // Команда для создания Telegram-совместимого MP4
-                    // H.264 для видео, AAC для аудио, moov atom в начале файла (для быстрого старта)
-                    await this.ffmpeg.run(
-                        '-i', 'input_video',
-                        '-i', 'input_audio',
-                        '-c:v', 'libx264',        // Кодек H.264
-                        '-c:a', 'aac',             // Кодек AAC
-                        '-b:v', '2M',              // Битрейт видео 2 Mbps
-                        '-b:a', '128k',            // Битрейт аудио 128 kbps
-                        '-r', '30',                // 30 fps для лучшей совместимости
-                        '-pix_fmt', 'yuv420p',     // Пиксельный формат для совместимости
-                        '-profile:v', 'high',      // High profile для лучшего качества
-                        '-level', '4.0',           // Level 4.0 для 1080p
-                        '-movflags', '+faststart', // moov atom в начале (важно для Telegram!)
-                        '-shortest',               // Обрезаем по длине видео
-                        '-y',                      // Перезаписываем файл
-                        'output.mp4'
-                    );
-                    
-                    // Читаем результат
-                    const output = this.ffmpeg.FS('readFile', 'output.mp4');
-                    
-                    // Создаём blob и скачиваем
-                    const blob = new Blob([output.buffer], { type: 'video/mp4' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    // Обновляем превью
-                    const preview = document.getElementById('videoPreview');
-                    if (preview.src) URL.revokeObjectURL(preview.src);
-                    preview.src = url;
-                    preview.load();
-                    
-                    // Настраиваем скачивание
-                    const downloadLink = document.getElementById('downloadLink');
-                    downloadLink.href = url;
-                    downloadLink.download = `telegram_${Date.now()}.mp4`;
-                    
-                    document.getElementById('downloadSection').style.display = 'block';
-                    
-                    this.updateStatus(`✅ Готово для Telegram! Размер: ${this.formatFileSize(blob.size)}`, 'success');
-                    
-                } catch (error) {
-                    console.error('Ошибка при обработке:', error);
-                    this.updateStatus(`Ошибка: ${error.message}. Попробуйте другие файлы`, 'error');
-                } finally {
-                    this.showLoader(false);
-                    this.showProgress(false);
                 }
             }
-
-            readFile(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(file);
-                });
-            }
-
-            updateStatus(message, type = 'info') {
-                const statusElement = document.getElementById('status');
-                statusElement.textContent = message;
-                
-                statusElement.style.background = type === 'error' ? '#fed7d7' :
-                                                type === 'success' ? '#c6f6d5' :
-                                                type === 'processing' ? '#bee3f8' : '#f8fafc';
-                statusElement.style.color = type === 'error' ? '#c53030' :
-                                           type === 'success' ? '#276749' :
-                                           type === 'processing' ? '#2c5282' : '#333';
-            }
-
-            updateProgress(percent) {
-                const progressBar = document.getElementById('progressBar');
-                progressBar.style.width = `${Math.min(percent, 100)}%`;
-            }
-
-            showLoader(show) {
-                document.getElementById('loader').style.display = show ? 'block' : 'none';
-            }
-
-            showProgress(show) {
-                document.getElementById('progressContainer').style.display = show ? 'block' : 'none';
-                if (!show) {
-                    this.updateProgress(0);
-                }
-            }
-
-            formatFileSize(bytes) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            return { success: false };
+        } catch(e) {
+            return { success: false };
+        }
+    }
+    
+    function showEmojiPreview(word) {
+        const emojiMap = {
+            'кот': '🐱','кошка':'🐱','собака':'🐶','пес':'🐶','слон':'🐘','жираф':'🦒','лев':'🦁','тигр':'🐯',
+            'медведь':'🐻','машина':'🚗','автомобиль':'🚙','самолет':'✈️','ракета':'🚀','пицца':'🍕','бургер':'🍔',
+            'мороженое':'🍦','яблоко':'🍎','банан':'🍌','робот':'🤖','единорог':'🦄','динозавр':'🦖','солнце':'☀️','луна':'🌙'
+        };
+        let emoji = '🖼️';
+        const low = word.toLowerCase();
+        for (let [k, v] of Object.entries(emojiMap)) {
+            if (low.includes(k)) { emoji = v; break; }
+        }
+        imagePlaceholderDiv.style.display = 'block';
+        imagePlaceholderDiv.innerHTML = `<div style="font-size: 3rem;">${emoji}</div><div style="font-size:1rem;">${word}</div>`;
+        previewImage.style.display = 'none';
+        isEmojiMode = true;
+        currentImageUrl = "";
+        currentWord = word;
+    }
+    
+    async function showPictureForWord(word) {
+        if (!word) return;
+        currentWord = word;
+        isEmojiMode = false;
+        imagePlaceholderDiv.style.display = 'block';
+        imagePlaceholderDiv.innerHTML = `<div>🔍 Ищу ${word} ...</div>`;
+        previewImage.style.display = 'none';
+        currentImageUrl = "";
+        
+        const wikiRes = await fetchImageFromWiki(word);
+        if (wikiRes.success && wikiRes.url) {
+            currentImageUrl = wikiRes.url;
+            previewImage.src = currentImageUrl;
+            previewImage.style.display = 'block';
+            imagePlaceholderDiv.style.display = 'none';
+            previewImage.onerror = () => {
+                previewImage.style.display = 'none';
+                showEmojiPreview(word);
+            };
+        } else {
+            showEmojiPreview(word);
+        }
+    }
+    
+    // ---------- РАСПОЗНАВАНИЕ ГОЛОСА ----------
+    let recognition = null;
+    let isActive = true;
+    let isRestarting = false;
+    
+    function processVoiceCommand(phrase) {
+        const lower = phrase.toLowerCase().trim();
+        // Команда: добавить на число
+        const addMatch = lower.match(/(?:добавить|поставь|вставь|на)\s+(?:на\s+)?(\d{1,2})(?:\s*(?:число|день|апреля))?/i);
+        if (addMatch) {
+            let dayNum = parseInt(addMatch[1], 10);
+            if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 30) {
+                addCurrentToDay(dayNum);
+                return true;
+            } else {
+                showToast(`Некорректное число: ${dayNum}. В апреле 1–30`, true);
+                return true;
             }
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            new VideoAudioMergerForTelegram();
-        });
-    </script>
+        // очистить календарь
+        if (lower.includes("очисти календарь") || lower.includes("очистить календарь") || lower === "очистить всё") {
+            clearFullCalendar();
+            return true;
+        }
+        // сохранить календарь (скриншот)
+        if (lower.includes("сохрани календарь") || lower.includes("сделай снимок") || lower === "экспорт") {
+            exportCalendarAsImage();
+            return true;
+        }
+        // скачать текущую картинку
+        if (lower.includes("сохрани картинку") || lower.includes("скачай эту")) {
+            if (currentImageUrl && !isEmojiMode) {
+                fetch(currentImageUrl, { mode: 'cors' })
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const a = document.createElement('a');
+                        const urlBlob = URL.createObjectURL(blob);
+                        a.href = urlBlob;
+                        a.download = `${currentWord || 'picture'}.jpg`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(urlBlob);
+                        showToast(`💾 "${currentWord}" сохранена!`, false);
+                    })
+                    .catch(() => showToast("Не удалось сохранить, но можно через календарь", true));
+            } else {
+                showToast("Сначала получи картинку голосом", true);
+            }
+            return true;
+        }
+        // обычное слово — показать картинку
+        return false;
+    }
+    
+    function initSpeech() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            spokenWordSpan.innerText = "❌ Голос не поддерживается";
+            showToast("Ваш браузер не поддерживает распознавание речи", true);
+            return;
+        }
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'ru-RU';
+        recognition.maxAlternatives = 1;
+        
+        recognition.onstart = () => { isRestarting = false; };
+        recognition.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                spokenWordSpan.innerText = "🔇 Нет доступа к микрофону";
+                showToast("Разрешите микрофон для игры!", true);
+            } else if (event.error !== 'no-speech' && isActive) {
+                setTimeout(() => { if (isActive && recognition) recognition?.start(); }, 1000);
+            }
+        };
+        recognition.onend = () => {
+            if (isActive && !isRestarting) {
+                isRestarting = true;
+                setTimeout(() => {
+                    if (isActive && recognition) try { recognition.start(); } catch(e) {}
+                    isRestarting = false;
+                }, 400);
+            }
+        };
+        recognition.onresult = async (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                let text = event.results[i][0].transcript.trim();
+                if (text.length > 0) {
+                    spokenWordSpan.innerText = `"${text}"`;
+                    const isCommand = processVoiceCommand(text);
+                    if (!isCommand) {
+                        await showPictureForWord(text);
+                    }
+                }
+            }
+        };
+        try { recognition.start(); } catch(e) { console.warn(e); }
+    }
+    
+    // ---------- КНОПКИ ----------
+    clearPreviewBtn.addEventListener('click', () => {
+        imagePlaceholderDiv.style.display = 'block';
+        imagePlaceholderDiv.innerHTML = "🖼️ <br>✨ Скажи слово ✨";
+        previewImage.style.display = 'none';
+        currentImageUrl = "";
+        currentWord = "";
+        isEmojiMode = false;
+        showToast("Превью очищено", false);
+    });
+    
+    downloadSingleBtn.addEventListener('click', async () => {
+        if (currentImageUrl && !isEmojiMode) {
+            try {
+                const resp = await fetch(currentImageUrl, { mode: 'cors' });
+                const blob = await resp.blob();
+                const a = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                a.href = url;
+                a.download = `${currentWord || 'image'}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`💾 "${currentWord}" сохранён`, false);
+            } catch(e) { showToast("Ошибка сохранения, попробуй коллаж календаря", true); }
+        } else { showToast("Нет картинки для сохранения", true); }
+    });
+    
+    exportCalendarBtn.addEventListener('click', exportCalendarAsImage);
+    clearAllCalendarBtn.addEventListener('click', clearFullCalendar);
+    
+    // Инициализация
+    window.addEventListener('load', () => {
+        renderCalendar();
+        initSpeech();
+    });
+</script>
 </body>
 </html>
