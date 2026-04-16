@@ -148,6 +148,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ffmpeg-status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
         }
 
         .preview-section {
@@ -229,6 +237,20 @@
             font-size: 11px;
             margin-left: 8px;
         }
+
+        .ready-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            margin-right: 8px;
+        }
+
+        .ready-indicator.loaded {
+            background: #48bb78;
+            box-shadow: 0 0 5px #48bb78;
+        }
     </style>
 </head>
 <body>
@@ -267,12 +289,16 @@
                 <div class="progress-bar" id="progressBar"></div>
             </div>
             
-            <button id="mergeBtn" disabled>🎬 Объединить для Telegram</button>
+            <button id="mergeBtn" disabled>
+                <span class="ready-indicator" id="readyIndicator"></span>
+                🎬 Объединить для Telegram
+            </button>
             <div class="loader" id="loader"></div>
         </div>
 
         <div class="status" id="status">
-            ⏳ Ожидание загрузки файлов...
+            <div>⏳ Загрузка FFmpeg... Пожалуйста, подождите 10-20 секунд</div>
+            <div class="ffmpeg-status" id="ffmpegStatus">Загрузка 0%</div>
         </div>
 
         <div class="preview-section">
@@ -309,6 +335,7 @@
                 this.videoFile = null;
                 this.audioFile = null;
                 this.ffmpeg = null;
+                this.ffmpegLoaded = false;
                 
                 this.init();
             }
@@ -320,19 +347,44 @@
             }
 
             async loadFFmpeg() {
-                this.updateStatus('🔄 Загрузка FFmpeg... (первые 10-20 секунд)', 'processing');
                 try {
+                    this.updateStatus('🔄 Загрузка FFmpeg... Пожалуйста, подождите', 'processing');
+                    
                     const { createFFmpeg } = FFmpeg;
+                    
+                    // Создаём экземпляр с логами для отладки
                     this.ffmpeg = createFFmpeg({ 
-                        log: false,
+                        log: true,
                         corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
                     });
+                    
+                    // Отслеживаем прогресс загрузки
+                    this.ffmpeg.setLogger(({ type, message }) => {
+                        if (type === 'info') {
+                            console.log(message);
+                            if (message.includes('Loading')) {
+                                const percent = message.match(/\d+/);
+                                if (percent) {
+                                    document.getElementById('ffmpegStatus').textContent = `Загрузка ${percent[0]}%`;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Загружаем FFmpeg
                     await this.ffmpeg.load();
-                    this.updateStatus('✅ FFmpeg загружен! Загрузите видео и аудио', 'success');
+                    
+                    this.ffmpegLoaded = true;
+                    document.getElementById('ffmpegStatus').textContent = 'FFmpeg загружен!';
+                    document.getElementById('readyIndicator').classList.add('loaded');
+                    
+                    this.updateStatus('✅ FFmpeg загружен! Теперь загрузите видео и аудио', 'success');
                     this.checkFilesReady();
+                    
                 } catch (error) {
                     console.error('FFmpeg load error:', error);
-                    this.updateStatus('❌ Ошибка загрузки FFmpeg. Обновите страницу', 'error');
+                    this.updateStatus('❌ Ошибка загрузки FFmpeg. Обновите страницу и попробуйте снова', 'error');
+                    document.getElementById('ffmpegStatus').textContent = 'Ошибка загрузки. Обновите страницу';
                 }
             }
 
@@ -417,15 +469,20 @@
 
             checkFilesReady() {
                 const mergeBtn = document.getElementById('mergeBtn');
-                if (this.videoFile && this.audioFile && this.ffmpeg) {
+                if (this.videoFile && this.audioFile && this.ffmpegLoaded) {
                     mergeBtn.disabled = false;
-                } else {
-                    mergeBtn.disabled = true;
+                    this.updateStatus('✅ Всё готово! Нажмите "Объединить для Telegram"', 'success');
+                } else if (this.videoFile && this.audioFile && !this.ffmpegLoaded) {
+                    this.updateStatus('⏳ FFmpeg ещё загружается. Подождите несколько секунд...', 'processing');
                 }
             }
 
             setupMergeButton() {
                 document.getElementById('mergeBtn').addEventListener('click', () => {
+                    if (!this.ffmpegLoaded) {
+                        this.updateStatus('❌ FFmpeg ещё не загружен. Подождите...', 'error');
+                        return;
+                    }
                     this.mergeForTelegram();
                 });
             }
@@ -436,7 +493,7 @@
                     return;
                 }
 
-                if (!this.ffmpeg) {
+                if (!this.ffmpegLoaded) {
                     this.updateStatus('❌ FFmpeg ещё не загружен. Подождите 10 секунд...', 'error');
                     return;
                 }
@@ -447,10 +504,12 @@
                 
                 try {
                     // Читаем файлы
+                    this.updateStatus('📖 Чтение файлов...', 'processing');
                     const videoData = await this.readFile(this.videoFile);
                     const audioData = await this.readFile(this.audioFile);
                     
                     // Записываем в виртуальную файловую систему FFmpeg
+                    this.updateStatus('💾 Подготовка файлов...', 'processing');
                     this.ffmpeg.FS('writeFile', 'input_video', new Uint8Array(videoData));
                     this.ffmpeg.FS('writeFile', 'input_audio', new Uint8Array(audioData));
                     
@@ -460,44 +519,47 @@
                         if (progress < 90) {
                             progress += 5;
                             this.updateProgress(progress);
+                            this.updateStatus(`🔄 Обработка... ${progress}%`, 'processing');
                         }
                     }, 1000);
                     
                     // === ОПТИМАЛЬНЫЕ ПАРАМЕТРЫ ДЛЯ TELEGRAM СО ЗВУКОМ ===
+                    this.updateStatus('🎬 Кодирование видео и аудио...', 'processing');
+                    
                     await this.ffmpeg.run(
-                        '-i', 'input_video',           // входное видео
-                        '-i', 'input_audio',           // входное аудио
-                        '-c:v', 'libx264',             // видео кодек H.264
-                        '-c:a', 'aac',                 // аудио кодек AAC
-                        '-b:v', '2M',                  // битрейт видео 2 Mbps
-                        '-b:a', '128k',                // битрейт аудио 128 kbps
-                        '-r', '30',                    // 30 кадров в секунду
-                        '-pix_fmt', 'yuv420p',         // пиксельный формат
-                        '-profile:v', 'high',          // High profile
-                        '-level', '4.0',               // Level 4.0
-                        '-movflags', '+faststart',     // moov atom в начале (ВАЖНО!)
-                        '-shortest',                   // обрезаем по самому короткому
-                        '-ac', '2',                    // стерео (2 канала)
-                        '-ar', '44100',                // частота 44.1 кГц
-                        '-profile:a', 'lc',            // AAC-LC (Low Complexity)
-                        '-y',                          // перезаписываем
-                        'output.mp4'                   // выходной файл
+                        '-i', 'input_video',
+                        '-i', 'input_audio',
+                        '-c:v', 'libx264',
+                        '-c:a', 'aac',
+                        '-b:v', '2M',
+                        '-b:a', '128k',
+                        '-r', '30',
+                        '-pix_fmt', 'yuv420p',
+                        '-profile:v', 'high',
+                        '-level', '4.0',
+                        '-movflags', '+faststart',
+                        '-shortest',
+                        '-ac', '2',
+                        '-ar', '44100',
+                        '-profile:a', 'lc',
+                        '-y',
+                        'output.mp4'
                     );
                     
                     clearInterval(progressInterval);
                     this.updateProgress(100);
                     
                     // Читаем результат
+                    this.updateStatus('💾 Сохранение результата...', 'processing');
                     const output = this.ffmpeg.FS('readFile', 'output.mp4');
+                    
+                    if (!output || output.length === 0) {
+                        throw new Error('Получен пустой файл');
+                    }
                     
                     // Создаём blob
                     const blob = new Blob([output.buffer], { type: 'video/mp4' });
                     const url = URL.createObjectURL(blob);
-                    
-                    // Проверяем размер
-                    if (blob.size === 0) {
-                        throw new Error('Получен пустой файл');
-                    }
                     
                     // Обновляем превью
                     const preview = document.getElementById('videoPreview');
@@ -513,6 +575,11 @@
                     document.getElementById('downloadSection').style.display = 'block';
                     
                     this.updateStatus(`✅ ГОТОВО! Размер: ${this.formatFileSize(blob.size)}. Видео со звуком для Telegram`, 'success');
+                    
+                    // Очищаем виртуальную файловую систему
+                    this.ffmpeg.FS('unlink', 'input_video');
+                    this.ffmpeg.FS('unlink', 'input_audio');
+                    this.ffmpeg.FS('unlink', 'output.mp4');
                     
                 } catch (error) {
                     console.error('Ошибка при обработке:', error);
@@ -536,7 +603,13 @@
 
             updateStatus(message, type = 'info') {
                 const statusElement = document.getElementById('status');
-                statusElement.textContent = message;
+                const mainDiv = statusElement.querySelector('div:first-child') || statusElement;
+                
+                if (statusElement.querySelector('div:first-child')) {
+                    statusElement.querySelector('div:first-child').textContent = message;
+                } else {
+                    statusElement.innerHTML = `<div>${message}</div><div class="ffmpeg-status" id="ffmpegStatus">${document.getElementById('ffmpegStatus')?.textContent || ''}</div>`;
+                }
                 
                 statusElement.style.background = type === 'error' ? '#fed7d7' :
                                                 type === 'success' ? '#c6f6d5' :
