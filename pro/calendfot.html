@@ -1,148 +1,168 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Календарь с фотографиями и отметками</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Календарь с фотографиями и отметками — поддержка PNG</title>
     <style>
         :root {
-            --bg-color: #f0f0f0;
-            --container-bg: white;
-            --text-color: #333;
-            --day-bg: white;
-            --day-border: #ccc;
-            --weekend-bg: #ffcccc;
-            --header-bg: #2196F3;
-            --button-bg: #4CAF50;
-            --button-hover: #45a049;
-            --gallery-border: #ddd;
-            --gallery-bg: white;
-            --marked-day-bg: #4CAF50;
-            --today-bg: #2196F3;
-            --delete-overlay: rgba(0,0,0,0.6);
+            --bg-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-color: #1e2a3e;
+            --day-bg: #ffffff;
+            --day-border: #dce4ec;
+            --weekend-bg: #ffe6e6;
+            --header-bg: #2c7da0;
+            --button-bg: #2a9d8f;
+            --button-hover: #21867a;
+            --gallery-border: #cbd5e1;
+            --gallery-bg: #f8fafc;
+            --marked-day-bg: #2a9d8f;
+            --today-bg: #1e6091;
+            --delete-overlay: rgba(0,0,0,0.65);
+            --shadow-sm: 0 8px 20px rgba(0,0,0,0.08);
         }
 
         .theme-dark {
-            --bg-color: #1a1a1a;
-            --container-bg: #2d2d2d;
-            --text-color: #ffffff;
-            --day-bg: #3d3d3d;
-            --day-border: #555;
-            --weekend-bg: #8b0000;
-            --header-bg: #1565C0;
-            --button-bg: #388E3C;
-            --button-hover: #2E7D32;
-            --gallery-border: #444;
-            --gallery-bg: #3d3d3d;
-            --marked-day-bg: #388E3C;
-            --today-bg: #1565C0;
-            --delete-overlay: rgba(255,255,255,0.2);
+            --bg-color: #121212;
+            --container-bg: #1e2a2f;
+            --text-color: #eef2f5;
+            --day-bg: #2c3e3f;
+            --day-border: #3e5a5c;
+            --weekend-bg: #5a2e2e;
+            --header-bg: #1e5f6e;
+            --button-bg: #2c7a6e;
+            --button-hover: #1f5c52;
+            --gallery-border: #3a5a5c;
+            --gallery-bg: #1e2c2f;
+            --marked-day-bg: #2c7a6e;
+            --today-bg: #0f4c5c;
+            --delete-overlay: rgba(220, 220, 220, 0.3);
+            --shadow-sm: 0 8px 20px rgba(0,0,0,0.3);
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, Arial, sans-serif;
             text-align: center;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 20px;
+            padding: 24px 16px;
             color: var(--text-color);
-            transition: all 0.3s ease;
+            transition: background 0.2s ease, color 0.2s;
         }
+
         .header {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
         }
+
         .calendar-container {
             display: inline-block;
             background: var(--container-bg);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px 18px;
+            border-radius: 28px;
+            box-shadow: var(--shadow-sm);
             width: 100%;
-            max-width: 500px;
+            max-width: 580px;
             color: var(--text-color);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            margin: 0 auto;
         }
-        
-        /* --- Умная галерея: одна картинка — крупно, несколько — сетка --- */
+
+        /* ---------- Умная галерея (PNG/JPEG/WebP) ---------- */
         .image-gallery {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 15px;
-            padding: 10px;
+            gap: 14px;
+            margin-bottom: 18px;
+            padding: 14px;
             border: 1px solid var(--gallery-border);
-            border-radius: 12px;
+            border-radius: 20px;
             background: var(--gallery-bg);
-            transition: all 0.3s ease;
+            transition: all 0.2s;
             justify-content: center;
             align-items: center;
         }
-        
-        /* Стиль для одной фотографии — крупный центральный блок */
+
+        /* Режим одной фотографии (крупно, с сохранением пропорций) */
         .image-gallery.single-photo {
             display: flex;
             justify-content: center;
             align-items: center;
         }
+
         .image-gallery.single-photo .gallery-item {
             width: 100%;
-            max-width: 380px;
+            max-width: 400px;
             aspect-ratio: 4 / 3;
             cursor: pointer;
-            border-radius: 16px;
+            border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
             transition: transform 0.2s ease;
+            background: var(--day-border);
         }
+
         .image-gallery.single-photo .gallery-item:hover {
             transform: scale(1.01);
         }
+
         .image-gallery.single-photo .gallery-item img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;   /* PNG с прозрачностью будут видны полностью без обрезки */
+            background: #f0f0f0;
             display: block;
         }
-        
-        /* Стандартная сетка для 2+ фото */
+
+        /* Сетка для 2+ фото (включая PNG) */
         .image-gallery:not(.single-photo) {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 12px;
-            max-height: 280px;
+            gap: 14px;
+            max-height: 290px;
             overflow-y: auto;
+            padding: 12px;
         }
+
         .image-gallery:not(.single-photo) .gallery-item {
             aspect-ratio: 1 / 1;
-            border-radius: 12px;
+            border-radius: 18px;
+            background: #2c3e3f10;
         }
-        
+
         .gallery-item {
             position: relative;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
             background: var(--day-border);
             overflow: hidden;
+            border-radius: 18px;
         }
+
         .gallery-item:hover {
             transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.2);
         }
-        .gallery-item:hover img {
-            filter: brightness(0.85);
-        }
+
         .gallery-item img {
             width: 100%;
             height: 100%;
             display: block;
             object-fit: cover;
             transition: filter 0.2s;
+            background: #ececec;
         }
+
+        /* Для PNG в сетке — сохраняем cover, но в крупном режиме contain */
         .delete-icon {
             position: absolute;
             top: 8px;
@@ -153,100 +173,117 @@
             font-weight: bold;
             width: 28px;
             height: 28px;
-            border-radius: 50%;
+            border-radius: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(5px);
             opacity: 0;
             transition: opacity 0.2s;
             pointer-events: none;
             font-family: monospace;
             cursor: pointer;
-            z-index: 2;
+            z-index: 3;
         }
+
         .gallery-item:hover .delete-icon {
             opacity: 1;
+            pointer-events: auto;
         }
-        
+
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-            margin-top: 10px;
+            gap: 6px;
+            margin-top: 16px;
         }
+
         .day {
             border: 1px solid var(--day-border);
             background-color: var(--day-bg);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2em;
+            font-size: 1.1rem;
+            font-weight: 500;
             aspect-ratio: 1;
-            height: 10vw;
-            max-height: 50px;
+            max-height: 52px;
             color: var(--text-color);
-            transition: all 0.3s ease;
+            transition: all 0.2s;
             position: relative;
             cursor: pointer;
-            border-radius: 8px;
+            border-radius: 18px;
         }
+
         .weekend {
             background-color: var(--weekend-bg);
-            color: var(--text-color);
         }
+
         .marked {
             background-color: var(--marked-day-bg);
             color: white;
+            box-shadow: inset 0 0 0 1px rgba(255,255,240,0.3);
         }
+
         .today {
             background-color: var(--today-bg);
             color: white;
             box-shadow: 0 0 0 2px gold;
         }
+
         .mark-indicator {
             position: absolute;
             top: 2px;
-            right: 2px;
-            font-size: 0.7em;
-            color: white;
+            right: 4px;
+            font-size: 0.7rem;
             font-weight: bold;
         }
+
         .month-year {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: var(--text-color);
+            font-size: 1.7rem;
+            font-weight: 600;
+            margin: 8px 0 6px 0;
+            letter-spacing: -0.3px;
         }
+
         .day-name {
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 0.85rem;
             margin: 0;
-            color: var(--text-color);
         }
+
         select, button {
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 40px;
             border: 1px solid var(--day-border);
             background-color: var(--container-bg);
-            font-size: 1em;
+            font-size: 0.9rem;
+            font-weight: 500;
             color: var(--text-color);
-            transition: all 0.3s ease;
+            transition: 0.2s;
+            cursor: pointer;
         }
+
         button {
             background-color: var(--button-bg);
             color: white;
             border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
+
         button:hover {
             background-color: var(--button-hover);
+            transform: translateY(-1px);
         }
+
         .file-input-container {
             position: relative;
             overflow: hidden;
             display: inline-block;
+            border-radius: 40px;
         }
+
         .file-input-container input[type=file] {
             position: absolute;
             left: 0;
@@ -256,538 +293,541 @@
             height: 100%;
             cursor: pointer;
         }
+
         .file-input-label {
             display: inline-block;
-            padding: 8px 12px;
+            padding: 8px 20px;
             background-color: var(--header-bg);
             color: white;
-            border-radius: 8px;
+            border-radius: 40px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            font-weight: 600;
+            transition: background 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+
+        .file-input-label:hover {
+            background-color: #1e5a6e;
+            transform: scale(0.98);
+        }
+
         .theme-toggle {
             background: var(--container-bg);
             border: 2px solid var(--day-border);
             color: var(--text-color);
-            padding: 8px 15px;
-            border-radius: 30px;
-            cursor: pointer;
-            display: flex;
+            padding: 6px 16px;
+            border-radius: 40px;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.3s ease;
         }
-        .theme-toggle:hover {
-            background: var(--day-bg);
-        }
-        .theme-icon {
-            font-size: 1.2em;
-        }
-        @media (max-width: 500px) {
+
+        @media (max-width: 550px) {
             .day {
-                font-size: 1em;
+                font-size: 0.9rem;
+                max-height: 44px;
             }
-            .header {
-                flex-direction: column;
+            .calendar-container {
+                padding: 14px;
             }
             .image-gallery:not(.single-photo) {
                 grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-                max-height: 220px;
+                max-height: 240px;
             }
             .image-gallery.single-photo .gallery-item {
                 max-width: 280px;
             }
+            .header {
+                gap: 8px;
+            }
         }
-        
-        /* Стили для скачивания */
+
+        /* стили для экспорта */
         .download-version-light {
             background: white !important;
-            color: #333 !important;
+            color: #1e2a3e !important;
         }
         .download-version-light .day {
             background: white !important;
-            color: #333 !important;
-            border-color: #ccc !important;
+            color: #1e2a3e !important;
+            border-color: #cbd5e1 !important;
         }
         .download-version-light .weekend {
-            background: #ffcccc !important;
-            color: #333 !important;
+            background: #ffe0e0 !important;
         }
         .download-version-light .marked {
-            background: #4CAF50 !important;
-            color: white !important;
+            background: #2a9d8f !important;
         }
         .download-version-light .today {
-            background: #2196F3 !important;
-            color: white !important;
+            background: #1e6091 !important;
         }
-        .download-version-light .month-year {
-            color: #333 !important;
-        }
-        .download-version-light .day-name {
-            color: #333 !important;
-        }
-        .download-version-light .image-gallery {
-            background: white !important;
-            border-color: #ddd !important;
-        }
-        
         .download-version-dark {
-            background: #2d2d2d !important;
-            color: #ffffff !important;
+            background: #1e2a2f !important;
+            color: #eef2f5 !important;
         }
         .download-version-dark .day {
-            background: #3d3d3d !important;
-            color: #ffffff !important;
-            border-color: #555 !important;
+            background: #2c3e3f !important;
+            border-color: #3e5a5c !important;
+            color: #eef2f5 !important;
         }
         .download-version-dark .weekend {
-            background: #8b0000 !important;
-            color: #ffffff !important;
+            background: #5a2e2e !important;
         }
         .download-version-dark .marked {
-            background: #388E3C !important;
-            color: white !important;
+            background: #2c7a6e !important;
         }
         .download-version-dark .today {
-            background: #1565C0 !important;
-            color: white !important;
-        }
-        .download-version-dark .month-year {
-            color: #ffffff !important;
-        }
-        .download-version-dark .day-name {
-            color: #ffffff !important;
+            background: #0f4c5c !important;
         }
         .download-version-dark .image-gallery {
-            background: #3d3d3d !important;
-            border-color: #444 !important;
+            background: #1e2c2f !important;
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="file-input-container">
-            <input type="file" id="imageInput" accept="image/*" multiple>
-            <label for="imageInput" class="file-input-label">📸 Выбрать фото</label>
-        </div>
-        <select id="yearSelector"></select>
-        <select id="monthSelector"></select>
-        <button onclick="markToday()">⭐ Отметить сегодня</button>
-        <button onclick="downloadCalendar()">📥 Скачать календарь</button>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <span class="theme-icon">🌙</span>
-            <span id="themeText">Тёмная</span>
-        </button>
+<div class="header">
+    <div class="file-input-container">
+        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/bmp, image/svg+xml" multiple>
+        <label for="imageInput" class="file-input-label">📸 Загрузить PNG / JPEG</label>
     </div>
+    <select id="yearSelector"></select>
+    <select id="monthSelector"></select>
+    <button onclick="markToday()">⭐ Отметить сегодня</button>
+    <button onclick="downloadCalendar()">📥 Скачать календарь</button>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <span class="theme-icon">🌙</span>
+        <span id="themeText">Тёмная</span>
+    </button>
+</div>
 
-    <div id="calendarContainer" class="calendar-container">
-        <div class="image-gallery" id="imageGallery"></div>
-        <div id="monthYear" class="month-year"></div>
-        <div id="calendar" class="calendar"></div>
-    </div>
+<div id="calendarContainer" class="calendar-container">
+    <div class="image-gallery" id="imageGallery"></div>
+    <div id="monthYear" class="month-year"></div>
+    <div id="calendar" class="calendar"></div>
+</div>
 
-    <script>
-        let uploadedImages = [];
-        let nextImageId = 0;
-        let currentTheme = 'light';
-        let markedDays = JSON.parse(localStorage.getItem('markedDays')) || {};
+<script>
+    // ---------- Глобальные данные ----------
+    let uploadedImages = [];      // { id, dataUrl }
+    let nextImageId = 0;
+    let currentTheme = 'light';
+    let markedDays = JSON.parse(localStorage.getItem('markedDays')) || {};
 
-        function saveGalleryToLocal() {
-            const imagesData = uploadedImages.map(img => ({ id: img.id, dataUrl: img.dataUrl }));
-            localStorage.setItem('galleryImages', JSON.stringify(imagesData));
-            if (uploadedImages.length) {
-                localStorage.setItem('nextImageId', nextImageId);
-            } else {
-                localStorage.removeItem('nextImageId');
-            }
+    // ---------- Работа с localStorage (сохраняем фото, включая PNG) ----------
+    function saveGalleryToLocal() {
+        const imagesData = uploadedImages.map(img => ({ id: img.id, dataUrl: img.dataUrl }));
+        localStorage.setItem('galleryImages', JSON.stringify(imagesData));
+        if (uploadedImages.length > 0) {
+            localStorage.setItem('nextImageId', nextImageId);
+        } else {
+            localStorage.removeItem('nextImageId');
+        }
+    }
+
+    function loadGalleryFromLocal() {
+        const saved = localStorage.getItem('galleryImages');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                uploadedImages = parsed.map(item => ({ id: item.id, dataUrl: item.dataUrl }));
+                if (uploadedImages.length) {
+                    nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
+                } else {
+                    nextImageId = 0;
+                }
+            } catch(e) { console.warn(e); }
+        }
+    }
+
+    // ---- Умный рендер галереи с поддержкой PNG (прозрачность / пропорции) ----
+    function renderGallery() {
+        const gallery = document.getElementById('imageGallery');
+        if (!gallery) return;
+        gallery.innerHTML = '';
+
+        if (uploadedImages.length === 0) {
+            gallery.classList.remove('single-photo');
+            const emptyHint = document.createElement('div');
+            emptyHint.textContent = '🖼️ Нет фотографий. Нажмите "Загрузить PNG / JPEG" чтобы добавить';
+            emptyHint.style.gridColumn = '1 / -1';
+            emptyHint.style.padding = '28px 12px';
+            emptyHint.style.textAlign = 'center';
+            emptyHint.style.color = 'var(--text-color)';
+            emptyHint.style.opacity = '0.7';
+            emptyHint.style.fontSize = '0.9rem';
+            gallery.appendChild(emptyHint);
+            return;
         }
 
-        function loadGalleryFromLocal() {
-            const saved = localStorage.getItem('galleryImages');
-            if (saved) {
-                try {
-                    const parsed = JSON.parse(saved);
-                    uploadedImages = parsed.map(item => ({ id: item.id, dataUrl: item.dataUrl }));
-                    if (uploadedImages.length) {
-                        nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
-                    } else {
-                        nextImageId = 0;
-                    }
-                } catch(e) { console.warn(e); }
-            }
+        // Режим отображения: 1 фото — крупный режим (с contain для PNG), иначе сетка
+        if (uploadedImages.length === 1) {
+            gallery.classList.add('single-photo');
+        } else {
+            gallery.classList.remove('single-photo');
         }
 
-        // Умный рендер: одна картинка — по центру, крупный формат; 2+ — адаптивная сетка
-        function renderGallery() {
-            const gallery = document.getElementById('imageGallery');
-            if (!gallery) return;
-            gallery.innerHTML = '';
-            
-            if (uploadedImages.length === 0) {
-                gallery.classList.remove('single-photo');
-                const emptyHint = document.createElement('div');
-                emptyHint.textContent = '🖼️ Нет фотографий. Нажмите "Выбрать фото" чтобы добавить';
-                emptyHint.style.gridColumn = '1 / -1';
-                emptyHint.style.padding = '20px';
-                emptyHint.style.textAlign = 'center';
-                emptyHint.style.color = 'var(--text-color)';
-                emptyHint.style.opacity = '0.7';
-                gallery.appendChild(emptyHint);
-                return;
-            }
-            
-            // Определяем режим: одна фотография -> особый класс, иначе сетка
-            if (uploadedImages.length === 1) {
-                gallery.classList.add('single-photo');
-            } else {
-                gallery.classList.remove('single-photo');
-            }
-            
-            uploadedImages.forEach((imgObj, idx) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'gallery-item';
-                itemDiv.setAttribute('data-id', imgObj.id);
-                
-                const img = document.createElement('img');
-                img.src = imgObj.dataUrl;
-                img.alt = `Фото ${idx+1}`;
-                
-                const deleteSpan = document.createElement('div');
-                deleteSpan.className = 'delete-icon';
-                deleteSpan.innerHTML = '✕';
-                // Важно: чтобы клик по крестику не срабатывал как клик по картинке (всплытие)
-                deleteSpan.addEventListener('click', (e) => {
-                    e.stopPropagation();
+        uploadedImages.forEach((imgObj, idx) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'gallery-item';
+            itemDiv.setAttribute('data-id', imgObj.id);
+
+            const img = document.createElement('img');
+            img.src = imgObj.dataUrl;
+            img.alt = `Изображение ${idx+1}`;
+            // важная деталь: для PNG с прозрачностью в крупном режиме не обрезаем (стили уже .single-photo img -> object-fit: contain)
+            // в сетке object-fit: cover, чтобы квадраты выглядели аккуратно
+
+            const deleteSpan = document.createElement('div');
+            deleteSpan.className = 'delete-icon';
+            deleteSpan.innerHTML = '✕';
+            deleteSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteImageById(imgObj.id);
+            });
+
+            itemDiv.appendChild(img);
+            itemDiv.appendChild(deleteSpan);
+
+            // Клик по фото (не по крестику) — удаление для удобства, но оставим как в оригинале
+            itemDiv.addEventListener('click', (e) => {
+                if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) {
                     deleteImageById(imgObj.id);
-                });
-                
-                itemDiv.appendChild(img);
-                itemDiv.appendChild(deleteSpan);
-                
-                // Клик по самому фото тоже удаляет (удобно, но можно и только по крестику, но оставим как было)
-                itemDiv.addEventListener('click', (e) => {
-                    // Если клик не по крестику, удаляем
-                    if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) {
-                        deleteImageById(imgObj.id);
-                    }
-                });
-                
-                gallery.appendChild(itemDiv);
+                }
             });
-        }
 
-        function deleteImageById(imageId) {
-            const index = uploadedImages.findIndex(img => img.id === imageId);
-            if (index !== -1) {
-                uploadedImages.splice(index, 1);
-                saveGalleryToLocal();
-                renderGallery();    // перерисовываем галерею с учётом нового количества
-                showMessage('Фото удалено', '#e74c3c');
-            }
-        }
+            gallery.appendChild(itemDiv);
+        });
+    }
 
-        function showMessage(text, bgColor = '#4CAF50') {
-            let msgDiv = document.getElementById('tempMsg');
-            if (!msgDiv) {
-                msgDiv = document.createElement('div');
-                msgDiv.id = 'tempMsg';
-                msgDiv.style.position = 'fixed';
-                msgDiv.style.bottom = '20px';
-                msgDiv.style.left = '50%';
-                msgDiv.style.transform = 'translateX(-50%)';
-                msgDiv.style.backgroundColor = bgColor;
-                msgDiv.style.color = 'white';
-                msgDiv.style.padding = '10px 20px';
-                msgDiv.style.borderRadius = '30px';
-                msgDiv.style.zIndex = '9999';
-                msgDiv.style.fontSize = '14px';
-                msgDiv.style.fontWeight = 'bold';
-                msgDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-                msgDiv.style.opacity = '0';
-                msgDiv.style.transition = 'opacity 0.2s';
-                document.body.appendChild(msgDiv);
-            }
+    // Удаление фото по id
+    function deleteImageById(imageId) {
+        const index = uploadedImages.findIndex(img => img.id === imageId);
+        if (index !== -1) {
+            uploadedImages.splice(index, 1);
+            saveGalleryToLocal();
+            renderGallery();
+            showMessage('🖼️ Фото удалено', '#e67e22');
+        }
+    }
+
+    // Всплывающее сообщение
+    function showMessage(text, bgColor = '#2a9d8f') {
+        let msgDiv = document.getElementById('tempMsg');
+        if (!msgDiv) {
+            msgDiv = document.createElement('div');
+            msgDiv.id = 'tempMsg';
+            msgDiv.style.position = 'fixed';
+            msgDiv.style.bottom = '24px';
+            msgDiv.style.left = '50%';
+            msgDiv.style.transform = 'translateX(-50%)';
             msgDiv.style.backgroundColor = bgColor;
-            msgDiv.textContent = text;
-            msgDiv.style.opacity = '1';
-            setTimeout(() => {
-                msgDiv.style.opacity = '0';
-            }, 1500);
+            msgDiv.style.color = 'white';
+            msgDiv.style.padding = '10px 22px';
+            msgDiv.style.borderRadius = '50px';
+            msgDiv.style.zIndex = '9999';
+            msgDiv.style.fontSize = '0.9rem';
+            msgDiv.style.fontWeight = '500';
+            msgDiv.style.backdropFilter = 'blur(4px)';
+            msgDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+            msgDiv.style.opacity = '0';
+            msgDiv.style.transition = 'opacity 0.2s';
+            document.body.appendChild(msgDiv);
+        }
+        msgDiv.style.backgroundColor = bgColor;
+        msgDiv.textContent = text;
+        msgDiv.style.opacity = '1';
+        setTimeout(() => {
+            msgDiv.style.opacity = '0';
+        }, 1600);
+    }
+
+    // Загрузка изображений (поддерживаем PNG, JPEG, WebP, BMP и т.д.)
+    function loadImages(files) {
+        if (!files || files.length === 0) return;
+
+        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (imageFiles.length === 0) {
+            showMessage('⚠️ Пожалуйста, выберите изображения (PNG, JPEG и др.)', '#e67e22');
+            return;
         }
 
-        function loadImages(files) {
-            if (!files || files.length === 0) return;
-            
-            let loadedCount = 0;
-            const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-            
-            if (imageFiles.length === 0) return;
-            
-            imageFiles.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const newId = nextImageId++;
-                    uploadedImages.push({
-                        id: newId,
-                        dataUrl: e.target.result
-                    });
-                    loadedCount++;
-                    
-                    if (loadedCount === imageFiles.length) {
-                        saveGalleryToLocal();
-                        renderGallery();
-                        showMessage(`Добавлено ${imageFiles.length} фото`, '#2196F3');
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
+        let loadedCount = 0;
+        imageFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const newId = nextImageId++;
+                uploadedImages.push({
+                    id: newId,
+                    dataUrl: e.target.result   // DataURL работает для PNG без потерь
+                });
+                loadedCount++;
+
+                if (loadedCount === imageFiles.length) {
+                    saveGalleryToLocal();
+                    renderGallery();
+                    showMessage(`✅ Загружено ${imageFiles.length} фото (PNG/JPEG)`, '#2a9d8f');
+                }
+            };
+            reader.onerror = () => {
+                loadedCount++;
+                showMessage(`Ошибка чтения: ${file.name}`, '#e74c3c');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // ---------- Календарь и отметки ----------
+    function initYearSelector() {
+        const yearSelector = document.getElementById('yearSelector');
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear - 6; i <= currentYear + 6; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            yearSelector.appendChild(option);
+        }
+        yearSelector.value = currentYear;
+    }
+
+    function generateCalendar() {
+        const calendar = document.getElementById('calendar');
+        const monthYearSpan = document.getElementById('monthYear');
+        if (!calendar) return;
+        calendar.innerHTML = '';
+
+        const month = parseInt(document.getElementById('monthSelector').value);
+        const year = parseInt(document.getElementById('yearSelector').value);
+        const date = new Date(year, month, 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        let firstDay = date.getDay();
+        firstDay = firstDay === 0 ? 6 : firstDay - 1; // Пн = 0
+
+        monthYearSpan.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
+        const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        weekDays.forEach(day => {
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day';
+            dayDiv.innerHTML = `<p class="day-name">${day}</p>`;
+            calendar.appendChild(dayDiv);
+        });
+
+        for (let i = 0; i < firstDay; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'day';
+            emptyDiv.style.background = 'transparent';
+            emptyDiv.style.border = 'none';
+            emptyDiv.style.cursor = 'default';
+            emptyDiv.style.boxShadow = 'none';
+            calendar.appendChild(emptyDiv);
         }
 
-        function initYearSelector() {
-            const yearSelector = document.getElementById('yearSelector');
-            const currentYear = new Date().getFullYear();
-            for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = i;
-                yearSelector.appendChild(option);
-            }
-            yearSelector.value = currentYear;
-        }
+        const today = new Date();
+        const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
 
-        function generateCalendar() {
-            const calendar = document.getElementById('calendar');
-            const monthYear = document.getElementById('monthYear');
-            if (!calendar) return;
-            calendar.innerHTML = '';
-            const month = parseInt(document.getElementById('monthSelector').value);
-            const year = parseInt(document.getElementById('yearSelector').value);
-            const date = new Date(year, month, 1);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            let firstDay = date.getDay();
-            firstDay = firstDay === 0 ? 6 : firstDay - 1;
-            
-            monthYear.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
-            const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-            weekDays.forEach(day => {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'day';
-                dayDiv.innerHTML = `<p class="day-name">${day}</p>`;
-                calendar.appendChild(dayDiv);
-            });
-            
-            for (let i = 0; i < firstDay; i++) {
-                const emptyDiv = document.createElement('div');
-                emptyDiv.className = 'day';
-                emptyDiv.style.background = 'transparent';
-                emptyDiv.style.border = 'none';
-                emptyDiv.style.cursor = 'default';
-                calendar.appendChild(emptyDiv);
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayIndex = (firstDay + day - 1) % 7;
+            let dayClass = (dayIndex === 5 || dayIndex === 6) ? 'day weekend' : 'day';
+            if (isCurrentMonth && day === today.getDate()) {
+                dayClass += ' today';
             }
-            
-            const today = new Date();
-            const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayIndex = (firstDay + day - 1) % 7;
-                let dayClass = (dayIndex === 5 || dayIndex === 6) ? 'day weekend' : 'day';
-                
-                if (isCurrentMonth && day === today.getDate()) {
-                    dayClass += ' today';
-                }
-                
-                const dayKey = `${year}-${month}-${day}`;
-                if (markedDays[dayKey]) {
-                    dayClass += ' marked';
-                }
-                
-                const dayDiv = document.createElement('div');
-                dayDiv.className = dayClass;
-                dayDiv.textContent = day;
-                
-                if (markedDays[dayKey]) {
-                    const markIndicator = document.createElement('div');
-                    markIndicator.className = 'mark-indicator';
-                    markIndicator.textContent = '✓';
-                    dayDiv.appendChild(markIndicator);
-                }
-                
-                dayDiv.addEventListener('click', (function(y, m, d) {
-                    return function() { toggleDayMark(y, m, d); };
-                })(year, month, day));
-                
-                calendar.appendChild(dayDiv);
-            }
-        }
-        
-        function toggleDayMark(year, month, day) {
+
             const dayKey = `${year}-${month}-${day}`;
             if (markedDays[dayKey]) {
-                delete markedDays[dayKey];
-                showMessage(`❌ Отметка снята с ${day}.${month+1}.${year}`, '#ff9800');
-            } else {
-                markedDays[dayKey] = true;
-                showMessage(`✅ День ${day}.${month+1}.${year} отмечен!`, '#4CAF50');
+                dayClass += ' marked';
             }
+
+            const dayDiv = document.createElement('div');
+            dayDiv.className = dayClass;
+            dayDiv.textContent = day;
+
+            if (markedDays[dayKey]) {
+                const markIndicator = document.createElement('div');
+                markIndicator.className = 'mark-indicator';
+                markIndicator.textContent = '✓';
+                dayDiv.appendChild(markIndicator);
+            }
+
+            dayDiv.addEventListener('click', (function(y, m, d) {
+                return function() { toggleDayMark(y, m, d); };
+            })(year, month, day));
+
+            calendar.appendChild(dayDiv);
+        }
+    }
+
+    function toggleDayMark(year, month, day) {
+        const dayKey = `${year}-${month}-${day}`;
+        if (markedDays[dayKey]) {
+            delete markedDays[dayKey];
+            showMessage(`❌ Отметка снята с ${day}.${month+1}.${year}`, '#f39c12');
+        } else {
+            markedDays[dayKey] = true;
+            showMessage(`✅ День ${day}.${month+1}.${year} отмечен!`, '#2a9d8f');
+        }
+        localStorage.setItem('markedDays', JSON.stringify(markedDays));
+        generateCalendar();
+    }
+
+    function markToday() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const day = today.getDate();
+
+        document.getElementById('yearSelector').value = year;
+        document.getElementById('monthSelector').value = month;
+
+        const dayKey = `${year}-${month}-${day}`;
+        if (!markedDays[dayKey]) {
+            markedDays[dayKey] = true;
             localStorage.setItem('markedDays', JSON.stringify(markedDays));
             generateCalendar();
+            showMessage('⭐ Сегодняшний день отмечен в календаре!', '#2a9d8f');
+        } else {
+            showMessage('ℹ️ Сегодня уже отмечен', '#f39c12');
         }
-        
-        function markToday() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
-            const day = today.getDate();
-            
-            document.getElementById('yearSelector').value = year;
-            document.getElementById('monthSelector').value = month;
-            
-            const dayKey = `${year}-${month}-${day}`;
-            if (!markedDays[dayKey]) {
-                markedDays[dayKey] = true;
-                localStorage.setItem('markedDays', JSON.stringify(markedDays));
-                generateCalendar();
-                showMessage('⭐ Сегодняшний день отмечен в календаре!', '#4CAF50');
-            } else {
-                showMessage('ℹ️ Сегодня уже отмечен', '#ff9800');
-            }
+    }
+
+    // ---------- Тема (светлая / тёмная) ----------
+    function toggleTheme() {
+        const body = document.body;
+        const themeTextSpan = document.getElementById('themeText');
+        const themeIconSpan = document.querySelector('.theme-icon');
+
+        if (currentTheme === 'light') {
+            body.classList.add('theme-dark');
+            themeTextSpan.textContent = 'Светлая';
+            themeIconSpan.textContent = '☀️';
+            currentTheme = 'dark';
+        } else {
+            body.classList.remove('theme-dark');
+            themeTextSpan.textContent = 'Тёмная';
+            themeIconSpan.textContent = '🌙';
+            currentTheme = 'light';
         }
-        
-        function toggleTheme() {
-            const body = document.body;
-            const themeText = document.getElementById('themeText');
-            const themeIcon = document.querySelector('.theme-icon');
-            
-            if (currentTheme === 'light') {
-                body.classList.add('theme-dark');
-                themeText.textContent = 'Светлая';
-                themeIcon.textContent = '☀️';
-                currentTheme = 'dark';
-            } else {
-                body.classList.remove('theme-dark');
-                themeText.textContent = 'Тёмная';
-                themeIcon.textContent = '🌙';
-                currentTheme = 'light';
-            }
-            localStorage.setItem('calendarTheme', currentTheme);
-            renderGallery(); // перерисовка для адаптации иконок/цветов
+        localStorage.setItem('calendarTheme', currentTheme);
+        renderGallery(); // перерисовка для корректных цветов фона внутри галереи
+    }
+
+    function loadTheme() {
+        const savedTheme = localStorage.getItem('calendarTheme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('theme-dark');
+            const themeTextSpan = document.getElementById('themeText');
+            const themeIconSpan = document.querySelector('.theme-icon');
+            if (themeTextSpan) themeTextSpan.textContent = 'Светлая';
+            if (themeIconSpan) themeIconSpan.textContent = '☀️';
+            currentTheme = 'dark';
+        } else {
+            currentTheme = 'light';
         }
-        
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('calendarTheme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('theme-dark');
-                const themeText = document.getElementById('themeText');
-                const themeIcon = document.querySelector('.theme-icon');
-                if (themeText) themeText.textContent = 'Светлая';
-                if (themeIcon) themeIcon.textContent = '☀️';
-                currentTheme = 'dark';
-            } else {
-                currentTheme = 'light';
-            }
+    }
+
+    // ---------- Скачивание календаря (скриншот с поддержкой PNG-галереи) ----------
+    function downloadCalendar() {
+        const originalContainer = document.getElementById('calendarContainer');
+        const downloadContainer = originalContainer.cloneNode(true);
+
+        // Подготовка к экспорту: убираем интерактивные элементы (крестики)
+        const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
+        deleteIcons.forEach(icon => {
+            icon.style.display = 'none';
+        });
+
+        // Добавляем классы для экспорта (фиксированные цвета)
+        if (currentTheme === 'dark') {
+            downloadContainer.classList.add('download-version-dark');
+        } else {
+            downloadContainer.classList.add('download-version-light');
         }
-        
-        function downloadCalendar() {
-            const originalContainer = document.getElementById('calendarContainer');
-            const downloadContainer = originalContainer.cloneNode(true);
-            
-            // Убираем временные динамические классы "сегодня" для чистоты сохранения (но оставим как есть)
-            const todayElements = downloadContainer.querySelectorAll('.today');
-            todayElements.forEach(el => {
-                el.classList.remove('today');
-            });
-            
-            // Удаляем крестики удаления, чтобы не портили скриншот
-            const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
-            deleteIcons.forEach(icon => {
-                icon.style.display = 'none';
-            });
-            
-            // Применяем стили для скачивания
-            if (currentTheme === 'dark') {
-                downloadContainer.classList.add('download-version-dark');
-            } else {
-                downloadContainer.classList.add('download-version-light');
-            }
-            
-            downloadContainer.style.position = 'fixed';
-            downloadContainer.style.left = '-9999px';
-            downloadContainer.style.top = '0';
-            document.body.appendChild(downloadContainer);
-            
-            const loadHtml2CanvasAndCapture = () => {
-                if (typeof html2canvas === 'undefined') {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                    script.onload = () => {
-                        captureImage(downloadContainer);
-                    };
-                    document.head.appendChild(script);
-                } else {
+
+        downloadContainer.style.position = 'fixed';
+        downloadContainer.style.left = '-9999px';
+        downloadContainer.style.top = '0';
+        document.body.appendChild(downloadContainer);
+
+        const loadHtml2CanvasAndCapture = () => {
+            if (typeof html2canvas === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                script.onload = () => {
                     captureImage(downloadContainer);
-                }
-            };
-            
-            const captureImage = (container) => {
-                const bgColor = currentTheme === 'dark' ? '#2d2d2d' : '#ffffff';
-                html2canvas(container, {
-                    scale: 2.5,
-                    useCORS: true,
-                    allowTaint: false,
-                    backgroundColor: bgColor,
-                    logging: false
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    const monthVal = parseInt(document.getElementById('monthSelector').value);
-                    const yearVal = document.getElementById('yearSelector').value;
-                    const monthName = new Date(0, monthVal).toLocaleString('ru-RU', { month: 'long' });
-                    const themeSuffix = currentTheme === 'dark' ? 'dark' : 'light';
-                    link.download = `calendar_${monthName}_${yearVal}_${themeSuffix}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                    document.body.removeChild(container);
-                }).catch(err => {
-                    console.error('Ошибка рендера:', err);
-                    document.body.removeChild(container);
-                    alert('Не удалось сгенерировать изображение');
-                });
-            };
-            
-            loadHtml2CanvasAndCapture();
-        }
-        
-        function setupFileInput() {
-            const fileInput = document.getElementById('imageInput');
-            if (fileInput) {
-                fileInput.addEventListener('change', (e) => {
-                    if (e.target.files && e.target.files.length) {
-                        loadImages(e.target.files);
-                        fileInput.value = '';
-                    }
-                });
+                };
+                script.onerror = () => {
+                    document.body.removeChild(downloadContainer);
+                    alert('Не удалось загрузить библиотеку для сохранения.');
+                };
+                document.head.appendChild(script);
+            } else {
+                captureImage(downloadContainer);
             }
-        }
-        
-        window.onload = function() {
-            initYearSelector();
-            const monthSelector = document.getElementById('monthSelector');
-            for (let i = 0; i < 12; i++) {
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = new Date(0, i).toLocaleString('ru-RU', { month: 'long' });
-                monthSelector.appendChild(option);
-            }
-            const currentDate = new Date();
-            monthSelector.value = currentDate.getMonth();
-            
-            loadGalleryFromLocal();
-            loadTheme();
-            renderGallery();
-            generateCalendar();
-            setupFileInput();
         };
-    </script>
+
+        const captureImage = (container) => {
+            const bgColor = currentTheme === 'dark' ? '#1e2a2f' : '#ffffff';
+            html2canvas(container, {
+                scale: 2.5,
+                useCORS: true,
+                allowTaint: false,
+                backgroundColor: bgColor,
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const monthVal = parseInt(document.getElementById('monthSelector').value);
+                const yearVal = document.getElementById('yearSelector').value;
+                const monthName = new Date(0, monthVal).toLocaleString('ru-RU', { month: 'long' });
+                const themeSuffix = currentTheme === 'dark' ? 'dark' : 'light';
+                link.download = `calendar_${monthName}_${yearVal}_${themeSuffix}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                document.body.removeChild(container);
+            }).catch(err => {
+                console.error('Ошибка рендера:', err);
+                document.body.removeChild(container);
+                alert('Не удалось создать изображение календаря');
+            });
+        };
+
+        loadHtml2CanvasAndCapture();
+    }
+
+    // ---------- Настройка загрузки файлов с расширенной поддержкой PNG ----------
+    function setupFileInput() {
+        const fileInput = document.getElementById('imageInput');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length) {
+                    loadImages(e.target.files);
+                    fileInput.value = ''; // сброс для повторной загрузки тех же файлов
+                }
+            });
+        }
+    }
+
+    // ---------- Инициализация при загрузке ----------
+    window.onload = function() {
+        initYearSelector();
+        const monthSelector = document.getElementById('monthSelector');
+        for (let i = 0; i < 12; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = new Date(0, i).toLocaleString('ru-RU', { month: 'long' });
+            monthSelector.appendChild(option);
+        }
+        const currentDate = new Date();
+        monthSelector.value = currentDate.getMonth();
+
+        loadGalleryFromLocal();
+        loadTheme();
+        renderGallery();
+        generateCalendar();
+        setupFileInput();
+
+        // Обновляем календарь при смене месяца/года
+        document.getElementById('yearSelector').addEventListener('change', () => generateCalendar());
+        document.getElementById('monthSelector').addEventListener('change', () => generateCalendar());
+    };
+</script>
 </body>
 </html>
