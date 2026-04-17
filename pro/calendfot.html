@@ -67,34 +67,74 @@
             color: var(--text-color);
             transition: all 0.3s ease;
         }
+        
+        /* --- Умная галерея: одна картинка — крупно, несколько — сетка --- */
         .image-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-bottom: 15px;
-            max-height: 240px;
-            overflow-y: auto;
             padding: 10px;
             border: 1px solid var(--gallery-border);
             border-radius: 12px;
             background: var(--gallery-bg);
             transition: all 0.3s ease;
+            justify-content: center;
+            align-items: center;
         }
+        
+        /* Стиль для одной фотографии — крупный центральный блок */
+        .image-gallery.single-photo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .image-gallery.single-photo .gallery-item {
+            width: 100%;
+            max-width: 380px;
+            aspect-ratio: 4 / 3;
+            cursor: pointer;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease;
+        }
+        .image-gallery.single-photo .gallery-item:hover {
+            transform: scale(1.01);
+        }
+        .image-gallery.single-photo .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        /* Стандартная сетка для 2+ фото */
+        .image-gallery:not(.single-photo) {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .image-gallery:not(.single-photo) .gallery-item {
+            aspect-ratio: 1 / 1;
+            border-radius: 12px;
+        }
+        
         .gallery-item {
             position: relative;
             cursor: pointer;
-            border-radius: 8px;
-            overflow: hidden;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            aspect-ratio: 1 / 1;
             background: var(--day-border);
+            overflow: hidden;
         }
         .gallery-item:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         .gallery-item:hover img {
-            filter: brightness(0.8);
+            filter: brightness(0.85);
         }
         .gallery-item img {
             width: 100%;
@@ -105,27 +145,30 @@
         }
         .delete-icon {
             position: absolute;
-            top: 5px;
-            right: 5px;
+            top: 8px;
+            right: 8px;
             background: var(--delete-overlay);
             color: white;
             font-size: 18px;
             font-weight: bold;
-            width: 26px;
-            height: 26px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(4px);
             opacity: 0;
             transition: opacity 0.2s;
             pointer-events: none;
             font-family: monospace;
+            cursor: pointer;
+            z-index: 2;
         }
         .gallery-item:hover .delete-icon {
             opacity: 1;
         }
+        
         .calendar {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -247,9 +290,12 @@
             .header {
                 flex-direction: column;
             }
-            .image-gallery {
-                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-                max-height: 200px;
+            .image-gallery:not(.single-photo) {
+                grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+                max-height: 220px;
+            }
+            .image-gallery.single-photo .gallery-item {
+                max-width: 280px;
             }
         }
         
@@ -353,6 +399,8 @@
             localStorage.setItem('galleryImages', JSON.stringify(imagesData));
             if (uploadedImages.length) {
                 localStorage.setItem('nextImageId', nextImageId);
+            } else {
+                localStorage.removeItem('nextImageId');
             }
         }
 
@@ -371,12 +419,14 @@
             }
         }
 
+        // Умный рендер: одна картинка — по центру, крупный формат; 2+ — адаптивная сетка
         function renderGallery() {
             const gallery = document.getElementById('imageGallery');
             if (!gallery) return;
             gallery.innerHTML = '';
             
             if (uploadedImages.length === 0) {
+                gallery.classList.remove('single-photo');
                 const emptyHint = document.createElement('div');
                 emptyHint.textContent = '🖼️ Нет фотографий. Нажмите "Выбрать фото" чтобы добавить';
                 emptyHint.style.gridColumn = '1 / -1';
@@ -386,6 +436,13 @@
                 emptyHint.style.opacity = '0.7';
                 gallery.appendChild(emptyHint);
                 return;
+            }
+            
+            // Определяем режим: одна фотография -> особый класс, иначе сетка
+            if (uploadedImages.length === 1) {
+                gallery.classList.add('single-photo');
+            } else {
+                gallery.classList.remove('single-photo');
             }
             
             uploadedImages.forEach((imgObj, idx) => {
@@ -400,13 +457,21 @@
                 const deleteSpan = document.createElement('div');
                 deleteSpan.className = 'delete-icon';
                 deleteSpan.innerHTML = '✕';
+                // Важно: чтобы клик по крестику не срабатывал как клик по картинке (всплытие)
+                deleteSpan.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteImageById(imgObj.id);
+                });
                 
                 itemDiv.appendChild(img);
                 itemDiv.appendChild(deleteSpan);
                 
+                // Клик по самому фото тоже удаляет (удобно, но можно и только по крестику, но оставим как было)
                 itemDiv.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteImageById(imgObj.id);
+                    // Если клик не по крестику, удаляем
+                    if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) {
+                        deleteImageById(imgObj.id);
+                    }
                 });
                 
                 gallery.appendChild(itemDiv);
@@ -418,7 +483,7 @@
             if (index !== -1) {
                 uploadedImages.splice(index, 1);
                 saveGalleryToLocal();
-                renderGallery();
+                renderGallery();    // перерисовываем галерею с учётом нового количества
                 showMessage('Фото удалено', '#e74c3c');
             }
         }
@@ -607,7 +672,7 @@
                 currentTheme = 'light';
             }
             localStorage.setItem('calendarTheme', currentTheme);
-            renderGallery();
+            renderGallery(); // перерисовка для адаптации иконок/цветов
         }
         
         function loadTheme() {
@@ -628,21 +693,24 @@
             const originalContainer = document.getElementById('calendarContainer');
             const downloadContainer = originalContainer.cloneNode(true);
             
+            // Убираем временные динамические классы "сегодня" для чистоты сохранения (но оставим как есть)
             const todayElements = downloadContainer.querySelectorAll('.today');
             todayElements.forEach(el => {
                 el.classList.remove('today');
             });
             
+            // Удаляем крестики удаления, чтобы не портили скриншот
+            const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
+            deleteIcons.forEach(icon => {
+                icon.style.display = 'none';
+            });
+            
+            // Применяем стили для скачивания
             if (currentTheme === 'dark') {
                 downloadContainer.classList.add('download-version-dark');
             } else {
                 downloadContainer.classList.add('download-version-light');
             }
-            
-            const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
-            deleteIcons.forEach(icon => {
-                icon.style.display = 'none';
-            });
             
             downloadContainer.style.position = 'fixed';
             downloadContainer.style.left = '-9999px';
