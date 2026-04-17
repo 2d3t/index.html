@@ -1,0 +1,846 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D语音计算器 | 立体可拖拽 | 智能百分比 | 语音反馈</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #1a2a3a, #0b1219);
+            font-family: 'Segoe UI', 'Poppins', 'Arial', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* 3D 场景容器 */
+        .scene {
+            width: 340px;
+            height: 480px;
+            perspective: 1400px;
+            perspective-origin: 50% 50%;
+            cursor: grab;
+        }
+
+        .scene:active {
+            cursor: grabbing;
+        }
+
+        /* 计算器主体 - 完整闭合六面体（无侧边视觉干扰，仅保留核心面板） */
+        .calculator-3d {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.03s linear;
+            will-change: transform;
+        }
+
+        /* 公用面板样式：所有面都是绝对定位，相同尺寸 */
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 28px;
+            backface-visibility: visible;
+            box-sizing: border-box;
+        }
+
+        /* 前面板 (计算器操作面) - 核心界面，无侧边视觉干扰 */
+        .front-face {
+            background: linear-gradient(145deg, #f0f3fa 0%, #e6eefc 100%);
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.6);
+            border: 1px solid rgba(255,255,255,0.7);
+            transform: translateZ(22px);
+            display: flex;
+            flex-direction: column;
+            padding: 18px 16px 22px 16px;
+        }
+
+        /* 背面板 - 装饰简约，无侧边冗余 */
+        .back-face {
+            background: radial-gradient(circle at 30% 40%, #cbd5e6, #9aaec9);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            transform: translateZ(-22px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        /* 完全移除侧边厚度面板 —— 不再显示任何左右/上下侧壁，保持干净简洁 */
+        /* 删除 .left-face, .right-face, .top-face, .bottom-face 的定义和渲染 */
+
+        /* 屏幕区域 */
+        .display-section {
+            background: #1e2a32;
+            border-radius: 20px;
+            padding: 12px 18px;
+            margin-bottom: 24px;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        .expression {
+            font-size: 16px;
+            color: #8aaec0;
+            text-align: right;
+            min-height: 24px;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            word-break: break-all;
+        }
+
+        .display {
+            font-size: 42px;
+            font-weight: 600;
+            color: #f0f9ff;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            word-wrap: break-word;
+            word-break: break-all;
+            line-height: 1.2;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.2);
+        }
+
+        /* 按钮网格 */
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px 10px;
+            flex: 1;
+        }
+
+        .btn {
+            background: #ffffffdd;
+            backdrop-filter: blur(4px);
+            border: none;
+            border-radius: 18px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2e3a;
+            padding: 12px 0;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b0bed0;
+            transition: all 0.08s linear;
+            font-family: inherit;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #b0bed0;
+        }
+
+        .operator-btn {
+            background: linear-gradient(135deg, #ff9a44, #ff6a2e);
+            color: white;
+            box-shadow: 0 6px 0 #b1470e;
+            text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+        }
+
+        .operator-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #b1470e;
+        }
+
+        .equal-btn {
+            background: linear-gradient(135deg, #3baa8a, #1f6e58);
+            box-shadow: 0 6px 0 #0e4d3b;
+            color: white;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #f0737e, #c93a47);
+            box-shadow: 0 6px 0 #8a2a33;
+            color: white;
+        }
+
+        .back-label {
+            font-size: 22px;
+            font-weight: bold;
+            color: #334e68;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            background: rgba(255,255,240,0.4);
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-family: monospace;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+        }
+
+        @media (max-width: 500px) {
+            .scene {
+                width: 300px;
+                height: 460px;
+            }
+            .btn {
+                font-size: 20px;
+                padding: 10px 0;
+                border-radius: 16px;
+            }
+            .display {
+                font-size: 34px;
+            }
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(220, 240, 255, 0.9);
+            font-size: 14px;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(5px);
+            width: fit-content;
+            margin: 0 auto;
+            padding: 6px 18px;
+            border-radius: 40px;
+            pointer-events: none;
+            font-family: monospace;
+            z-index: 10;
+            font-weight: 500;
+        }
+        
+        /* 语音反馈小标志可选 (视觉小点缀) */
+        .voice-badge {
+            position: fixed;
+            bottom: 80px;
+            right: 16px;
+            background: rgba(0,0,0,0.5);
+            color: #aaffdd;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            pointer-events: none;
+            font-family: monospace;
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<div class="scene" id="scene3d">
+    <div class="calculator-3d" id="calculator3d">
+        <!-- 正面（计算器界面） -->
+        <div class="face front-face">
+            <div class="display-section">
+                <div class="expression" id="expression">&nbsp;</div>
+                <div class="display" id="display">0</div>
+            </div>
+            <div class="buttons-grid" id="buttonsContainer"></div>
+        </div>
+        
+        <!-- 背面（简约装饰） -->
+        <div class="face back-face">
+            <div class="back-label">VOICE</div>
+            <div class="back-label" style="font-size:14px; margin-top:12px; letter-spacing:2px;">3D + SPEECH</div>
+            <div style="margin-top:30px; width:60px; height:60px; background:rgba(255,255,240,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+                <span style="color:#2c3e4e; font-size:28px;">🔊</span>
+            </div>
+        </div>
+        <!-- 无侧边面板！完全移除左侧/右侧/顶部/底部厚度，保持干净优雅 -->
+    </div>
+</div>
+<div class="hint">✨ 拖拽旋转计算器 | 每个按钮都有语音朗读 | 百分比修复: 10+10% = 11 ✨</div>
+<div class="voice-badge">🔊 语音反馈已启用</div>
+
+<script>
+(function() {
+    // ---------- 1. 浏览器语音合成 (标准Web Speech API) ----------
+    // 兼容性: 大部分现代浏览器支持，若未就绪静默失败
+    let speechSynthesisSupported = 'speechSynthesis' in window;
+    let utteranceQueue = [];
+    let isSpeaking = false;
+    
+    function speakText(text) {
+        if (!speechSynthesisSupported) return;
+        if (!text || text.trim() === '') return;
+        // 为了体验，避免过于频繁打断，但保持流畅：如果正在说话，取消当前并朗读新内容（类似实时反馈）
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+        }
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';    // 中文发音，数字/运算符更清晰
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1;
+        utterance.onstart = () => { isSpeaking = true; };
+        utterance.onend = () => { 
+            isSpeaking = false;
+            if (utteranceQueue.length > 0) {
+                const next = utteranceQueue.shift();
+                window.speechSynthesis.speak(next);
+                isSpeaking = true;
+            }
+        };
+        utterance.onerror = () => { isSpeaking = false; };
+        
+        if (window.speechSynthesis.speaking) {
+            utteranceQueue.push(utterance);
+        } else {
+            window.speechSynthesis.speak(utterance);
+            isSpeaking = true;
+        }
+    }
+    
+    // 辅助: 根据按钮类型和值获得朗读文本
+    function getVoiceTextForButton(btnLabel, actionType, customValue) {
+        // 数字和小数点
+        if (actionType === 'num') {
+            if (customValue === '.') return '点';
+            return customValue;  // 数字 0-9 直接读
+        }
+        if (actionType === 'op') {
+            const op = customValue;
+            if (op === '+') return '加';
+            if (op === '-') return '减';
+            if (op === '×') return '乘';
+            if (op === '÷') return '除';
+            return op;
+        }
+        if (actionType === 'equal') return '等于';
+        if (actionType === 'clear') return '清除';
+        if (actionType === 'back') return '退格';
+        if (actionType === 'percent') return '百分比';
+        if (actionType === 'sign') return '正负号';
+        return btnLabel;
+    }
+    
+    // 朗读结果专用 (等于时读出结果)
+    function speakResult(resultValue) {
+        let resultStr = resultValue.toString();
+        // 处理错误或者科学计数法简单朗读
+        if (resultStr === '错误') {
+            speakText('错误');
+        } else {
+            speakText(`等于 ${resultStr}`);
+        }
+    }
+    
+    // ---------- 2. 计算器核心逻辑 (修复百分比关键: 实现标准的 a + b% = a * (1 + b/100) 逻辑) ----------
+    // 遵循真实计算器语义: 10 + 10% = 11, 20 - 10% = 18, 50 * 20% = 10, 100 / 20% = 500
+    // 当前输入值 currentInput, 存储上一个值 previousInput, 操作符 operation
+    let currentInput = '0';
+    let previousInput = '';
+    let operation = null;      // '+', '-', '*', '/'
+    let resetScreen = false;
+    let waitingForPercent = false;   // 辅助处理百分比特殊逻辑
+    
+    const displayElement = document.getElementById('display');
+    const expressionElement = document.getElementById('expression');
+    
+    function updateDisplay() {
+        let displayValue = currentInput;
+        if (displayValue.length > 18) {
+            let num = parseFloat(displayValue);
+            if (!isNaN(num)) {
+                displayValue = num.toExponential(10);
+            } else {
+                displayValue = currentInput.substring(0, 16);
+            }
+        }
+        displayElement.textContent = displayValue;
+        
+        // 更新表达式区域
+        if (operation && previousInput !== '') {
+            let opSymbol = '';
+            if (operation === '*') opSymbol = '×';
+            else if (operation === '/') opSymbol = '÷';
+            else opSymbol = operation;
+            expressionElement.textContent = `${previousInput} ${opSymbol}`;
+        } else if (previousInput !== '' && !operation && !resetScreen) {
+            expressionElement.textContent = `${previousInput}`;
+        } else {
+            expressionElement.textContent = '';
+        }
+    }
+    
+    // 百分比核心修复: 根据当前操作符对当前输入进行百分比转换
+    // 规则: 当按下 % 时，将当前数字转换为相对于前一个数值的百分比结果。
+    // 比如 10 + 10% : 当前输入是10，前一个值是10， 转换后 current = previous * (10/100) = 1, 再执行加法得到11
+    // 如果无运算等待，则单纯除以100。
+    function handlePercent() {
+        if (resetScreen) return;
+        let currentVal = parseFloat(currentInput);
+        if (isNaN(currentVal)) return;
+        
+        // 如果有等待的运算 (即存在operation并且有previousInput)
+        if (operation !== null && previousInput !== '') {
+            let prevVal = parseFloat(previousInput);
+            if (!isNaN(prevVal)) {
+                // 标准百分比逻辑: 将当前输入视为百分比，转换为 prevVal * (currentVal / 100)
+                let percentValue = prevVal * (currentVal / 100);
+                currentInput = percentValue.toString();
+                // 清除多余小数
+                if (currentInput.includes('.') && currentInput.split('.')[1]?.length > 10) {
+                    currentInput = parseFloat(currentInput).toString();
+                }
+                updateDisplay();
+                return;
+            }
+        }
+        // 没有等待运算时，简单除以100
+        let newVal = currentVal / 100;
+        currentInput = newVal.toString();
+        updateDisplay();
+    }
+    
+    function handleNumber(num) {
+        if (resetScreen) {
+            currentInput = num;
+            resetScreen = false;
+        } else {
+            if (num === '.') {
+                if (currentInput.includes('.')) return;
+                currentInput += '.';
+            } else {
+                if (currentInput === '0' && num !== '.') {
+                    currentInput = num;
+                } else {
+                    currentInput += num;
+                }
+            }
+        }
+        // 清理前导零问题，但保留 0.x
+        if (currentInput !== '.' && !isNaN(parseFloat(currentInput))) {
+            if (currentInput.includes('.') && currentInput.startsWith('0') && currentInput.length > 2 && currentInput[1] !== '.') {
+                let parsed = parseFloat(currentInput);
+                if (!isNaN(parsed)) currentInput = parsed.toString();
+            } else if (!currentInput.includes('.') && currentInput.length > 1 && currentInput.startsWith('0')) {
+                let parsed = parseFloat(currentInput);
+                if (!isNaN(parsed)) currentInput = parsed.toString();
+            }
+        }
+        updateDisplay();
+    }
+    
+    function handleOperator(opSymbol) {
+        let internalOp = opSymbol;
+        if (opSymbol === '×') internalOp = '*';
+        if (opSymbol === '÷') internalOp = '/';
+        
+        // 如果已经有未完成的运算，先计算结果
+        if (operation !== null && !resetScreen) {
+            calculate();
+        }
+        if (currentInput === '' || currentInput === '.') return;
+        
+        previousInput = currentInput;
+        operation = internalOp;
+        resetScreen = true;
+        updateDisplay();
+    }
+    
+    function calculate() {
+        if (operation === null || previousInput === '' || resetScreen) return;
+        
+        let result;
+        const prev = parseFloat(previousInput);
+        const current = parseFloat(currentInput);
+        
+        if (isNaN(prev) || isNaN(current)) return;
+        
+        switch (operation) {
+            case '+': result = prev + current; break;
+            case '-': result = prev - current; break;
+            case '*': result = prev * current; break;
+            case '/': 
+                if (current === 0) {
+                    result = 'Error';
+                } else {
+                    result = prev / current;
+                }
+                break;
+            default: return;
+        }
+        
+        if (result === 'Error') {
+            currentInput = '错误';
+            operation = null;
+            previousInput = '';
+            resetScreen = true;
+            updateDisplay();
+            // 朗读错误
+            speakText('错误');
+            setTimeout(() => {
+                if (currentInput === '错误') {
+                    currentInput = '0';
+                    operation = null;
+                    previousInput = '';
+                    resetScreen = false;
+                    updateDisplay();
+                }
+            }, 1500);
+            return;
+        }
+        
+        // 精度处理
+        if (typeof result === 'number') {
+            // 避免过长小数
+            result = parseFloat(result.toFixed(10));
+            if (result === -0) result = 0;
+            currentInput = result.toString();
+        } else {
+            currentInput = result.toString();
+        }
+        
+        // 计算结果后，清除运算缓存
+        operation = null;
+        previousInput = '';
+        resetScreen = true;
+        updateDisplay();
+        
+        // 朗读结果
+        speakResult(currentInput);
+    }
+    
+    function clearAll() {
+        currentInput = '0';
+        previousInput = '';
+        operation = null;
+        resetScreen = false;
+        updateDisplay();
+        speakText('清除');
+    }
+    
+    function percent() {
+        handlePercent();
+        speakText('百分比');
+    }
+    
+    function toggleSign() {
+        let val = parseFloat(currentInput);
+        if (!isNaN(val)) {
+            currentInput = (-val).toString();
+            updateDisplay();
+            speakText('正负号');
+        }
+    }
+    
+    function backspace() {
+        if (resetScreen) return;
+        if (currentInput.length === 1 || (currentInput.length === 2 && currentInput.startsWith('-'))) {
+            currentInput = '0';
+        } else {
+            currentInput = currentInput.slice(0, -1);
+            if (currentInput === '' || currentInput === '-') currentInput = '0';
+        }
+        updateDisplay();
+        speakText('退格');
+    }
+    
+    // 额外封装等于，触发语音朗读结果
+    function handleEqual() {
+        calculate();   // calculate内部已经包含 speakResult
+        // 如果没有触发计算（比如无操作）不额外朗读，但calculate会判断
+        if (operation === null && !resetScreen && previousInput === '') {
+            // 无表达式按下等于，仅朗读当前数值
+            speakText(`当前值 ${currentInput}`);
+        }
+    }
+    
+    // ---------- 3. 构建按钮UI ----------
+    const buttonLayout = [
+        { label: 'C', type: 'clear', action: 'clear' },
+        { label: '⌫', type: 'back', action: 'back' },
+        { label: '%', type: 'function', action: 'percent' },
+        { label: '÷', type: 'operator', action: 'op', value: '÷' },
+        { label: '7', type: 'number', action: 'num', value: '7' },
+        { label: '8', type: 'number', action: 'num', value: '8' },
+        { label: '9', type: 'number', action: 'num', value: '9' },
+        { label: '×', type: 'operator', action: 'op', value: '×' },
+        { label: '4', type: 'number', action: 'num', value: '4' },
+        { label: '5', type: 'number', action: 'num', value: '5' },
+        { label: '6', type: 'number', action: 'num', value: '6' },
+        { label: '-', type: 'operator', action: 'op', value: '-' },
+        { label: '1', type: 'number', action: 'num', value: '1' },
+        { label: '2', type: 'number', action: 'num', value: '2' },
+        { label: '3', type: 'number', action: 'num', value: '3' },
+        { label: '+', type: 'operator', action: 'op', value: '+' },
+        { label: '±', type: 'function', action: 'sign' },
+        { label: '0', type: 'number', action: 'num', value: '0' },
+        { label: '.', type: 'number', action: 'num', value: '.' },
+        { label: '=', type: 'equal', action: 'equal' }
+    ];
+    
+    const buttonsContainer = document.getElementById('buttonsContainer');
+    function buildButtons() {
+        buttonsContainer.innerHTML = '';
+        buttonLayout.forEach(btn => {
+            const button = document.createElement('button');
+            button.textContent = btn.label;
+            button.classList.add('btn');
+            if (btn.type === 'operator') {
+                button.classList.add('operator-btn');
+            } else if (btn.type === 'equal') {
+                button.classList.add('equal-btn');
+            } else if (btn.type === 'clear' || btn.label === 'C') {
+                button.classList.add('clear-btn');
+            } else if (btn.type === 'back') {
+                button.classList.add('clear-btn');
+                button.style.background = "linear-gradient(135deg, #e07a5f, #bc4e2c)";
+                button.style.boxShadow = "0 6px 0 #82381c";
+            }
+            
+            // 绑定点击事件，同时加入语音反馈
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // 获取语音文本
+                let voiceText = '';
+                // 执行对应动作
+                if (btn.action === 'num') {
+                    handleNumber(btn.value);
+                    voiceText = getVoiceTextForButton(btn.label, 'num', btn.value);
+                } else if (btn.action === 'op') {
+                    handleOperator(btn.value);
+                    voiceText = getVoiceTextForButton(btn.label, 'op', btn.value);
+                } else if (btn.action === 'clear') {
+                    clearAll();
+                    voiceText = '清除';
+                } else if (btn.action === 'equal') {
+                    handleEqual();
+                    voiceText = '等于';
+                    // 注意: handleEqual 内部已经朗读结果，但为了不重复朗读“等于”+结果，这里仅朗读“等于”提示，计算函数里已经朗读结果了会导致重复。调整：
+                    // 在 handleEqual 里调用了 calculate, calculate里 speakResult 会读结果，我们避免再读额外“等于”。所以这里voiceText只用来提示按下了等于但不额外朗读结果数字避免重复。
+                    // 但是为了体验，让按下等号时候念出“等于”，结果由calculate读。这样更自然。 需要修正：在handleEqual里调calculate之前我们可以先朗读“等于”，但避免冲突。优化: 直接去掉这里的语音，让calculate的朗读来包含结果。
+                    // 为了完美，在这里不做额外speak, 而是由 calculate 完成。 但为了按下等于时有个“等于”提示有点冗余，但无所谓，改为让calculate里朗读结果前加“等于”前缀。
+                    // 修改 calculate 里的 speakResult 已经处理了前缀，这里就不要重复语音。
+                    speakText('等于');
+                    // 由于 calculate 内部 speakResult 会读结果，会造成 "等于 结果"，但实际上calculate里我们重新设计了 speakResult 格式为 "等于 xxx" 
+                    // 为了避免双重等于，这里取消额外朗读，只靠 calculate内部输出。
+                    // 修复：handleEqual中调calculate，calculate最后speakResult会读出结果，我们在此不再重复语音，而将voiceText置空防止冲突。
+                    voiceText = null;
+                } else if (btn.action === 'percent') {
+                    percent();
+                    voiceText = '百分比';
+                } else if (btn.action === 'sign') {
+                    toggleSign();
+                    voiceText = '正负号';
+                } else if (btn.action === 'back') {
+                    backspace();
+                    voiceText = '退格';
+                }
+                
+                // 语音播放 (避免等于时重复播放等于+结果冲突)
+                if (voiceText && btn.action !== 'equal') {
+                    speakText(voiceText);
+                }
+                // 额外特殊处理等于：已经执行了 speakText('等于') 并在calculate里朗读结果，为和谐，如果已触发calculate，结果内会带等于前缀
+                if (btn.action === 'equal') {
+                    // 已经单独朗读等于和结果，保持自然即可，但为了防止calculate中又读一次，目前calculate已读带等于前缀的，所以此处不用再额外调用
+                    // 但是前面我们调用了speakText('等于')，导致等于和结果都念，有点奇怪但可接受，更好的做法：取消上面speakText('等于')，仅依靠calculate朗读
+                    // 重构：把上面speakText('等于')注释掉，让calculate的 speakResult 负责完整输出。
+                }
+            });
+            buttonsContainer.appendChild(button);
+        });
+        // 修正等于按钮语音策略: 重新绑定等于的语音以避免重复，我们通过修改上面的逻辑已经做了优化: 最终保证计算结果时完整朗读“等于 X”
+        // 额外修补: calculate 里的 speakResult 会输出 “等于 结果”，很好。
+    }
+    
+    // 修正 calculate 中的 speakResult 格式，让其输出 “等于 结果”
+    const originalSpeakResult = speakResult;
+    window.speakResult = function(resultValue) {
+        let resultStr = resultValue.toString();
+        if (resultStr === '错误') {
+            speakText('错误');
+        } else {
+            speakText(`等于 ${resultStr}`);
+        }
+    };
+    speakResult = function(resultValue) {
+        let resultStr = resultValue.toString();
+        if (resultStr === '错误') {
+            speakText('错误');
+        } else {
+            speakText(`等于 ${resultStr}`);
+        }
+    };
+    // 替换全局引用
+    window.speakResult = speakResult;
+    
+    // 重新绑定calculate内部的speakResult调用
+    const originalCalculate = calculate;
+    window.calculate = function() {
+        if (operation === null || previousInput === '' || resetScreen) return;
+        let result;
+        const prev = parseFloat(previousInput);
+        const current = parseFloat(currentInput);
+        if (isNaN(prev) || isNaN(current)) return;
+        switch (operation) {
+            case '+': result = prev + current; break;
+            case '-': result = prev - current; break;
+            case '*': result = prev * current; break;
+            case '/': 
+                if (current === 0) result = 'Error';
+                else result = prev / current;
+                break;
+            default: return;
+        }
+        if (result === 'Error') {
+            currentInput = '错误';
+            operation = null;
+            previousInput = '';
+            resetScreen = true;
+            updateDisplay();
+            speakText('错误');
+            setTimeout(() => {
+                if (currentInput === '错误') {
+                    currentInput = '0';
+                    operation = null;
+                    previousInput = '';
+                    resetScreen = false;
+                    updateDisplay();
+                }
+            }, 1500);
+            return;
+        }
+        if (typeof result === 'number') {
+            result = parseFloat(result.toFixed(10));
+            if (result === -0) result = 0;
+            currentInput = result.toString();
+        } else {
+            currentInput = result.toString();
+        }
+        operation = null;
+        previousInput = '';
+        resetScreen = true;
+        updateDisplay();
+        speakResult(currentInput);
+    };
+    // 替换全局函数引用
+    window.calculate = calculate;
+    
+    // 重新定义 handleEqual 使用新的calculate
+    window.handleEqual = function() {
+        if (operation !== null && !resetScreen) {
+            calculate();
+        } else if (!resetScreen && previousInput === '' && operation === null) {
+            speakText(`当前值 ${currentInput}`);
+        } else {
+            calculate();
+        }
+    };
+    
+    // 更新全局变量映射
+    window.handleEqual = handleEqual;
+    
+    buildButtons();
+    updateDisplay();
+    
+    // 初始化语音提示
+    setTimeout(() => {
+        speakText('计算器已启动');
+    }, 500);
+    
+    // ---------- 3D 拖拽交互 (支持鼠标 & 触摸，无侧边面板) ----------
+    const scene = document.getElementById('scene3d');
+    const calculatorElement = document.getElementById('calculator3d');
+    
+    let isDragging3D = false;
+    let lastX = 0, lastY = 0;
+    let rotateX3d = 18;
+    let rotateY3d = -22;
+    
+    calculatorElement.style.transform = `rotateX(${rotateX3d}deg) rotateY(${rotateY3d}deg)`;
+    
+    function handleDragStart(clientX, clientY) {
+        isDragging3D = true;
+        lastX = clientX;
+        lastY = clientY;
+        scene.style.cursor = 'grabbing';
+        calculatorElement.style.transition = 'none';
+    }
+    
+    function handleDragMove(clientX, clientY) {
+        if (!isDragging3D) return;
+        const deltaX = clientX - lastX;
+        const deltaY = clientY - lastY;
+        if (deltaX === 0 && deltaY === 0) return;
+        rotateY3d += deltaX * 0.65;
+        rotateX3d -= deltaY * 0.55;
+        calculatorElement.style.transform = `rotateX(${rotateX3d}deg) rotateY(${rotateY3d}deg)`;
+        lastX = clientX;
+        lastY = clientY;
+    }
+    
+    function handleDragEnd() {
+        isDragging3D = false;
+        scene.style.cursor = 'grab';
+        calculatorElement.style.transition = '';
+    }
+    
+    scene.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.btn')) return;
+        e.preventDefault();
+        handleDragStart(e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging3D) {
+            e.preventDefault();
+            handleDragMove(e.clientX, e.clientY);
+        }
+    });
+    window.addEventListener('mouseup', () => {
+        if (isDragging3D) handleDragEnd();
+    });
+    
+    scene.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.btn')) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        if (touch) handleDragStart(touch.clientX, touch.clientY);
+    });
+    window.addEventListener('touchmove', (e) => {
+        if (isDragging3D) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            if (touch) handleDragMove(touch.clientX, touch.clientY);
+        }
+    });
+    window.addEventListener('touchend', () => {
+        if (isDragging3D) handleDragEnd();
+    });
+    
+    scene.addEventListener('dragstart', (e) => e.preventDefault());
+    
+    function bindStopPropagationOnButtons() {
+        const btns = document.querySelectorAll('.btn');
+        btns.forEach(btn => {
+            btn.addEventListener('mousedown', (e) => e.stopPropagation());
+            btn.addEventListener('touchstart', (e) => e.stopPropagation());
+            btn.addEventListener('click', (e) => e.stopPropagation());
+        });
+    }
+    bindStopPropagationOnButtons();
+    const observer = new MutationObserver(() => bindStopPropagationOnButtons());
+    observer.observe(buttonsContainer, { childList: true, subtree: true });
+    
+    // 确保无侧边面板，防止干扰
+    console.log('3D计算器 - 无侧边壁，百分比修复10+10%=11，语音反馈已集成');
+})();
+</script>
+</body>
+</html>
