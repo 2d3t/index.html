@@ -1,0 +1,669 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KlikEdit 🎀</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f5f5f5;
+    }
+    .toolbar {
+      display: flex;
+      gap: 5px;
+      padding: 10px;
+      background: #333;
+      color: white;
+      flex-wrap: wrap;
+    }
+    .toolbar input {
+      padding: 5px;
+    }
+    /* Общие стили для всех кнопок и кнопкообразных элементов */
+    .toolbar button,
+    .toolbar label[for="fileUpload"] {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      background: #555;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-size: 14px;
+      font-family: inherit;
+      line-height: normal;
+      height: auto;
+      text-align: center;
+      box-sizing: border-box;
+      margin: 0;
+      display: inline-block;
+      text-decoration: none;
+    }
+    .toolbar button:hover,
+    .toolbar label[for="fileUpload"]:hover {
+      background: #777;
+    }
+    .toolbar button.copied {
+      background: #4CAF50;
+    }
+    .editor {
+      display: flex;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .line-numbers {
+      background: #eee;
+      color: #666;
+      padding: 5px 0;
+      text-align: right;
+      user-select: none;
+      overflow: hidden;
+      width: 50px;
+      box-sizing: border-box;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .line-numbers div {
+      padding: 0 10px;
+    }
+    textarea {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      padding: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow: auto;
+    }
+    .active-line {
+      background: rgba(100, 150, 250, 0.3);
+    }
+    .preview {
+      width: 100%;
+      height: calc(100vh - 60px);
+      border: none;
+      margin: 0;
+      padding: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease;
+    }
+    .preview.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    /* Скрываем стандартный input file */
+    .file-input {
+      display: none;
+    }
+    /* Кнопка выхода из полноэкранного режима - внутри iframe */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 10000;
+      display: none;
+    }
+    .fullscreen-overlay.active {
+      display: block;
+    }
+    .fullscreen-exit-btn {
+      position: fixed;
+      top: 30px;
+      right: 20px;
+      z-index: 10001;
+      padding: 12px 18px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    .fullscreen-exit-btn:hover {
+      background: rgba(0, 0, 0, 0.95);
+      transform: scale(1.05);
+      transition: transform 0.2s;
+    }
+    /* Анимация для кнопки очистки */
+    .clean-btn {
+      background: #d9534f !important;
+    }
+    .clean-btn:hover {
+      background: #c9302c !important;
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <input type="number" id="lineNumber" min="1" placeholder="Строка">
+  <button onclick="goToLine()">Перейти 🔀</button>
+  
+  <input type="text" id="searchInput" placeholder="Поиск 🔎" style="width:120px;">
+  <button onclick="findNext()">Найти ▶️</button>
+  <button onclick="findPrev()">Назад ◀️</button>
+
+  <button id="copyButton" onclick="copyText()">Скопировать 📃</button>
+  <button onclick="clearAll()">Очистить ❌</button>
+  <button onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход 🚸</button>
+  <button onclick="undo()">Отменить ↩️</button>
+  <button onclick="redo()">Повторить ↪️</button>
+  <button onclick="shareCode()">Скачать ⬇️</button>
+  <button onclick="showEditor()">Редактор 🛠️</button>
+  <button onclick="runCode()">Просмотр 🖥️</button>
+  
+  <!-- НОВАЯ КНОПКА: Очистить от лишнего текста, оставить чистый HTML -->
+  <button id="cleanTextButton" onclick="stripNonHtmlText()">🧹 Очистить от текста</button>
+  
+  <!-- Кнопка для полноэкранного режима -->
+  <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
+  
+  <!-- Кнопка для загрузки файлов - расширенные возможности -->
+  <label for="fileUpload" title="Открыть файл (поддерживаются: .py, .js, .html, .css, .txt, .json, .xml и другие текстовые форматы)">Файлы 📂</label>
+  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="loadFile(event)">
+</div>
+  
+<div class="editor">
+  <div class="line-numbers" id="lineNumbers"></div>
+  <textarea id="codeArea" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
+</div>
+
+<iframe class="preview" id="previewFrame"></iframe>
+
+<!-- Оверлей для полноэкранного режима -->
+<div class="fullscreen-overlay" id="fullscreenOverlay">
+  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти из полного экрана</button>
+  <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
+<script>
+  const textarea = document.getElementById('codeArea');
+  const lineNumbers = document.getElementById('lineNumbers');
+  const previewFrame = document.getElementById('previewFrame');
+  const copyButton = document.getElementById('copyButton');
+  const searchInput = document.getElementById('searchInput');
+  const fileUpload = document.getElementById('fileUpload');
+  const fullscreenButton = document.getElementById('fullscreenButton');
+  const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+  const fullscreenFrame = document.getElementById('fullscreenFrame');
+
+  let history = [];
+  let redoStack = [];
+  let isFullscreen = false;
+
+  function updateLineNumbers() {
+    const lines = textarea.value.split('\n').length;
+    const extraLines = Math.ceil(lines * 0.5);
+    const totalLines = lines + extraLines;
+
+    lineNumbers.innerHTML = '';
+    for (let i = 1; i <= totalLines; i++) {
+      const div = document.createElement("div");
+      div.textContent = i;
+      lineNumbers.appendChild(div);
+    }
+    highlightActiveLine();
+  }
+
+  function syncScroll() {
+    lineNumbers.scrollTop = textarea.scrollTop;
+  }
+
+  function goToLine() {
+    const line = parseInt(document.getElementById('lineNumber').value);
+    const lines = textarea.value.split('\n');
+    const extraLines = Math.ceil(lines.length * 0.5);
+    const totalLines = lines.length + extraLines;
+
+    if (!isNaN(line) && line > 0 && line <= totalLines) {
+        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+        const linePos = (line - 1) * lineHeight;
+        const visibleHeight = textarea.clientHeight;
+        const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
+        
+        textarea.scrollTop = Math.max(0, scrollPos);
+        highlightActiveLine(line);
+    } else {
+        alert("Неверный номер строки!");
+    }
+  }
+
+  function highlightActiveLine(line) {
+    const lineElements = Array.from(lineNumbers.children);
+    lineElements.forEach((el, index) => {
+      el.classList.remove('active-line');
+      if (line && index === (line - 1)) {
+        el.classList.add('active-line');
+      }
+    });
+  }
+
+  function copyText() {
+    textarea.select();
+    document.execCommand('copy');
+    
+    copyButton.classList.add('copied');
+    copyButton.textContent = "Скопировано"; 
+    setTimeout(() => {
+      copyButton.classList.remove('copied');
+      copyButton.textContent = "Скопировать 📃"; 
+    }, 1000); 
+  }
+
+  function clearAll() {
+    if (confirm('Очистить весь редактор? История отмены будет потеряна.')) {
+      saveState();
+      textarea.value = '';
+      updateLineNumbers();
+    }
+  }
+
+  function runCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    previewFrame.src = url;
+    
+    // Также загружаем код в fullscreenFrame
+    fullscreenFrame.src = url;
+
+    previewFrame.classList.add("active");
+    document.querySelector('.editor').style.display = "none";
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showEditor() {
+    // Выход из полноэкранного режима если он был активен
+    if (isFullscreen) {
+      exitFullscreen();
+    }
+    
+    previewFrame.classList.remove("active");
+    setTimeout(() => {
+      document.querySelector('.editor').style.display = "flex";
+    }, 500);
+  }
+
+  function shareCode() {
+    const code = textarea.value;
+    const blob = new Blob([code], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'code.html';
+    link.click();
+  }
+
+  function saveState() {
+    history.push(textarea.value);
+    redoStack = [];
+  }
+
+  function undo() {
+    if (history.length > 0) {
+      redoStack.push(textarea.value);
+      textarea.value = history.pop();
+      updateLineNumbers();
+    }
+  }
+
+  function redo() {
+    if (redoStack.length > 0) {
+      history.push(textarea.value);
+      textarea.value = redoStack.pop();
+      updateLineNumbers();
+    }
+  }
+
+  // ========== ФУНКЦИЯ ЗАГРУЗКИ ФАЙЛА - РАСШИРЕННЫЕ ВОЗМОЖНОСТИ ==========
+  function loadFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Получаем расширение файла
+    const fileName = file.name;
+    const fileExtension = fileName.split('.').pop().toLowerCase();
+    
+    // Список поддерживаемых текстовых расширений
+    const supportedExtensions = [
+      'html', 'htm', 'txt', 'py', 'js', 'css', 'json', 'xml', 'md', 'csv', 
+      'log', 'ini', 'cfg', 'conf', 'sh', 'bat', 'ps1', 'rb', 'php', 'java', 
+      'c', 'cpp', 'h', 'cs', 'go', 'rs', 'swift', 'kt', 'sql', 'yaml', 'yml', 
+      'toml', 'pl', 'pm', 'r', 'lua', 'vim', 'ts', 'jsx', 'tsx', 'vue', 'scss', 
+      'less', 'sass', 'styl'
+    ];
+    
+    // Проверяем, поддерживается ли расширение
+    if (!supportedExtensions.includes(fileExtension)) {
+      alert(`Файлы с расширением .${fileExtension} не поддерживаются.\n\nПоддерживаемые форматы:\n${supportedExtensions.join(', ')}`);
+      event.target.value = '';
+      return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      const content = e.target.result;
+      textarea.value = content;
+      updateLineNumbers();
+      
+      // Показываем уведомление о успешной загрузке
+      alert(`Файл "${file.name}" успешно загружен!`);
+      
+      // Очищаем input, чтобы можно было загрузить тот же файл снова
+      event.target.value = '';
+    };
+    
+    reader.onerror = function() {
+      alert('Ошибка при чтении файла');
+      event.target.value = '';
+    };
+    
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
+  function toggleFullscreen() {
+    if (!previewFrame.classList.contains('active')) {
+      alert('Сначала запустите просмотр страницы!');
+      return;
+    }
+    
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      enterFullscreen();
+    }
+  }
+
+  function enterFullscreen() {
+    if (!previewFrame.classList.contains('active')) return;
+    
+    fullscreenOverlay.classList.add('active');
+    isFullscreen = true;
+    fullscreenButton.textContent = 'Обычный экран ⛶';
+    fullscreenButton.style.background = '#4CAF50';
+    
+    // Скрываем обычный просмотр и тулбар
+    previewFrame.classList.remove('active');
+    document.querySelector('.toolbar').style.display = 'none';
+    
+    // Обработка клавиши ESC для выхода из полноэкранного режима
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    // Используем Fullscreen API если поддерживается
+    if (fullscreenOverlay.requestFullscreen) {
+      fullscreenOverlay.requestFullscreen().catch(err => {
+        console.log(`Ошибка полноэкранного режима: ${err.message}`);
+      });
+    }
+  }
+
+  function exitFullscreen() {
+    fullscreenOverlay.classList.remove('active');
+    isFullscreen = false;
+    fullscreenButton.textContent = 'Полный экран ⛶';
+    fullscreenButton.style.background = '';
+    
+    // Показываем обычный просмотр и тулбар
+    previewFrame.classList.add('active');
+    document.querySelector('.toolbar').style.display = 'flex';
+    
+    // Выход из Fullscreen API
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+    
+    // Удаляем обработчик клавиши ESC
+    document.removeEventListener('keydown', handleEscapeKey);
+  }
+
+  function handleEscapeKey(event) {
+    if (event.key === 'Escape' && isFullscreen) {
+      exitFullscreen();
+    }
+  }
+
+  // Обработка выхода из полноэкранного режима через браузерные методы
+  document.addEventListener('fullscreenchange', function() {
+    if (!document.fullscreenElement && isFullscreen) {
+      exitFullscreen();
+    }
+  });
+
+  textarea.addEventListener('input', saveState);
+
+  // ---------- ПОИСК ----------
+  let searchResults = [];
+  let currentResult = -1;
+  let lastSearch = "";
+
+  function findAll(term) {
+    searchResults = [];
+    currentResult = -1;
+    if (!term) return;
+
+    const text = textarea.value;
+    let index = text.indexOf(term);
+    while (index !== -1) {
+      searchResults.push(index);
+      index = text.indexOf(term, index + term.length);
+    }
+  }
+
+  function highlightMatch() {
+    if (searchResults.length === 0) return;
+
+    const pos = searchResults[currentResult];
+    const term = searchInput.value;
+
+    textarea.focus();
+    textarea.setSelectionRange(pos, pos + term.length);
+
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+    const before = textarea.value.substring(0, pos).split("\n").length;
+    const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2;
+    textarea.scrollTop = Math.max(0, scrollPos);
+  }
+
+  function findNext() {
+    const term = searchInput.value;
+    if (!term) return;
+
+    if (term !== lastSearch) {
+      findAll(term);
+      lastSearch = term;
+    }
+    if (searchResults.length === 0) {
+      alert("Совпадений не найдено");
+      return;
+    }
+    currentResult = (currentResult + 1) % searchResults.length;
+    highlightMatch();
+  }
+
+  function findPrev() {
+    const term = searchInput.value;
+    if (!term) return;
+
+    if (term !== lastSearch) {
+      findAll(term);
+      lastSearch = term;
+    }
+    if (searchResults.length === 0) {
+      alert("Совпадений не найдено");
+      return;
+    }
+    currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
+    highlightMatch();
+  }
+
+  searchInput.addEventListener("input", () => {
+    lastSearch = "";
+    searchResults = [];
+    currentResult = -1;
+  });
+
+  // ========== НОВАЯ ФУНКЦИЯ: ОЧИСТКА ОТ ЛИШНЕГО ТЕКСТА ==========
+  // Функция оставляет только HTML-код (открывающий <html> или <!DOCTYPE html> до закрывающего </html>)
+  // Если HTML не найден, пытается оставить содержимое, которое выглядит как разметка (начинается с <).
+  // Если внутри есть несколько html-блоков, берётся самый большой подходящий фрагмент.
+  function stripNonHtmlText() {
+    // Сохраняем текущее состояние для undo/redo
+    saveState();
+    
+    let originalText = textarea.value;
+    let cleanedHtml = extractCleanHtml(originalText);
+    
+    if (cleanedHtml === null || cleanedHtml.trim() === "") {
+      // Если не удалось извлечь HTML, предложим очистку от явно постороннего текста вручную или откат
+      if (confirm("Не удалось обнаружить валидный HTML-код в тексте.\nОчистить редактор полностью? (История будет сохранена)")) {
+        textarea.value = "";
+        updateLineNumbers();
+        alert("Редактор очищен.");
+      }
+      return;
+    }
+    
+    // Показываем предварительный просмотр того, что останется
+    if (originalText !== cleanedHtml) {
+      if (confirm("Будет оставлен только чистый HTML-код. Весь текст до и после будет удалён.\nПродолжить?")) {
+        textarea.value = cleanedHtml;
+        updateLineNumbers();
+        // Сбросим историю поиска, чтобы не было конфликтов
+        lastSearch = "";
+        searchResults = [];
+        currentResult = -1;
+        alert("HTML-код очищен от постороннего текста. При необходимости используйте Отменить (Ctrl+Z) для возврата.");
+      }
+    } else {
+      alert("В редакторе уже находится чистый HTML-код, дополнительный текст не обнаружен.");
+    }
+  }
+  
+  // Расширенный парсинг: ищем корректный HTML документ от <!DOCTYPE html> или <html> до </html>
+  // Если не находит, ищет любую конструкцию, начинающуюся с < и заканчивающуюся >, захватывая вложенные теги
+  function extractCleanHtml(text) {
+    if (!text || text.trim() === "") return "";
+    
+    // 1. Пытаемся найти полноценный HTML документ с закрывающим </html>
+    let startIndex = -1;
+    let endIndex = -1;
+    
+    // Поиск первого DOCTYPE или открывающего тега html
+    const doctypeMatch = text.match(/<!DOCTYPE\s+html[^>]*>/i);
+    const htmlOpenMatch = text.match(/<html[^>]*>/i);
+    
+    if (doctypeMatch) {
+      startIndex = doctypeMatch.index;
+    } else if (htmlOpenMatch) {
+      startIndex = htmlOpenMatch.index;
+    } else {
+      // Если нет ни doctype, ни <html>, ищем любой тег похожий на начало корневого элемента, например <body> или <div class="container">
+      // но чтобы захватить максимально возможный html фрагмент
+      const anyTagMatch = text.match(/<[a-zA-Z][^>]*>/);
+      if (anyTagMatch) {
+        startIndex = anyTagMatch.index;
+      } else {
+        // совсем нет тегов — не HTML
+        return null;
+      }
+    }
+    
+    // Ищем закрывающий </html> начиная с позиции startIndex
+    if (startIndex !== -1) {
+      const afterStart = text.substring(startIndex);
+      const htmlCloseMatch = afterStart.match(/<\/html\s*>/i);
+      if (htmlCloseMatch) {
+        endIndex = startIndex + htmlCloseMatch.index + htmlCloseMatch[0].length;
+        const result = text.substring(startIndex, endIndex);
+        if (result.trim().length > 0) {
+          return result;
+        }
+      }
+    }
+    
+    // Если нет закрывающего </html>, попробуем найти баланс тегов от первого открытого до последнего закрытого.
+    // Ищем последний закрывающий тег, который выглядит как закрытие корневого уровня (не обязательно html)
+    if (startIndex !== -1) {
+      let balance = 0;
+      let lastTagClose = -1;
+      let inTag = false;
+      let i = startIndex;
+      let htmlFragment = text.substring(startIndex);
+      // Простой парсинг: ищем <...> и </...> для примерного определения конца
+      const openTagRegex = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+      const closeTagRegex = /<\/([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+      
+      let openMatches = [...htmlFragment.matchAll(openTagRegex)];
+      let closeMatches = [...htmlFragment.matchAll(closeTagRegex)];
+      
+      if (openMatches.length > 0 && closeMatches.length > 0) {
+        // Находим последнее закрытие, которое имеет пару
+        let lastCloseIndex = -1;
+        for (let match of closeMatches) {
+          if (match.index !== undefined) {
+            lastCloseIndex = match.index + match[0].length;
+          }
+        }
+        if (lastCloseIndex !== -1) {
+          endIndex = startIndex + lastCloseIndex;
+          return text.substring(startIndex, endIndex);
+        }
+      }
+      
+      // Если баланс не удалось, просто возьмем всё от startIndex до конца, если там нет заведомо не-HTML мусора?
+      // но лучше обрезать по последнему > в разумных пределах
+      let remaining = text.substring(startIndex);
+      let lastGt = remaining.lastIndexOf('>');
+      if (lastGt !== -1 && lastGt > 20) { // хотя бы есть какой-то тег
+        endIndex = startIndex + lastGt + 1;
+        return text.substring(startIndex, endIndex);
+      }
+    }
+    
+    // В крайнем случае, если есть хоть какой-то фрагмент с тегами, но мы не нашли ни открывающий ни закрывающий
+    // Пытаемся найти блок, который начинается с < и заканчивается > и содержит в себе другие теги
+    const roughHtmlMatch = text.match(/<[^>]+>[^<]*<[^>]+>.*?<\/[^>]+>/s);
+    if (roughHtmlMatch) {
+      return roughHtmlMatch[0];
+    }
+    
+    // Если ничего не нашли, возвращаем null
+    return null;
+  }
+  
+  // Инициализация и проверка
+  updateLineNumbers();
+  document.getElementById('lineNumber').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      goToLine();
+    }
+  });
+
+  // Начальное сохранение состояния в истории (пустая строка)
+  window.addEventListener('DOMContentLoaded', () => {
+    // Проверяем поддержку File API
+    if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
+      alert('Ваш браузер не поддерживает загрузку файлов. Пожалуйста, обновите браузер.');
+    }
+    // Инициализируем историю начальным значением
+    history.push(textarea.value);
+  });
+</script>
+
+</body>
+</html>
