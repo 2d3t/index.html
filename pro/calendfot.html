@@ -4,8 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Календарь с фотографиями и отметками — поддержка PNG</title>
+    <title>Календарь-галерея — Скины, PNG, отметки</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --bg-color: #f0f2f5;
             --container-bg: #ffffff;
@@ -22,24 +26,67 @@
             --today-bg: #1e6091;
             --delete-overlay: rgba(0,0,0,0.65);
             --shadow-sm: 0 8px 20px rgba(0,0,0,0.08);
+            --accent-glow: #2a9d8f;
         }
 
-        .theme-dark {
-            --bg-color: #121212;
-            --container-bg: #1e2a2f;
-            --text-color: #eef2f5;
-            --day-bg: #2c3e3f;
-            --day-border: #3e5a5c;
-            --weekend-bg: #5a2e2e;
-            --header-bg: #1e5f6e;
-            --button-bg: #2c7a6e;
-            --button-hover: #1f5c52;
-            --gallery-border: #3a5a5c;
-            --gallery-bg: #1e2c2f;
-            --marked-day-bg: #2c7a6e;
-            --today-bg: #0f4c5c;
-            --delete-overlay: rgba(220, 220, 220, 0.3);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.3);
+        /* Скин 1: Чёрный (элегантный тёмный) */
+        .theme-black {
+            --bg-color: #0a0c10;
+            --container-bg: #111418;
+            --text-color: #eef2ff;
+            --day-bg: #1a1f2a;
+            --day-border: #2a2f3c;
+            --weekend-bg: #2a1f2a;
+            --header-bg: #1a2a36;
+            --button-bg: #2c3e50;
+            --button-hover: #1e2f3f;
+            --gallery-border: #2a2f3a;
+            --gallery-bg: #0f131a;
+            --marked-day-bg: #f39c12;
+            --today-bg: #e67e22;
+            --delete-overlay: rgba(255, 215, 0, 0.25);
+            --shadow-sm: 0 8px 20px rgba(0,0,0,0.6);
+            --accent-glow: #f39c12;
+        }
+
+        /* Скин 2: Приглушенный зелёный (счёт/деньги) */
+        .theme-money {
+            --bg-color: #1a2a1f;
+            --container-bg: #1f3a2a;
+            --text-color: #e2f0da;
+            --day-bg: #2a4230;
+            --day-border: #3a5a42;
+            --weekend-bg: #2e4a35;
+            --header-bg: #1f543a;
+            --button-bg: #2e7d5e;
+            --button-hover: #1f664a;
+            --gallery-border: #4a6a4e;
+            --gallery-bg: #182c1c;
+            --marked-day-bg: #ffb347;
+            --today-bg: #d4af37;
+            --delete-overlay: rgba(0,0,0,0.6);
+            --shadow-sm: 0 8px 20px rgba(0,0,0,0.5);
+            --accent-glow: #ffd966;
+        }
+
+        /* Скин 3: Классическая светлая (дефолтная) */
+        .theme-light {
+            --bg-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-color: #1e2a3e;
+            --day-bg: #ffffff;
+            --day-border: #dce4ec;
+            --weekend-bg: #ffe6e6;
+            --header-bg: #2c7da0;
+            --button-bg: #2a9d8f;
+            --button-hover: #21867a;
+            --gallery-border: #cbd5e1;
+            --gallery-bg: #f8fafc;
+            --marked-day-bg: #2a9d8f;
+            --today-bg: #1e6091;
+            --delete-overlay: rgba(0,0,0,0.65);
+            --shadow-sm: 0 8px 20px rgba(0,0,0,0.08);
+            --accent-glow: #2a9d8f;
         }
 
         body {
@@ -59,7 +106,7 @@
             justify-content: center;
             gap: 12px;
             align-items: center;
-            max-width: 1000px;
+            max-width: 1100px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -71,13 +118,13 @@
             border-radius: 28px;
             box-shadow: var(--shadow-sm);
             width: 100%;
-            max-width: 580px;
+            max-width: 620px;
             color: var(--text-color);
             transition: all 0.2s ease;
             margin: 0 auto;
         }
 
-        /* ---------- Умная галерея (PNG/JPEG/WebP) ---------- */
+        /* ----- Галерея с поддержкой PNG ----- */
         .image-gallery {
             display: flex;
             flex-wrap: wrap;
@@ -92,7 +139,6 @@
             align-items: center;
         }
 
-        /* Режим одной фотографии (крупно, с сохранением пропорций) */
         .image-gallery.single-photo {
             display: flex;
             justify-content: center;
@@ -118,12 +164,11 @@
         .image-gallery.single-photo .gallery-item img {
             width: 100%;
             height: 100%;
-            object-fit: contain;   /* PNG с прозрачностью будут видны полностью без обрезки */
+            object-fit: contain;
             background: #f0f0f0;
             display: block;
         }
 
-        /* Сетка для 2+ фото (включая PNG) */
         .image-gallery:not(.single-photo) {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -162,7 +207,6 @@
             background: #ececec;
         }
 
-        /* Для PNG в сетке — сохраняем cover, но в крупном режиме contain */
         .delete-icon {
             position: absolute;
             top: 8px;
@@ -222,13 +266,26 @@
         .marked {
             background-color: var(--marked-day-bg);
             color: white;
-            box-shadow: inset 0 0 0 1px rgba(255,255,240,0.3);
+            box-shadow: inset 0 0 0 1px rgba(255,255,240,0.4), 0 0 0 1px var(--accent-glow);
         }
 
         .today {
             background-color: var(--today-bg);
             color: white;
-            box-shadow: 0 0 0 2px gold;
+            box-shadow: 0 0 0 2px gold, 0 0 6px rgba(255,215,0,0.5);
+        }
+
+        /* Стиль для отключенного выделения "сегодня" — убираем спецэффекты */
+        .today-disabled {
+            background-color: var(--day-bg);
+            color: var(--text-color);
+            box-shadow: none;
+            border: 1px solid var(--day-border);
+        }
+        .today-disabled.today {
+            background-color: var(--day-bg);
+            color: var(--text-color);
+            box-shadow: none;
         }
 
         .mark-indicator {
@@ -257,7 +314,7 @@
             border-radius: 40px;
             border: 1px solid var(--day-border);
             background-color: var(--container-bg);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
             color: var(--text-color);
             transition: 0.2s;
@@ -306,20 +363,26 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .file-input-label:hover {
-            background-color: #1e5a6e;
-            transform: scale(0.98);
-        }
-
-        .theme-toggle {
+        .theme-selector {
             background: var(--container-bg);
             border: 2px solid var(--day-border);
-            color: var(--text-color);
-            padding: 6px 16px;
             border-radius: 40px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            padding: 6px 12px;
+            font-weight: 600;
+        }
+
+        .toggle-mark-btn {
+            background-color: #6c5ce7;
+        }
+        .toggle-mark-btn:hover {
+            background-color: #5a4bcf;
+        }
+        .disable-today-btn {
+            background-color: #e67e22;
+        }
+        .disable-today-btn.active {
+            background-color: #2c3e50;
+            box-shadow: inset 0 0 0 1px #f1c40f;
         }
 
         @media (max-width: 550px) {
@@ -343,44 +406,17 @@
         }
 
         /* стили для экспорта */
-        .download-version-light {
+        .export-fix-light {
             background: white !important;
             color: #1e2a3e !important;
         }
-        .download-version-light .day {
-            background: white !important;
-            color: #1e2a3e !important;
-            border-color: #cbd5e1 !important;
+        .export-fix-dark, .export-fix-black {
+            background: #111418 !important;
+            color: #eef2ff !important;
         }
-        .download-version-light .weekend {
-            background: #ffe0e0 !important;
-        }
-        .download-version-light .marked {
-            background: #2a9d8f !important;
-        }
-        .download-version-light .today {
-            background: #1e6091 !important;
-        }
-        .download-version-dark {
-            background: #1e2a2f !important;
-            color: #eef2f5 !important;
-        }
-        .download-version-dark .day {
-            background: #2c3e3f !important;
-            border-color: #3e5a5c !important;
-            color: #eef2f5 !important;
-        }
-        .download-version-dark .weekend {
-            background: #5a2e2e !important;
-        }
-        .download-version-dark .marked {
-            background: #2c7a6e !important;
-        }
-        .download-version-dark .today {
-            background: #0f4c5c !important;
-        }
-        .download-version-dark .image-gallery {
-            background: #1e2c2f !important;
+        .export-fix-money {
+            background: #1f3a2a !important;
+            color: #e2f0da !important;
         }
     </style>
 </head>
@@ -388,17 +424,20 @@
 
 <div class="header">
     <div class="file-input-container">
-        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/bmp, image/svg+xml" multiple>
+        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/bmp" multiple>
         <label for="imageInput" class="file-input-label">📸 Загрузить PNG / JPEG</label>
     </div>
     <select id="yearSelector"></select>
     <select id="monthSelector"></select>
     <button onclick="markToday()">⭐ Отметить сегодня</button>
-    <button onclick="downloadCalendar()">📥 Скачать календарь</button>
-    <button class="theme-toggle" onclick="toggleTheme()">
-        <span class="theme-icon">🌙</span>
-        <span id="themeText">Тёмная</span>
-    </button>
+    <button id="toggleMarkTodayBtn" class="toggle-mark-btn" style="background-color:#e67e22;">🔁 Снять отметку сегодня</button>
+    <button id="disableTodayHighlightBtn" class="disable-today-btn">🚫 Скрыть выделение "Сегодня"</button>
+    <button onclick="downloadCalendar()">📥 Скачать PNG</button>
+    <select id="skinSelector" class="theme-selector">
+        <option value="light">🌞 Светлая (классика)</option>
+        <option value="black">🖤 Чёрный элитный</option>
+        <option value="money">💰 Зелёный / Счёт</option>
+    </select>
 </div>
 
 <div id="calendarContainer" class="calendar-container">
@@ -411,18 +450,17 @@
     // ---------- Глобальные данные ----------
     let uploadedImages = [];      // { id, dataUrl }
     let nextImageId = 0;
-    let currentTheme = 'light';
     let markedDays = JSON.parse(localStorage.getItem('markedDays')) || {};
+    let currentSkin = localStorage.getItem('currentSkin') || 'light';
+    // НОВЫЙ ФЛАГ: отключить выделение сегодняшней даты
+    let disableTodayHighlight = localStorage.getItem('disableTodayHighlight') === 'true';
 
-    // ---------- Работа с localStorage (сохраняем фото, включая PNG) ----------
+    // ---------- Работа с фотографиями (PNG с прозрачностью) ----------
     function saveGalleryToLocal() {
         const imagesData = uploadedImages.map(img => ({ id: img.id, dataUrl: img.dataUrl }));
         localStorage.setItem('galleryImages', JSON.stringify(imagesData));
-        if (uploadedImages.length > 0) {
-            localStorage.setItem('nextImageId', nextImageId);
-        } else {
-            localStorage.removeItem('nextImageId');
-        }
+        if (uploadedImages.length > 0) localStorage.setItem('nextImageId', nextImageId);
+        else localStorage.removeItem('nextImageId');
     }
 
     function loadGalleryFromLocal() {
@@ -431,16 +469,12 @@
             try {
                 const parsed = JSON.parse(saved);
                 uploadedImages = parsed.map(item => ({ id: item.id, dataUrl: item.dataUrl }));
-                if (uploadedImages.length) {
-                    nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
-                } else {
-                    nextImageId = 0;
-                }
+                if (uploadedImages.length) nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
+                else nextImageId = 0;
             } catch(e) { console.warn(e); }
         }
     }
 
-    // ---- Умный рендер галереи с поддержкой PNG (прозрачность / пропорции) ----
     function renderGallery() {
         const gallery = document.getElementById('imageGallery');
         if (!gallery) return;
@@ -449,35 +483,26 @@
         if (uploadedImages.length === 0) {
             gallery.classList.remove('single-photo');
             const emptyHint = document.createElement('div');
-            emptyHint.textContent = '🖼️ Нет фотографий. Нажмите "Загрузить PNG / JPEG" чтобы добавить';
+            emptyHint.textContent = '🖼️ Нет фотографий. Загрузите PNG / JPEG';
             emptyHint.style.gridColumn = '1 / -1';
             emptyHint.style.padding = '28px 12px';
             emptyHint.style.textAlign = 'center';
             emptyHint.style.color = 'var(--text-color)';
             emptyHint.style.opacity = '0.7';
-            emptyHint.style.fontSize = '0.9rem';
             gallery.appendChild(emptyHint);
             return;
         }
 
-        // Режим отображения: 1 фото — крупный режим (с contain для PNG), иначе сетка
-        if (uploadedImages.length === 1) {
-            gallery.classList.add('single-photo');
-        } else {
-            gallery.classList.remove('single-photo');
-        }
+        if (uploadedImages.length === 1) gallery.classList.add('single-photo');
+        else gallery.classList.remove('single-photo');
 
         uploadedImages.forEach((imgObj, idx) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'gallery-item';
             itemDiv.setAttribute('data-id', imgObj.id);
-
             const img = document.createElement('img');
             img.src = imgObj.dataUrl;
             img.alt = `Изображение ${idx+1}`;
-            // важная деталь: для PNG с прозрачностью в крупном режиме не обрезаем (стили уже .single-photo img -> object-fit: contain)
-            // в сетке object-fit: cover, чтобы квадраты выглядели аккуратно
-
             const deleteSpan = document.createElement('div');
             deleteSpan.className = 'delete-icon';
             deleteSpan.innerHTML = '✕';
@@ -485,22 +510,15 @@
                 e.stopPropagation();
                 deleteImageById(imgObj.id);
             });
-
             itemDiv.appendChild(img);
             itemDiv.appendChild(deleteSpan);
-
-            // Клик по фото (не по крестику) — удаление для удобства, но оставим как в оригинале
             itemDiv.addEventListener('click', (e) => {
-                if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) {
-                    deleteImageById(imgObj.id);
-                }
+                if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) deleteImageById(imgObj.id);
             });
-
             gallery.appendChild(itemDiv);
         });
     }
 
-    // Удаление фото по id
     function deleteImageById(imageId) {
         const index = uploadedImages.findIndex(img => img.id === imageId);
         if (index !== -1) {
@@ -511,7 +529,6 @@
         }
     }
 
-    // Всплывающее сообщение
     function showMessage(text, bgColor = '#2a9d8f') {
         let msgDiv = document.getElementById('tempMsg');
         if (!msgDiv) {
@@ -537,47 +554,35 @@
         msgDiv.style.backgroundColor = bgColor;
         msgDiv.textContent = text;
         msgDiv.style.opacity = '1';
-        setTimeout(() => {
-            msgDiv.style.opacity = '0';
-        }, 1600);
+        setTimeout(() => { msgDiv.style.opacity = '0'; }, 1600);
     }
 
-    // Загрузка изображений (поддерживаем PNG, JPEG, WebP, BMP и т.д.)
     function loadImages(files) {
         if (!files || files.length === 0) return;
-
         const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
         if (imageFiles.length === 0) {
-            showMessage('⚠️ Пожалуйста, выберите изображения (PNG, JPEG и др.)', '#e67e22');
+            showMessage('⚠️ Выберите изображения (PNG, JPEG)', '#e67e22');
             return;
         }
-
         let loadedCount = 0;
         imageFiles.forEach(file => {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const newId = nextImageId++;
-                uploadedImages.push({
-                    id: newId,
-                    dataUrl: e.target.result   // DataURL работает для PNG без потерь
-                });
+                uploadedImages.push({ id: newId, dataUrl: e.target.result });
                 loadedCount++;
-
                 if (loadedCount === imageFiles.length) {
                     saveGalleryToLocal();
                     renderGallery();
                     showMessage(`✅ Загружено ${imageFiles.length} фото (PNG/JPEG)`, '#2a9d8f');
                 }
             };
-            reader.onerror = () => {
-                loadedCount++;
-                showMessage(`Ошибка чтения: ${file.name}`, '#e74c3c');
-            };
+            reader.onerror = () => { loadedCount++; showMessage(`Ошибка: ${file.name}`, '#e74c3c'); };
             reader.readAsDataURL(file);
         });
     }
 
-    // ---------- Календарь и отметки ----------
+    // ---------- Календарь ----------
     function initYearSelector() {
         const yearSelector = document.getElementById('yearSelector');
         const currentYear = new Date().getFullYear();
@@ -601,7 +606,7 @@
         const date = new Date(year, month, 1);
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         let firstDay = date.getDay();
-        firstDay = firstDay === 0 ? 6 : firstDay - 1; // Пн = 0
+        firstDay = firstDay === 0 ? 6 : firstDay - 1;
 
         monthYearSpan.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
         const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -628,32 +633,39 @@
         for (let day = 1; day <= daysInMonth; day++) {
             const dayIndex = (firstDay + day - 1) % 7;
             let dayClass = (dayIndex === 5 || dayIndex === 6) ? 'day weekend' : 'day';
-            if (isCurrentMonth && day === today.getDate()) {
+            
+            // Определяем, является ли день сегодняшним и включено ли выделение
+            const isToday = isCurrentMonth && day === today.getDate();
+            let isTodayActive = isToday && !disableTodayHighlight;
+            
+            if (isTodayActive) {
                 dayClass += ' today';
+            } else if (isToday && disableTodayHighlight) {
+                // Если сегодня, но выделение отключено, добавляем класс для сброса стилей
+                dayClass += ' today-disabled';
             }
-
+            
             const dayKey = `${year}-${month}-${day}`;
             if (markedDays[dayKey]) {
                 dayClass += ' marked';
             }
-
             const dayDiv = document.createElement('div');
             dayDiv.className = dayClass;
             dayDiv.textContent = day;
-
             if (markedDays[dayKey]) {
                 const markIndicator = document.createElement('div');
                 markIndicator.className = 'mark-indicator';
                 markIndicator.textContent = '✓';
                 dayDiv.appendChild(markIndicator);
             }
-
             dayDiv.addEventListener('click', (function(y, m, d) {
                 return function() { toggleDayMark(y, m, d); };
             })(year, month, day));
-
             calendar.appendChild(dayDiv);
         }
+        
+        // Обновляем внешний вид кнопки отключения выделения "сегодня"
+        updateDisableTodayButtonUI();
     }
 
     function toggleDayMark(year, month, day) {
@@ -669,79 +681,111 @@
         generateCalendar();
     }
 
+    // Отметить сегодня (добавить)
     function markToday() {
         const today = new Date();
         const year = today.getFullYear();
         const month = today.getMonth();
         const day = today.getDate();
-
         document.getElementById('yearSelector').value = year;
         document.getElementById('monthSelector').value = month;
-
         const dayKey = `${year}-${month}-${day}`;
         if (!markedDays[dayKey]) {
             markedDays[dayKey] = true;
             localStorage.setItem('markedDays', JSON.stringify(markedDays));
             generateCalendar();
-            showMessage('⭐ Сегодняшний день отмечен в календаре!', '#2a9d8f');
+            showMessage('⭐ Сегодняшний день отмечен!', '#2a9d8f');
         } else {
             showMessage('ℹ️ Сегодня уже отмечен', '#f39c12');
         }
     }
 
-    // ---------- Тема (светлая / тёмная) ----------
-    function toggleTheme() {
+    // Снять отметку с сегодняшнего дня
+    function unmarkToday() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const day = today.getDate();
+        const dayKey = `${year}-${month}-${day}`;
+        if (markedDays[dayKey]) {
+            delete markedDays[dayKey];
+            localStorage.setItem('markedDays', JSON.stringify(markedDays));
+            generateCalendar();
+            showMessage(`🔁 Отметка с сегодняшнего дня (${day}.${month+1}) снята`, '#e67e22');
+        } else {
+            showMessage(`Сегодня (${day}.${month+1}) не отмечен, можно добавить кнопкой выше`, '#f1c40f');
+        }
+    }
+    
+    // НОВАЯ ФУНКЦИЯ: переключение выделения "сегодня"
+    function toggleTodayHighlight() {
+        disableTodayHighlight = !disableTodayHighlight;
+        localStorage.setItem('disableTodayHighlight', disableTodayHighlight);
+        // Обновляем календарь, чтобы применить изменения
+        generateCalendar();
+        if (disableTodayHighlight) {
+            showMessage('🌙 Выделение текущей даты (сегодня) ОТКЛЮЧЕНО', '#f39c12');
+        } else {
+            showMessage('✨ Выделение текущей даты (сегодня) ВКЛЮЧЕНО', '#2a9d8f');
+        }
+        updateDisableTodayButtonUI();
+    }
+    
+    function updateDisableTodayButtonUI() {
+        const btn = document.getElementById('disableTodayHighlightBtn');
+        if (!btn) return;
+        if (disableTodayHighlight) {
+            btn.textContent = '✅ Включить выделение "Сегодня"';
+            btn.classList.add('active');
+            btn.style.backgroundColor = '#2c3e50';
+        } else {
+            btn.textContent = '🚫 Скрыть выделение "Сегодня"';
+            btn.classList.remove('active');
+            btn.style.backgroundColor = '#e67e22';
+        }
+    }
+
+    // ---------- Управление скинами (чёрный, зелёный/счёт, светлый) ----------
+    function applySkin(skinName) {
         const body = document.body;
-        const themeTextSpan = document.getElementById('themeText');
-        const themeIconSpan = document.querySelector('.theme-icon');
-
-        if (currentTheme === 'light') {
-            body.classList.add('theme-dark');
-            themeTextSpan.textContent = 'Светлая';
-            themeIconSpan.textContent = '☀️';
-            currentTheme = 'dark';
+        body.classList.remove('theme-black', 'theme-money', 'theme-light');
+        if (skinName === 'black') {
+            body.classList.add('theme-black');
+        } else if (skinName === 'money') {
+            body.classList.add('theme-money');
         } else {
-            body.classList.remove('theme-dark');
-            themeTextSpan.textContent = 'Тёмная';
-            themeIconSpan.textContent = '🌙';
-            currentTheme = 'light';
+            body.classList.add('theme-light');
         }
-        localStorage.setItem('calendarTheme', currentTheme);
-        renderGallery(); // перерисовка для корректных цветов фона внутри галереи
+        currentSkin = skinName;
+        localStorage.setItem('currentSkin', skinName);
+        renderGallery();
+        generateCalendar();
     }
 
-    function loadTheme() {
-        const savedTheme = localStorage.getItem('calendarTheme');
-        if (savedTheme === 'dark') {
-            document.body.classList.add('theme-dark');
-            const themeTextSpan = document.getElementById('themeText');
-            const themeIconSpan = document.querySelector('.theme-icon');
-            if (themeTextSpan) themeTextSpan.textContent = 'Светлая';
-            if (themeIconSpan) themeIconSpan.textContent = '☀️';
-            currentTheme = 'dark';
-        } else {
-            currentTheme = 'light';
+    function initSkinSelector() {
+        const selector = document.getElementById('skinSelector');
+        if (selector) {
+            selector.value = currentSkin;
+            selector.addEventListener('change', (e) => {
+                applySkin(e.target.value);
+            });
         }
+        applySkin(currentSkin);
     }
 
-    // ---------- Скачивание календаря (скриншот с поддержкой PNG-галереи) ----------
+    // ---------- Скачивание календаря с поддержкой скинов ----------
     function downloadCalendar() {
         const originalContainer = document.getElementById('calendarContainer');
         const downloadContainer = originalContainer.cloneNode(true);
-
-        // Подготовка к экспорту: убираем интерактивные элементы (крестики)
         const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
-        deleteIcons.forEach(icon => {
-            icon.style.display = 'none';
-        });
-
-        // Добавляем классы для экспорта (фиксированные цвета)
-        if (currentTheme === 'dark') {
-            downloadContainer.classList.add('download-version-dark');
+        deleteIcons.forEach(icon => { icon.style.display = 'none'; });
+        if (currentSkin === 'black') {
+            downloadContainer.classList.add('export-fix-black');
+        } else if (currentSkin === 'money') {
+            downloadContainer.classList.add('export-fix-money');
         } else {
-            downloadContainer.classList.add('download-version-light');
+            downloadContainer.classList.add('export-fix-light');
         }
-
         downloadContainer.style.position = 'fixed';
         downloadContainer.style.left = '-9999px';
         downloadContainer.style.top = '0';
@@ -751,12 +795,10 @@
             if (typeof html2canvas === 'undefined') {
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                script.onload = () => {
-                    captureImage(downloadContainer);
-                };
+                script.onload = () => { captureImage(downloadContainer); };
                 script.onerror = () => {
                     document.body.removeChild(downloadContainer);
-                    alert('Не удалось загрузить библиотеку для сохранения.');
+                    alert('Ошибка загрузки html2canvas');
                 };
                 document.head.appendChild(script);
             } else {
@@ -765,7 +807,10 @@
         };
 
         const captureImage = (container) => {
-            const bgColor = currentTheme === 'dark' ? '#1e2a2f' : '#ffffff';
+            let bgColor = '#ffffff';
+            if (currentSkin === 'black') bgColor = '#111418';
+            else if (currentSkin === 'money') bgColor = '#1f3a2a';
+            else bgColor = '#ffffff';
             html2canvas(container, {
                 scale: 2.5,
                 useCORS: true,
@@ -777,35 +822,32 @@
                 const monthVal = parseInt(document.getElementById('monthSelector').value);
                 const yearVal = document.getElementById('yearSelector').value;
                 const monthName = new Date(0, monthVal).toLocaleString('ru-RU', { month: 'long' });
-                const themeSuffix = currentTheme === 'dark' ? 'dark' : 'light';
-                link.download = `calendar_${monthName}_${yearVal}_${themeSuffix}.png`;
+                link.download = `calendar_${monthName}_${yearVal}_${currentSkin}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 document.body.removeChild(container);
             }).catch(err => {
-                console.error('Ошибка рендера:', err);
+                console.error(err);
                 document.body.removeChild(container);
-                alert('Не удалось создать изображение календаря');
+                alert('Не удалось создать изображение');
             });
         };
-
         loadHtml2CanvasAndCapture();
     }
 
-    // ---------- Настройка загрузки файлов с расширенной поддержкой PNG ----------
+    // ---------- Настройка загрузки и инициализация ----------
     function setupFileInput() {
         const fileInput = document.getElementById('imageInput');
         if (fileInput) {
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files.length) {
                     loadImages(e.target.files);
-                    fileInput.value = ''; // сброс для повторной загрузки тех же файлов
+                    fileInput.value = '';
                 }
             });
         }
     }
 
-    // ---------- Инициализация при загрузке ----------
     window.onload = function() {
         initYearSelector();
         const monthSelector = document.getElementById('monthSelector');
@@ -819,15 +861,37 @@
         monthSelector.value = currentDate.getMonth();
 
         loadGalleryFromLocal();
-        loadTheme();
+        loadThemeFromSkin();
         renderGallery();
         generateCalendar();
         setupFileInput();
+        initSkinSelector();
 
-        // Обновляем календарь при смене месяца/года
+        const toggleBtn = document.getElementById('toggleMarkTodayBtn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', unmarkToday);
+        }
+        
+        // Новая кнопка для отключения выделения сегодня
+        const disableTodayBtn = document.getElementById('disableTodayHighlightBtn');
+        if (disableTodayBtn) {
+            disableTodayBtn.addEventListener('click', toggleTodayHighlight);
+        }
+
         document.getElementById('yearSelector').addEventListener('change', () => generateCalendar());
         document.getElementById('monthSelector').addEventListener('change', () => generateCalendar());
+        
+        // Инициализируем UI кнопки
+        updateDisableTodayButtonUI();
     };
+
+    function loadThemeFromSkin() {
+        const savedSkin = localStorage.getItem('currentSkin');
+        if (savedSkin === 'black') currentSkin = 'black';
+        else if (savedSkin === 'money') currentSkin = 'money';
+        else currentSkin = 'light';
+        applySkin(currentSkin);
+    }
 </script>
 </body>
 </html>
