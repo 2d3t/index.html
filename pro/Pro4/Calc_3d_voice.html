@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ru-RU">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D语音计算器 | 立体可拖拽 | 智能百分比 | 语音反馈</title>
+    <title>3D Голосовой калькулятор | Часы на обороте | Объёмный | Умные проценты</title>
     <style>
         * {
             margin: 0;
@@ -24,7 +24,7 @@
             touch-action: none;
         }
 
-        /* 3D 场景容器 */
+        /* 3D-сцена */
         .scene {
             width: 340px;
             height: 480px;
@@ -37,7 +37,7 @@
             cursor: grabbing;
         }
 
-        /* 计算器主体 - 完整闭合六面体（无侧边视觉干扰，仅保留核心面板） */
+        /* Основной объект калькулятора - полный закрытый шестигранник (только основные панели) */
         .calculator-3d {
             position: relative;
             width: 100%;
@@ -47,7 +47,7 @@
             will-change: transform;
         }
 
-        /* 公用面板样式：所有面都是绝对定位，相同尺寸 */
+        /* Общий стиль граней */
         .face {
             position: absolute;
             width: 100%;
@@ -57,7 +57,7 @@
             box-sizing: border-box;
         }
 
-        /* 前面板 (计算器操作面) - 核心界面，无侧边视觉干扰 */
+        /* Передняя панель (интерфейс калькулятора) */
         .front-face {
             background: linear-gradient(145deg, #f0f3fa 0%, #e6eefc 100%);
             box-shadow: 0 25px 45px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255,255,255,0.6);
@@ -68,23 +68,96 @@
             padding: 18px 16px 22px 16px;
         }
 
-        /* 背面板 - 装饰简约，无侧边冗余 */
+        /* Задняя панель - элегантный дизайн с часами (исправлено зеркальное отображение) */
         .back-face {
-            background: radial-gradient(circle at 30% 40%, #cbd5e6, #9aaec9);
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.2), 0 10px 20px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            transform: translateZ(-22px);
+            background: radial-gradient(circle at 30% 40%, #1e2b32, #0f1920);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.6), 0 10px 20px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            transform: translateZ(-22px) rotateY(180deg);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(2px);
+            font-family: 'Segoe UI', 'Poppins', monospace;
+            padding: 20px;
         }
 
-        /* 完全移除侧边厚度面板 —— 不再显示任何左右/上下侧壁，保持干净简洁 */
-        /* 删除 .left-face, .right-face, .top-face, .bottom-face 的定义和渲染 */
+        /* Стильные часы на задней крышке - теперь читаются правильно */
+        .back-clock {
+            text-align: center;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 20px 12px;
+            border: 1px solid rgba(255, 215, 120, 0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+            transition: all 0.2s ease;
+        }
 
-        /* 屏幕区域 */
+        .time-digits {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: #ffe6b3;
+            text-shadow: 0 0 8px rgba(255, 200, 100, 0.6), 0 2px 4px black;
+            font-family: 'Courier New', 'Segoe UI', monospace;
+            background: linear-gradient(135deg, #ffefcf, #ffd58c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: #ffdd99;
+            text-shadow: 0 0 5px #ffb347;
+        }
+
+        .date-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-top: 12px;
+            color: #ccddee;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: rgba(0,0,0,0.5);
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            font-family: 'Segoe UI', monospace;
+        }
+
+        .weekday {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #aaccff;
+            font-weight: 400;
+            letter-spacing: 2px;
+        }
+
+        .back-brand {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.4);
+            border-radius: 60px;
+            padding: 6px 18px;
+            backdrop-filter: blur(4px);
+        }
+
+        .back-brand span {
+            color: #ffdfa5;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .voice-icon-back {
+            font-size: 22px;
+            filter: drop-shadow(0 0 3px #ffc285);
+        }
+
+        /* Дисплей */
         .display-section {
             background: #1e2a32;
             border-radius: 20px;
@@ -116,7 +189,7 @@
             text-shadow: 0 2px 3px rgba(0,0,0,0.2);
         }
 
-        /* 按钮网格 */
+        /* Сетка кнопок */
         .buttons-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -173,19 +246,6 @@
             color: white;
         }
 
-        .back-label {
-            font-size: 22px;
-            font-weight: bold;
-            color: #334e68;
-            text-transform: uppercase;
-            letter-spacing: 6px;
-            background: rgba(255,255,240,0.4);
-            padding: 12px 24px;
-            border-radius: 40px;
-            font-family: monospace;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
-        }
-
         @media (max-width: 500px) {
             .scene {
                 width: 300px;
@@ -198,6 +258,12 @@
             }
             .display {
                 font-size: 34px;
+            }
+            .time-digits {
+                font-size: 34px;
+            }
+            .date-text {
+                font-size: 14px;
             }
         }
 
@@ -221,7 +287,7 @@
             font-weight: 500;
         }
         
-        /* 语音反馈小标志可选 (视觉小点缀) */
+        /* Голосовой бейдж */
         .voice-badge {
             position: fixed;
             bottom: 80px;
@@ -236,13 +302,30 @@
             backdrop-filter: blur(4px);
             z-index: 10;
         }
+        
+        /* Индикатор озвучки */
+        .voice-indicator {
+            position: fixed;
+            bottom: 80px;
+            left: 16px;
+            background: rgba(0,0,0,0.6);
+            color: #ffd966;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: monospace;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            z-index: 10;
+            transition: opacity 0.2s;
+        }
     </style>
 </head>
 <body>
 
 <div class="scene" id="scene3d">
     <div class="calculator-3d" id="calculator3d">
-        <!-- 正面（计算器界面） -->
+        <!-- Передняя грань (интерфейс) -->
         <div class="face front-face">
             <div class="display-section">
                 <div class="expression" id="expression">&nbsp;</div>
@@ -251,119 +334,280 @@
             <div class="buttons-grid" id="buttonsContainer"></div>
         </div>
         
-        <!-- 背面（简约装饰） -->
+        <!-- Задняя грань - ЭЛЕГАНТНЫЕ ЧАСЫ С ДАТОЙ (текст теперь читается правильно) -->
         <div class="face back-face">
-            <div class="back-label">VOICE</div>
-            <div class="back-label" style="font-size:14px; margin-top:12px; letter-spacing:2px;">3D + SPEECH</div>
-            <div style="margin-top:30px; width:60px; height:60px; background:rgba(255,255,240,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
-                <span style="color:#2c3e4e; font-size:28px;">🔊</span>
+            <div class="back-clock">
+                <div class="time-digits" id="backTime">--:--:--</div>
+                <div class="date-text" id="backDate">-- ---- ----</div>
+                <div class="weekday" id="backWeekday">--------</div>
+            </div>
+            <div class="back-brand">
+                <span class="voice-icon-back">🔊</span>
+                <span>VOICE • 3D SMART</span>
+                <span>⚡</span>
             </div>
         </div>
-        <!-- 无侧边面板！完全移除左侧/右侧/顶部/底部厚度，保持干净优雅 -->
     </div>
 </div>
-<div class="hint">✨ 拖拽旋转计算器 | 每个按钮都有语音朗读 | 百分比修复: 10+10% = 11 ✨</div>
-<div class="voice-badge">🔊 语音反馈已启用</div>
+<div class="hint">✨ Вращайте калькулятор | Каждая кнопка с голосом | Умный процент: 10+10% = 11 | Часы на обороте ✨</div>
+<div class="voice-badge">🔊 Голосовая обратная связь</div>
+<div class="voice-indicator" id="voiceIndicator">🎤 Готов</div>
 
 <script>
 (function() {
-    // ---------- 1. 浏览器语音合成 (标准Web Speech API) ----------
-    // 兼容性: 大部分现代浏览器支持，若未就绪静默失败
+    // ---------- 1. Улучшенный голосовой синтез с поддержкой длинных чисел ----------
     let speechSynthesisSupported = 'speechSynthesis' in window;
-    let utteranceQueue = [];
-    let isSpeaking = false;
+    let currentUtterance = null;
+    let voiceIndicator = document.getElementById('voiceIndicator');
     
-    function speakText(text) {
-        if (!speechSynthesisSupported) return;
-        if (!text || text.trim() === '') return;
-        // 为了体验，避免过于频繁打断，但保持流畅：如果正在说话，取消当前并朗读新内容（类似实时反馈）
-        if (isSpeaking) {
-            window.speechSynthesis.cancel();
-            isSpeaking = false;
+    // Функция для преобразования числа в читаемую строку (разбивает длинные числа)
+    function formatNumberForSpeech(num) {
+        if (num === undefined || num === null) return '';
+        let numStr = num.toString();
+        
+        // Обработка научного формата (например 1.23e+10)
+        if (numStr.includes('e')) {
+            let floatNum = parseFloat(num);
+            if (!isNaN(floatNum)) {
+                // Для очень больших чисел произносим как "один точка два три умножить на десять в степени"
+                let parts = numStr.split('e');
+                let base = parseFloat(parts[0]);
+                let exponent = parseInt(parts[1]);
+                if (!isNaN(base) && !isNaN(exponent)) {
+                    return `${formatSimpleNumber(base)} умножить на десять в степени ${Math.abs(exponent)}`;
+                }
+            }
+            return numStr;
         }
+        
+        return formatSimpleNumber(parseFloat(numStr));
+    }
+    
+    function formatSimpleNumber(num) {
+        if (isNaN(num)) return 'ошибка';
+        if (num === 0) return 'ноль';
+        
+        // Для целых чисел и чисел с плавающей точкой
+        let result = '';
+        
+        // Проверка на отрицательное число
+        let isNegative = num < 0;
+        let absNum = Math.abs(num);
+        
+        // Разделяем целую и дробную части
+        let integerPart = Math.floor(absNum);
+        let fractionalPart = absNum - integerPart;
+        
+        // Озвучиваем целую часть
+        if (integerPart > 0) {
+            result += numberToWords(integerPart);
+        } else if (integerPart === 0 && fractionalPart > 0) {
+            result += 'ноль';
+        }
+        
+        // Озвучиваем дробную часть, если она есть
+        if (fractionalPart > 0.0000001) {
+            // Получаем дробную часть как строку цифр
+            let fractionalStr = absNum.toString().split('.')[1];
+            if (fractionalStr && fractionalStr.length > 0) {
+                result += ' точка ';
+                for (let i = 0; i < fractionalStr.length && i < 8; i++) {
+                    let digit = fractionalStr[i];
+                    result += digitToWord(digit) + ' ';
+                }
+            }
+        }
+        
+        if (isNegative) {
+            result = 'минус ' + result;
+        }
+        
+        return result.trim();
+    }
+    
+    function numberToWords(num) {
+        const units = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять'];
+        const teens = ['десять', 'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать', 'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать'];
+        const tens = ['', '', 'двадцать', 'тридцать', 'сорок', 'пятьдесят', 'шестьдесят', 'семьдесят', 'восемьдесят', 'девяносто'];
+        const hundreds = ['', 'сто', 'двести', 'триста', 'четыреста', 'пятьсот', 'шестьсот', 'семьсот', 'восемьсот', 'девятьсот'];
+        
+        if (num === 0) return 'ноль';
+        if (num < 0) return 'минус ' + numberToWords(Math.abs(num));
+        
+        let result = '';
+        
+        // Миллиарды
+        if (num >= 1000000000) {
+            let billions = Math.floor(num / 1000000000);
+            result += numberToWords(billions) + ' миллиард ';
+            if (billions % 10 === 1 && billions % 100 !== 11) result += '';
+            else if ([2,3,4].includes(billions % 10) && (billions % 100 < 10 || billions % 100 > 20)) result = result.replace('миллиард', 'миллиарда');
+            else result = result.replace('миллиард', 'миллиардов');
+            num %= 1000000000;
+        }
+        
+        // Миллионы
+        if (num >= 1000000) {
+            let millions = Math.floor(num / 1000000);
+            result += numberToWords(millions) + ' миллион ';
+            if (millions % 10 === 1 && millions % 100 !== 11) result += '';
+            else if ([2,3,4].includes(millions % 10) && (millions % 100 < 10 || millions % 100 > 20)) result = result.replace('миллион', 'миллиона');
+            else result = result.replace('миллион', 'миллионов');
+            num %= 1000000;
+        }
+        
+        // Тысячи
+        if (num >= 1000) {
+            let thousands = Math.floor(num / 1000);
+            result += numberToWords(thousands) + ' тысяч ';
+            if (thousands % 10 === 1 && thousands % 100 !== 11) result = result.replace('тысяч', 'тысяча');
+            else if ([2,3,4].includes(thousands % 10) && (thousands % 100 < 10 || thousands % 100 > 20)) result = result.replace('тысяч', 'тысячи');
+            num %= 1000;
+        }
+        
+        // Сотни
+        if (num >= 100) {
+            let h = Math.floor(num / 100);
+            result += hundreds[h] + ' ';
+            num %= 100;
+        }
+        
+        // Десятки и единицы
+        if (num >= 20) {
+            let t = Math.floor(num / 10);
+            result += tens[t] + ' ';
+            num %= 10;
+        }
+        
+        if (num >= 10 && num < 20) {
+            result += teens[num - 10] + ' ';
+            num = 0;
+        }
+        
+        if (num > 0 && num < 10) {
+            result += units[num] + ' ';
+        }
+        
+        return result.trim();
+    }
+    
+    function digitToWord(digit) {
+        const digits = ['ноль', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять'];
+        return digits[parseInt(digit)] || digit;
+    }
+    
+    // Основная функция озвучки с визуальной индикацией
+    function speakText(text, isResult = false) {
+        if (!speechSynthesisSupported) {
+            console.warn('Speech synthesis not supported');
+            return;
+        }
+        if (!text || text.trim() === '') return;
+        
+        // Показываем индикатор
+        if (voiceIndicator) {
+            voiceIndicator.style.opacity = '1';
+            voiceIndicator.textContent = '🔊 Говорит...';
+            setTimeout(() => {
+                if (voiceIndicator) voiceIndicator.textContent = '🎤 Готов';
+            }, 800);
+        }
+        
+        // Останавливаем текущую речь
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+        }
+        
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-CN';    // 中文发音，数字/运算符更清晰
+        utterance.lang = 'ru-RU';
         utterance.rate = 0.9;
         utterance.pitch = 1.0;
         utterance.volume = 1;
-        utterance.onstart = () => { isSpeaking = true; };
-        utterance.onend = () => { 
-            isSpeaking = false;
-            if (utteranceQueue.length > 0) {
-                const next = utteranceQueue.shift();
-                window.speechSynthesis.speak(next);
-                isSpeaking = true;
-            }
-        };
-        utterance.onerror = () => { isSpeaking = false; };
         
-        if (window.speechSynthesis.speaking) {
-            utteranceQueue.push(utterance);
-        } else {
+        utterance.onerror = (event) => {
+            console.error('Speech error:', event);
+            if (voiceIndicator) voiceIndicator.textContent = '⚠️ Ошибка';
+            setTimeout(() => {
+                if (voiceIndicator) voiceIndicator.textContent = '🎤 Готов';
+            }, 1000);
+        };
+        
+        utterance.onend = () => {
+            if (voiceIndicator) voiceIndicator.textContent = '🎤 Готов';
+        };
+        
+        // Небольшая задержка для стабильности
+        setTimeout(() => {
             window.speechSynthesis.speak(utterance);
-            isSpeaking = true;
-        }
+        }, 10);
     }
     
-    // 辅助: 根据按钮类型和值获得朗读文本
+    // Озвучивание результата с преобразованием числа в слова
+    function speakResult(resultValue) {
+        if (resultValue === 'Ошибка') {
+            speakText('Ошибка вычисления');
+            return;
+        }
+        
+        let resultNum = parseFloat(resultValue);
+        if (isNaN(resultNum)) {
+            speakText(resultValue);
+            return;
+        }
+        
+        // Преобразуем число в слова для красивого произношения
+        let spokenNumber = formatNumberForSpeech(resultNum);
+        speakText(`равно ${spokenNumber}`, true);
+    }
+    
+    // Озвучивание действий кнопок
     function getVoiceTextForButton(btnLabel, actionType, customValue) {
-        // 数字和小数点
         if (actionType === 'num') {
-            if (customValue === '.') return '点';
-            return customValue;  // 数字 0-9 直接读
+            if (customValue === '.') return 'точка';
+            const digitMap = {
+                '0': 'ноль', '1': 'один', '2': 'два', '3': 'три', '4': 'четыре',
+                '5': 'пять', '6': 'шесть', '7': 'семь', '8': 'восемь', '9': 'девять'
+            };
+            return digitMap[customValue] || customValue;
         }
         if (actionType === 'op') {
             const op = customValue;
-            if (op === '+') return '加';
-            if (op === '-') return '减';
-            if (op === '×') return '乘';
-            if (op === '÷') return '除';
+            if (op === '+') return 'плюс';
+            if (op === '-') return 'минус';
+            if (op === '×') return 'умножить  на';
+            if (op === '÷') return 'разделить  на';
             return op;
         }
-        if (actionType === 'equal') return '等于';
-        if (actionType === 'clear') return '清除';
-        if (actionType === 'back') return '退格';
-        if (actionType === 'percent') return '百分比';
-        if (actionType === 'sign') return '正负号';
+        if (actionType === 'equal') return 'равно';
+        if (actionType === 'clear') return 'очистить все';
+        if (actionType === 'back') return 'удалить';
+        if (actionType === 'percent') return 'процент';
+        if (actionType === 'sign') return 'сменить знак';
         return btnLabel;
     }
     
-    // 朗读结果专用 (等于时读出结果)
-    function speakResult(resultValue) {
-        let resultStr = resultValue.toString();
-        // 处理错误或者科学计数法简单朗读
-        if (resultStr === '错误') {
-            speakText('错误');
-        } else {
-            speakText(`等于 ${resultStr}`);
-        }
-    }
-    
-    // ---------- 2. 计算器核心逻辑 (修复百分比关键: 实现标准的 a + b% = a * (1 + b/100) 逻辑) ----------
-    // 遵循真实计算器语义: 10 + 10% = 11, 20 - 10% = 18, 50 * 20% = 10, 100 / 20% = 500
-    // 当前输入值 currentInput, 存储上一个值 previousInput, 操作符 operation
+    // ---------- 2. Логика калькулятора (умные проценты) ----------
     let currentInput = '0';
     let previousInput = '';
-    let operation = null;      // '+', '-', '*', '/'
+    let operation = null;
     let resetScreen = false;
-    let waitingForPercent = false;   // 辅助处理百分比特殊逻辑
     
     const displayElement = document.getElementById('display');
     const expressionElement = document.getElementById('expression');
     
     function updateDisplay() {
         let displayValue = currentInput;
-        if (displayValue.length > 18) {
+        if (displayValue.length > 20) {
             let num = parseFloat(displayValue);
             if (!isNaN(num)) {
-                displayValue = num.toExponential(10);
+                displayValue = num.toExponential(8);
             } else {
-                displayValue = currentInput.substring(0, 16);
+                displayValue = currentInput.substring(0, 18);
             }
         }
         displayElement.textContent = displayValue;
         
-        // 更新表达式区域
+        // Обновление строки выражения
         if (operation && previousInput !== '') {
             let opSymbol = '';
             if (operation === '*') opSymbol = '×';
@@ -377,23 +621,17 @@
         }
     }
     
-    // 百分比核心修复: 根据当前操作符对当前输入进行百分比转换
-    // 规则: 当按下 % 时，将当前数字转换为相对于前一个数值的百分比结果。
-    // 比如 10 + 10% : 当前输入是10，前一个值是10， 转换后 current = previous * (10/100) = 1, 再执行加法得到11
-    // 如果无运算等待，则单纯除以100。
+    // Умный процент
     function handlePercent() {
         if (resetScreen) return;
         let currentVal = parseFloat(currentInput);
         if (isNaN(currentVal)) return;
         
-        // 如果有等待的运算 (即存在operation并且有previousInput)
         if (operation !== null && previousInput !== '') {
             let prevVal = parseFloat(previousInput);
             if (!isNaN(prevVal)) {
-                // 标准百分比逻辑: 将当前输入视为百分比，转换为 prevVal * (currentVal / 100)
                 let percentValue = prevVal * (currentVal / 100);
                 currentInput = percentValue.toString();
-                // 清除多余小数
                 if (currentInput.includes('.') && currentInput.split('.')[1]?.length > 10) {
                     currentInput = parseFloat(currentInput).toString();
                 }
@@ -401,7 +639,6 @@
                 return;
             }
         }
-        // 没有等待运算时，简单除以100
         let newVal = currentVal / 100;
         currentInput = newVal.toString();
         updateDisplay();
@@ -423,7 +660,7 @@
                 }
             }
         }
-        // 清理前导零问题，但保留 0.x
+        // Очистка лишних нулей
         if (currentInput !== '.' && !isNaN(parseFloat(currentInput))) {
             if (currentInput.includes('.') && currentInput.startsWith('0') && currentInput.length > 2 && currentInput[1] !== '.') {
                 let parsed = parseFloat(currentInput);
@@ -441,7 +678,6 @@
         if (opSymbol === '×') internalOp = '*';
         if (opSymbol === '÷') internalOp = '/';
         
-        // 如果已经有未完成的运算，先计算结果
         if (operation !== null && !resetScreen) {
             calculate();
         }
@@ -468,7 +704,7 @@
             case '*': result = prev * current; break;
             case '/': 
                 if (current === 0) {
-                    result = 'Error';
+                    result = 'Ошибка';
                 } else {
                     result = prev / current;
                 }
@@ -476,16 +712,15 @@
             default: return;
         }
         
-        if (result === 'Error') {
-            currentInput = '错误';
+        if (result === 'Ошибка') {
+            currentInput = 'Ошибка';
             operation = null;
             previousInput = '';
             resetScreen = true;
             updateDisplay();
-            // 朗读错误
-            speakText('错误');
+            speakText('Ошибка! Деление на ноль невозможно');
             setTimeout(() => {
-                if (currentInput === '错误') {
+                if (currentInput === 'Ошибка') {
                     currentInput = '0';
                     operation = null;
                     previousInput = '';
@@ -496,9 +731,7 @@
             return;
         }
         
-        // 精度处理
         if (typeof result === 'number') {
-            // 避免过长小数
             result = parseFloat(result.toFixed(10));
             if (result === -0) result = 0;
             currentInput = result.toString();
@@ -506,13 +739,12 @@
             currentInput = result.toString();
         }
         
-        // 计算结果后，清除运算缓存
         operation = null;
         previousInput = '';
         resetScreen = true;
         updateDisplay();
         
-        // 朗读结果
+        // Озвучиваем результат с полным преобразованием в слова
         speakResult(currentInput);
     }
     
@@ -522,12 +754,12 @@
         operation = null;
         resetScreen = false;
         updateDisplay();
-        speakText('清除');
+        speakText('очищено');
     }
     
     function percent() {
         handlePercent();
-        speakText('百分比');
+        speakText('процент');
     }
     
     function toggleSign() {
@@ -535,7 +767,7 @@
         if (!isNaN(val)) {
             currentInput = (-val).toString();
             updateDisplay();
-            speakText('正负号');
+            speakText('сменить знак');
         }
     }
     
@@ -548,20 +780,22 @@
             if (currentInput === '' || currentInput === '-') currentInput = '0';
         }
         updateDisplay();
-        speakText('退格');
+        speakText('удалить');
     }
     
-    // 额外封装等于，触发语音朗读结果
     function handleEqual() {
-        calculate();   // calculate内部已经包含 speakResult
-        // 如果没有触发计算（比如无操作）不额外朗读，但calculate会判断
-        if (operation === null && !resetScreen && previousInput === '') {
-            // 无表达式按下等于，仅朗读当前数值
-            speakText(`当前值 ${currentInput}`);
+        if (operation !== null && !resetScreen) {
+            calculate();
+        } else if (!resetScreen && previousInput === '' && operation === null) {
+            speakResult(currentInput);
+        } else if (operation !== null && resetScreen) {
+            // Ничего не делаем, ждем ввода второго числа
+        } else {
+            calculate();
         }
     }
     
-    // ---------- 3. 构建按钮UI ----------
+    // ---------- 3. Построение кнопок ----------
     const buttonLayout = [
         { label: 'C', type: 'clear', action: 'clear' },
         { label: '⌫', type: 'back', action: 'back' },
@@ -604,158 +838,74 @@
                 button.style.boxShadow = "0 6px 0 #82381c";
             }
             
-            // 绑定点击事件，同时加入语音反馈
             button.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // 获取语音文本
                 let voiceText = '';
-                // 执行对应动作
+                
                 if (btn.action === 'num') {
                     handleNumber(btn.value);
                     voiceText = getVoiceTextForButton(btn.label, 'num', btn.value);
+                    speakText(voiceText);
                 } else if (btn.action === 'op') {
                     handleOperator(btn.value);
                     voiceText = getVoiceTextForButton(btn.label, 'op', btn.value);
+                    speakText(voiceText);
                 } else if (btn.action === 'clear') {
                     clearAll();
-                    voiceText = '清除';
                 } else if (btn.action === 'equal') {
                     handleEqual();
-                    voiceText = '等于';
-                    // 注意: handleEqual 内部已经朗读结果，但为了不重复朗读“等于”+结果，这里仅朗读“等于”提示，计算函数里已经朗读结果了会导致重复。调整：
-                    // 在 handleEqual 里调用了 calculate, calculate里 speakResult 会读结果，我们避免再读额外“等于”。所以这里voiceText只用来提示按下了等于但不额外朗读结果数字避免重复。
-                    // 但是为了体验，让按下等号时候念出“等于”，结果由calculate读。这样更自然。 需要修正：在handleEqual里调calculate之前我们可以先朗读“等于”，但避免冲突。优化: 直接去掉这里的语音，让calculate的朗读来包含结果。
-                    // 为了完美，在这里不做额外speak, 而是由 calculate 完成。 但为了按下等于时有个“等于”提示有点冗余，但无所谓，改为让calculate里朗读结果前加“等于”前缀。
-                    // 修改 calculate 里的 speakResult 已经处理了前缀，这里就不要重复语音。
-                    speakText('等于');
-                    // 由于 calculate 内部 speakResult 会读结果，会造成 "等于 结果"，但实际上calculate里我们重新设计了 speakResult 格式为 "等于 xxx" 
-                    // 为了避免双重等于，这里取消额外朗读，只靠 calculate内部输出。
-                    // 修复：handleEqual中调calculate，calculate最后speakResult会读出结果，我们在此不再重复语音，而将voiceText置空防止冲突。
-                    voiceText = null;
                 } else if (btn.action === 'percent') {
                     percent();
-                    voiceText = '百分比';
                 } else if (btn.action === 'sign') {
                     toggleSign();
-                    voiceText = '正负号';
                 } else if (btn.action === 'back') {
                     backspace();
-                    voiceText = '退格';
-                }
-                
-                // 语音播放 (避免等于时重复播放等于+结果冲突)
-                if (voiceText && btn.action !== 'equal') {
-                    speakText(voiceText);
-                }
-                // 额外特殊处理等于：已经执行了 speakText('等于') 并在calculate里朗读结果，为和谐，如果已触发calculate，结果内会带等于前缀
-                if (btn.action === 'equal') {
-                    // 已经单独朗读等于和结果，保持自然即可，但为了防止calculate中又读一次，目前calculate已读带等于前缀的，所以此处不用再额外调用
-                    // 但是前面我们调用了speakText('等于')，导致等于和结果都念，有点奇怪但可接受，更好的做法：取消上面speakText('等于')，仅依靠calculate朗读
-                    // 重构：把上面speakText('等于')注释掉，让calculate的 speakResult 负责完整输出。
                 }
             });
             buttonsContainer.appendChild(button);
         });
-        // 修正等于按钮语音策略: 重新绑定等于的语音以避免重复，我们通过修改上面的逻辑已经做了优化: 最终保证计算结果时完整朗读“等于 X”
-        // 额外修补: calculate 里的 speakResult 会输出 “等于 结果”，很好。
     }
-    
-    // 修正 calculate 中的 speakResult 格式，让其输出 “等于 结果”
-    const originalSpeakResult = speakResult;
-    window.speakResult = function(resultValue) {
-        let resultStr = resultValue.toString();
-        if (resultStr === '错误') {
-            speakText('错误');
-        } else {
-            speakText(`等于 ${resultStr}`);
-        }
-    };
-    speakResult = function(resultValue) {
-        let resultStr = resultValue.toString();
-        if (resultStr === '错误') {
-            speakText('错误');
-        } else {
-            speakText(`等于 ${resultStr}`);
-        }
-    };
-    // 替换全局引用
-    window.speakResult = speakResult;
-    
-    // 重新绑定calculate内部的speakResult调用
-    const originalCalculate = calculate;
-    window.calculate = function() {
-        if (operation === null || previousInput === '' || resetScreen) return;
-        let result;
-        const prev = parseFloat(previousInput);
-        const current = parseFloat(currentInput);
-        if (isNaN(prev) || isNaN(current)) return;
-        switch (operation) {
-            case '+': result = prev + current; break;
-            case '-': result = prev - current; break;
-            case '*': result = prev * current; break;
-            case '/': 
-                if (current === 0) result = 'Error';
-                else result = prev / current;
-                break;
-            default: return;
-        }
-        if (result === 'Error') {
-            currentInput = '错误';
-            operation = null;
-            previousInput = '';
-            resetScreen = true;
-            updateDisplay();
-            speakText('错误');
-            setTimeout(() => {
-                if (currentInput === '错误') {
-                    currentInput = '0';
-                    operation = null;
-                    previousInput = '';
-                    resetScreen = false;
-                    updateDisplay();
-                }
-            }, 1500);
-            return;
-        }
-        if (typeof result === 'number') {
-            result = parseFloat(result.toFixed(10));
-            if (result === -0) result = 0;
-            currentInput = result.toString();
-        } else {
-            currentInput = result.toString();
-        }
-        operation = null;
-        previousInput = '';
-        resetScreen = true;
-        updateDisplay();
-        speakResult(currentInput);
-    };
-    // 替换全局函数引用
-    window.calculate = calculate;
-    
-    // 重新定义 handleEqual 使用新的calculate
-    window.handleEqual = function() {
-        if (operation !== null && !resetScreen) {
-            calculate();
-        } else if (!resetScreen && previousInput === '' && operation === null) {
-            speakText(`当前值 ${currentInput}`);
-        } else {
-            calculate();
-        }
-    };
-    
-    // 更新全局变量映射
-    window.handleEqual = handleEqual;
     
     buildButtons();
     updateDisplay();
     
-    // 初始化语音提示
-    setTimeout(() => {
-        speakText('计算器已启动');
-    }, 500);
+    // ---------- 4. СТИЛЬНЫЕ ЧАСЫ НА ЗАДНЕЙ СТЕНКЕ (обновление в реальном времени) ----------
+    function updateBackClock() {
+        const now = new Date();
+        let hours = now.getHours();
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        const hours24 = hours.toString().padStart(2, '0');
+        
+        const timeStr = `${hours24}:${minutes}:${seconds}`;
+        const timeElement = document.getElementById('backTime');
+        if (timeElement) timeElement.textContent = timeStr;
+        
+        // Форматирование даты: день месяц год
+        const day = now.getDate();
+        const monthNames = ['Января', 'Февраля', 'Марта', 'Апреля', 'Мая', 'Июня', 'Июля', 'Августа', 'Сентября', 'Октября', 'Ноября', 'Декабря'];
+        const month = monthNames[now.getMonth()];
+        const year = now.getFullYear();
+        const dateStr = `${day} ${month} ${year}`;
+        const dateElement = document.getElementById('backDate');
+        if (dateElement) dateElement.textContent = dateStr;
+        
+        const weekdays = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+        const weekdayStr = weekdays[now.getDay()];
+        const weekdayElement = document.getElementById('backWeekday');
+        if (weekdayElement) weekdayElement.textContent = weekdayStr;
+    }
     
-    // ---------- 3D 拖拽交互 (支持鼠标 & 触摸，无侧边面板) ----------
+    // Обновляем часы каждую секунду
+    updateBackClock();
+    setInterval(updateBackClock, 1000);
+    
+    // Приветствие
+    setTimeout(() => {
+        speakText('Голосовой 3D калькулятор запущен. Умные проценты, часы на обороте и полная озвучка результатов');
+    }, 800);
+    
+    // ---------- 3D Вращение ----------
     const scene = document.getElementById('scene3d');
     const calculatorElement = document.getElementById('calculator3d');
     
@@ -837,9 +987,6 @@
     bindStopPropagationOnButtons();
     const observer = new MutationObserver(() => bindStopPropagationOnButtons());
     observer.observe(buttonsContainer, { childList: true, subtree: true });
-    
-    // 确保无侧边面板，防止干扰
-    console.log('3D计算器 - 无侧边壁，百分比修复10+10%=11，语音反馈已集成');
 })();
 </script>
 </body>
