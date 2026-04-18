@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🎬 Клипмейкер — последовательная загрузка без зависаний</title>
+    <title>🎬 Клипмейкер — чистые кадры | Черный фон | 5 секунд</title>
     <style>
         * { box-sizing: border-box; user-select: none; }
         body {
@@ -57,6 +58,7 @@
         button:active { transform: translateY(2px); box-shadow: 0 1px 0 #a2591a; }
         .btn-primary { background: #4caf50; box-shadow: 0 4px 0 #2e6b2f; color: white; }
         .btn-danger { background: #e67e22; box-shadow: 0 4px 0 #b45f1b; }
+        .btn-clear-text { background: #d32f2f; box-shadow: 0 4px 0 #8b1a1a; color: white; }
         .progress-area { margin: 20px 0; }
         .progress-bar-bg {
             background: #3a3a4a; border-radius: 60px;
@@ -112,17 +114,21 @@
             white-space: nowrap;
         }
         @media (max-width: 700px) { .toast { white-space: normal; width: 80%; text-align: center; } }
+        .text-clear-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🎵 ПОСЛЕДОВАТЕЛЬНАЯ ЗАГРУЗКА — НЕ ЗАВИСАЕТ 🎬</h1>
-    <div class="sub">Загрузи текст → ключевые слова → картинки грузятся по одной → вручную создаём клип</div>
+    <h1>🎬 ЧИСТЫЙ КЛИПМЕЙКЕР | ЧЁРНЫЙ ФОН | 5 СЕКУНД КАДР</h1>
+    <div class="sub">Только картинки на чёрном фоне — каждый кадр ровно 5 секунд</div>
 
     <div class="two-columns">
         <div class="input-panel">
             <div style="font-weight: bold; margin-bottom: 8px;">📝 Текст песни:</div>
-            <textarea id="songText" placeholder="Вставьте текст песни..."></textarea>
+            <div class="text-clear-row">
+                <textarea id="songText" placeholder="Вставьте текст песни..."></textarea>
+                <button id="clearTextOnlyBtn" class="btn-clear-text" style="height: 56px; margin: 0; padding: 0 18px;">🗑️ Очистить текст</button>
+            </div>
             
             <div class="keywords-box">
                 <div>🔍 Ключевые слова:</div>
@@ -132,7 +138,7 @@
             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
                 <button id="extractBtn">📌 Извлечь ключевые слова</button>
                 <button id="loadImagesBtn" class="btn-primary">🖼️ ЗАГРУЗИТЬ КАРТИНКИ (по очереди)</button>
-                <button id="clearBtn" class="btn-danger">🗑️ Очистить всё</button>
+                <button id="clearBtn" class="btn-danger">🗑️ Полный сброс</button>
             </div>
 
             <div class="progress-area" id="progressArea" style="display: none;">
@@ -141,7 +147,7 @@
             </div>
 
             <div class="info-badge">
-                ✅ <strong>ГАРАНТИЯ:</strong> картинки грузятся строго по очереди (ждём загрузки каждой)<br>
+                ✅ <strong>ОБНОВЛЕНО:</strong> каждый кадр = 5 секунд | чистый ЧЁРНЫЙ фон без градиентов<br>
                 🔄 Кнопка «Переделать» у каждой картинки — замена без перезагрузки всех<br>
                 🎬 Клип создаётся только ПОСЛЕ нажатия «СОЗДАТЬ КЛИП»
             </div>
@@ -149,14 +155,14 @@
 
         <div class="preview-panel">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>🎞️ КАРТИНКИ ДЛЯ КЛИПА</span>
+                <span>🎞️ КАРТИНКИ ДЛЯ КЛИПА (каждая 5 сек)</span>
                 <span id="clipCountBadge" style="background:#ffaa33; padding:4px 12px; border-radius:50px;">0</span>
             </div>
             <div id="previewGrid" class="clip-preview">
                 <div style="color:#aaa; text-align:center; width:100%;">⚡ Сначала нажми «ЗАГРУЗИТЬ КАРТИНКИ»</div>
             </div>
             <div style="display: flex; justify-content: center; margin-top: 15px;">
-                <button id="createVideoBtn" style="background:#ff8c42; font-size:1.2rem;">🎬 СОЗДАТЬ КЛИП ИЗ ЭТИХ КАРТИНОК</button>
+                <button id="createVideoBtn" style="background:#ff8c42; font-size:1.2rem;">🎬 СОЗДАТЬ КЛИП (5 сек/кадр)</button>
             </div>
             <div class="video-download" id="videoDownloadArea" style="display: none;">
                 <button id="downloadVideoBtn" style="background:#2e7d32;">📥 Скачать клип (WEBM)</button>
@@ -165,7 +171,7 @@
         </div>
     </div>
     <div class="footer">
-        💡 Алгоритм: 1) Извлечь слова → 2) Загрузить картинки (ПО ОДНОЙ) → 3) При необходимости переделать → 4) Создать клип
+        💡 Алгоритм: 1) Извлечь слова → 2) Загрузить картинки (ПО ОДНОЙ) → 3) Переделать при необходимости → 4) Создать клип с чёрным фоном и длительностью 5 секунд на кадр
     </div>
 </div>
 <div id="toast" class="toast">✨</div>
@@ -176,12 +182,16 @@
         let isLoadInProgress = false;
         let generatedVideoBlob = null;
         
+        // FIXED DURATION: 5 секунд на каждый кадр
+        const FIXED_DURATION_SEC = 5;
+        
         // DOM
         const songTextArea = document.getElementById('songText');
         const keywordsDiv = document.getElementById('keywordsList');
         const extractBtn = document.getElementById('extractBtn');
         const loadImagesBtn = document.getElementById('loadImagesBtn');
         const clearBtn = document.getElementById('clearBtn');
+        const clearTextOnlyBtn = document.getElementById('clearTextOnlyBtn');
         const createVideoBtn = document.getElementById('createVideoBtn');
         const progressArea = document.getElementById('progressArea');
         const progressFill = document.getElementById('progressFill');
@@ -255,7 +265,6 @@
                 const word = keywordsArray[i];
                 onProgress(completed, total, `🔍 Ищем картинку для: "${word}" (${i+1}/${total})`);
                 
-                // Пытаемся найти картинку
                 let imageUrl = null;
                 let success = false;
                 for(let attempt=0; attempt<2; attempt++){
@@ -275,7 +284,6 @@
                     continue;
                 }
                 
-                // СЛОЖНАЯ ЧАСТЬ: ЗАГРУЖАЕМ КАРТИНКУ В ПАМЯТЬ (ждём полной загрузки)
                 onProgress(completed, total, `📥 Загрузка картинки "${word}" (${i+1}/${total})...`);
                 
                 const img = new Image();
@@ -285,14 +293,14 @@
                     img.onload = () => resolve(true);
                     img.onerror = () => reject(false);
                     img.src = imageUrl;
-                    setTimeout(() => reject(false), 8000); // таймаут 8 сек
+                    setTimeout(() => reject(false), 8000);
                 }).catch(() => {
                     showToast(`⚠️ Картинка для "${word}" не загрузилась`, true);
                     return null;
                 });
                 
-                // Длительность рандом 1-5 сек
-                const durationSec = Math.floor(Math.random() * 5) + 1;
+                // Длительность строго 5 секунд (фиксированная)
+                const durationSec = FIXED_DURATION_SEC;
                 
                 const slide = {
                     word: word,
@@ -303,13 +311,11 @@
                 };
                 results.push(slide);
                 
-                // Отображаем сразу после загрузки
                 if(onItemLoaded) onItemLoaded(slide, results.length-1);
                 
                 completed++;
                 onProgress(completed, total, `✅ "${word}" загружена (${durationSec} сек) (${completed}/${total})`);
                 
-                // Пауза между запросами к API
                 await new Promise(r => setTimeout(r, 250));
             }
             return results;
@@ -335,7 +341,7 @@
                 
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'preview-info';
-                infoDiv.innerHTML = `<strong>${slide.word}</strong><br><span class="preview-duration">⏱️ ${slide.durationSec} сек</span>`;
+                infoDiv.innerHTML = `<strong>${slide.word}</strong><br><span class="preview-duration">⏱️ ${slide.durationSec} сек (фиксировано)</span>`;
                 
                 const btnRetry = document.createElement('button');
                 btnRetry.textContent = '🔄 Переделать';
@@ -346,7 +352,6 @@
                     
                     const newImgRes = await fetchImageUrlForWord(slide.word);
                     if(newImgRes.success && newImgRes.url){
-                        // Загружаем новую картинку в память
                         const newImg = new Image();
                         newImg.crossOrigin = "Anonymous";
                         try {
@@ -378,7 +383,7 @@
                 previewGrid.appendChild(itemDiv);
             });
             
-            const totalSec = slidesData.reduce((sum,s)=>sum+s.durationSec,0);
+            const totalSec = slidesData.length * FIXED_DURATION_SEC;
             const totalInfo = document.createElement('div');
             totalInfo.style.fontSize = '0.7rem';
             totalInfo.style.textAlign = 'center';
@@ -387,7 +392,7 @@
             totalInfo.style.padding = '8px';
             totalInfo.style.background = '#1a1a2e';
             totalInfo.style.borderRadius = '20px';
-            totalInfo.innerHTML = `📊 Всего: ${slidesData.length} слайдов | Длительность клипа: ${totalSec} сек | Нажми «СОЗДАТЬ КЛИП»`;
+            totalInfo.innerHTML = `📊 Всего: ${slidesData.length} слайдов | Длительность клипа: ${totalSec} сек (каждый кадр 5 секунд) | Нажми «СОЗДАТЬ КЛИП»`;
             previewGrid.appendChild(totalInfo);
         }
         
@@ -438,7 +443,7 @@
                     throw new Error("Не загружено ни одной картинки.");
                 }
                 
-                statusMsgSpan.innerHTML = `✅ Загружено ${slidesData.length} картинок! Теперь можно переделать любую и нажать «СОЗДАТЬ КЛИП»`;
+                statusMsgSpan.innerHTML = `✅ Загружено ${slidesData.length} картинок! Каждый кадр будет длиться 5 секунд на ЧЁРНОМ фоне.`;
                 showToast(`Готово! ${slidesData.length} картинок загружены без зависаний!`, false);
                 
             } catch(err){
@@ -450,16 +455,17 @@
             }
         }
         
-        // СОЗДАНИЕ ВИДЕО из текущих картинок
+        // СОЗДАНИЕ ВИДЕО — чистый ЧЁРНЫЙ фон, без градиентов, без лишних надписей, только картинка + слово (опционально минималистично)
+        // Но оставим слово внизу аккуратным, чтобы было понятно, но фон — строго чёрный (#000000)
         async function createVideoFromSlides() {
             if(slidesData.length === 0){
                 showToast("Нет загруженных картинок. Сначала нажмите «ЗАГРУЗИТЬ КАРТИНКИ»", true);
                 return;
             }
             
-            showToast("🎬 Создаём видео... (может занять 10-30 секунд)", false);
-            statusMsgSpan.innerHTML = "🎬 Рендеринг клипа...";
-            progressFill.style.width = "50%";
+            showToast("🎬 Создаём видео на ЧЁРНОМ фоне... (5 сек/кадр)", false);
+            statusMsgSpan.innerHTML = "🎬 Рендеринг клипа с чёрным фоном...";
+            progressFill.style.width = "30%";
             
             try {
                 const fps = 30;
@@ -470,11 +476,9 @@
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 
-                // Используем уже загруженные imgElement из slidesData
                 const loadedImages = slidesData.map(s => s.imgElement);
-                
-                let totalFrames = 0;
-                for(let s of slidesData) totalFrames += s.durationSec * fps;
+                const framePerSlide = FIXED_DURATION_SEC * fps;
+                const totalFrames = slidesData.length * framePerSlide;
                 
                 let currentFrame = 0;
                 let recordingComplete = false;
@@ -490,41 +494,52 @@
                     let startTime = performance.now();
                     let animId = null;
                     
-                    function drawSlide(img, word, progressPercent, idx, total, duration) {
-                        ctx.fillStyle = "#0F0F1A";
+                    // Функция отрисовки кадра: ЧИСТЫЙ ЧЁРНЫЙ ФОН (#000000)
+                    function drawCleanBlackSlide(img, word, slideIdx, totalSlides, frameInSlide, slideFrameTotal) {
+                        // 1. Абсолютно чёрный фон без каких-либо градиентов
+                        ctx.fillStyle = "#000000";
                         ctx.fillRect(0, 0, width, height);
-                        const grad = ctx.createLinearGradient(0,0,width,0);
-                        grad.addColorStop(0, "#1e1a2f");
-                        grad.addColorStop(1, "#0a1a2a");
-                        ctx.fillStyle = grad;
-                        ctx.fillRect(0,0,width,height);
                         
-                        const maxW = width - 120;
-                        const maxH = height - 160;
-                        let dw = img.width, dh = img.height;
-                        if(dw > maxW){ dh = (dh * maxW) / dw; dw = maxW; }
-                        if(dh > maxH){ dw = (dw * maxH) / dh; dh = maxH; }
-                        const x = (width - dw)/2;
-                        const y = (height - dh)/2 - 30;
-                        ctx.shadowBlur = 10;
-                        ctx.shadowColor = "black";
-                        ctx.drawImage(img, x, y, dw, dh);
+                        // 2. Рисуем картинку по центру с пропорциональным масштабированием
+                        const maxImgWidth = width - 100;
+                        const maxImgHeight = height - 160;
+                        let drawWidth = img.width;
+                        let drawHeight = img.height;
+                        
+                        if (drawWidth > maxImgWidth) {
+                            const ratio = maxImgWidth / drawWidth;
+                            drawWidth = maxImgWidth;
+                            drawHeight = drawHeight * ratio;
+                        }
+                        if (drawHeight > maxImgHeight) {
+                            const ratio = maxImgHeight / drawHeight;
+                            drawHeight = maxImgHeight;
+                            drawWidth = drawWidth * ratio;
+                        }
+                        
+                        const imgX = (width - drawWidth) / 2;
+                        const imgY = (height - drawHeight) / 2 - 30;
+                        
                         ctx.shadowBlur = 0;
+                        ctx.drawImage(img, imgX, imgY, drawWidth, drawHeight);
                         
-                        ctx.font = "bold 46px 'Segoe UI'";
-                        ctx.fillStyle = "#FFDDAA";
-                        ctx.fillText(word.toUpperCase(), width/2 - ctx.measureText(word.toUpperCase()).width/2, height - 50);
-                        ctx.font = "22px monospace";
-                        ctx.fillStyle = "#FFB347";
-                        ctx.fillText(`${idx}/${total} · ${duration}с`, 30, 70);
+                        // 3. Текст слова — белый/золотой, аккуратно внизу (чистый стиль)
+                        ctx.font = "bold 42px 'Segoe UI', system-ui";
+                        ctx.fillStyle = "#FFFFFF";
+                        ctx.shadowBlur = 0;
+                        const wordUpper = word.toUpperCase();
+                        const textWidth = ctx.measureText(wordUpper).width;
+                        ctx.fillText(wordUpper, (width - textWidth) / 2, height - 55);
                         
-                        const barW = width - 100;
-                        const barX = 50;
-                        const barY = height - 20;
-                        ctx.fillStyle = "#3a2a2a";
-                        ctx.fillRect(barX, barY, barW, 8);
-                        ctx.fillStyle = "#ffaa33";
-                        ctx.fillRect(barX, barY, barW * (progressPercent/100), 8);
+                        // 4. Маленький индикатор прогресса (необязательно, но минимально)
+                        const progressPercent = (frameInSlide / slideFrameTotal) * 100;
+                        ctx.fillStyle = "#FFAA33";
+                        ctx.fillRect(50, height - 18, (width - 100) * (progressPercent / 100), 4);
+                        
+                        // Небольшой счётчик слайдов (не мешает чистоте)
+                        ctx.font = "18px monospace";
+                        ctx.fillStyle = "#AAAAAA";
+                        ctx.fillText(`${slideIdx}/${totalSlides} · 5s`, 30, 50);
                     }
                     
                     function frameLoop(now) {
@@ -539,24 +554,20 @@
                                 if(animId) cancelAnimationFrame(animId);
                                 return;
                             }
-                            let frameCursor = 0;
-                            let slideIdx = -1;
-                            let frameInSlide = 0;
-                            for(let i=0; i<slidesData.length; i++){
-                                const slideFrames = slidesData[i].durationSec * fps;
-                                if(currentFrame < frameCursor + slideFrames){
-                                    slideIdx = i;
-                                    frameInSlide = currentFrame - frameCursor;
-                                    break;
-                                }
-                                frameCursor += slideFrames;
-                            }
-                            if(slideIdx !== -1){
-                                const slide = slidesData[slideIdx];
-                                const img = loadedImages[slideIdx];
-                                const slideFrames = slide.durationSec * fps;
-                                const progress = (frameInSlide / slideFrames) * 100;
-                                drawSlide(img, slide.word, progress, slideIdx+1, slidesData.length, slide.durationSec);
+                            
+                            const slideIndex = Math.floor(currentFrame / framePerSlide);
+                            if(slideIndex < slidesData.length){
+                                const slide = slidesData[slideIndex];
+                                const img = loadedImages[slideIndex];
+                                const frameInCurrentSlide = currentFrame % framePerSlide;
+                                drawCleanBlackSlide(
+                                    img, 
+                                    slide.word, 
+                                    slideIndex+1, 
+                                    slidesData.length, 
+                                    frameInCurrentSlide, 
+                                    framePerSlide
+                                );
                             }
                         }
                         if(!recordingComplete) animId = requestAnimationFrame(frameLoop);
@@ -565,21 +576,22 @@
                     startTime = performance.now();
                     animId = requestAnimationFrame(frameLoop);
                     
-                    const maxDur = slidesData.reduce((a,b)=>a+b.durationSec,0) + 2;
+                    const totalDurationSec = slidesData.length * FIXED_DURATION_SEC;
+                    const safetyTimeout = totalDurationSec + 3;
                     setTimeout(() => {
                         if(mediaRecorder.state === 'recording'){
                             recordingComplete = true;
                             mediaRecorder.stop();
                             if(animId) cancelAnimationFrame(animId);
                         }
-                    }, maxDur * 1000);
+                    }, safetyTimeout * 1000);
                 });
                 
                 generatedVideoBlob = videoBlob;
                 videoDownloadArea.style.display = 'flex';
-                statusMsgSpan.innerHTML = '🎉 Клип готов! Нажмите "Скачать клип"';
+                statusMsgSpan.innerHTML = `🎉 Клип готов! Чистый чёрный фон, ${slidesData.length} кадров по 5 секунд.`;
                 progressFill.style.width = '100%';
-                showToast(`✅ Клип создан! Длительность: ${slidesData.reduce((s,it)=>s+it.durationSec,0)} сек`, false);
+                showToast(`✅ Клип создан! Длительность: ${slidesData.length * FIXED_DURATION_SEC} сек, чёрный фон`, false);
                 
             } catch(err){
                 console.error(err);
@@ -596,12 +608,12 @@
             const url = URL.createObjectURL(generatedVideoBlob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `videoclip_${Date.now()}.webm`;
+            a.download = `videoclip_black_bg_${Date.now()}.webm`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast("📀 Клип сохранён!", false);
+            showToast("📀 Клип сохранён! Чёрный фон, 5 секунд на кадр", false);
         }
         
         function resetAll() {
@@ -615,6 +627,12 @@
             showToast("Всё очищено", false);
         }
         
+        function clearTextOnly() {
+            songTextArea.value = '';
+            showToast("Поле ввода текста очищено", false);
+            // Не трогаем ключевые слова и картинки
+        }
+        
         // Обработчики
         extractBtn.addEventListener('click', () => {
             const text = songTextArea.value.trim();
@@ -626,6 +644,7 @@
         
         loadImagesBtn.addEventListener('click', startLoadingImages);
         clearBtn.addEventListener('click', resetAll);
+        clearTextOnlyBtn.addEventListener('click', clearTextOnly);
         createVideoBtn.addEventListener('click', createVideoFromSlides);
         downloadVideoBtn.addEventListener('click', downloadVideo);
         resetVideoBtn.addEventListener('click', () => {
