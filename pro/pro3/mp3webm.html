@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -54,6 +55,7 @@
             }
         }
 
+        /* Фиксированные контейнеры загрузки — больше не растягиваются */
         .upload-box {
             border: 3px dashed #cbd5e0;
             border-radius: 15px;
@@ -62,6 +64,14 @@
             transition: all 0.3s ease;
             cursor: pointer;
             background: #f8fafc;
+            min-height: 260px;          /* фиксируем минимальную высоту */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;                /* полная ширина в своей колонке */
+            box-sizing: border-box;
+            overflow: hidden;           /* предотвращаем вылезание контента */
         }
 
         .upload-box:hover {
@@ -78,6 +88,7 @@
             font-size: 48px;
             margin-bottom: 15px;
             color: #a0aec0;
+            flex-shrink: 0;
         }
 
         .upload-box.active .upload-icon {
@@ -88,6 +99,21 @@
             margin-top: 15px;
             font-size: 14px;
             color: #718096;
+            word-break: break-word;     /* перенос длинных названий файлов */
+            max-width: 100%;
+            overflow-wrap: break-word;
+        }
+
+        /* Заголовки и текст внутри контейнера — фиксированы */
+        .upload-box h3 {
+            font-size: 1.2rem;
+            margin: 8px 0;
+            flex-shrink: 0;
+        }
+
+        .upload-box p {
+            flex-shrink: 0;
+            font-size: 0.9rem;
         }
 
         .controls {
@@ -251,6 +277,8 @@
             border-radius: 10px;
             overflow: hidden;
             background: #1a202c;
+            display: flex;
+            flex-direction: column;
         }
 
         .preview-box h3 {
@@ -259,12 +287,16 @@
             padding: 10px;
             margin: 0;
             text-align: center;
+            flex-shrink: 0;
         }
 
+        /* Видео и аудио плееры не ломают сетку, фиксируем максимальные размеры */
         video, audio {
             width: 100%;
             display: block;
             max-height: 300px;
+            object-fit: contain;  /* сохраняем пропорции, не растягиваем */
+            background: #000;
         }
 
         .download-section {
@@ -312,6 +344,20 @@
             border-radius: 12px;
             font-size: 11px;
             margin-left: 8px;
+        }
+
+        /* Дополнительно — стабильная ширина и адаптивность */
+        @media (max-width: 480px) {
+            .upload-box {
+                padding: 25px 12px;
+                min-height: 230px;
+            }
+            .upload-icon {
+                font-size: 38px;
+            }
+            .upload-box h3 {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
@@ -521,8 +567,11 @@
                 const sizeInfo = `${(this.videoFileSizeMB).toFixed(2)} МБ ~ ${this.estimatedSeconds} сек обработки`;
                 document.getElementById('videoInfo').innerHTML = `📹 ${file.name}<br><span class="size-estimate">${sizeInfo}</span>`;
                 
+                // Освобождаем старый URL перед созданием нового
                 const preview = document.getElementById('videoPreview');
-                if (preview.src) URL.revokeObjectURL(preview.src);
+                if (preview.src && preview.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(preview.src);
+                }
                 preview.src = URL.createObjectURL(file);
                 preview.load();
                 
@@ -548,10 +597,12 @@
                 }
 
                 this.audioFile = file;
-                document.getElementById('audioInfo').textContent = `🎵 ${file.name} (${this.formatFileSize(file.size)})`;
+                document.getElementById('audioInfo').innerHTML = `🎵 ${file.name}<br><span class="size-estimate">${this.formatFileSize(file.size)}</span>`;
                 
                 const preview = document.getElementById('audioPreview');
-                if (preview.src) URL.revokeObjectURL(preview.src);
+                if (preview.src && preview.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(preview.src);
+                }
                 preview.src = URL.createObjectURL(file);
                 preview.load();
                 
@@ -676,9 +727,20 @@
                         this.videoElement.onloadedmetadata = resolve;
                     });
                     
+                    // Безопасные размеры canvas — не больше исходного видео, чтобы не растягивать интерфейс
+                    let canvasWidth = this.videoElement.videoWidth || 640;
+                    let canvasHeight = this.videoElement.videoHeight || 480;
+                    // Ограничим максимальный размер для производительности, но сохраним пропорции
+                    const maxDimension = 1280;
+                    if (canvasWidth > maxDimension || canvasHeight > maxDimension) {
+                        const ratio = Math.min(maxDimension / canvasWidth, maxDimension / canvasHeight);
+                        canvasWidth = Math.floor(canvasWidth * ratio);
+                        canvasHeight = Math.floor(canvasHeight * ratio);
+                    }
+                    
                     const canvas = document.createElement('canvas');
-                    canvas.width = this.videoElement.videoWidth || 640;
-                    canvas.height = this.videoElement.videoHeight || 480;
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
                     const ctx = canvas.getContext('2d');
                     
                     const videoStream = canvas.captureStream(30);
@@ -693,7 +755,7 @@
                         if (audioBuffer.sampleRate !== targetSampleRate) {
                             const offlineCtx = new OfflineAudioContext(
                                 audioBuffer.numberOfChannels,
-                                audioBuffer.length * targetSampleRate / audioBuffer.sampleRate,
+                                Math.ceil(audioBuffer.length * targetSampleRate / audioBuffer.sampleRate),
                                 targetSampleRate
                             );
                             const source = offlineCtx.createBufferSource();
@@ -742,7 +804,19 @@
                         if (this.videoElement.paused || this.videoElement.ended) {
                             return;
                         }
-                        ctx.drawImage(this.videoElement, 0, 0, canvas.width, canvas.height);
+                        // Отрисовка с сохранением пропорций, заполняем canvas полностью (без искажений)
+                        const vw = this.videoElement.videoWidth;
+                        const vh = this.videoElement.videoHeight;
+                        const cw = canvas.width;
+                        const ch = canvas.height;
+                        const scale = Math.max(cw / vw, ch / vh);
+                        const drawW = vw * scale;
+                        const drawH = vh * scale;
+                        const offsetX = (cw - drawW) / 2;
+                        const offsetY = (ch - drawH) / 2;
+                        ctx.clearRect(0, 0, cw, ch);
+                        ctx.drawImage(this.videoElement, offsetX, offsetY, drawW, drawH);
+                        
                         const progress = (this.videoElement.currentTime / this.videoElement.duration) * 100;
                         this.updateProgress(progress);
                         requestAnimationFrame(drawFrame);
@@ -771,6 +845,7 @@
                     this.stopTimer();
                     this.hideTimerDisplay();
                     this.isProcessing = false;
+                    if (this.videoElement.src) URL.revokeObjectURL(this.videoElement.src);
                 }
             }
 
@@ -802,8 +877,11 @@
                 const url = URL.createObjectURL(blob);
                 const extension = this.getFileExtension();
                 
+                // Обновляем предпросмотр готовым видео
                 const preview = document.getElementById('videoPreview');
-                if (preview.src) URL.revokeObjectURL(preview.src);
+                if (preview.src && preview.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(preview.src);
+                }
                 preview.src = url;
                 preview.load();
                 
@@ -811,6 +889,7 @@
                 downloadLink.href = url;
                 downloadLink.download = `combined_${Date.now()}.${extension}`;
                 
+                // Автоматический клик для скачивания
                 const autoClick = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
                 downloadLink.dispatchEvent(autoClick);
                 
@@ -831,6 +910,7 @@
 
             updateStatus(message, type = 'info') {
                 const statusElement = document.getElementById('status');
+                // Очищаем лишние текстовые узлы, оставляя только новый
                 const children = Array.from(statusElement.childNodes);
                 for (let node of children) {
                     if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
