@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -27,9 +26,10 @@
             --delete-overlay: rgba(0,0,0,0.65);
             --shadow-sm: 0 8px 20px rgba(0,0,0,0.08);
             --accent-glow: #2a9d8f;
+            --modal-bg: rgba(0,0,0,0.9);
         }
 
-        /* Скин 1: Чёрный (элегантный тёмный) */
+        /* Скин 1: Чёрный */
         .theme-black {
             --bg-color: #0a0c10;
             --container-bg: #111418;
@@ -49,7 +49,7 @@
             --accent-glow: #f39c12;
         }
 
-        /* Скин 2: Приглушенный зелёный (счёт/деньги) */
+        /* Скин 2: Зелёный */
         .theme-money {
             --bg-color: #1a2a1f;
             --container-bg: #1f3a2a;
@@ -69,7 +69,7 @@
             --accent-glow: #ffd966;
         }
 
-        /* Скин 3: Классическая светлая (дефолтная) */
+        /* Скин 3: Светлая */
         .theme-light {
             --bg-color: #f0f2f5;
             --container-bg: #ffffff;
@@ -124,7 +124,7 @@
             margin: 0 auto;
         }
 
-        /* ----- Галерея с поддержкой PNG ----- */
+        /* Галерея */
         .image-gallery {
             display: flex;
             flex-wrap: wrap;
@@ -137,8 +137,10 @@
             transition: all 0.2s;
             justify-content: center;
             align-items: center;
+            min-height: 160px;
         }
 
+        /* Одно фото */
         .image-gallery.single-photo {
             display: flex;
             justify-content: center;
@@ -148,32 +150,30 @@
         .image-gallery.single-photo .gallery-item {
             width: 100%;
             max-width: 400px;
-            aspect-ratio: 4 / 3;
             cursor: pointer;
             border-radius: 24px;
             overflow: hidden;
             box-shadow: 0 12px 24px rgba(0,0,0,0.15);
             transition: transform 0.2s ease;
-            background: var(--day-border);
-        }
-
-        .image-gallery.single-photo .gallery-item:hover {
-            transform: scale(1.01);
+            background: var(--gallery-bg);
+            position: relative;
         }
 
         .image-gallery.single-photo .gallery-item img {
             width: 100%;
-            height: 100%;
+            height: auto;
+            max-height: 300px;
             object-fit: contain;
-            background: #f0f0f0;
             display: block;
+            background: var(--gallery-bg);
         }
 
+        /* Несколько фото - сетка */
         .image-gallery:not(.single-photo) {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 14px;
-            max-height: 290px;
+            max-height: 320px;
             overflow-y: auto;
             padding: 12px;
         }
@@ -181,14 +181,25 @@
         .image-gallery:not(.single-photo) .gallery-item {
             aspect-ratio: 1 / 1;
             border-radius: 18px;
-            background: #2c3e3f10;
+            background: var(--gallery-bg);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .image-gallery:not(.single-photo) .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .gallery-item {
             position: relative;
-            cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            background: var(--day-border);
             overflow: hidden;
             border-radius: 18px;
         }
@@ -202,16 +213,14 @@
             width: 100%;
             height: 100%;
             display: block;
-            object-fit: cover;
-            transition: filter 0.2s;
-            background: #ececec;
+            background: var(--gallery-bg);
         }
 
         .delete-icon {
             position: absolute;
             top: 8px;
             right: 8px;
-            background: var(--delete-overlay);
+            background: rgba(0,0,0,0.7);
             color: white;
             font-size: 18px;
             font-weight: bold;
@@ -233,6 +242,44 @@
         .gallery-item:hover .delete-icon {
             opacity: 1;
             pointer-events: auto;
+        }
+
+        /* Модальное окно для просмотра фото */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--modal-bg);
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .close-modal:hover {
+            color: #bbb;
         }
 
         .calendar {
@@ -275,17 +322,11 @@
             box-shadow: 0 0 0 2px gold, 0 0 6px rgba(255,215,0,0.5);
         }
 
-        /* Стиль для отключенного выделения "сегодня" — убираем спецэффекты */
         .today-disabled {
             background-color: var(--day-bg);
             color: var(--text-color);
             box-shadow: none;
             border: 1px solid var(--day-border);
-        }
-        .today-disabled.today {
-            background-color: var(--day-bg);
-            color: var(--text-color);
-            box-shadow: none;
         }
 
         .mark-indicator {
@@ -363,7 +404,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .theme-selector {
+        .theme-selector, .format-selector {
             background: var(--container-bg);
             border: 2px solid var(--day-border);
             border-radius: 40px;
@@ -371,18 +412,34 @@
             font-weight: 600;
         }
 
-        .toggle-mark-btn {
-            background-color: #6c5ce7;
+        .quality-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--container-bg);
+            border: 1px solid var(--day-border);
+            border-radius: 40px;
+            padding: 4px 12px;
         }
-        .toggle-mark-btn:hover {
-            background-color: #5a4bcf;
+
+        .quality-control label {
+            font-size: 0.8rem;
+            font-weight: 500;
         }
-        .disable-today-btn {
-            background-color: #e67e22;
+
+        .quality-control input {
+            width: 60px;
+            padding: 4px;
+            border-radius: 20px;
+            border: 1px solid var(--day-border);
+            background: var(--day-bg);
+            color: var(--text-color);
         }
-        .disable-today-btn.active {
-            background-color: #2c3e50;
-            box-shadow: inset 0 0 0 1px #f1c40f;
+
+        @media (max-width: 700px) {
+            .quality-control {
+                order: 10;
+            }
         }
 
         @media (max-width: 550px) {
@@ -394,11 +451,11 @@
                 padding: 14px;
             }
             .image-gallery:not(.single-photo) {
-                grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-                max-height: 240px;
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+                max-height: 260px;
             }
-            .image-gallery.single-photo .gallery-item {
-                max-width: 280px;
+            .image-gallery.single-photo .gallery-item img {
+                max-height: 240px;
             }
             .header {
                 gap: 8px;
@@ -418,6 +475,14 @@
             background: #1f3a2a !important;
             color: #e2f0da !important;
         }
+        
+        .gallery-empty {
+            grid-column: 1 / -1;
+            padding: 28px 12px;
+            text-align: center;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -429,14 +494,26 @@
     </div>
     <select id="yearSelector"></select>
     <select id="monthSelector"></select>
-    <button onclick="markToday()">⭐ Отметить сегодня</button>
-    <button id="toggleMarkTodayBtn" class="toggle-mark-btn" style="background-color:#e67e22;">🔁 Снять отметку сегодня</button>
-    <button id="disableTodayHighlightBtn" class="disable-today-btn">🚫 Скрыть выделение "Сегодня"</button>
-    <button onclick="downloadCalendar()">📥 Скачать PNG</button>
+    <button id="markTodayBtn">⭐ Отметить сегодня</button>
+    <button id="unmarkTodayBtn">🔁 Снять отметку сегодня</button>
+    <button id="disableTodayHighlightBtn">🚫 Скрыть выделение "Сегодня"</button>
+    
+    <select id="formatSelector" class="format-selector">
+        <option value="png">📸 PNG (прозрачность)</option>
+        <option value="jpeg">🖼️ JPEG (меньше размер)</option>
+    </select>
+    
+    <div class="quality-control" id="qualityControl" style="display: none;">
+        <label>Качество:</label>
+        <input type="number" id="jpegQuality" min="1" max="100" value="90">
+        <span>%</span>
+    </div>
+    
+    <button id="downloadBtn">📥 Скачать</button>
     <select id="skinSelector" class="theme-selector">
-        <option value="light">🌞 Светлая (классика)</option>
-        <option value="black">🖤 Чёрный элитный</option>
-        <option value="money">💰 Зелёный / Счёт</option>
+        <option value="light">🌞 Светлая</option>
+        <option value="black">🖤 Чёрный</option>
+        <option value="money">💰 Зелёный</option>
     </select>
 </div>
 
@@ -446,21 +523,57 @@
     <div id="calendar" class="calendar"></div>
 </div>
 
+<!-- Модальное окно для просмотра фото -->
+<div id="imageModal" class="modal">
+    <span class="close-modal">&times;</span>
+    <img class="modal-content" id="modalImage">
+</div>
+
 <script>
     // ---------- Глобальные данные ----------
-    let uploadedImages = [];      // { id, dataUrl }
+    let uploadedImages = [];
     let nextImageId = 0;
     let markedDays = JSON.parse(localStorage.getItem('markedDays')) || {};
     let currentSkin = localStorage.getItem('currentSkin') || 'light';
-    // НОВЫЙ ФЛАГ: отключить выделение сегодняшней даты
     let disableTodayHighlight = localStorage.getItem('disableTodayHighlight') === 'true';
+    let currentFormat = localStorage.getItem('exportFormat') || 'png';
+    let jpegQuality = parseInt(localStorage.getItem('jpegQuality')) || 90;
 
-    // ---------- Работа с фотографиями (PNG с прозрачностью) ----------
+    // ---------- Модальное окно ----------
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    const closeModal = document.querySelector('.close-modal');
+
+    function openModal(imageUrl) {
+        modal.style.display = 'flex';
+        modalImg.src = imageUrl;
+    }
+
+    function closeModalWindow() {
+        modal.style.display = 'none';
+        modalImg.src = '';
+    }
+
+    if (closeModal) {
+        closeModal.onclick = closeModalWindow;
+    }
+    if (modal) {
+        modal.onclick = function(e) {
+            if (e.target === modal) {
+                closeModalWindow();
+            }
+        }
+    }
+
+    // ---------- Работа с фотографиями ----------
     function saveGalleryToLocal() {
         const imagesData = uploadedImages.map(img => ({ id: img.id, dataUrl: img.dataUrl }));
         localStorage.setItem('galleryImages', JSON.stringify(imagesData));
-        if (uploadedImages.length > 0) localStorage.setItem('nextImageId', nextImageId);
-        else localStorage.removeItem('nextImageId');
+        if (uploadedImages.length > 0) {
+            localStorage.setItem('nextImageId', nextImageId);
+        } else {
+            localStorage.removeItem('nextImageId');
+        }
     }
 
     function loadGalleryFromLocal() {
@@ -469,9 +582,19 @@
             try {
                 const parsed = JSON.parse(saved);
                 uploadedImages = parsed.map(item => ({ id: item.id, dataUrl: item.dataUrl }));
-                if (uploadedImages.length) nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
-                else nextImageId = 0;
-            } catch(e) { console.warn(e); }
+                if (uploadedImages.length) {
+                    nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
+                } else {
+                    nextImageId = 0;
+                }
+            } catch(e) { 
+                console.warn(e); 
+                uploadedImages = [];
+                nextImageId = 0;
+            }
+        } else {
+            uploadedImages = [];
+            nextImageId = 0;
         }
     }
 
@@ -483,26 +606,27 @@
         if (uploadedImages.length === 0) {
             gallery.classList.remove('single-photo');
             const emptyHint = document.createElement('div');
+            emptyHint.className = 'gallery-empty';
             emptyHint.textContent = '🖼️ Нет фотографий. Загрузите PNG / JPEG';
-            emptyHint.style.gridColumn = '1 / -1';
-            emptyHint.style.padding = '28px 12px';
-            emptyHint.style.textAlign = 'center';
-            emptyHint.style.color = 'var(--text-color)';
-            emptyHint.style.opacity = '0.7';
             gallery.appendChild(emptyHint);
             return;
         }
 
-        if (uploadedImages.length === 1) gallery.classList.add('single-photo');
-        else gallery.classList.remove('single-photo');
+        if (uploadedImages.length === 1) {
+            gallery.classList.add('single-photo');
+        } else {
+            gallery.classList.remove('single-photo');
+        }
 
         uploadedImages.forEach((imgObj, idx) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'gallery-item';
             itemDiv.setAttribute('data-id', imgObj.id);
+            
             const img = document.createElement('img');
             img.src = imgObj.dataUrl;
             img.alt = `Изображение ${idx+1}`;
+            
             const deleteSpan = document.createElement('div');
             deleteSpan.className = 'delete-icon';
             deleteSpan.innerHTML = '✕';
@@ -510,11 +634,16 @@
                 e.stopPropagation();
                 deleteImageById(imgObj.id);
             });
+            
             itemDiv.appendChild(img);
             itemDiv.appendChild(deleteSpan);
+            
             itemDiv.addEventListener('click', (e) => {
-                if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) deleteImageById(imgObj.id);
+                if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) {
+                    openModal(imgObj.dataUrl);
+                }
             });
+            
             gallery.appendChild(itemDiv);
         });
     }
@@ -554,30 +683,44 @@
         msgDiv.style.backgroundColor = bgColor;
         msgDiv.textContent = text;
         msgDiv.style.opacity = '1';
-        setTimeout(() => { msgDiv.style.opacity = '0'; }, 1600);
+        setTimeout(() => { 
+            if (msgDiv) msgDiv.style.opacity = '0'; 
+        }, 1600);
     }
 
     function loadImages(files) {
         if (!files || files.length === 0) return;
+        
         const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
         if (imageFiles.length === 0) {
             showMessage('⚠️ Выберите изображения (PNG, JPEG)', '#e67e22');
             return;
         }
+        
         let loadedCount = 0;
+        
         imageFiles.forEach(file => {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const newId = nextImageId++;
                 uploadedImages.push({ id: newId, dataUrl: e.target.result });
                 loadedCount++;
+                
                 if (loadedCount === imageFiles.length) {
                     saveGalleryToLocal();
                     renderGallery();
-                    showMessage(`✅ Загружено ${imageFiles.length} фото (PNG/JPEG)`, '#2a9d8f');
+                    showMessage(`✅ Загружено ${imageFiles.length} фото`, '#2a9d8f');
                 }
             };
-            reader.onerror = () => { loadedCount++; showMessage(`Ошибка: ${file.name}`, '#e74c3c'); };
+            reader.onerror = () => { 
+                loadedCount++;
+                console.error(`Ошибка загрузки файла: ${file.name}`);
+                if (loadedCount === imageFiles.length) {
+                    saveGalleryToLocal();
+                    renderGallery();
+                    showMessage(`⚠️ Загружено ${uploadedImages.length} фото из ${imageFiles.length}`, '#e67e22');
+                }
+            };
             reader.readAsDataURL(file);
         });
     }
@@ -634,14 +777,12 @@
             const dayIndex = (firstDay + day - 1) % 7;
             let dayClass = (dayIndex === 5 || dayIndex === 6) ? 'day weekend' : 'day';
             
-            // Определяем, является ли день сегодняшним и включено ли выделение
             const isToday = isCurrentMonth && day === today.getDate();
             let isTodayActive = isToday && !disableTodayHighlight;
             
             if (isTodayActive) {
                 dayClass += ' today';
             } else if (isToday && disableTodayHighlight) {
-                // Если сегодня, но выделение отключено, добавляем класс для сброса стилей
                 dayClass += ' today-disabled';
             }
             
@@ -664,7 +805,6 @@
             calendar.appendChild(dayDiv);
         }
         
-        // Обновляем внешний вид кнопки отключения выделения "сегодня"
         updateDisableTodayButtonUI();
     }
 
@@ -681,7 +821,6 @@
         generateCalendar();
     }
 
-    // Отметить сегодня (добавить)
     function markToday() {
         const today = new Date();
         const year = today.getFullYear();
@@ -700,7 +839,6 @@
         }
     }
 
-    // Снять отметку с сегодняшнего дня
     function unmarkToday() {
         const today = new Date();
         const year = today.getFullYear();
@@ -713,15 +851,13 @@
             generateCalendar();
             showMessage(`🔁 Отметка с сегодняшнего дня (${day}.${month+1}) снята`, '#e67e22');
         } else {
-            showMessage(`Сегодня (${day}.${month+1}) не отмечен, можно добавить кнопкой выше`, '#f1c40f');
+            showMessage(`Сегодня (${day}.${month+1}) не отмечен`, '#f1c40f');
         }
     }
     
-    // НОВАЯ ФУНКЦИЯ: переключение выделения "сегодня"
     function toggleTodayHighlight() {
         disableTodayHighlight = !disableTodayHighlight;
         localStorage.setItem('disableTodayHighlight', disableTodayHighlight);
-        // Обновляем календарь, чтобы применить изменения
         generateCalendar();
         if (disableTodayHighlight) {
             showMessage('🌙 Выделение текущей даты (сегодня) ОТКЛЮЧЕНО', '#f39c12');
@@ -736,16 +872,14 @@
         if (!btn) return;
         if (disableTodayHighlight) {
             btn.textContent = '✅ Включить выделение "Сегодня"';
-            btn.classList.add('active');
             btn.style.backgroundColor = '#2c3e50';
         } else {
             btn.textContent = '🚫 Скрыть выделение "Сегодня"';
-            btn.classList.remove('active');
             btn.style.backgroundColor = '#e67e22';
         }
     }
 
-    // ---------- Управление скинами (чёрный, зелёный/счёт, светлый) ----------
+    // ---------- Управление скинами ----------
     function applySkin(skinName) {
         const body = document.body;
         body.classList.remove('theme-black', 'theme-money', 'theme-light');
@@ -772,13 +906,53 @@
         }
         applySkin(currentSkin);
     }
+    
+    // ---------- Управление форматом экспорта ----------
+    function initFormatSelector() {
+        const formatSelector = document.getElementById('formatSelector');
+        const qualityControl = document.getElementById('qualityControl');
+        const qualityInput = document.getElementById('jpegQuality');
+        
+        if (formatSelector) {
+            formatSelector.value = currentFormat;
+            formatSelector.addEventListener('change', (e) => {
+                currentFormat = e.target.value;
+                localStorage.setItem('exportFormat', currentFormat);
+                if (currentFormat === 'jpeg') {
+                    qualityControl.style.display = 'inline-flex';
+                } else {
+                    qualityControl.style.display = 'none';
+                }
+            });
+        }
+        
+        if (qualityInput) {
+            qualityInput.value = jpegQuality;
+            qualityInput.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (isNaN(val)) val = 90;
+                val = Math.min(100, Math.max(1, val));
+                jpegQuality = val;
+                localStorage.setItem('jpegQuality', jpegQuality);
+                qualityInput.value = jpegQuality;
+            });
+        }
+        
+        // Показываем/скрываем контрол качества
+        if (currentFormat === 'jpeg') {
+            qualityControl.style.display = 'inline-flex';
+        } else {
+            qualityControl.style.display = 'none';
+        }
+    }
 
-    // ---------- Скачивание календаря с поддержкой скинов ----------
+    // ---------- Скачивание календаря с поддержкой PNG/JPEG ----------
     function downloadCalendar() {
         const originalContainer = document.getElementById('calendarContainer');
         const downloadContainer = originalContainer.cloneNode(true);
         const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
         deleteIcons.forEach(icon => { icon.style.display = 'none'; });
+        
         if (currentSkin === 'black') {
             downloadContainer.classList.add('export-fix-black');
         } else if (currentSkin === 'money') {
@@ -786,6 +960,7 @@
         } else {
             downloadContainer.classList.add('export-fix-light');
         }
+        
         downloadContainer.style.position = 'fixed';
         downloadContainer.style.left = '-9999px';
         downloadContainer.style.top = '0';
@@ -811,6 +986,7 @@
             if (currentSkin === 'black') bgColor = '#111418';
             else if (currentSkin === 'money') bgColor = '#1f3a2a';
             else bgColor = '#ffffff';
+            
             html2canvas(container, {
                 scale: 2.5,
                 useCORS: true,
@@ -822,8 +998,23 @@
                 const monthVal = parseInt(document.getElementById('monthSelector').value);
                 const yearVal = document.getElementById('yearSelector').value;
                 const monthName = new Date(0, monthVal).toLocaleString('ru-RU', { month: 'long' });
-                link.download = `calendar_${monthName}_${yearVal}_${currentSkin}.png`;
-                link.href = canvas.toDataURL('image/png');
+                
+                let fileName, dataUrl;
+                
+                if (currentFormat === 'jpeg') {
+                    // Конвертируем в JPEG с указанным качеством
+                    fileName = `calendar_${monthName}_${yearVal}_${currentSkin}.jpg`;
+                    dataUrl = canvas.toDataURL('image/jpeg', jpegQuality / 100);
+                    showMessage(`📸 Сохранено в JPEG (качество ${jpegQuality}%)`, '#2a9d8f');
+                } else {
+                    // Сохраняем в PNG (с прозрачностью, если нужно)
+                    fileName = `calendar_${monthName}_${yearVal}_${currentSkin}.png`;
+                    dataUrl = canvas.toDataURL('image/png');
+                    showMessage(`📸 Сохранено в PNG`, '#2a9d8f');
+                }
+                
+                link.download = fileName;
+                link.href = dataUrl;
                 link.click();
                 document.body.removeChild(container);
             }).catch(err => {
@@ -861,37 +1052,21 @@
         monthSelector.value = currentDate.getMonth();
 
         loadGalleryFromLocal();
-        loadThemeFromSkin();
         renderGallery();
         generateCalendar();
         setupFileInput();
         initSkinSelector();
+        initFormatSelector();
 
-        const toggleBtn = document.getElementById('toggleMarkTodayBtn');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', unmarkToday);
-        }
-        
-        // Новая кнопка для отключения выделения сегодня
-        const disableTodayBtn = document.getElementById('disableTodayHighlightBtn');
-        if (disableTodayBtn) {
-            disableTodayBtn.addEventListener('click', toggleTodayHighlight);
-        }
-
+        document.getElementById('markTodayBtn').addEventListener('click', markToday);
+        document.getElementById('unmarkTodayBtn').addEventListener('click', unmarkToday);
+        document.getElementById('disableTodayHighlightBtn').addEventListener('click', toggleTodayHighlight);
+        document.getElementById('downloadBtn').addEventListener('click', downloadCalendar);
         document.getElementById('yearSelector').addEventListener('change', () => generateCalendar());
         document.getElementById('monthSelector').addEventListener('change', () => generateCalendar());
         
-        // Инициализируем UI кнопки
         updateDisableTodayButtonUI();
     };
-
-    function loadThemeFromSkin() {
-        const savedSkin = localStorage.getItem('currentSkin');
-        if (savedSkin === 'black') currentSkin = 'black';
-        else if (savedSkin === 'money') currentSkin = 'money';
-        else currentSkin = 'light';
-        applySkin(currentSkin);
-    }
 </script>
 </body>
 </html>
