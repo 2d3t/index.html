@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>Клипмейкер Pro — Выбор ориентации + Музыка</title>
+    <title>Клипмейкер Pro — 100 фото + Музыка</title>
     <style>
         * {
             margin: 0;
@@ -57,7 +56,6 @@
             padding-left: 12px;
         }
 
-        /* Стиль для переключателя ориентации - кнопки друг под другом */
         .orientation-selector {
             background: rgba(0, 0, 0, 0.4);
             border-radius: 44px;
@@ -134,6 +132,7 @@
             margin-bottom: 20px;
             scrollbar-width: thin;
             min-height: 100px;
+            max-height: 180px;
         }
         .preview-grid::-webkit-scrollbar { height: 4px; }
         .preview-item {
@@ -164,6 +163,15 @@
             cursor: pointer;
             font-weight: bold;
             border: none;
+        }
+        .photo-count-badge {
+            background: #2563eb;
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 8px;
         }
 
         .duration-panel {
@@ -306,7 +314,6 @@
         }
         .download-link:hover { background: #2d3a60; }
         
-        /* Новая кнопка для добавления музыки */
         .music-action-btn {
             background: linear-gradient(105deg, #8b5cf6, #6d28d9);
             width: 100%;
@@ -328,6 +335,19 @@
         .music-action-btn:active { transform: scale(0.97); }
         .music-action-btn:hover { background: linear-gradient(105deg, #7c3aed, #5b21b6); }
         
+        .clear-all-btn {
+            background: rgba(220, 38, 38, 0.8);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: 0.2s;
+        }
+        .clear-all-btn:hover { background: rgb(220, 38, 38); }
+        
         .hidden { display: none; }
         footer {
             font-size: 0.7rem;
@@ -343,12 +363,6 @@
             font-size: 0.85rem;
         }
         
-        /* Анимация для автозагрузки */
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
         .auto-download-notice {
             background: #22c55e20;
             border: 1px solid #22c55e;
@@ -364,14 +378,20 @@
             gap: 10px;
             margin-top: 12px;
         }
+        
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 <body>
 <div class="app-card">
     <h1>🎬 Клипмейкер</h1>
-    <div class="sub">Слайд-шоу из фото · Автосохранение + Музыка</div>
+    <div class="sub">Слайд-шоу из фото · До 100 фото · Автосохранение + Музыка</div>
 
-    <!-- Выбор ориентации видео - кнопки друг под другом -->
     <div class="orientation-selector">
         <div id="orientVertical" class="orient-btn active">
             <span class="orient-icon">📱</span>
@@ -392,10 +412,14 @@
     <div id="uploadZone" class="upload-area">
         <div class="upload-icon">🖼️</div>
         <div class="upload-text">Выберите фотографии</div>
-        <div class="upload-hint">PNG, JPEG, до 25 фото · Перетащите файлы</div>
-        <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/jpg" style="display: none;">
+        <div class="upload-hint">PNG, JPEG, WEBP · До 100 фото · Можно добавлять несколько раз</div>
+        <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/jpg,image/webp" style="display: none;">
     </div>
 
+    <div class="header-flex">
+        <span class="photo-count-badge" id="photoCountBadge">📸 0 / 100 фото</span>
+        <button id="clearAllBtn" class="clear-all-btn hidden">🗑️ Очистить всё</button>
+    </div>
     <div id="previewContainer" class="preview-grid"></div>
 
     <div class="duration-panel">
@@ -410,12 +434,12 @@
         <div class="upload-hint" style="margin-top: 10px; text-align: center;">📊 Общая длина: <span id="totalTimeSpan">0</span> сек</div>
     </div>
 
-    <button id="generateBtn" class="generate-btn">
+    <button id="generateBtn" class="generate-btn" disabled>
         🎥 Создать WebM видео
     </button>
 
     <div class="status-area" id="statusArea">
-        <div id="statusMessage">📌 Загрузите фото (минимум 2) и выберите ориентацию</div>
+        <div id="statusMessage">📌 Загрузите фото (минимум 2) и выберите ориентацию. При работе программы не выключайте экран телефона!</div>
         
         <div id="progressWidget" class="hidden progress-container">
             <div class="progress-bar-bg">
@@ -428,7 +452,6 @@
         <div id="downloadContainer" class="hidden"></div>
         <div id="autoDownloadNotice" class="auto-download-notice hidden">📥 Автоматическая загрузка началась...</div>
         
-        <!-- Контейнер для кнопки добавления музыки (появляется после создания видео) -->
         <div id="musicButtonContainer" class="hidden button-group">
             <a href="https://2d3t.github.io/index.html/pro/pro3/mp3webm.html" target="_blank" class="music-action-btn">
                 🎵 Добавить музыку к клипу
@@ -438,11 +461,11 @@
             </div>
         </div>
     </div>
-    <footer>Формат WebM · Автоматическое масштабирование фото + автозагрузка</footer>
+    <footer>Формат WebM · Автоматическое масштабирование фото + автозагрузка · До 100 фото</footer>
 </div>
 
 <script>
-    // ---------- DOM элементы ----------
+    // DOM элементы
     const uploadZone = document.getElementById('uploadZone');
     const fileInput = document.getElementById('fileInput');
     const previewContainer = document.getElementById('previewContainer');
@@ -458,23 +481,42 @@
     const progressPercent = document.getElementById('progressPercent');
     const autoDownloadNotice = document.getElementById('autoDownloadNotice');
     const musicButtonContainer = document.getElementById('musicButtonContainer');
+    const photoCountBadge = document.getElementById('photoCountBadge');
+    const clearAllBtn = document.getElementById('clearAllBtn');
     
-    // Кнопки ориентации
     const orientVerticalBtn = document.getElementById('orientVertical');
     const orientHorizontalBtn = document.getElementById('orientHorizontal');
     
     // Состояние
     let photoFiles = [];
     let isRendering = false;
-    let currentOrientation = 'vertical'; // 'vertical' или 'horizontal'
+    let currentOrientation = 'vertical';
+    const MAX_PHOTOS = 100;
     
-    // Разрешения для видео
     const resolutions = {
         vertical: { width: 1080, height: 1920, name: 'Вертикальный (9:16)' },
         horizontal: { width: 1920, height: 1080, name: 'Горизонтальный (16:9)' }
     };
     
-    // Переключение ориентации
+    function updatePhotoCountUI() {
+        photoCountBadge.innerHTML = `📸 ${photoFiles.length} / ${MAX_PHOTOS} фото`;
+        if (photoFiles.length >= MAX_PHOTOS) {
+            photoCountBadge.style.background = '#ea580c';
+        } else if (photoFiles.length > 0) {
+            photoCountBadge.style.background = '#2563eb';
+        } else {
+            photoCountBadge.style.background = '#1e293b';
+        }
+        
+        if (photoFiles.length > 0) {
+            clearAllBtn.classList.remove('hidden');
+        } else {
+            clearAllBtn.classList.add('hidden');
+        }
+        
+        generateBtn.disabled = (photoFiles.length < 2);
+    }
+    
     function setOrientation(orientation) {
         currentOrientation = orientation;
         if (orientation === 'vertical') {
@@ -490,23 +532,22 @@
     orientVerticalBtn.addEventListener('click', () => setOrientation('vertical'));
     orientHorizontalBtn.addEventListener('click', () => setOrientation('horizontal'));
     
-    // Обновление превью и статистики
     function updatePreviewAndStats() {
         previewContainer.innerHTML = '';
         if (photoFiles.length === 0) {
             previewContainer.innerHTML = '<div class="empty-preview">📸 Нет фото. Нажмите, чтобы добавить</div>';
-            generateBtn.disabled = true;
             totalTimeSpan.innerText = '0';
-            // Скрываем кнопку музыки, если нет видео
             musicButtonContainer.classList.add('hidden');
+            updatePhotoCountUI();
             return;
         }
-        generateBtn.disabled = false;
+        
+        updatePhotoCountUI();
         const durationSec = parseFloat(durationSlider.value);
         const total = (photoFiles.length * durationSec).toFixed(1);
         totalTimeSpan.innerText = total;
-
-        for (let i = 0; i < photoFiles.length; i++) {
+        
+        for (let i = 0; i < Math.min(photoFiles.length, 30); i++) {
             const file = photoFiles[i];
             const url = URL.createObjectURL(file);
             const div = document.createElement('div');
@@ -526,33 +567,80 @@
             div.appendChild(removeBtn);
             previewContainer.appendChild(div);
         }
+        
+        if (photoFiles.length > 30) {
+            const moreDiv = document.createElement('div');
+            moreDiv.className = 'preview-item';
+            moreDiv.style.background = '#2563eb';
+            moreDiv.style.display = 'flex';
+            moreDiv.style.alignItems = 'center';
+            moreDiv.style.justifyContent = 'center';
+            moreDiv.style.fontSize = '12px';
+            moreDiv.style.fontWeight = 'bold';
+            moreDiv.innerHTML = `+${photoFiles.length - 30}<br>ещё`;
+            previewContainer.appendChild(moreDiv);
+        }
     }
-
+    
     function addFiles(files) {
-        const allowed = ['image/jpeg', 'image/png', 'image/jpg'];
+        const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
         let added = 0;
+        let skipped = 0;
+        
         for (let file of files) {
-            if (allowed.includes(file.type) && photoFiles.length + added < 30) {
+            if (!allowed.includes(file.type)) {
+                skipped++;
+                continue;
+            }
+            
+            const isDuplicate = photoFiles.some(existing => 
+                existing.name === file.name && existing.size === file.size
+            );
+            
+            if (isDuplicate) {
+                skipped++;
+                continue;
+            }
+            
+            if (photoFiles.length + added < MAX_PHOTOS) {
                 photoFiles.push(file);
                 added++;
+            } else {
+                updateStatusMessage(`⚠️ Достигнут лимит: ${MAX_PHOTOS} фото. Остальные не добавлены.`, true);
+                break;
             }
         }
-        if (added) updatePreviewAndStats();
-        if (photoFiles.length === 0) {
-            updateStatusMessage("📁 Выберите фото (jpg/png)", false);
-        } else {
-            updateStatusMessage(`✅ ${photoFiles.length} фото загружено. Настройте длительность и ориентацию.`, false);
+        
+        if (added > 0) {
+            updatePreviewAndStats();
+            let msg = `✅ Добавлено ${added} фото. Всего: ${photoFiles.length}/${MAX_PHOTOS}`;
+            if (skipped > 0) msg += ` (${skipped} пропущено: неверный формат или дубликат)`;
+            updateStatusMessage(msg, false);
+        } else if (files.length > 0) {
+            updateStatusMessage(`❌ Не добавлено ни одного фото. Разрешены: JPEG, PNG, WEBP. Дубликаты игнорируются.`, true);
         }
+        
         if (photoFiles.length >= 2) generateBtn.disabled = false;
-        // Скрываем кнопку музыки при изменении фото
         musicButtonContainer.classList.add('hidden');
     }
-
+    
+    function clearAllPhotos() {
+        if (photoFiles.length > 0) {
+            photoFiles = [];
+            updatePreviewAndStats();
+            updateStatusMessage("🗑️ Все фото удалены. Загрузите новые.", false);
+            musicButtonContainer.classList.add('hidden');
+            downloadContainer.classList.add('hidden');
+        }
+    }
+    
+    clearAllBtn.addEventListener('click', clearAllPhotos);
+    
     function updateStatusMessage(msg, isError = false) {
         statusMessageDiv.innerHTML = msg;
         statusMessageDiv.style.color = isError ? "#ffb4a2" : "#b9c7e9";
     }
-
+    
     function showProgress(stage, percent) {
         progressWidget.classList.remove('hidden');
         const pct = Math.min(99, Math.max(0, percent));
@@ -560,14 +648,13 @@
         progressPercent.innerText = `${Math.floor(pct)}%`;
         progressStageText.innerText = stage;
     }
-
+    
     function hideProgress() {
         progressWidget.classList.add('hidden');
         progressFill.style.width = '0%';
         progressPercent.innerText = '0%';
     }
     
-    // Функция масштабирования изображения с сохранением пропорций под заданный canvas
     function drawImageWithFit(ctx, img, canvasWidth, canvasHeight) {
         ctx.fillStyle = "#000000";
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -580,7 +667,6 @@
         const ratioImg = imgW / imgH;
         const ratioCanvas = canvasWidth / canvasHeight;
         
-        // Contain: изображение вписывается целиком, чёрные полосы по бокам
         if (ratioImg > ratioCanvas) {
             drawW = canvasWidth;
             drawH = canvasWidth / ratioImg;
@@ -592,8 +678,7 @@
         const offsetY = (canvasHeight - drawH) / 2;
         ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
     }
-
-    // Автоматическая загрузка файла
+    
     function autoDownload(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -604,19 +689,16 @@
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         
-        // Показываем уведомление об автозагрузке
         autoDownloadNotice.classList.remove('hidden');
         setTimeout(() => {
             autoDownloadNotice.classList.add('hidden');
         }, 3000);
     }
-
-    // Показать кнопку добавления музыки
+    
     function showMusicButton() {
         musicButtonContainer.classList.remove('hidden');
     }
-
-    // ---------- Основной рендер видео через Canvas + MediaRecorder ----------
+    
     async function renderSlideshowToWebM() {
         if (photoFiles.length < 2) {
             updateStatusMessage("⚠️ Нужно минимум 2 фотографии", true);
@@ -632,10 +714,10 @@
         downloadContainer.classList.add('hidden');
         downloadContainer.innerHTML = '';
         autoDownloadNotice.classList.add('hidden');
-        musicButtonContainer.classList.add('hidden'); // скрываем кнопку музыки во время рендера
+        musicButtonContainer.classList.add('hidden');
         hideProgress();
         showProgress("Загрузка изображений", 5);
-
+        
         const slideDuration = parseFloat(durationSlider.value);
         const totalDurationSec = photoFiles.length * slideDuration;
         
@@ -653,7 +735,6 @@
             const file = photoFiles[i];
             const imgUrl = URL.createObjectURL(file);
             const img = new Image();
-            img.crossOrigin = "Anonymous";
             
             await new Promise((resolve, reject) => {
                 img.onload = () => {
@@ -777,20 +858,17 @@
         
         showProgress("Финализация видео", 98);
         
-        // Создаём имя файла
         const orientationSuffix = currentOrientation === 'vertical' ? 'вертикальный' : 'горизонтальный';
         const fileName = `slideshow_${orientationSuffix}_${Date.now()}.webm`;
         
-        // АВТОМАТИЧЕСКАЯ ЗАГРУЗКА
         autoDownload(videoBlob, fileName);
         
-        // Также показываем ссылку в интерфейсе на случай, если автозагрузка не сработала
         const videoUrl = URL.createObjectURL(videoBlob);
         const downloadLink = document.createElement('a');
         downloadLink.href = videoUrl;
         downloadLink.download = fileName;
         downloadLink.className = 'download-link';
-        downloadLink.innerHTML = `⬇️ Скачать ещё раз (${orientationSuffix}) · ${(totalDurationSec).toFixed(1)} сек`;
+        downloadLink.innerHTML = `⬇️ Скачать ещё раз (${orientationSuffix}) · ${(totalDurationSec).toFixed(1)} сек · ${photoFiles.length} фото`;
         downloadContainer.innerHTML = '';
         downloadContainer.appendChild(downloadLink);
         downloadContainer.classList.remove('hidden');
@@ -803,7 +881,6 @@
         
         updateStatusMessage(`🎉 Видео создано! ${photoFiles.length} кадров, ${totalDurationSec.toFixed(1)} сек, ${res.name}. Файл скачан автоматически.`, false);
         
-        // ПОКАЗЫВАЕМ КНОПКУ ДОБАВЛЕНИЯ МУЗЫКИ
         showMusicButton();
         
         for (let i = 0; i < loadedImages.length; i++) {
@@ -817,7 +894,6 @@
         generateBtn.innerHTML = "🎥 Создать WebM видео";
     }
     
-    // Обработчики загрузки
     uploadZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length) addFiles(Array.from(e.target.files));
@@ -867,7 +943,6 @@
         }
     });
     
-    // Инициализация
     updatePreviewAndStats();
     setOrientation('vertical');
 </script>
