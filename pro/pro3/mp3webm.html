@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Объединитель аудио и видео — MP4 для смартфонов</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Объединитель аудио и видео — MP4 для смартфонов + Таймер</title>
     <style>
         * {
             box-sizing: border-box;
@@ -193,6 +193,45 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .timer-panel {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 10px;
+            background: #2d3748;
+            padding: 8px 18px;
+            border-radius: 60px;
+            margin-top: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .timer-label {
+            font-size: 14px;
+            color: #cbd5e0;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .timer-digits {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fbbf24;
+            background: #1e293b;
+            padding: 4px 12px;
+            border-radius: 40px;
+            line-height: 1.2;
+        }
+        .timer-unit {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-left: 2px;
+        }
+        .size-estimate {
+            font-size: 11px;
+            color: #718096;
+            margin-top: 4px;
         }
 
         .preview-section {
@@ -283,9 +322,9 @@
         
         <div class="format-info">
             <strong>📱 Оптимально для смартфонов:</strong><br>
-            • <strong>MP4 (H.264 + AAC)</strong> — универсальный формат, работает на всех устройствах (iPhone, Android, Windows, Mac)<br>
+            • <strong>MP4 (H.264 + AAC)</strong> — универсальный формат, работает на всех устройствах<br>
             • <strong>WebM (VP9 + Opus)</strong> — современный формат, меньше размер файла<br>
-            • Рекомендуется выбирать MP4 для лучшей совместимости
+            • ⏱️ <strong>Таймер рассчитывается по размеру видеофайла:</strong> ~4.8 секунды на 1 МБ
         </div>
 
         <div class="upload-section">
@@ -348,6 +387,7 @@
             <a id="downloadLink" download="combined_video.mp4">
                 <button>⬇ Скачать объединённое видео</button>
             </a>
+            <p style="font-size: 13px; margin-top: 8px; color: #2b6cb0;">✨ Файл начнёт скачиваться автоматически после завершения</p>
         </div>
 
         <div class="tips">
@@ -355,7 +395,7 @@
             1. Для MP4 на выходе видео будет перекодировано в H.264, аудио — в AAC (идеально для iPhone)<br>
             2. WebM даёт меньший размер файла, но может не открыться на некоторых старых устройствах<br>
             3. Процесс обработки происходит в браузере, файлы никуда не загружаются<br>
-            4. Чем длиннее видео, тем больше времени займёт обработка
+            4. ⏱️ <strong>Таймер обратного отсчёта = размер видео (МБ) × 4.8 секунд</strong> (например, 10 МБ ≈ 48 секунд)
         </div>
     </div>
 
@@ -369,12 +409,21 @@
                 this.mediaRecorder = null;
                 this.recordedChunks = [];
                 
+                this.videoFileSizeMB = 0;
+                this.estimatedSeconds = 0;
+                this.timerInterval = null;
+                this.remainingSeconds = 0;
+                this.isProcessing = false;
+                
+                this.SECONDS_PER_MB = 4.8;
+                
                 this.init();
             }
 
             init() {
                 this.setupFileUploads();
                 this.setupMergeButton();
+                this.hideTimerDisplay();
             }
 
             getOutputFormat() {
@@ -384,7 +433,6 @@
             getMimeType() {
                 const format = this.getOutputFormat();
                 if (format === 'mp4') {
-                    // Приоритет: H.264 + AAC (максимальная совместимость)
                     if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) {
                         return 'video/mp4;codecs=h264,aac';
                     }
@@ -394,8 +442,6 @@
                     if (MediaRecorder.isTypeSupported('video/mp4')) {
                         return 'video/mp4';
                     }
-                    // Fallback на WebM если MP4 не поддерживается
-                    console.warn('MP4 не поддерживается, использую WebM');
                     return 'video/webm;codecs=vp9,opus';
                 } else {
                     return 'video/webm;codecs=vp9,opus';
@@ -469,8 +515,11 @@
                 }
 
                 this.videoFile = file;
-                document.getElementById('videoInfo').textContent = 
-                    `📹 ${file.name} (${this.formatFileSize(file.size)})`;
+                this.videoFileSizeMB = file.size / (1024 * 1024);
+                this.estimatedSeconds = Math.max(3, Math.ceil(this.videoFileSizeMB * this.SECONDS_PER_MB));
+                
+                const sizeInfo = `${(this.videoFileSizeMB).toFixed(2)} МБ ~ ${this.estimatedSeconds} сек обработки`;
+                document.getElementById('videoInfo').innerHTML = `📹 ${file.name}<br><span class="size-estimate">${sizeInfo}</span>`;
                 
                 const preview = document.getElementById('videoPreview');
                 if (preview.src) URL.revokeObjectURL(preview.src);
@@ -478,7 +527,12 @@
                 preview.load();
                 
                 this.checkFilesReady();
-                this.updateStatus('Видео загружено. Теперь загрузите аудио файл.');
+                
+                if (this.audioFile) {
+                    this.updateStatus(`Видео (${this.videoFileSizeMB.toFixed(1)} МБ, ~${this.estimatedSeconds}с) и аудио загружены. Готово!`, 'info');
+                } else {
+                    this.updateStatus(`Видео загружено (${this.videoFileSizeMB.toFixed(1)} МБ). Загрузите аудио.`, 'info');
+                }
             }
 
             handleAudioFile(file) {
@@ -494,8 +548,7 @@
                 }
 
                 this.audioFile = file;
-                document.getElementById('audioInfo').textContent = 
-                    `🎵 ${file.name} (${this.formatFileSize(file.size)})`;
+                document.getElementById('audioInfo').textContent = `🎵 ${file.name} (${this.formatFileSize(file.size)})`;
                 
                 const preview = document.getElementById('audioPreview');
                 if (preview.src) URL.revokeObjectURL(preview.src);
@@ -503,7 +556,12 @@
                 preview.load();
                 
                 this.checkFilesReady();
-                this.updateStatus('Аудио загружено. Готово к объединению!');
+                
+                if (this.videoFile) {
+                    this.updateStatus(`Аудио загружено. Видео: ${this.videoFileSizeMB.toFixed(1)} МБ (~${this.estimatedSeconds}с обработки). Нажмите "Объединить"`, 'info');
+                } else {
+                    this.updateStatus('Аудио загружено. Теперь загрузите видео.', 'info');
+                }
             }
 
             checkFilesReady() {
@@ -513,8 +571,75 @@
 
             setupMergeButton() {
                 document.getElementById('mergeBtn').addEventListener('click', () => {
+                    if (this.isProcessing) return;
                     this.mergeAudioVideo();
                 });
+            }
+
+            startTimerFromFileSize() {
+                this.stopTimer();
+                this.remainingSeconds = this.estimatedSeconds;
+                if (this.remainingSeconds < 1) this.remainingSeconds = 3;
+                
+                this.updateTimerDisplay(this.remainingSeconds);
+                this.showTimerDisplay(true);
+                
+                this.timerInterval = setInterval(() => {
+                    if (!this.isProcessing) return;
+                    if (this.remainingSeconds > 0) {
+                        this.remainingSeconds--;
+                        this.updateTimerDisplay(this.remainingSeconds);
+                    } else {
+                        if (this.timerInterval) clearInterval(this.timerInterval);
+                        this.timerInterval = null;
+                    }
+                }, 1000);
+            }
+            
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+            }
+            
+            updateTimerDisplay(seconds) {
+                const timerSpan = document.getElementById('timerValue');
+                if (timerSpan) {
+                    timerSpan.innerText = seconds;
+                }
+            }
+            
+            showTimerDisplay(show) {
+                let timerPanel = document.getElementById('timerPanel');
+                if (!timerPanel) {
+                    const statusDiv = document.getElementById('status');
+                    const panelDiv = document.createElement('div');
+                    panelDiv.id = 'timerPanel';
+                    panelDiv.className = 'timer-panel';
+                    panelDiv.innerHTML = `<span class="timer-label">⏳ Осталось:</span>
+                                          <span class="timer-digits"><span id="timerValue">0</span><span class="timer-unit">сек</span></span>`;
+                    statusDiv.appendChild(panelDiv);
+                    timerPanel = panelDiv;
+                }
+                timerPanel.style.display = show ? 'flex' : 'none';
+            }
+            
+            hideTimerDisplay() {
+                const panel = document.getElementById('timerPanel');
+                if (panel) panel.style.display = 'none';
+            }
+
+            async getAudioContext() {
+                if (this.audioContext && this.audioContext.state !== 'closed') {
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
+                    return this.audioContext;
+                }
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this.audioContext = new AudioCtx();
+                return this.audioContext;
             }
 
             async mergeAudioVideo() {
@@ -522,40 +647,49 @@
                     this.updateStatus('Ошибка: Загрузите оба файла', 'error');
                     return;
                 }
-
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+                
+                document.getElementById('downloadSection').style.display = 'none';
+                const oldDownloadUrl = document.getElementById('downloadLink').href;
+                if (oldDownloadUrl && oldDownloadUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(oldDownloadUrl);
+                }
+                
                 const format = this.getOutputFormat();
-                this.updateStatus(`Начинаю обработку в формате ${format.toUpperCase()}... Это может занять некоторое время`, 'processing');
+                this.updateStatus(`Начинаю обработку в формате ${format.toUpperCase()}...`, 'processing');
                 this.showLoader(true);
                 this.showProgress(true);
                 
+                this.startTimerFromFileSize();
+                
                 try {
+                    const audioCtx = await this.getAudioContext();
+                    if (audioCtx.state === 'suspended') {
+                        await audioCtx.resume();
+                    }
+                    
                     const videoUrl = URL.createObjectURL(this.videoFile);
                     this.videoElement.src = videoUrl;
                     
                     await new Promise((resolve) => {
                         this.videoElement.onloadedmetadata = resolve;
                     });
-
-                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const audioBuffer = await this.loadAudioFile(this.audioFile);
                     
                     const canvas = document.createElement('canvas');
-                    canvas.width = this.videoElement.videoWidth;
-                    canvas.height = this.videoElement.videoHeight;
+                    canvas.width = this.videoElement.videoWidth || 640;
+                    canvas.height = this.videoElement.videoHeight || 480;
                     const ctx = canvas.getContext('2d');
                     
-                    const videoStream = canvas.captureStream(30); // 30 FPS для лучшей плавности
+                    const videoStream = canvas.captureStream(30);
+                    const audioBuffer = await this.loadAudioFile(this.audioFile, audioCtx);
                     
-                    // Конвертируем аудио в нужный формат
-                    const audioSource = this.audioContext.createBufferSource();
+                    const audioSource = audioCtx.createBufferSource();
                     audioSource.buffer = audioBuffer;
+                    const audioDestination = audioCtx.createMediaStreamDestination();
                     
-                    const audioDestination = this.audioContext.createMediaStreamDestination();
-                    
-                    // Для MP4 используем более широкую поддержку частот
                     if (format === 'mp4') {
-                        // Пересэмплируем аудио для лучшей совместимости (44.1kHz или 48kHz)
-                        const targetSampleRate = 48000; // 48kHz стандарт для видео
+                        const targetSampleRate = 48000;
                         if (audioBuffer.sampleRate !== targetSampleRate) {
                             const offlineCtx = new OfflineAudioContext(
                                 audioBuffer.numberOfChannels,
@@ -581,13 +715,11 @@
                     const mimeType = this.getMimeType();
                     this.mediaRecorder = new MediaRecorder(combinedStream, {
                         mimeType: mimeType,
-                        videoBitsPerSecond: 2500000, // 2.5 Mbps для хорошего качества
+                        videoBitsPerSecond: 2500000,
                         audioBitsPerSecond: 128000
                     });
                     
                     this.recordedChunks = [];
-                    let frameCount = 0;
-                    const totalFrames = Math.ceil(this.videoElement.duration * 30); // примерное кол-во кадров
                     
                     this.mediaRecorder.ondataavailable = (event) => {
                         if (event.data.size > 0) {
@@ -603,21 +735,16 @@
                     
                     this.videoElement.currentTime = 0;
                     audioSource.start(0);
-                    this.videoElement.play();
+                    await this.videoElement.play();
                     
                     const drawFrame = () => {
+                        if (!this.isProcessing) return;
                         if (this.videoElement.paused || this.videoElement.ended) {
                             return;
                         }
-                        
                         ctx.drawImage(this.videoElement, 0, 0, canvas.width, canvas.height);
-                        frameCount++;
-                        
-                        // Обновляем прогресс
                         const progress = (this.videoElement.currentTime / this.videoElement.duration) * 100;
                         this.updateProgress(progress);
-                        this.updateStatus(`Обработка: ${Math.floor(progress)}% (формат ${format.toUpperCase()})`, 'processing');
-                        
                         requestAnimationFrame(drawFrame);
                     };
                     
@@ -627,31 +754,39 @@
                         setTimeout(() => {
                             if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
                                 this.mediaRecorder.stop();
-                                audioSource.stop();
+                                try { audioSource.stop(); } catch(e) {}
                             }
                         }, 500);
                     };
                     
                 } catch (error) {
                     console.error('Ошибка при объединении:', error);
-                    this.updateStatus(`Ошибка: ${error.message}. Попробуйте другой формат`, 'error');
+                    let errorMsg = error.message;
+                    if (errorMsg.includes('decodeAudioData') || errorMsg.includes('EncodingError')) {
+                        errorMsg = 'Не удалось декодировать аудио. Попробуйте другой формат (MP3 или AAC).';
+                    }
+                    this.updateStatus(`Ошибка: ${errorMsg}`, 'error');
                     this.showLoader(false);
                     this.showProgress(false);
+                    this.stopTimer();
+                    this.hideTimerDisplay();
+                    this.isProcessing = false;
                 }
             }
 
-            async loadAudioFile(file) {
+            async loadAudioFile(file, audioCtx) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = async (e) => {
                         try {
-                            const audioBuffer = await this.audioContext.decodeAudioData(e.target.result);
+                            const arrayBuffer = e.target.result;
+                            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                             resolve(audioBuffer);
                         } catch (error) {
-                            reject(error);
+                            reject(new Error(`Ошибка декодирования аудио: ${error.message}`));
                         }
                     };
-                    reader.onerror = reject;
+                    reader.onerror = () => reject(new Error('Не удалось прочитать аудио файл'));
                     reader.readAsArrayBuffer(file);
                 });
             }
@@ -659,6 +794,8 @@
             onRecordingComplete() {
                 this.showLoader(false);
                 this.showProgress(false);
+                this.stopTimer();
+                this.hideTimerDisplay();
                 
                 const mimeType = this.getMimeType();
                 const blob = new Blob(this.recordedChunks, { type: mimeType });
@@ -674,18 +811,34 @@
                 downloadLink.href = url;
                 downloadLink.download = `combined_${Date.now()}.${extension}`;
                 
+                const autoClick = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
+                downloadLink.dispatchEvent(autoClick);
+                
                 document.getElementById('downloadSection').style.display = 'block';
                 
-                this.updateStatus(`✅ Готово! Видео сохранено в формате ${extension.toUpperCase()}. Размер: ${this.formatFileSize(blob.size)}`, 'success');
+                this.updateStatus(`✅ Готово! Видео сохранено в формате ${extension.toUpperCase()}. Размер: ${this.formatFileSize(blob.size)}. Скачивание началось автоматически.`, 'success');
                 
                 setTimeout(() => {
                     if (this.videoElement.src) URL.revokeObjectURL(this.videoElement.src);
                 }, 1000);
+                
+                this.isProcessing = false;
+                if (this.audioContext && this.audioContext.state !== 'closed') {
+                    this.audioContext.close().catch(console.warn);
+                    this.audioContext = null;
+                }
             }
 
             updateStatus(message, type = 'info') {
                 const statusElement = document.getElementById('status');
-                statusElement.textContent = message;
+                const children = Array.from(statusElement.childNodes);
+                for (let node of children) {
+                    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+                        statusElement.removeChild(node);
+                    }
+                }
+                const textNode = document.createTextNode(message);
+                statusElement.insertBefore(textNode, statusElement.firstChild);
                 
                 statusElement.style.background = type === 'error' ? '#fed7d7' :
                                                 type === 'success' ? '#c6f6d5' :
@@ -721,7 +874,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            new VideoAudioMerger();
+            window.merger = new VideoAudioMerger();
         });
     </script>
 </body>
