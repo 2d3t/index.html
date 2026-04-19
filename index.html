@@ -495,6 +495,18 @@
 </footer>
 
 <script>
+    // Функция для упрощённой транслитерации (русский -> латиница)
+    function transliterate(text) {
+        const map = {
+            'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+            'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+            'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+            'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+            'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+        };
+        return text.toLowerCase().split('').map(ch => map[ch] || ch).join('');
+    }
+
     function showSuggestions(value) {
         const suggestionsDiv = document.getElementById('suggestions');
         suggestionsDiv.innerHTML = '';
@@ -503,12 +515,19 @@
             return;
         }
 
-        // собрать все ссылки из .links внутри категорий (не из контактов и не внешние дубли)
         const allLinks = Array.from(document.querySelectorAll('.category .links a'));
-        const searchTerm = value.toLowerCase().trim();
-        const filteredLinks = allLinks.filter(link => 
-            link.textContent.toLowerCase().includes(searchTerm)
-        );
+        let searchTerm = value.toLowerCase().trim();
+        const searchTranslit = transliterate(searchTerm);
+        
+        const filteredLinks = allLinks.filter(link => {
+            const linkText = link.textContent.toLowerCase();
+            const linkTranslit = transliterate(linkText);
+            // Проверяем: оригинальный запрос, транслит запроса, а также обратную транслитерацию
+            return linkText.includes(searchTerm) ||
+                   linkTranslit.includes(searchTerm) ||
+                   linkText.includes(searchTranslit) ||
+                   linkTranslit.includes(searchTranslit);
+        });
 
         if (filteredLinks.length > 0) {
             suggestionsDiv.style.display = 'flex';
@@ -516,10 +535,8 @@
                 const suggestionItem = document.createElement('a');
                 suggestionItem.className = 'suggestion';
                 suggestionItem.href = link.href;
-                // подсветка вхождения (опционально)
-                let displayText = link.textContent;
-                suggestionItem.innerText = displayText;
-                suggestionItem.title = `Перейти к ${displayText}`;
+                suggestionItem.innerText = link.textContent;
+                suggestionItem.title = `Перейти к ${link.textContent}`;
                 suggestionsDiv.appendChild(suggestionItem);
             });
         } else {
