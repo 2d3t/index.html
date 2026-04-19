@@ -1,0 +1,891 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BlackClip Studio — Голосовой конструктор клипов и коллажей</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: #0a0a0a;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 28px 24px;
+            color: #e5e7eb;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            justify-content: center;
+        }
+
+        .preview-panel {
+            flex: 2;
+            min-width: 320px;
+            background: #111215;
+            border-radius: 36px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.05);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px 28px 8px 28px;
+            border-bottom: 1px solid #26292f;
+        }
+
+        .panel-header h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #ffffff, #a0aec0);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .mic-row {
+            background: #1c1f24;
+            margin: 18px 24px 12px 24px;
+            padding: 12px 20px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            border: 1px solid #2d3138;
+        }
+
+        .mic-status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            background: #0f1115;
+            padding: 5px 18px 5px 14px;
+            border-radius: 40px;
+            color: #d1d5db;
+        }
+
+        .led-dot {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 12px;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulseMic 1.2s infinite;
+        }
+
+        @keyframes pulseMic {
+            0% { opacity: 0.4; transform: scale(0.8);}
+            100% { opacity: 1; transform: scale(1.1);}
+        }
+
+        .command-hint {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            background: #0b0d10;
+            padding: 5px 14px;
+            border-radius: 30px;
+            font-family: monospace;
+            letter-spacing: 0.3px;
+        }
+
+        .word-card {
+            background: #000000cc;
+            backdrop-filter: blur(4px);
+            margin: 16px 24px;
+            padding: 16px 20px;
+            border-radius: 32px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: #facc15;
+            border: 1px solid #2d3748;
+            font-family: 'SF Mono', 'Inter', monospace;
+            letter-spacing: 0.2px;
+            transition: 0.1s;
+        }
+
+        .image-stage {
+            background: #000000;
+            margin: 8px 24px 20px 24px;
+            border-radius: 32px;
+            min-height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #26292f;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 8px 20px rgba(0,0,0,0.5);
+        }
+
+        .image-view {
+            max-width: 100%;
+            max-height: 340px;
+            object-fit: contain;
+            border-radius: 18px;
+            background: #000000;
+            display: block;
+        }
+
+        .placeholder-box {
+            text-align: center;
+            color: #6b7280;
+            font-weight: 500;
+            padding: 40px;
+            background: #000000;
+            border-radius: 32px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 8px 24px 28px 24px;
+        }
+
+        .btn {
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 10px 22px;
+            border-radius: 44px;
+            border: none;
+            cursor: pointer;
+            background: #1e2128;
+            color: #e2e8f0;
+            transition: 0.08s linear;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+        }
+        .btn-primary:active { transform: translateY(2px); background: #2563eb; }
+        .btn-outline { background: #1a1d24; border: 1px solid #2d313a; }
+        .btn-outline:active { transform: translateY(1px); background: #252a33; }
+        .btn-accent {
+            background: #8b5cf6;
+            color: white;
+            box-shadow: 0 2px 8px rgba(139,92,246,0.3);
+        }
+        .btn-accent:active { transform: translateY(2px); background: #7c3aed; }
+
+        .library-panel {
+            flex: 1.2;
+            min-width: 280px;
+            background: #111215;
+            border-radius: 36px;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.04);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .library-header {
+            padding: 20px 24px 12px;
+            border-bottom: 1px solid #26292f;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+
+        .library-header h3 {
+            font-weight: 600;
+            font-size: 1.3rem;
+            color: #f0f3fa;
+        }
+
+        .badge-count {
+            background: #1f2937;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: #cbd5e6;
+        }
+
+        /* Новый счётчик длительности */
+        .duration-stats {
+            background: #0c0e12;
+            margin: 0 24px 12px 24px;
+            padding: 12px 18px;
+            border-radius: 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            font-size: 0.85rem;
+            border: 1px solid #252a33;
+        }
+        .duration-stats span:first-child { color: #9ca3af; }
+        .duration-stats span:last-child { font-weight: 700; color: #facc15; font-family: monospace; font-size: 1rem; }
+
+        .collage-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 12px 24px 20px 24px;
+            max-height: 320px;
+            overflow-y: auto;
+            justify-content: flex-start;
+            align-items: start;
+            background: #0c0e12;
+        }
+
+        .clip-thumb {
+            width: 88px;
+            height: 88px;
+            object-fit: cover;
+            border-radius: 20px;
+            border: 2px solid #2a2e36;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            transition: 0.1s;
+            cursor: pointer;
+            background: #000;
+        }
+
+        .clip-thumb:hover {
+            transform: scale(0.96);
+            border-color: #3b82f6;
+        }
+
+        .empty-library {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .library-actions {
+            padding: 16px 24px 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            border-top: 1px solid #26292f;
+            margin-top: auto;
+        }
+
+        /* Стиль для таймера рендеринга */
+        .render-timer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            flex-direction: column;
+            font-family: monospace;
+        }
+        .timer-card {
+            background: #111215;
+            border-radius: 56px;
+            padding: 32px 48px;
+            text-align: center;
+            border: 1px solid #3b82f6;
+            box-shadow: 0 0 40px rgba(59,130,246,0.3);
+        }
+        .timer-digits {
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #fff, #60a5fa);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .timer-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-top: 12px;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: 0.2s;
+            pointer-events: none;
+            backdrop-filter: blur(8px);
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 32px;
+            color: #5f6c84;
+            font-size: 0.7rem;
+        }
+
+        @media (max-width: 780px) {
+            body { padding: 16px; }
+            .clip-thumb { width: 70px; height: 70px; }
+            .toast-message { white-space: normal; width: 80%; text-align: center; }
+            .timer-digits { font-size: 2.5rem; }
+            .timer-card { padding: 24px 28px; }
+        }
+
+        .button-card {
+            background: rgba(30, 33, 40, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 80px;
+            padding: 20px 28px;
+            margin-top: 32px;
+            box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .buttons-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 14px 32px;
+            border-radius: 60px;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 0.3px;
+            border: none;
+            box-shadow: 0 10px 18px -8px rgba(102, 126, 234, 0.5);
+            transition: all 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            cursor: pointer;
+        }
+        @media (max-width: 550px) {
+            .buttons-row { flex-direction: column; }
+            .button-card { width: 100%; }
+            .action-btn { width: 100%; justify-content: center; }
+        }
+        .action-btn:hover { transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="dashboard">
+        <div class="preview-panel">
+            <div class="panel-header">
+                <h2>◼ BLACKCLIP STUDIO</h2>
+                <div style="font-size: 0.75rem; color:#7e8aa2;">Голос → кадр → монтаж. Коллажи и клипы на чёрном фоне</div>
+            </div>
+            <div class="mic-row">
+                <div class="mic-status-badge">
+                    <span class="led-dot"></span>
+                    <span>🎙️ всегда слушает</span>
+                </div>
+                <div class="command-hint">
+                    🎤 «добавить» | «другая» | «назад» | «сделай клип» | «сделай коллаж» | «очисти всё»
+                </div>
+            </div>
+            <div class="word-card" id="globalCommandDisplay">
+                💬 <span id="spokenTextSpan">— ожидание голоса —</span> 💬
+            </div>
+            <div class="image-stage">
+                <div id="imagePlaceholderArea" style="display: flex; justify-content: center; align-items: center; width:100%;">
+                    <div class="placeholder-box">🖤<br/>скажите слово</div>
+                </div>
+                <img id="dynamicImage" class="image-view" style="display: none;" alt="кадр" crossorigin="anonymous">
+            </div>
+            <div class="action-buttons">
+                <button id="clearCurrentBtn" class="btn btn-outline">⟳ Сбросить</button>
+                <button id="nextPictureBtn" class="btn btn-outline">🎲 Другая картинка</button>
+                <button id="prevPictureBtn" class="btn btn-outline">◀ Назад</button>
+                <button id="addToLibraryBtn" class="btn btn-primary">➕ Добавить кадр</button>
+            </div>
+        </div>
+
+        <div class="library-panel">
+            <div class="library-header">
+                <h3>🎞️ Монтажный стол</h3>
+                <span id="clipCountBadge" class="badge-count">0</span>
+            </div>
+            <!-- НОВЫЙ СЧЁТЧИК ДЛИТЕЛЬНОСТИ -->
+            <div class="duration-stats">
+                <span>📊 Кадров: <strong id="statFrames">0</strong> | ⏱️ Длительность клипа:</span>
+                <span id="statDuration">0 сек</span>
+            </div>
+            <div id="clipGridContainer" class="collage-grid">
+                <div class="empty-library">✦ Нет кадров. Скажите «добавить»</div>
+            </div>
+            <div class="library-actions">
+                <button id="generateVideoBtn" class="btn btn-primary" style="background:#2c3e66; flex:1;">🎬 Создать клип</button>
+                <button id="generateCollageBtn" class="btn btn-accent" style="flex:1;">🖼️ Коллаж</button>
+                <button id="clearLibraryBtn" class="btn btn-outline">🗑️ Очистить всё</button>
+            </div>
+            <div style="font-size:0.7rem; padding:12px 24px 20px; color:#5f6c84; text-align:center; border-top:1px solid #1e2128;">
+                🎞️ Клип: 5 сек/кадр, чёрный фон. 🖼️ Коллаж: сетка на чёрном.
+            </div>
+        </div>
+    </div>
+    
+    <div class="button-card">
+        <div class="buttons-row">
+            <a href="https://2d3t.github.io/index.html/pro/pro3/mp3webm.html" class="action-btn" title="Добавить музыкальное сопровождение">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V12M12 12L15 9M12 12L9 9" stroke="white" stroke-width="1.5"/><path d="M5 14.5C5 16.9853 7.01472 19 9.5 19H14.5C16.9853 19 19 16.9853 19 14.5V12" stroke="white" stroke-width="1.5"/><path d="M5 10V9.5C5 7.01472 7.01472 5 9.5 5H14.5C16.9853 5 19 7.01472 19 9.5V10" stroke="white"/><circle cx="17.5" cy="16.5" r="1.5" fill="white"/><circle cx="6.5" cy="16.5" r="1.5" fill="white"/></svg>
+                <span>Добавить музыку к клипу</span>
+            </a>
+            <a href="https://2d3t.github.io/index.html/pro/calendfot.html" class="action-btn" title="Создать календарь с коллажем">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3V12M12 12L15 9M12 12L9 9" stroke="white" stroke-width="1.5"/><path d="M5 14.5C5 16.9853 7.01472 19 9.5 19H14.5C16.9853 19 19 16.9853 19 14.5V12" stroke="white"/><path d="M5 10V9.5C5 7.01472 7.01472 5 9.5 5H14.5C16.9853 5 19 7.01472 19 9.5V10" stroke="white"/><circle cx="17.5" cy="16.5" r="1.5" fill="white"/><circle cx="6.5" cy="16.5" r="1.5" fill="white"/></svg>
+                <span>Вставить коллаж в календарь</span>
+            </a>
+        </div>
+    </div>
+    <footer>Профессиональный режим | «назад» — предыдущая картинка | 16 вариантов поиска</footer>
+</div>
+<div id="globalToast" class="toast-message"></div>
+
+<script>
+    (function(){
+        let recognition = null;
+        let isListening = true;
+        let restarting = false;
+        let currentImageUrl = "";
+        let currentWordLabel = "";
+        let isEmojiFallback = false;
+        let currentSearchCache = { word: "", urls: [], index: -1 };
+        let clipItems = [];  // { url, word }
+        const SLIDE_SEC = 5; // 5 секунд на кадр
+
+        // DOM
+        const spokenTextSpan = document.getElementById('spokenTextSpan');
+        const globalCommandDisplayDiv = document.getElementById('globalCommandDisplay');
+        const imagePlaceholderDiv = document.getElementById('imagePlaceholderArea');
+        const dynamicImg = document.getElementById('dynamicImage');
+        const clearCurrentBtn = document.getElementById('clearCurrentBtn');
+        const nextPictureBtn = document.getElementById('nextPictureBtn');
+        const prevPictureBtn = document.getElementById('prevPictureBtn');
+        const addToLibraryBtn = document.getElementById('addToLibraryBtn');
+        const clipGridContainer = document.getElementById('clipGridContainer');
+        const clipCountSpan = document.getElementById('clipCountBadge');
+        const generateVideoBtn = document.getElementById('generateVideoBtn');
+        const generateCollageBtn = document.getElementById('generateCollageBtn');
+        const clearLibraryBtn = document.getElementById('clearLibraryBtn');
+        const toastEl = document.getElementById('globalToast');
+        const statFramesSpan = document.getElementById('statFrames');
+        const statDurationSpan = document.getElementById('statDuration');
+
+        function showToast(msg, isError = false) {
+            toastEl.textContent = msg;
+            toastEl.style.background = isError ? '#b91c1c' : '#1f2937';
+            toastEl.style.opacity = '1';
+            setTimeout(() => { toastEl.style.opacity = '0'; }, 2300);
+        }
+
+        function setSpokenPhrase(phrase) {
+            spokenTextSpan.innerText = `"${phrase}"`;
+            globalCommandDisplayDiv.style.transform = "scale(1.01)";
+            setTimeout(() => { if(globalCommandDisplayDiv) globalCommandDisplayDiv.style.transform = ""; }, 150);
+        }
+
+        // Обновление статистики (количество кадров и длительность)
+        function updateLibraryStats() {
+            const frames = clipItems.length;
+            const totalSec = frames * SLIDE_SEC;
+            statFramesSpan.innerText = frames;
+            if (totalSec >= 60) {
+                const minutes = Math.floor(totalSec / 60);
+                const seconds = totalSec % 60;
+                statDurationSpan.innerText = `${minutes} мин ${seconds} сек`;
+            } else {
+                statDurationSpan.innerText = `${totalSec} сек`;
+            }
+            clipCountSpan.innerText = frames;
+        }
+
+        function renderClipLibrary() {
+            clipGridContainer.innerHTML = "";
+            if (clipItems.length === 0) {
+                clipGridContainer.innerHTML = '<div class="empty-library">🎬 Добавьте картинки через «добавить» или голосом</div>';
+                updateLibraryStats();
+                return;
+            }
+            clipItems.forEach((item, idx) => {
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.alt = item.word;
+                img.className = 'clip-thumb';
+                img.title = `Удалить "${item.word}"`;
+                img.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    clipItems.splice(idx, 1);
+                    renderClipLibrary();
+                    showToast(`🗑️ Убран кадр: ${item.word}`, false);
+                });
+                clipGridContainer.appendChild(img);
+            });
+            const hintSpan = document.createElement('div');
+            hintSpan.style.fontSize = '0.6rem';
+            hintSpan.style.width = '100%';
+            hintSpan.style.marginTop = '8px';
+            hintSpan.style.color = '#5e6a82';
+            hintSpan.style.textAlign = 'center';
+            hintSpan.innerText = '⨯ нажмите на миниатюру, чтобы удалить кадр';
+            clipGridContainer.appendChild(hintSpan);
+            updateLibraryStats();
+        }
+
+        function addCurrentToClip() {
+            if (!currentImageUrl || isEmojiFallback || !currentWordLabel) {
+                showToast("Нет настоящей картинки. Сначала произнесите слово (не команду)", true);
+                return false;
+            }
+            clipItems.push({ url: currentImageUrl, word: currentWordLabel });
+            renderClipLibrary();
+            showToast(`➕ Добавлен кадр: «${currentWordLabel}» (всего ${clipItems.length})`, false);
+            return true;
+        }
+
+        // Поиск изображений через Wikimedia (увеличено до 16 вариантов)
+        async function fetchImagesForWord(query, limit = 16) {
+            const clean = encodeURIComponent(query.trim().toLowerCase());
+            const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${clean}&gsrnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*&gsrlimit=${limit}`;
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                let urls = [];
+                if (data.query && data.query.pages) {
+                    for (let id in data.query.pages) {
+                        const page = data.query.pages[id];
+                        if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
+                            let imgUrl = page.imageinfo[0].url;
+                            if (imgUrl.startsWith('http://')) imgUrl = imgUrl.replace('http://', 'https://');
+                            urls.push(imgUrl);
+                        }
+                    }
+                }
+                return { ok: urls.length > 0, urls };
+            } catch(e) {
+                return { ok: false, urls: [] };
+            }
+        }
+
+        function setEmojiPlaceholder(word) {
+            const emojiMap = {'кот':'🐱','кошка':'🐱','собака':'🐶','пес':'🐶','слон':'🐘','жираф':'🦒','лев':'🦁','тигр':'🐯','медведь':'🐻','машина':'🚗','автомобиль':'🚙','самолет':'✈️','ракета':'🚀','пицца':'🍕','бургер':'🍔','робот':'🤖','единорог':'🦄','динозавр':'🦖','космос':'🌌','яблоко':'🍎','банан':'🍌','мороженое':'🍦'};
+            let fallback = '🖼️';
+            const low = word.toLowerCase();
+            for (let [k, v] of Object.entries(emojiMap)) { if (low.includes(k)) { fallback = v; break; } }
+            imagePlaceholderDiv.style.display = "flex";
+            imagePlaceholderDiv.innerHTML = `<div style="font-size: 3rem;">${fallback}</div><div style="font-weight:500; margin-top:8px; color:#b0b3b8;">${word}</div><div style="font-size:0.65rem; color:#5b687c;">🖤 нет фото</div>`;
+            dynamicImg.style.display = "none";
+            isEmojiFallback = true;
+            currentImageUrl = "";
+            currentWordLabel = word;
+        }
+
+        async function applyPicture(url, word) {
+            if (!url) return false;
+            currentImageUrl = url;
+            currentWordLabel = word;
+            isEmojiFallback = false;
+            dynamicImg.src = url;
+            dynamicImg.style.display = "block";
+            imagePlaceholderDiv.style.display = "none";
+            dynamicImg.onerror = () => { if (dynamicImg.style.display !== "none") { dynamicImg.style.display = "none"; setEmojiPlaceholder(word); } };
+            return true;
+        }
+
+        async function loadPictureForWord(word, useSpecificIndex = -1) {
+            if (!word) return;
+            currentWordLabel = word;
+            setSpokenPhrase(word);
+            if (currentSearchCache.word === word && currentSearchCache.urls.length > 0) {
+                let newIdx = (useSpecificIndex !== -1) ? useSpecificIndex : currentSearchCache.index + 1;
+                if (newIdx >= currentSearchCache.urls.length) newIdx = 0;
+                if (newIdx < 0) newIdx = currentSearchCache.urls.length - 1;
+                currentSearchCache.index = newIdx;
+                const nextUrl = currentSearchCache.urls[currentSearchCache.index];
+                if (nextUrl) {
+                    await applyPicture(nextUrl, word);
+                    showToast(`🖼️ ${word} (${currentSearchCache.index+1}/${currentSearchCache.urls.length})`, false);
+                    return;
+                }
+            }
+            imagePlaceholderDiv.style.display = "flex";
+            imagePlaceholderDiv.innerHTML = `<div class="placeholder-box">🔍 поиск: ${word} ...</div>`;
+            dynamicImg.style.display = "none";
+            currentImageUrl = "";
+            const result = await fetchImagesForWord(word, 16);
+            if (result.ok && result.urls.length > 0) {
+                currentSearchCache.word = word;
+                currentSearchCache.urls = result.urls;
+                currentSearchCache.index = 0;
+                await applyPicture(result.urls[0], word);
+            } else {
+                currentSearchCache.word = "";
+                currentSearchCache.urls = [];
+                currentSearchCache.index = -1;
+                setEmojiPlaceholder(word);
+                showToast(`Не найдено изображение для «${word}», иконка`, true);
+            }
+        }
+
+        async function nextAlternative() {
+            if (!currentWordLabel) { showToast("Нет активного слова, скажите что-нибудь", true); return; }
+            if (currentSearchCache.word === currentWordLabel && currentSearchCache.urls.length > 0) {
+                let nextIdx = currentSearchCache.index + 1;
+                if (nextIdx >= currentSearchCache.urls.length) nextIdx = 0;
+                currentSearchCache.index = nextIdx;
+                await applyPicture(currentSearchCache.urls[nextIdx], currentWordLabel);
+                showToast(`🎞️ Другая картинка: ${currentWordLabel} (${nextIdx+1}/${currentSearchCache.urls.length})`, false);
+            } else { await loadPictureForWord(currentWordLabel); }
+        }
+
+        async function prevAlternative() {
+            if (!currentWordLabel) { showToast("Нет активного слова", true); return; }
+            if (currentSearchCache.word === currentWordLabel && currentSearchCache.urls.length > 0) {
+                let prevIdx = currentSearchCache.index - 1;
+                if (prevIdx < 0) prevIdx = currentSearchCache.urls.length - 1;
+                currentSearchCache.index = prevIdx;
+                await applyPicture(currentSearchCache.urls[prevIdx], currentWordLabel);
+                showToast(`◀ Предыдущая: ${currentWordLabel} (${prevIdx+1}/${currentSearchCache.urls.length})`, false);
+            } else { await loadPictureForWord(currentWordLabel); }
+        }
+
+        function resetCurrent() {
+            imagePlaceholderDiv.style.display = "flex";
+            imagePlaceholderDiv.innerHTML = `<div class="placeholder-box">🖤<br/>скажите слово</div>`;
+            dynamicImg.style.display = "none";
+            currentImageUrl = "";
+            currentWordLabel = "";
+            isEmojiFallback = false;
+            currentSearchCache = { word: "", urls: [], index: -1 };
+            setSpokenPhrase("— ожидание —");
+            showToast("Кадр сброшен", false);
+        }
+
+        // ТАЙМЕР ОБРАТНОГО ОТСЧЕТА ПРИ РЕНДЕРИНГЕ
+        function showRenderTimer(totalSeconds, onComplete) {
+            const overlay = document.createElement('div');
+            overlay.className = 'render-timer-overlay';
+            overlay.innerHTML = `
+                <div class="timer-card">
+                    <div class="timer-digits" id="countdownDisplay">${totalSeconds}</div>
+                    <div class="timer-label">⏳ создание клипа... осталось секунд</div>
+                    <div style="margin-top:12px; font-size:0.8rem; color:#a0aec0;">чёрный фон, без подписей</div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            let remaining = totalSeconds;
+            const displaySpan = overlay.querySelector('#countdownDisplay');
+            const interval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    if (overlay && overlay.remove) overlay.remove();
+                    if (onComplete) onComplete();
+                } else {
+                    if (displaySpan) displaySpan.innerText = remaining;
+                }
+            }, 1000);
+            return overlay;
+        }
+
+        // ГЕНЕРАЦИЯ КЛИПА С ТАЙМЕРОМ
+        async function renderPureVideoBlack() {
+            if (clipItems.length === 0) { showToast("Нет кадров. Добавьте изображения", true); return; }
+            const totalDurationSec = clipItems.length * SLIDE_SEC;
+            showToast(`🎬 Старт: клип из ${clipItems.length} кадров, ~${totalDurationSec} сек`, false);
+            let timerOverlay = null;
+            // показываем таймер обратного отсчёта
+            timerOverlay = showRenderTimer(totalDurationSec, () => {});
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const FPS = 30;
+            const width = 1280, height = 720;
+            canvas.width = width; canvas.height = height;
+            
+            const loadImg = (url) => new Promise((resolve, reject) => { const img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; img.onload = () => resolve(img); img.onerror = reject; });
+            let loadedImages = [];
+            try { loadedImages = await Promise.all(clipItems.map(item => loadImg(item.url))); } 
+            catch(err) { if(timerOverlay) timerOverlay.remove(); showToast("Ошибка загрузки картинок", true); return; }
+            
+            function drawBlackSlide(img) {
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(0, 0, width, height);
+                let drawW = img.width, drawH = img.height;
+                const maxW = width - 80, maxH = height - 80;
+                if (drawW > maxW) { drawH = (drawH * maxW) / drawW; drawW = maxW; }
+                if (drawH > maxH) { drawW = (drawW * maxH) / drawH; drawH = maxH; }
+                ctx.drawImage(img, (width - drawW)/2, (height - drawH)/2, drawW, drawH);
+            }
+            
+            const totalFrames = clipItems.length * SLIDE_SEC * FPS;
+            let currentFrameIdx = 0;
+            let recordingActive = true;
+            const stream = canvas.captureStream(FPS);
+            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            let chunks = [];
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `blackclip_${Date.now()}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast("✅ Клип готов! Чёрный фон, без подписей", false);
+                if(timerOverlay && timerOverlay.remove) timerOverlay.remove();
+                chunks = [];
+            };
+            mediaRecorder.start(100);
+            let startTime = performance.now();
+            let animFrame = null;
+            function frameGenerator(now) {
+                if (!recordingActive) return;
+                const elapsed = (performance.now() - startTime) / 1000;
+                const expectedFrame = Math.floor(elapsed * FPS);
+                if (expectedFrame > currentFrameIdx) {
+                    currentFrameIdx = expectedFrame;
+                    if (currentFrameIdx >= totalFrames) {
+                        if (mediaRecorder.state === 'recording') { recordingActive = false; mediaRecorder.stop(); }
+                        if (animFrame) cancelAnimationFrame(animFrame);
+                        return;
+                    }
+                    const slideIndex = Math.floor(currentFrameIdx / (SLIDE_SEC * FPS));
+                    if (slideIndex < loadedImages.length) drawBlackSlide(loadedImages[slideIndex]);
+                    else if(loadedImages.length) drawBlackSlide(loadedImages[loadedImages.length-1]);
+                }
+                if (recordingActive) animFrame = requestAnimationFrame(frameGenerator);
+            }
+            startTime = performance.now();
+            animFrame = requestAnimationFrame(frameGenerator);
+            setTimeout(() => { if (mediaRecorder.state === 'recording') { recordingActive = false; mediaRecorder.stop(); if(animFrame) cancelAnimationFrame(animFrame); } }, (totalDurationSec + 1) * 1000);
+        }
+
+        async function renderCollageBlack() {
+            if (clipItems.length === 0) { showToast("Нет кадров", true); return; }
+            showToast("🖼️ Создаём коллаж на чёрном фоне...", false);
+            const loadImg = (url) => new Promise((resolve, reject) => { const img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; img.onload = () => resolve(img); img.onerror = reject; });
+            let loadedImages = [];
+            try { loadedImages = await Promise.all(clipItems.map(item => loadImg(item.url))); } 
+            catch(e) { showToast("Ошибка загрузки для коллажа", true); return; }
+            const count = loadedImages.length;
+            const isWide = count > 4;
+            const canvasWidth = isWide ? 1920 : 1080;
+            const canvasHeight = isWide ? 1080 : 1080;
+            const canvas = document.createElement('canvas');
+            canvas.width = canvasWidth; canvas.height = canvasHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            let cols, rows;
+            if (count === 1) { cols=1; rows=1; }
+            else if (count === 2) { cols=2; rows=1; }
+            else if (count <= 4) { cols=2; rows=2; }
+            else if (count <= 6) { cols=3; rows=2; }
+            else if (count <= 9) { cols=3; rows=3; }
+            else { cols=4; rows=Math.ceil(count/4); }
+            const padding = 20;
+            const cellWidth = (canvasWidth - padding * (cols + 1)) / cols;
+            const cellHeight = (canvasHeight - padding * (rows + 1)) / rows;
+            for (let i=0; i<loadedImages.length && i<cols*rows; i++) {
+                const img = loadedImages[i];
+                const col = i % cols, row = Math.floor(i / cols);
+                const x = padding + col * (cellWidth + padding);
+                const y = padding + row * (cellHeight + padding);
+                let drawW = cellWidth, drawH = cellHeight;
+                const imgRatio = img.width / img.height;
+                const cellRatio = cellWidth / cellHeight;
+                if (imgRatio > cellRatio) { drawW = cellWidth; drawH = cellWidth / imgRatio; }
+                else { drawH = cellHeight; drawW = cellHeight * imgRatio; }
+                ctx.drawImage(img, x + (cellWidth - drawW)/2, y + (cellHeight - drawH)/2, drawW, drawH);
+            }
+            const link = document.createElement('a');
+            link.download = `blackclip_collage_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast(`✅ Коллаж из ${clipItems.length} кадров`, false);
+        }
+
+        async function processVoiceCommandOrWord(transcript) {
+            const lower = transcript.toLowerCase().trim();
+            setSpokenPhrase(transcript);
+            if (lower.includes("добавить") || lower === "добавь" || lower.includes("в клип")) { addCurrentToClip(); return true; }
+            if (lower.includes("другая") || lower.includes("другую") || lower === "следующая") { await nextAlternative(); return true; }
+            if (lower.includes("назад") || lower === "предыдущая") { await prevAlternative(); return true; }
+            if (lower.includes("сделай клип") || lower.includes("создай клип")) { await renderPureVideoBlack(); return true; }
+            if (lower.includes("сделай коллаж") || lower.includes("создай коллаж")) { await renderCollageBlack(); return true; }
+            if (lower.includes("очисти всё") || lower.includes("очисти коллекцию")) { clipItems = []; renderClipLibrary(); showToast("Монтажный стол очищен", false); return true; }
+            if (lower.includes("сбросить") || lower.includes("очистить картинку")) { resetCurrent(); return true; }
+            await loadPictureForWord(transcript);
+            return true;
+        }
+
+        function initSpeech() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) { setSpokenPhrase("❌ нет поддержки речи"); showToast("Ваш браузер не поддерживает голосовой ввод", true); return; }
+            recognition = new SpeechRec();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'ru-RU';
+            recognition.onstart = () => { restarting = false; };
+            recognition.onerror = (ev) => { if (ev.error === 'not-allowed') { setSpokenPhrase("🔇 нет доступа"); showToast("Разрешите доступ к микрофону", true); } else if (ev.error !== 'no-speech' && isListening) setTimeout(() => { if(isListening && recognition) recognition.start(); }, 1000); };
+            recognition.onend = () => { if (isListening && !restarting) { restarting = true; setTimeout(() => { if(isListening && recognition) try { recognition.start(); } catch(e){} restarting = false; }, 400); } };
+            recognition.onresult = async (event) => { for (let i = event.resultIndex; i < event.results.length; i++) { let phrase = event.results[i][0].transcript.trim(); if (phrase) await processVoiceCommandOrWord(phrase); } };
+            try { recognition.start(); } catch(e) { console.warn(e); }
+        }
+
+        clearCurrentBtn.addEventListener('click', resetCurrent);
+        nextPictureBtn.addEventListener('click', nextAlternative);
+        prevPictureBtn.addEventListener('click', prevAlternative);
+        addToLibraryBtn.addEventListener('click', addCurrentToClip);
+        generateVideoBtn.addEventListener('click', renderPureVideoBlack);
+        generateCollageBtn.addEventListener('click', renderCollageBlack);
+        clearLibraryBtn.addEventListener('click', () => { clipItems = []; renderClipLibrary(); showToast("Коллекция очищена", false); });
+        window.addEventListener('load', () => { initSpeech(); renderClipLibrary(); resetCurrent(); });
+    })();
+</script>
+</body>
+</html>
