@@ -18,7 +18,6 @@
       color: white;
       flex-wrap: wrap;
       align-items: center;
-      position: relative;
     }
     .toolbar input {
       padding: 5px;
@@ -63,28 +62,6 @@
     .url-input::placeholder {
       color: #aaa;
       font-style: italic;
-    }
-    /* Всплывающее уведомление */
-    .toast-notification {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      background: #4CAF50;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 10002;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .toast-notification.error {
-      background: #f44336;
-    }
-    .toast-notification.show {
-      opacity: 1;
     }
     .editor {
       display: flex;
@@ -139,7 +116,7 @@
     .file-input {
       display: none;
     }
-    /* Кнопка выхода из полноэкранного режима - внутри iframe */
+    /* Оверлей для полноэкранного режима */
     .fullscreen-overlay {
       position: fixed;
       top: 0;
@@ -178,13 +155,34 @@
       background: #f0ad4e !important;
       cursor: wait !important;
     }
+    /* Всплывающее уведомление (тост) вместо alert */
+    .toast-notify {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(6px);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 20000;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      white-space: nowrap;
+      font-family: sans-serif;
+    }
   </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <!-- НОВАЯ СТРОКА: Поле ввода URL и кнопка получения кода -->
-  <input type="text" id="urlInput" class="url-input" placeholder="Вставьте URL сайта" value="">
+  <!-- Поле ввода URL и кнопка получения кода -->
+  <input type="text" id="urlInput" class="url-input" placeholder="HTML сайта (https://example.com)" value="">
   <button id="fetchButton" onclick="fetchWebsiteCode()">Загрузить 🌐</button>
   
   <input type="number" id="lineNumber" min="1" placeholder="Строка">
@@ -206,8 +204,8 @@
   <!-- Кнопка для полноэкранного режима -->
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
-  <!-- Кнопка для загрузки файлов - расширенные возможности -->
-  <label for="fileUpload" title="Открыть файл (поддерживаются: .py, .js, .html, .css, .txt, .json, .xml и другие текстовые форматы)">Файлы 📂</label>
+  <!-- Кнопка для загрузки файлов -->
+  <label for="fileUpload" title="Открыть файл (поддерживаются текстовые форматы)">Файлы 📂</label>
   <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="loadFile(event)">
 </div>
   
@@ -224,8 +222,8 @@
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
 </div>
 
-<!-- Всплывающее уведомление -->
-<div id="toastNotification" class="toast-notification"></div>
+<!-- Всплывающее уведомление (тост) -->
+<div id="toastMessage" class="toast-notify"></div>
 
 <script>
   const textarea = document.getElementById('codeArea');
@@ -239,46 +237,28 @@
   const fullscreenFrame = document.getElementById('fullscreenFrame');
   const urlInput = document.getElementById('urlInput');
   const fetchButton = document.getElementById('fetchButton');
-  const toastNotification = document.getElementById('toastNotification');
+  const toastEl = document.getElementById('toastMessage');
 
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
-  let toastTimeout = null;
 
-  // Функция показа уведомления
+  // Функция показа уведомления (без модального окна)
   function showToast(message, isError = false) {
-    // Очищаем предыдущий таймаут
-    if (toastTimeout) {
-      clearTimeout(toastTimeout);
-    }
-    
-    // Убираем предыдущие классы
-    toastNotification.classList.remove('show', 'error');
-    
-    // Устанавливаем текст и класс ошибки если нужно
-    toastNotification.textContent = message;
-    if (isError) {
-      toastNotification.classList.add('error');
-    }
-    
-    // Показываем уведомление
+    toastEl.textContent = message;
+    toastEl.style.opacity = '1';
+    toastEl.style.background = isError ? 'rgba(220, 53, 69, 0.9)' : 'rgba(0,0,0,0.85)';
     setTimeout(() => {
-      toastNotification.classList.add('show');
-    }, 10);
-    
-    // Скрываем через 2 секунды
-    toastTimeout = setTimeout(() => {
-      toastNotification.classList.remove('show');
-    }, 2000);
+      toastEl.style.opacity = '0';
+    }, 2500);
   }
 
-  // ========== ФУНКЦИЯ: Получение кода сайта по URL (без alert) ==========
+  // ========== ФУНКЦИЯ ПОЛУЧЕНИЯ КОДА САЙТА (БЕЗ ALERT ПРИ УСПЕХЕ) ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
     
     if (!url) {
-      showToast('❌ Введите URL сайта', true);
+      showToast('Пожалуйста, введите URL сайта', true);
       return;
     }
     
@@ -294,7 +274,6 @@
     fetchButton.disabled = true;
     
     try {
-      // Прямой fetch запрос
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -314,8 +293,8 @@
       textarea.value = html;
       updateLineNumbers();
       
-      // Короткое уведомление об успехе (без кнопки ОК)
-      showToast(`✅ Загружено: ${(html.length / 1024).toFixed(1)} KB`);
+      // ПОКАЗЫВАЕМ ТОЛЬКО ТИХОЕ УВЕДОМЛЕНИЕ (не alert)
+      showToast(`✅ Загружено с ${new URL(url).hostname} (${(html.length / 1024).toFixed(1)} KB)`);
       
       // Очищаем историю поиска
       lastSearch = "";
@@ -324,10 +303,9 @@
       
     } catch (error) {
       console.error('Ошибка при загрузке:', error);
-      
-      let errorMsg = `❌ ${error.message}`;
+      let errorMsg = `❌ Ошибка: ${error.message}`;
       if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-        errorMsg = `❌ CORS: сайт не разрешает загрузку с других доменов`;
+        errorMsg += ' | Возможно, нужен CORS-прокси или загрузите файл вручную';
       }
       showToast(errorMsg, true);
     } finally {
@@ -338,12 +316,15 @@
     }
   }
 
-  // ========== ФУНКЦИЯ: Извлечение содержимого между <!DOCTYPE html> и </html> ==========
+  // ========== ИЗВЛЕЧЕНИЕ HTML-КОНТЕНТА (между DOCTYPE и </html>) ==========
   function extractHtmlContent(rawCode) {
     if (!rawCode || rawCode.trim() === '') return '';
     
+    let startTag = '<!DOCTYPE html';
     let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
+    
     if (startIndex === -1) {
+      startTag = '<html';
       startIndex = rawCode.toLowerCase().indexOf('<html');
     }
     
@@ -392,7 +373,7 @@
         textarea.scrollTop = Math.max(0, scrollPos);
         highlightActiveLine(line);
     } else {
-        showToast(`❌ Строка ${line} не найдена`, true);
+        showToast("Неверный номер строки!", true);
     }
   }
 
@@ -415,18 +396,18 @@
     setTimeout(() => {
       copyButton.classList.remove('copied');
       copyButton.textContent = "Скопировать 📃"; 
-    }, 1000);
-    
-    showToast(`📋 Скопировано в буфер`);
+    }, 1000); 
+    showToast("Текст скопирован в буфер");
   }
 
   function clearAll() {
     saveState();
     textarea.value = '';
     updateLineNumbers();
-    showToast(`🗑 Поле очищено`);
+    showToast("Редактор очищен");
   }
 
+  // ========== ЗАПУСК ПРОСМОТРА ==========
   function runCode() {
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode);
@@ -445,8 +426,8 @@
 
     previewFrame.classList.add("active");
     document.querySelector('.editor').style.display = "none";
-
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast("Просмотр открыт", false);
   }
 
   function showEditor() {
@@ -467,7 +448,7 @@
     link.href = URL.createObjectURL(blob);
     link.download = 'code.html';
     link.click();
-    showToast(`💾 Файл сохранён`);
+    showToast("Файл сохранён как code.html");
   }
 
   function saveState() {
@@ -483,7 +464,9 @@
       redoStack.push(textarea.value);
       textarea.value = history.pop();
       updateLineNumbers();
-      showToast(`↩️ Отменено`);
+      showToast("Отмена");
+    } else {
+      showToast("Нечего отменять", true);
     }
   }
 
@@ -492,10 +475,13 @@
       history.push(textarea.value);
       textarea.value = redoStack.pop();
       updateLineNumbers();
-      showToast(`↪️ Повторено`);
+      showToast("Повтор");
+    } else {
+      showToast("Нечего повторять", true);
     }
   }
 
+  // ========== ЗАГРУЗКА ФАЙЛА ==========
   function loadFile(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -512,7 +498,7 @@
     ];
     
     if (!supportedExtensions.includes(fileExtension)) {
-      showToast(`❌ .${fileExtension} не поддерживается`, true);
+      showToast(`Формат .${fileExtension} не поддерживается`, true);
       event.target.value = '';
       return;
     }
@@ -524,12 +510,12 @@
       saveState();
       textarea.value = content;
       updateLineNumbers();
-      showToast(`📁 "${fileName}" загружен`);
+      showToast(`Файл "${file.name}" загружен`);
       event.target.value = '';
     };
     
     reader.onerror = function() {
-      showToast(`❌ Ошибка чтения файла`, true);
+      showToast('Ошибка при чтении файла', true);
       event.target.value = '';
     };
     
@@ -539,7 +525,7 @@
   // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
-      showToast(`❌ Сначала запустите просмотр`, true);
+      showToast('Сначала запустите просмотр страницы (кнопка "Просмотр 🖥️")', true);
       return;
     }
     
@@ -565,7 +551,7 @@
     
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
-        console.log(`Ошибка: ${err.message}`);
+        console.log(`Ошибка полноэкранного режима: ${err.message}`);
       });
     }
   }
@@ -636,7 +622,7 @@
   function findNext() {
     const term = searchInput.value;
     if (!term) {
-      showToast(`❌ Введите текст для поиска`, true);
+      showToast("Введите текст для поиска", true);
       return;
     }
 
@@ -645,18 +631,18 @@
       lastSearch = term;
     }
     if (searchResults.length === 0) {
-      showToast(`🔍 "${term}" не найдено`, true);
+      showToast("Совпадений не найдено", true);
       return;
     }
     currentResult = (currentResult + 1) % searchResults.length;
     highlightMatch();
-    showToast(`🔍 Найдено: ${currentResult + 1}/${searchResults.length}`);
+    showToast(`Найдено: ${currentResult+1} из ${searchResults.length}`);
   }
 
   function findPrev() {
     const term = searchInput.value;
     if (!term) {
-      showToast(`❌ Введите текст для поиска`, true);
+      showToast("Введите текст для поиска", true);
       return;
     }
 
@@ -665,12 +651,12 @@
       lastSearch = term;
     }
     if (searchResults.length === 0) {
-      showToast(`🔍 "${term}" не найдено`, true);
+      showToast("Совпадений не найдено", true);
       return;
     }
     currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
     highlightMatch();
-    showToast(`🔍 Найдено: ${currentResult + 1}/${searchResults.length}`);
+    showToast(`Найдено: ${currentResult+1} из ${searchResults.length}`);
   }
 
   searchInput.addEventListener("input", () => {
@@ -679,6 +665,7 @@
     currentResult = -1;
   });
 
+  // Enter для URL
   urlInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -694,9 +681,10 @@
     }
   });
 
+  // Инициализация
   window.addEventListener('DOMContentLoaded', () => {
     if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
-      showToast(`❌ Ваш браузер не поддерживает загрузку файлов`, true);
+      showToast('Ваш браузер не поддерживает загрузку файлов', true);
     }
     urlInput.value = '';
   });
