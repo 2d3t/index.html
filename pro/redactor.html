@@ -155,27 +155,6 @@
       background: #f0ad4e !important;
       cursor: wait !important;
     }
-    /* Всплывающее уведомление (тост) вместо alert */
-    .toast-notify {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(6px);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 40px;
-      font-size: 14px;
-      font-weight: 500;
-      z-index: 20000;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      white-space: nowrap;
-      font-family: sans-serif;
-    }
   </style>
 </head>
 <body>
@@ -222,9 +201,6 @@
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
 </div>
 
-<!-- Всплывающее уведомление (тост) -->
-<div id="toastMessage" class="toast-notify"></div>
-
 <script>
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
@@ -237,28 +213,16 @@
   const fullscreenFrame = document.getElementById('fullscreenFrame');
   const urlInput = document.getElementById('urlInput');
   const fetchButton = document.getElementById('fetchButton');
-  const toastEl = document.getElementById('toastMessage');
 
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
 
-  // Функция показа уведомления (без модального окна)
-  function showToast(message, isError = false) {
-    toastEl.textContent = message;
-    toastEl.style.opacity = '1';
-    toastEl.style.background = isError ? 'rgba(220, 53, 69, 0.9)' : 'rgba(0,0,0,0.85)';
-    setTimeout(() => {
-      toastEl.style.opacity = '0';
-    }, 2500);
-  }
-
-  // ========== ФУНКЦИЯ ПОЛУЧЕНИЯ КОДА САЙТА (БЕЗ ALERT ПРИ УСПЕХЕ) ==========
+  // ========== ФУНКЦИЯ ПОЛУЧЕНИЯ КОДА САЙТА (БЕЗ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ) ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
     
     if (!url) {
-      showToast('Пожалуйста, введите URL сайта', true);
       return;
     }
     
@@ -293,9 +257,6 @@
       textarea.value = html;
       updateLineNumbers();
       
-      // ПОКАЗЫВАЕМ ТОЛЬКО ТИХОЕ УВЕДОМЛЕНИЕ (не alert)
-      showToast(`✅ Загружено с ${new URL(url).hostname} (${(html.length / 1024).toFixed(1)} KB)`);
-      
       // Очищаем историю поиска
       lastSearch = "";
       searchResults = [];
@@ -303,11 +264,6 @@
       
     } catch (error) {
       console.error('Ошибка при загрузке:', error);
-      let errorMsg = `❌ Ошибка: ${error.message}`;
-      if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
-        errorMsg += ' | Возможно, нужен CORS-прокси или загрузите файл вручную';
-      }
-      showToast(errorMsg, true);
     } finally {
       // Восстанавливаем кнопку
       fetchButton.textContent = originalButtonText;
@@ -372,8 +328,6 @@
         
         textarea.scrollTop = Math.max(0, scrollPos);
         highlightActiveLine(line);
-    } else {
-        showToast("Неверный номер строки!", true);
     }
   }
 
@@ -397,14 +351,12 @@
       copyButton.classList.remove('copied');
       copyButton.textContent = "Скопировать 📃"; 
     }, 1000); 
-    showToast("Текст скопирован в буфер");
   }
 
   function clearAll() {
     saveState();
     textarea.value = '';
     updateLineNumbers();
-    showToast("Редактор очищен");
   }
 
   // ========== ЗАПУСК ПРОСМОТРА ==========
@@ -427,7 +379,6 @@
     previewFrame.classList.add("active");
     document.querySelector('.editor').style.display = "none";
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    showToast("Просмотр открыт", false);
   }
 
   function showEditor() {
@@ -448,7 +399,6 @@
     link.href = URL.createObjectURL(blob);
     link.download = 'code.html';
     link.click();
-    showToast("Файл сохранён как code.html");
   }
 
   function saveState() {
@@ -464,9 +414,6 @@
       redoStack.push(textarea.value);
       textarea.value = history.pop();
       updateLineNumbers();
-      showToast("Отмена");
-    } else {
-      showToast("Нечего отменять", true);
     }
   }
 
@@ -475,9 +422,6 @@
       history.push(textarea.value);
       textarea.value = redoStack.pop();
       updateLineNumbers();
-      showToast("Повтор");
-    } else {
-      showToast("Нечего повторять", true);
     }
   }
 
@@ -498,7 +442,6 @@
     ];
     
     if (!supportedExtensions.includes(fileExtension)) {
-      showToast(`Формат .${fileExtension} не поддерживается`, true);
       event.target.value = '';
       return;
     }
@@ -510,12 +453,10 @@
       saveState();
       textarea.value = content;
       updateLineNumbers();
-      showToast(`Файл "${file.name}" загружен`);
       event.target.value = '';
     };
     
     reader.onerror = function() {
-      showToast('Ошибка при чтении файла', true);
       event.target.value = '';
     };
     
@@ -525,7 +466,6 @@
   // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
-      showToast('Сначала запустите просмотр страницы (кнопка "Просмотр 🖥️")', true);
       return;
     }
     
@@ -622,7 +562,6 @@
   function findNext() {
     const term = searchInput.value;
     if (!term) {
-      showToast("Введите текст для поиска", true);
       return;
     }
 
@@ -631,18 +570,15 @@
       lastSearch = term;
     }
     if (searchResults.length === 0) {
-      showToast("Совпадений не найдено", true);
       return;
     }
     currentResult = (currentResult + 1) % searchResults.length;
     highlightMatch();
-    showToast(`Найдено: ${currentResult+1} из ${searchResults.length}`);
   }
 
   function findPrev() {
     const term = searchInput.value;
     if (!term) {
-      showToast("Введите текст для поиска", true);
       return;
     }
 
@@ -651,12 +587,10 @@
       lastSearch = term;
     }
     if (searchResults.length === 0) {
-      showToast("Совпадений не найдено", true);
       return;
     }
     currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
     highlightMatch();
-    showToast(`Найдено: ${currentResult+1} из ${searchResults.length}`);
   }
 
   searchInput.addEventListener("input", () => {
@@ -683,8 +617,10 @@
 
   // Инициализация
   window.addEventListener('DOMContentLoaded', () => {
+    // Тихая проверка поддержки, без сообщений
     if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
-      showToast('Ваш браузер не поддерживает загрузку файлов', true);
+      // Ничего не показываем пользователю, просто заглушка
+      console.log('File API не поддерживается');
     }
     urlInput.value = '';
   });
