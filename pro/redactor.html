@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -157,9 +156,6 @@
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
   
-  <!-- Новая кнопка "HTML" для очистки текста вне тегов <html> -->
-  <button onclick="stripOutsideHtml()">HTML 📄</button>
-
   <!-- Кнопка для полноэкранного режима -->
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
@@ -198,8 +194,7 @@
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
-    const extraLines = Math.ceil(lines * 0.5);
-    const totalLines = lines + extraLines;
+    const totalLines = lines;
 
     lineNumbers.innerHTML = '';
     for (let i = 1; i <= totalLines; i++) {
@@ -217,8 +212,7 @@
   function goToLine() {
     const line = parseInt(document.getElementById('lineNumber').value);
     const lines = textarea.value.split('\n');
-    const extraLines = Math.ceil(lines.length * 0.5);
-    const totalLines = lines.length + extraLines;
+    const totalLines = lines.length;
 
     if (!isNaN(line) && line > 0 && line <= totalLines) {
         const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
@@ -260,13 +254,49 @@
     updateLineNumbers();
   }
 
+  // Функция для извлечения чистой HTML-части из кода (обрезает всё до <!DOCTYPE html> или <html и после </html>)
+  function extractHtmlContent(fullCode) {
+    let code = fullCode;
+    
+    // Ищем позицию открывающего тега <!DOCTYPE html> или <html
+    let startIndex = code.search(/<!DOCTYPE\s+html/i);
+    if (startIndex === -1) {
+      startIndex = code.search(/<html\b/i);
+    }
+    
+    // Ищем позицию закрывающего тега </html>
+    let endIndex = code.search(/<\/html\s*>/i);
+    
+    // Если нашли начало — обрезаем всё до него
+    if (startIndex !== -1) {
+      code = code.substring(startIndex);
+    }
+    
+    // Если нашли конец — обрезаем всё после закрывающего тега
+    if (endIndex !== -1) {
+      const adjustedEndIndex = code.search(/<\/html\s*>/i);
+      if (adjustedEndIndex !== -1) {
+        const endTagLength = code.match(/<\/html\s*>/i)[0].length;
+        code = code.substring(0, adjustedEndIndex + endTagLength);
+      }
+    }
+    
+    return code;
+  }
+
   function runCode() {
-    const code = textarea.value;
-    const blob = new Blob([code], { type: 'text/html' });
+    // Берём оригинальный код из редактора
+    const originalCode = textarea.value;
+    
+    // Извлекаем только HTML-часть (обрезаем всё до <!DOCTYPE html> и после </html>)
+    const cleanHtml = extractHtmlContent(originalCode);
+    
+    // Создаём Blob для просмотра
+    const blob = new Blob([cleanHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
     
-    // Также загружаем код в fullscreenFrame
+    // Также загружаем в fullscreenFrame
     fullscreenFrame.src = url;
 
     previewFrame.classList.add("active");
@@ -362,76 +392,6 @@
     };
     
     reader.readAsText(file, 'UTF-8');
-  }
-
-  // ========== НОВАЯ ФУНКЦИЯ ДЛЯ КНОПКИ "HTML" ==========
-  // Удаляет весь текст до <!DOCTYPE html> и после </html> включительно,
-  // оставляя только содержимое внутри HTML-документа.
-  function stripOutsideHtml() {
-    let code = textarea.value;
-    
-    // Ищем позицию открывающего тега <!DOCTYPE html> (регистронезависимо, возможны пробелы)
-    // Также поддерживается вариант с <html> без DOCTYPE, но по заданию акцент на DOCTYPE.
-    // Шаблон: ищем <!DOCTYPE html> или <html
-    let startIndex = code.search(/<!DOCTYPE\s+html/i);
-    // Если DOCTYPE не найден, попробуем найти просто открывающий тег <html
-    if (startIndex === -1) {
-      startIndex = code.search(/<html\b/i);
-    }
-    
-    // Ищем позицию закрывающего тега </html>
-    let endIndex = code.search(/<\/html\s*>/i);
-    
-    // Если ни начальный, ни конечный маркер не найдены — ничего не делаем (тихо)
-    if (startIndex === -1 && endIndex === -1) {
-      return;
-    }
-    
-    let cleanedCode = code;
-    
-    // Удаляем текст до <!DOCTYPE html> или <html
-    if (startIndex !== -1) {
-      cleanedCode = cleanedCode.substring(startIndex);
-    }
-    
-    // Удаляем текст после </html> (включая сам </html> и всё, что после)
-    if (endIndex !== -1) {
-      // Находим позицию закрывающего тега внутри уже обрезанной строки
-      const adjustedEndIndex = cleanedCode.search(/<\/html\s*>/i);
-      if (adjustedEndIndex !== -1) {
-        // Обрезаем до позиции после закрывающего тега? По заданию: "после знака </html>" удаляем.
-        // Удаляем ВСЁ, что идёт после </html>. Значит берём подстроку от начала до adjustedEndIndex + длина тега.
-        const endTagLength = cleanedCode.match(/<\/html\s*>/i)[0].length;
-        cleanedCode = cleanedCode.substring(0, adjustedEndIndex + endTagLength);
-      }
-    }
-    
-    // Если в результате осталась пустая строка или только пробелы — не заменяем (оставляем как есть)
-    if (cleanedCode.trim() === "") {
-      return;
-    }
-    
-    // Применяем изменения без предупреждения и дополнительных сообщений
-    textarea.value = cleanedCode;
-    updateLineNumbers();
-    // Не добавляем в историю автоматически? Но для удобства отмены можно не трогать историю,
-    // однако чтобы можно было отменить действие, вызовем saveState после изменения.
-    // Поскольку пользователь может нажать "Отменить", сохраним состояние перед изменением.
-    // Это стандартное поведение для других операций (очистка и т.д. не сохраняют историю автоматически, 
-    // но ввод сохраняет. Для согласованности добавим сохранение перед изменением, чтобы можно было отменить.
-    // Однако clearAll() не использует saveState, но пользователь ожидает, что "Отменить" после "HTML" вернет текст.
-    // Сделаем так же, как clearAll (но clearAll не сохраняет историю, что странно). Добавим сохранение состояния.
-    // Чтобы было интуитивно, сохраним текущее состояние перед заменой, чтобы отмена работала.
-    // Поскольку в коде нет автосохранения перед clearAll, но я добавлю здесь, чтобы не ломать UX.
-    // clearAll просто стирает, но "Отменить" после clearAll не вернет текст, это база. Исправлять не буду, 
-    // но для новой функции сделаю как обычно для операций, изменяющих код: сохраняем в историю.
-    // ВНИМАНИЕ: по заданию "ничего другого делать не нужно, сохрани структуру кода", но мелкое улучшение
-    // не нарушит общей структуры, зато сделает кнопку удобной.
-    // Однако, чтобы точно не нарушить хрупкую структуру, просто выполняем очистку без сохранения истории,
-    // как это делает clearAll (clearAll не использует saveState). Но clearAll не работает с отменой,
-    // и пользователь может потерять данные. Но в исходном коде clearAll не сохраняет историю.
-    // Поэтому я не буду добавлять saveState, чтобы не менять поведение других частей. 
-    // Просто выполняем замену. Кнопка действует "молча", без учета истории — так безопаснее для структуры.
   }
 
   // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
