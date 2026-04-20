@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Голосовой калькулятор | Часы на обороте | Объёмный | Умные проценты</title>
+    <title>3D Voice Calculator</title>
     <style>
         * {
             margin: 0;
@@ -68,7 +68,7 @@
             padding: 18px 16px 22px 16px;
         }
 
-        /* Задняя панель - элегантный дизайн с часами (исправлено зеркальное отображение) */
+        /* Задняя панель - элегантный дизайн с часами (текст читается правильно) */
         .back-face {
             background: radial-gradient(circle at 30% 40%, #1e2b32, #0f1920);
             box-shadow: inset 0 0 15px rgba(0,0,0,0.6), 0 10px 20px rgba(0,0,0,0.3);
@@ -83,7 +83,7 @@
             padding: 20px;
         }
 
-        /* Стильные часы на задней крышке - теперь читаются правильно */
+        /* Стильные часы на задней крышке */
         .back-clock {
             text-align: center;
             width: 100%;
@@ -266,59 +266,6 @@
                 font-size: 14px;
             }
         }
-
-        .hint {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            color: rgba(220, 240, 255, 0.9);
-            font-size: 14px;
-            background: rgba(0,0,0,0.55);
-            backdrop-filter: blur(5px);
-            width: fit-content;
-            margin: 0 auto;
-            padding: 6px 18px;
-            border-radius: 40px;
-            pointer-events: none;
-            font-family: monospace;
-            z-index: 10;
-            font-weight: 500;
-        }
-        
-        /* Голосовой бейдж */
-        .voice-badge {
-            position: fixed;
-            bottom: 80px;
-            right: 16px;
-            background: rgba(0,0,0,0.5);
-            color: #aaffdd;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            pointer-events: none;
-            font-family: monospace;
-            backdrop-filter: blur(4px);
-            z-index: 10;
-        }
-        
-        /* Индикатор озвучки */
-        .voice-indicator {
-            position: fixed;
-            bottom: 80px;
-            left: 16px;
-            background: rgba(0,0,0,0.6);
-            color: #ffd966;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-family: monospace;
-            backdrop-filter: blur(4px);
-            pointer-events: none;
-            z-index: 10;
-            transition: opacity 0.2s;
-        }
     </style>
 </head>
 <body>
@@ -334,7 +281,7 @@
             <div class="buttons-grid" id="buttonsContainer"></div>
         </div>
         
-        <!-- Задняя грань - ЭЛЕГАНТНЫЕ ЧАСЫ С ДАТОЙ (текст теперь читается правильно) -->
+        <!-- Задняя грань - ЭЛЕГАНТНЫЕ ЧАСЫ С ДАТОЙ (текст читается правильно) -->
         <div class="face back-face">
             <div class="back-clock">
                 <div class="time-digits" id="backTime">--:--:--</div>
@@ -349,16 +296,12 @@
         </div>
     </div>
 </div>
-<div class="hint">✨ Вращайте калькулятор | Каждая кнопка с голосом | Умный процент: 10+10% = 11 | Часы на обороте ✨</div>
-<div class="voice-badge">🔊 Голосовая обратная связь</div>
-<div class="voice-indicator" id="voiceIndicator">🎤 Готов</div>
 
 <script>
 (function() {
     // ---------- 1. Улучшенный голосовой синтез с поддержкой длинных чисел ----------
     let speechSynthesisSupported = 'speechSynthesis' in window;
     let currentUtterance = null;
-    let voiceIndicator = document.getElementById('voiceIndicator');
     
     // Функция для преобразования числа в читаемую строку (разбивает длинные числа)
     function formatNumberForSpeech(num) {
@@ -496,22 +439,10 @@
         return digits[parseInt(digit)] || digit;
     }
     
-    // Основная функция озвучки с визуальной индикацией
+    // Основная функция озвучки
     function speakText(text, isResult = false) {
-        if (!speechSynthesisSupported) {
-            console.warn('Speech synthesis not supported');
-            return;
-        }
+        if (!speechSynthesisSupported) return;
         if (!text || text.trim() === '') return;
-        
-        // Показываем индикатор
-        if (voiceIndicator) {
-            voiceIndicator.style.opacity = '1';
-            voiceIndicator.textContent = '🔊 Говорит...';
-            setTimeout(() => {
-                if (voiceIndicator) voiceIndicator.textContent = '🎤 Готов';
-            }, 800);
-        }
         
         // Останавливаем текущую речь
         if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
@@ -526,17 +457,8 @@
         
         utterance.onerror = (event) => {
             console.error('Speech error:', event);
-            if (voiceIndicator) voiceIndicator.textContent = '⚠️ Ошибка';
-            setTimeout(() => {
-                if (voiceIndicator) voiceIndicator.textContent = '🎤 Готов';
-            }, 1000);
         };
         
-        utterance.onend = () => {
-            if (voiceIndicator) voiceIndicator.textContent = '🎤 Готов';
-        };
-        
-        // Небольшая задержка для стабильности
         setTimeout(() => {
             window.speechSynthesis.speak(utterance);
         }, 10);
@@ -574,8 +496,8 @@
             const op = customValue;
             if (op === '+') return 'плюс';
             if (op === '-') return 'минус';
-            if (op === '×') return 'умножить  на';
-            if (op === '÷') return 'разделить  на';
+            if (op === '×') return 'умножить на';
+            if (op === '÷') return 'разделить на';
             return op;
         }
         if (actionType === 'equal') return 'равно';
@@ -900,10 +822,10 @@
     updateBackClock();
     setInterval(updateBackClock, 1000);
     
-    // Приветствие
+    // Приветствие при запуске (краткое)
     setTimeout(() => {
-        speakText('Голосовой 3D калькулятор запущен. Умные проценты, часы на обороте и полная озвучка результатов');
-    }, 800);
+        speakText('3D голосовой калькулятор');
+    }, 500);
     
     // ---------- 3D Вращение ----------
     const scene = document.getElementById('scene3d');
