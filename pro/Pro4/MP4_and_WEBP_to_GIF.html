@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>WebM to GIF | Рабочий конвертер</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: linear-gradient(145deg, #0a0f1c 0%, #0f172a 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            max-width: 560px;
+            width: 100%;
+            background: rgba(17, 25, 45, 0.95);
+            border-radius: 48px;
+            padding: 22px 18px 32px;
+            box-shadow: 0 20px 40px -12px black;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin: 0 0 4px;
+            background: linear-gradient(135deg, #c4e0ff, #7aa9ff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .sub {
+            color: #9ca3af;
+            font-size: 0.85rem;
+            margin-bottom: 24px;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+        }
+
+        .upload-area {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 40px;
+            padding: 24px 12px;
+            text-align: center;
+            border: 2px dashed #3b82f6aa;
+            transition: 0.2s;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:active { transform: scale(0.98); background: #1e2a4a; }
+        .drag-over { background: #1e2a5e; border-color: #60a5fa; }
+
+        .upload-icon { font-size: 48px; margin-bottom: 8px; }
+        .upload-text { font-weight: 500; color: #e2e8f0; font-size: 1rem; }
+        .upload-hint { font-size: 0.7rem; color: #6b7280; margin-top: 8px; }
+
+        input[type="file"] { display: none; }
+
+        .preview-section {
+            background: #0b1120cc;
+            border-radius: 32px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+
+        .preview-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #8aa9ff;
+            margin-bottom: 8px;
+            padding-left: 6px;
+        }
+
+        .video-container {
+            background: #030712;
+            border-radius: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 160px;
+        }
+
+        video {
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 18px;
+        }
+
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .slider-group {
+            background: #0f172fb3;
+            padding: 10px 16px;
+            border-radius: 44px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #cbd5e6;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            -webkit-appearance: none;
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 5px #3b82f6;
+        }
+
+        .row-2col {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .row-2col > div { flex: 1; min-width: 130px; }
+
+        button {
+            background: linear-gradient(105deg, #2563eb, #4f46e5);
+            border: none;
+            padding: 14px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 6px 14px #2563eb40;
+        }
+
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.5; transform: none; cursor: not-allowed; background: #475569; box-shadow: none; }
+
+        .download-btn {
+            background: linear-gradient(105deg, #059669, #10b981);
+        }
+
+        .progress-area {
+            background: #0f172e;
+            border-radius: 48px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+        .progress-bar-container {
+            background: #1f2937;
+            border-radius: 40px;
+            height: 28px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #a855f7);
+            border-radius: 40px;
+            transition: width 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        .progress-text {
+            font-size: 0.75rem;
+            color: #cbd5e6;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        .status-msg {
+            font-size: 0.75rem;
+            background: #00000044;
+            border-radius: 32px;
+            padding: 10px;
+            text-align: center;
+            color: #b9c3db;
+            margin-top: 12px;
+        }
+
+        .cancel-btn {
+            background: #7c2d12;
+            box-shadow: none;
+            margin-top: 8px;
+        }
+        .cancel-btn:hover { background: #9a3412; }
+
+        .info-note {
+            font-size: 0.65rem;
+            text-align: center;
+            color: #5f6c8a;
+            margin-top: 18px;
+            background: #00000033;
+            padding: 8px;
+            border-radius: 30px;
+        }
+        hr { border-color: #1e2a48; margin: 12px 0; }
+        .gif-preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 20px;
+            display: block;
+            margin: 0 auto;
+            background: black;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>🎞️ WebM → GIF</h1>
+    <div class="sub">Конвертер с прогрессом | FPS от 2 до 24</div>
+
+    <div id="dropZone" class="upload-area">
+        <div class="upload-icon">📂🎬</div>
+        <div class="upload-text">Нажми или перетащи видео</div>
+        <div class="upload-hint">WebM / MP4 (до 20 секунд)</div>
+        <input type="file" id="fileInput" accept="video/webm,video/mp4,video/*">
+    </div>
+
+    <div id="previewSection" class="preview-section" style="display: none;">
+        <div class="preview-title">📹 Исходное видео</div>
+        <div class="video-container">
+            <video id="sourceVideo" controls loop muted playsinline></video>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="slider-group">
+            <div class="slider-label"><span>🎞️ Частота кадров (FPS)</span><span id="fpsValue">10 fps</span></div>
+            <input type="range" id="fpsSlider" min="2" max="24" step="1" value="10">
+            <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:#6b7280;">
+                <span>⬇️ 2 fps (лёгкий)</span><span>плавный ➡️</span>
+            </div>
+        </div>
+
+        <div class="row-2col">
+            <div class="slider-group">
+                <div class="slider-label"><span>📏 Ширина (px)</span><span id="widthVal">480</span></div>
+                <input type="range" id="widthSlider" min="240" max="720" step="16" value="480">
+            </div>
+            <div class="slider-group">
+                <div class="slider-label"><span>🎨 Качество</span><span id="qualityVal">80%</span></div>
+                <input type="range" id="qualitySlider" min="40" max="100" step="5" value="80">
+            </div>
+        </div>
+
+        <button id="convertBtn" disabled>🔄 Конвертировать в GIF</button>
+        
+        <div id="progressArea" style="display: none;" class="progress-area">
+            <div class="progress-bar-container">
+                <div id="progressFill" class="progress-fill" style="width:0%">0%</div>
+            </div>
+            <div id="progressText" class="progress-text">⚙️ Подготовка...</div>
+            <button id="cancelConvertBtn" class="cancel-btn">✖️ Отменить конвертацию</button>
+        </div>
+
+        <div id="gifResultArea" style="display: none;">
+            <hr>
+            <div class="preview-title">✨ Готовый GIF</div>
+            <div style="background:#030712; border-radius: 24px; padding: 10px;">
+                <img id="gifPreviewImg" class="gif-preview-img" alt="GIF preview">
+            </div>
+            <button id="downloadBtn" class="download-btn" style="margin-top: 12px;">⬇️ Скачать GIF</button>
+        </div>
+    </div>
+
+    <div id="statusMsg" class="status-msg">📌 Выберите WebM или MP4 файл.</div>
+    <div class="info-note">⚡ Конвертация происходит прямо в браузере. Прогресс показывает обработку кадров.</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+<script>
+    (function() {
+        // Элементы DOM
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const sourceVideo = document.getElementById('sourceVideo');
+        const previewSection = document.getElementById('previewSection');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const gifResultArea = document.getElementById('gifResultArea');
+        const gifPreviewImg = document.getElementById('gifPreviewImg');
+        const statusDiv = document.getElementById('statusMsg');
+        const progressArea = document.getElementById('progressArea');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const cancelBtn = document.getElementById('cancelConvertBtn');
+        
+        const fpsSlider = document.getElementById('fpsSlider');
+        const fpsValue = document.getElementById('fpsValue');
+        const widthSlider = document.getElementById('widthSlider');
+        const widthVal = document.getElementById('widthVal');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const qualityVal = document.getElementById('qualityVal');
+
+        let currentVideoFile = null;
+        let objectUrl = null;
+        let isConverting = false;
+        let cancelRequested = false;
+        let gifEncoder = null;
+
+        // Обновление значений слайдеров
+        fpsSlider.addEventListener('input', () => {
+            fpsValue.textContent = fpsSlider.value + ' fps';
+        });
+        widthSlider.addEventListener('input', () => {
+            widthVal.textContent = widthSlider.value + ' px';
+        });
+        qualitySlider.addEventListener('input', () => {
+            qualityVal.textContent = qualitySlider.value + '%';
+        });
+
+        // Очистка URL
+        function revokeVideoUrl() {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                objectUrl = null;
+            }
+        }
+
+        // Обработка выбранного файла
+        function handleFile(file) {
+            if (!file) return;
+            
+            if (!file.type.includes('video') && !file.name.match(/\.(webm|mp4|mov)$/i)) {
+                statusDiv.innerHTML = '❌ Пожалуйста, выберите видеофайл (WebM или MP4)';
+                return;
+            }
+            
+            revokeVideoUrl();
+            currentVideoFile = file;
+            objectUrl = URL.createObjectURL(file);
+            sourceVideo.src = objectUrl;
+            sourceVideo.load();
+            
+            sourceVideo.onloadedmetadata = () => {
+                previewSection.style.display = 'block';
+                let videoWidth = sourceVideo.videoWidth;
+                let suggestedWidth = Math.min(videoWidth, 720);
+                if (suggestedWidth < 240) suggestedWidth = 320;
+                widthSlider.value = suggestedWidth;
+                widthVal.textContent = suggestedWidth + ' px';
+                convertBtn.disabled = false;
+                statusDiv.innerHTML = `✅ Видео загружено: ${sourceVideo.videoWidth}x${sourceVideo.videoHeight}, ${sourceVideo.duration.toFixed(1)} сек.`;
+                gifResultArea.style.display = 'none';
+                progressArea.style.display = 'none';
+            };
+            
+            sourceVideo.onerror = () => {
+                statusDiv.innerHTML = '⚠️ Ошибка загрузки видео. Попробуйте другой файл.';
+                convertBtn.disabled = true;
+            };
+        }
+
+        // Клик по зоне загрузки
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        // Drag & drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && (file.type.includes('video') || file.name.match(/\.(webm|mp4)$/i))) {
+                handleFile(file);
+            } else {
+                statusDiv.innerHTML = '❌ Перетащите видеофайл (WebM/MP4)';
+            }
+        });
+
+        // Отмена конвертации
+        cancelBtn.addEventListener('click', () => {
+            if (isConverting && gifEncoder) {
+                cancelRequested = true;
+                statusDiv.innerHTML = '⏹️ Отмена конвертации...';
+                progressText.textContent = '❌ Отменено пользователем';
+            }
+        });
+
+        // Создаем blob URL для worker
+        function getWorkerUrl() {
+            const workerCode = `
+                importScripts('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+            `;
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            return URL.createObjectURL(blob);
+        }
+
+        // === ОСНОВНАЯ ФУНКЦИЯ КОНВЕРТАЦИИ ===
+        async function convertToGif() {
+            if (!currentVideoFile || isConverting) return;
+            if (!sourceVideo.videoWidth) {
+                statusDiv.innerHTML = '⏳ Подождите, видео загружается...';
+                return;
+            }
+
+            isConverting = true;
+            cancelRequested = false;
+            convertBtn.disabled = true;
+            progressArea.style.display = 'block';
+            gifResultArea.style.display = 'none';
+            
+            const targetFps = parseInt(fpsSlider.value, 10);
+            const targetWidth = parseInt(widthSlider.value, 10);
+            const quality = parseInt(qualitySlider.value, 10);
+            
+            const video = sourceVideo;
+            const duration = video.duration;
+            const originalHeight = video.videoHeight;
+            const originalWidth = video.videoWidth;
+            const targetHeight = Math.floor(targetWidth * (originalHeight / originalWidth));
+            
+            // Расчёт количества кадров
+            let frameInterval = 1 / targetFps;
+            let totalFrames = Math.floor(duration / frameInterval);
+            const MAX_FRAMES = 200;
+            
+            if (totalFrames > MAX_FRAMES) {
+                const adjustedFps = Math.floor(MAX_FRAMES / duration);
+                const finalFps = Math.max(2, Math.min(targetFps, adjustedFps));
+                frameInterval = 1 / finalFps;
+                totalFrames = Math.floor(duration / frameInterval);
+                statusDiv.innerHTML = `⚠️ Видео длинное, кадров много. Автоматически FPS снижен до ${finalFps} (${totalFrames} кадров)`;
+            }
+            
+            if (totalFrames < 1) totalFrames = 1;
+            
+            statusDiv.innerHTML = `🎬 Начинаем конвертацию: ${totalFrames} кадров при ${Math.round(1/frameInterval)} FPS...`;
+            progressText.textContent = `Извлечение кадров: 0/${totalFrames}`;
+            progressFill.style.width = '0%';
+            progressFill.textContent = '0%';
+            
+            // Подготовка Canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Инициализация GIF энкодера с обходом CORS
+            const workerUrl = getWorkerUrl();
+            gifEncoder = new GIF({
+                workers: 2,
+                quality: Math.floor(quality / 10),
+                width: targetWidth,
+                height: targetHeight,
+                workerScript: workerUrl
+            });
+            
+            gifEncoder.on('progress', (progress) => {
+                if (!cancelRequested) {
+                    const percent = 60 + Math.floor(progress * 40);
+                    progressFill.style.width = percent + '%';
+                    progressFill.textContent = percent + '%';
+                    progressText.textContent = `🎨 Сборка GIF: ${Math.floor(progress * 100)}%`;
+                }
+            });
+            
+            gifEncoder.on('finished', (blob) => {
+                if (cancelRequested) {
+                    URL.revokeObjectURL(workerUrl);
+                    return;
+                }
+                
+                const gifUrl = URL.createObjectURL(blob);
+                gifPreviewImg.src = gifUrl;
+                gifResultArea.style.display = 'block';
+                progressFill.style.width = '100%';
+                progressFill.textContent = '100%';
+                progressText.textContent = '✅ Готово!';
+                statusDiv.innerHTML = `✅ Конвертация завершена! Размер: ${(blob.size / 1024).toFixed(1)} KB, кадров: ${totalFrames}`;
+                
+                downloadBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    const name = currentVideoFile.name.replace(/\.[^/.]+$/, '') + '.gif';
+                    a.href = gifUrl;
+                    a.download = name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    statusDiv.innerHTML = '📁 GIF сохранён';
+                };
+                
+                isConverting = false;
+                convertBtn.disabled = false;
+                gifEncoder = null;
+                URL.revokeObjectURL(workerUrl);
+                
+                setTimeout(() => {
+                    if (!isConverting) progressArea.style.display = 'none';
+                }, 2000);
+            });
+            
+            // Пауза видео
+            video.pause();
+            video.muted = true;
+            video.currentTime = 0;
+            
+            // Ждём готовности видео
+            await new Promise((resolve) => {
+                if (video.readyState >= 2) resolve();
+                else video.addEventListener('canplay', resolve, { once: true });
+            });
+            
+            // Функция захвата кадра
+            function captureFrame(timeSec) {
+                return new Promise((resolve, reject) => {
+                    if (cancelRequested) {
+                        reject(new Error('CANCELLED'));
+                        return;
+                    }
+                    
+                    const onSeeked = () => {
+                        video.removeEventListener('seeked', onSeeked);
+                        try {
+                            ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+                            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+                            resolve(imageData);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    
+                    video.addEventListener('seeked', onSeeked, { once: true });
+                    video.currentTime = timeSec;
+                    
+                    setTimeout(() => {
+                        video.removeEventListener('seeked', onSeeked);
+                        reject(new Error('SEEK_TIMEOUT'));
+                    }, 3000);
+                });
+            }
+            
+            // Сбор и добавление кадров
+            let framesAdded = 0;
+            for (let i = 0; i < totalFrames; i++) {
+                if (cancelRequested) break;
+                
+                const seekTime = Math.min(duration - 0.05, i * frameInterval);
+                if (seekTime >= duration) break;
+                
+                try {
+                    const frameData = await captureFrame(seekTime);
+                    gifEncoder.addFrame(frameData, { delay: 1000 / targetFps });
+                    framesAdded++;
+                } catch (err) {
+                    console.warn(`Кадр ${i} пропущен:`, err);
+                }
+                
+                const percent = Math.floor(((i + 1) / totalFrames) * 60);
+                progressFill.style.width = percent + '%';
+                progressFill.textContent = percent + '%';
+                progressText.textContent = `📸 Извлечение кадров: ${i + 1}/${totalFrames} (${Math.floor(((i+1)/totalFrames)*100)}%)`;
+                
+                await new Promise(r => setTimeout(r, 10));
+            }
+            
+            if (cancelRequested || framesAdded === 0) {
+                if (cancelRequested) {
+                    statusDiv.innerHTML = '🚫 Конвертация отменена';
+                } else {
+                    statusDiv.innerHTML = '❌ Не удалось извлечь ни одного кадра';
+                }
+                isConverting = false;
+                convertBtn.disabled = false;
+                progressArea.style.display = 'none';
+                gifEncoder = null;
+                URL.revokeObjectURL(workerUrl);
+                return;
+            }
+            
+            progressText.textContent = `🎨 Сборка GIF из ${framesAdded} кадров...`;
+            statusDiv.innerHTML = `Обработано ${framesAdded} кадров, создаём GIF...`;
+            gifEncoder.render();
+        }
+        
+        convertBtn.addEventListener('click', () => {
+            if (currentVideoFile && !isConverting) {
+                convertToGif().catch(err => {
+                    console.error(err);
+                    if (err.message !== 'CANCELLED') {
+                        statusDiv.innerHTML = `⚠️ Ошибка: ${err.message}. Попробуйте уменьшить FPS или разрешение.`;
+                    }
+                    isConverting = false;
+                    convertBtn.disabled = false;
+                    progressArea.style.display = 'none';
+                    gifEncoder = null;
+                });
+            }
+        });
+    })();
+</script>
+</body>
+</html>
