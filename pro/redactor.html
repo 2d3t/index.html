@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -192,9 +193,44 @@
   let redoStack = [];
   let isFullscreen = false;
 
+  // ========== НОВАЯ ФУНКЦИЯ: Извлечение содержимого между <!DOCTYPE html> и </html> ==========
+  function extractHtmlContent(rawCode) {
+    // Если код пустой, возвращаем пустую строку
+    if (!rawCode || rawCode.trim() === '') return '';
+    
+    // Ищем позицию открывающего тега <!DOCTYPE html> (регистронезависимо, возможны пробелы/атрибуты)
+    // Также поддерживаем вариант с <html> как альтернативу, но приоритет у DOCTYPE
+    let startTag = '<!DOCTYPE html';
+    let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
+    
+    // Если DOCTYPE не найден, ищем просто <html>
+    if (startIndex === -1) {
+      startTag = '<html';
+      startIndex = rawCode.toLowerCase().indexOf('<html');
+    }
+    
+    // Если не найден ни DOCTYPE, ни <html>, то оставляем код как есть (возможно, это не HTML)
+    if (startIndex === -1) {
+      return rawCode;
+    }
+    
+    // Ищем закрывающий тег </html> (регистронезависимо)
+    let endIndex = rawCode.toLowerCase().lastIndexOf('</html>');
+    if (endIndex === -1) {
+      // Если нет закрывающего тега, но есть открывающий — возвращаем всё от открывающего до конца
+      return rawCode.substring(startIndex);
+    }
+    
+    // Вырезаем фрагмент от открывающего тега до закрывающего включительно
+    // Добавляем длину закрывающего тега, чтобы захватить его
+    const extracted = rawCode.substring(startIndex, endIndex + 7); // +7 для длины '</html>'
+    return extracted;
+  }
+
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
-    const totalLines = lines;
+    const extraLines = Math.ceil(lines * 0.5);
+    const totalLines = lines + extraLines;
 
     lineNumbers.innerHTML = '';
     for (let i = 1; i <= totalLines; i++) {
@@ -212,7 +248,8 @@
   function goToLine() {
     const line = parseInt(document.getElementById('lineNumber').value);
     const lines = textarea.value.split('\n');
-    const totalLines = lines.length;
+    const extraLines = Math.ceil(lines.length * 0.5);
+    const totalLines = lines.length + extraLines;
 
     if (!isNaN(line) && line > 0 && line <= totalLines) {
         const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
@@ -254,49 +291,28 @@
     updateLineNumbers();
   }
 
-  // Функция для извлечения чистой HTML-части из кода (обрезает всё до <!DOCTYPE html> или <html и после </html>)
-  function extractHtmlContent(fullCode) {
-    let code = fullCode;
-    
-    // Ищем позицию открывающего тега <!DOCTYPE html> или <html
-    let startIndex = code.search(/<!DOCTYPE\s+html/i);
-    if (startIndex === -1) {
-      startIndex = code.search(/<html\b/i);
-    }
-    
-    // Ищем позицию закрывающего тега </html>
-    let endIndex = code.search(/<\/html\s*>/i);
-    
-    // Если нашли начало — обрезаем всё до него
-    if (startIndex !== -1) {
-      code = code.substring(startIndex);
-    }
-    
-    // Если нашли конец — обрезаем всё после закрывающего тега
-    if (endIndex !== -1) {
-      const adjustedEndIndex = code.search(/<\/html\s*>/i);
-      if (adjustedEndIndex !== -1) {
-        const endTagLength = code.match(/<\/html\s*>/i)[0].length;
-        code = code.substring(0, adjustedEndIndex + endTagLength);
-      }
-    }
-    
-    return code;
-  }
-
+  // ========== ИЗМЕНЕННАЯ ФУНКЦИЯ runCode: применяем extractHtmlContent ==========
   function runCode() {
-    // Берём оригинальный код из редактора
-    const originalCode = textarea.value;
+    const rawCode = textarea.value;
+    // Извлекаем чистый HTML-контент между <!DOCTYPE html> и </html>
+    const cleanHtml = extractHtmlContent(rawCode);
     
-    // Извлекаем только HTML-часть (обрезаем всё до <!DOCTYPE html> и после </html>)
-    const cleanHtml = extractHtmlContent(originalCode);
+    // Если после извлечения ничего не осталось, но исходный код не пуст — возможно, это не HTML,
+    // тогда показываем как есть (сохраняем обратную совместимость)
+    let finalCode = cleanHtml;
+    if (rawCode.trim() !== '' && cleanHtml === '') {
+      // Если код не пустой, но извлечение не сработало (нет тегов html), показываем оригинал
+      finalCode = rawCode;
+    } else if (rawCode.trim() === '') {
+      finalCode = '';
+    }
     
-    // Создаём Blob для просмотра
-    const blob = new Blob([cleanHtml], { type: 'text/html' });
+    // Создаем Blob с очищенным HTML
+    const blob = new Blob([finalCode], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
     
-    // Также загружаем в fullscreenFrame
+    // Также загружаем очищенный код в fullscreenFrame
     fullscreenFrame.src = url;
 
     previewFrame.classList.add("active");
