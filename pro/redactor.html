@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -18,6 +17,8 @@
       background: #333;
       color: white;
       flex-wrap: wrap;
+      align-items: center;
+      position: relative;
     }
     .toolbar input {
       padding: 5px;
@@ -48,6 +49,42 @@
     }
     .toolbar button.copied {
       background: #4CAF50;
+    }
+    /* Стили для поля ввода URL */
+    .url-input {
+      background: #444;
+      border: 1px solid #666;
+      color: white;
+      border-radius: 5px;
+      padding: 6px 10px;
+      width: 250px;
+      font-size: 14px;
+    }
+    .url-input::placeholder {
+      color: #aaa;
+      font-style: italic;
+    }
+    /* Всплывающее уведомление */
+    .toast-notification {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 10002;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .toast-notification.error {
+      background: #f44336;
+    }
+    .toast-notification.show {
+      opacity: 1;
     }
     .editor {
       display: flex;
@@ -118,10 +155,10 @@
     }
     .fullscreen-exit-btn {
       position: fixed;
-      top: 30px; /* Опустил ниже, было 20px */
+      top: 30px;
       right: 20px;
       z-index: 10001;
-      padding: 12px 18px; /* Увеличил отступы для лучшей видимости */
+      padding: 12px 18px;
       background: rgba(0, 0, 0, 0.8);
       color: white;
       border: none;
@@ -136,11 +173,20 @@
       transform: scale(1.05);
       transition: transform 0.2s;
     }
+    /* Стили для кнопки получения кода при загрузке */
+    .fetch-loading {
+      background: #f0ad4e !important;
+      cursor: wait !important;
+    }
   </style>
 </head>
 <body>
 
 <div class="toolbar">
+  <!-- НОВАЯ СТРОКА: Поле ввода URL и кнопка получения кода -->
+  <input type="text" id="urlInput" class="url-input" placeholder="Вставьте URL сайта" value="">
+  <button id="fetchButton" onclick="fetchWebsiteCode()">Загрузить 🌐</button>
+  
   <input type="number" id="lineNumber" min="1" placeholder="Строка">
   <button onclick="goToLine()">Перейти 🔀</button>
   
@@ -178,6 +224,9 @@
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
 </div>
 
+<!-- Всплывающее уведомление -->
+<div id="toastNotification" class="toast-notification"></div>
+
 <script>
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
@@ -188,43 +237,126 @@
   const fullscreenButton = document.getElementById('fullscreenButton');
   const fullscreenOverlay = document.getElementById('fullscreenOverlay');
   const fullscreenFrame = document.getElementById('fullscreenFrame');
+  const urlInput = document.getElementById('urlInput');
+  const fetchButton = document.getElementById('fetchButton');
+  const toastNotification = document.getElementById('toastNotification');
 
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
+  let toastTimeout = null;
 
-  // ========== НОВАЯ ФУНКЦИЯ: Извлечение содержимого между <!DOCTYPE html> и </html> ==========
+  // Функция показа уведомления
+  function showToast(message, isError = false) {
+    // Очищаем предыдущий таймаут
+    if (toastTimeout) {
+      clearTimeout(toastTimeout);
+    }
+    
+    // Убираем предыдущие классы
+    toastNotification.classList.remove('show', 'error');
+    
+    // Устанавливаем текст и класс ошибки если нужно
+    toastNotification.textContent = message;
+    if (isError) {
+      toastNotification.classList.add('error');
+    }
+    
+    // Показываем уведомление
+    setTimeout(() => {
+      toastNotification.classList.add('show');
+    }, 10);
+    
+    // Скрываем через 2 секунды
+    toastTimeout = setTimeout(() => {
+      toastNotification.classList.remove('show');
+    }, 2000);
+  }
+
+  // ========== ФУНКЦИЯ: Получение кода сайта по URL (без alert) ==========
+  async function fetchWebsiteCode() {
+    let url = urlInput.value.trim();
+    
+    if (!url) {
+      showToast('❌ Введите URL сайта', true);
+      return;
+    }
+    
+    // Добавляем https:// если протокол не указан
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    
+    // Сохраняем исходный текст кнопки и добавляем состояние загрузки
+    const originalButtonText = fetchButton.textContent;
+    fetchButton.textContent = 'Загрузка... ⏳';
+    fetchButton.classList.add('fetch-loading');
+    fetchButton.disabled = true;
+    
+    try {
+      // Прямой fetch запрос
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const html = await response.text();
+      
+      if (!html || html.length === 0) {
+        throw new Error('Получен пустой ответ от сервера');
+      }
+      
+      // Сохраняем текущее состояние в историю
+      saveState();
+      
+      // Вставляем полученный код в редактор
+      textarea.value = html;
+      updateLineNumbers();
+      
+      // Короткое уведомление об успехе (без кнопки ОК)
+      showToast(`✅ Загружено: ${(html.length / 1024).toFixed(1)} KB`);
+      
+      // Очищаем историю поиска
+      lastSearch = "";
+      searchResults = [];
+      currentResult = -1;
+      
+    } catch (error) {
+      console.error('Ошибка при загрузке:', error);
+      
+      let errorMsg = `❌ ${error.message}`;
+      if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+        errorMsg = `❌ CORS: сайт не разрешает загрузку с других доменов`;
+      }
+      showToast(errorMsg, true);
+    } finally {
+      // Восстанавливаем кнопку
+      fetchButton.textContent = originalButtonText;
+      fetchButton.classList.remove('fetch-loading');
+      fetchButton.disabled = false;
+    }
+  }
+
+  // ========== ФУНКЦИЯ: Извлечение содержимого между <!DOCTYPE html> и </html> ==========
   function extractHtmlContent(rawCode) {
-    // Если код пустой, возвращаем пустую строку
     if (!rawCode || rawCode.trim() === '') return '';
     
-    // Ищем позицию открывающего тега <!DOCTYPE html> (регистронезависимо, возможны пробелы/атрибуты)
-    // Также поддерживаем вариант с <html> как альтернативу, но приоритет у DOCTYPE
-    let startTag = '<!DOCTYPE html';
     let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
-    
-    // Если DOCTYPE не найден, ищем просто <html>
     if (startIndex === -1) {
-      startTag = '<html';
       startIndex = rawCode.toLowerCase().indexOf('<html');
     }
     
-    // Если не найден ни DOCTYPE, ни <html>, то оставляем код как есть (возможно, это не HTML)
     if (startIndex === -1) {
       return rawCode;
     }
     
-    // Ищем закрывающий тег </html> (регистронезависимо)
     let endIndex = rawCode.toLowerCase().lastIndexOf('</html>');
     if (endIndex === -1) {
-      // Если нет закрывающего тега, но есть открывающий — возвращаем всё от открывающего до конца
       return rawCode.substring(startIndex);
     }
     
-    // Вырезаем фрагмент от открывающего тега до закрывающего включительно
-    // Добавляем длину закрывающего тега, чтобы захватить его
-    const extracted = rawCode.substring(startIndex, endIndex + 7); // +7 для длины '</html>'
-    return extracted;
+    return rawCode.substring(startIndex, endIndex + 7);
   }
 
   function updateLineNumbers() {
@@ -260,7 +392,7 @@
         textarea.scrollTop = Math.max(0, scrollPos);
         highlightActiveLine(line);
     } else {
-        alert("Неверный номер строки!");
+        showToast(`❌ Строка ${line} не найдена`, true);
     }
   }
 
@@ -283,36 +415,32 @@
     setTimeout(() => {
       copyButton.classList.remove('copied');
       copyButton.textContent = "Скопировать 📃"; 
-    }, 1000); 
+    }, 1000);
+    
+    showToast(`📋 Скопировано в буфер`);
   }
 
   function clearAll() {
+    saveState();
     textarea.value = '';
     updateLineNumbers();
+    showToast(`🗑 Поле очищено`);
   }
 
-  // ========== ИЗМЕНЕННАЯ ФУНКЦИЯ runCode: применяем extractHtmlContent ==========
   function runCode() {
     const rawCode = textarea.value;
-    // Извлекаем чистый HTML-контент между <!DOCTYPE html> и </html>
     const cleanHtml = extractHtmlContent(rawCode);
     
-    // Если после извлечения ничего не осталось, но исходный код не пуст — возможно, это не HTML,
-    // тогда показываем как есть (сохраняем обратную совместимость)
     let finalCode = cleanHtml;
     if (rawCode.trim() !== '' && cleanHtml === '') {
-      // Если код не пустой, но извлечение не сработало (нет тегов html), показываем оригинал
       finalCode = rawCode;
     } else if (rawCode.trim() === '') {
       finalCode = '';
     }
     
-    // Создаем Blob с очищенным HTML
     const blob = new Blob([finalCode], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
-    
-    // Также загружаем очищенный код в fullscreenFrame
     fullscreenFrame.src = url;
 
     previewFrame.classList.add("active");
@@ -322,7 +450,6 @@
   }
 
   function showEditor() {
-    // Выход из полноэкранного режима если он был активен
     if (isFullscreen) {
       exitFullscreen();
     }
@@ -340,11 +467,15 @@
     link.href = URL.createObjectURL(blob);
     link.download = 'code.html';
     link.click();
+    showToast(`💾 Файл сохранён`);
   }
 
   function saveState() {
     history.push(textarea.value);
     redoStack = [];
+    if (history.length > 100) {
+      history.shift();
+    }
   }
 
   function undo() {
@@ -352,6 +483,7 @@
       redoStack.push(textarea.value);
       textarea.value = history.pop();
       updateLineNumbers();
+      showToast(`↩️ Отменено`);
     }
   }
 
@@ -360,19 +492,17 @@
       history.push(textarea.value);
       textarea.value = redoStack.pop();
       updateLineNumbers();
+      showToast(`↪️ Повторено`);
     }
   }
 
-  // ========== ФУНКЦИЯ ЗАГРУЗКИ ФАЙЛА - РАСШИРЕННЫЕ ВОЗМОЖНОСТИ ==========
   function loadFile(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    // Получаем расширение файла
     const fileName = file.name;
     const fileExtension = fileName.split('.').pop().toLowerCase();
     
-    // Список поддерживаемых текстовых расширений
     const supportedExtensions = [
       'html', 'htm', 'txt', 'py', 'js', 'css', 'json', 'xml', 'md', 'csv', 
       'log', 'ini', 'cfg', 'conf', 'sh', 'bat', 'ps1', 'rb', 'php', 'java', 
@@ -381,9 +511,8 @@
       'less', 'sass', 'styl'
     ];
     
-    // Проверяем, поддерживается ли расширение
     if (!supportedExtensions.includes(fileExtension)) {
-      alert(`Файлы с расширением .${fileExtension} не поддерживаются.\n\nПоддерживаемые форматы:\n${supportedExtensions.join(', ')}`);
+      showToast(`❌ .${fileExtension} не поддерживается`, true);
       event.target.value = '';
       return;
     }
@@ -392,18 +521,15 @@
     
     reader.onload = function(e) {
       const content = e.target.result;
+      saveState();
       textarea.value = content;
       updateLineNumbers();
-      
-      // Показываем уведомление о успешной загрузке
-      alert(`Файл "${file.name}" успешно загружен!`);
-      
-      // Очищаем input, чтобы можно было загрузить тот же файл снова
+      showToast(`📁 "${fileName}" загружен`);
       event.target.value = '';
     };
     
     reader.onerror = function() {
-      alert('Ошибка при чтении файла');
+      showToast(`❌ Ошибка чтения файла`, true);
       event.target.value = '';
     };
     
@@ -413,7 +539,7 @@
   // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
-      alert('Сначала запустите просмотр страницы!');
+      showToast(`❌ Сначала запустите просмотр`, true);
       return;
     }
     
@@ -432,17 +558,14 @@
     fullscreenButton.textContent = 'Обычный экран ⛶';
     fullscreenButton.style.background = '#4CAF50';
     
-    // Скрываем обычный просмотр и тулбар
     previewFrame.classList.remove('active');
     document.querySelector('.toolbar').style.display = 'none';
     
-    // Обработка клавиши ESC для выхода из полноэкранного режима
     document.addEventListener('keydown', handleEscapeKey);
     
-    // Используем Fullscreen API если поддерживается
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
-        console.log(`Ошибка полноэкранного режима: ${err.message}`);
+        console.log(`Ошибка: ${err.message}`);
       });
     }
   }
@@ -453,16 +576,13 @@
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
     
-    // Показываем обычный просмотр и тулбар
     previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
     
-    // Выход из Fullscreen API
     if (document.exitFullscreen) {
       document.exitFullscreen();
     }
     
-    // Удаляем обработчик клавиши ESC
     document.removeEventListener('keydown', handleEscapeKey);
   }
 
@@ -472,7 +592,6 @@
     }
   }
 
-  // Обработка выхода из полноэкранного режима через браузерные методы
   document.addEventListener('fullscreenchange', function() {
     if (!document.fullscreenElement && isFullscreen) {
       exitFullscreen();
@@ -516,40 +635,55 @@
 
   function findNext() {
     const term = searchInput.value;
-    if (!term) return;
+    if (!term) {
+      showToast(`❌ Введите текст для поиска`, true);
+      return;
+    }
 
     if (term !== lastSearch) {
       findAll(term);
       lastSearch = term;
     }
     if (searchResults.length === 0) {
-      alert("Совпадений не найдено");
+      showToast(`🔍 "${term}" не найдено`, true);
       return;
     }
     currentResult = (currentResult + 1) % searchResults.length;
     highlightMatch();
+    showToast(`🔍 Найдено: ${currentResult + 1}/${searchResults.length}`);
   }
 
   function findPrev() {
     const term = searchInput.value;
-    if (!term) return;
+    if (!term) {
+      showToast(`❌ Введите текст для поиска`, true);
+      return;
+    }
 
     if (term !== lastSearch) {
       findAll(term);
       lastSearch = term;
     }
     if (searchResults.length === 0) {
-      alert("Совпадений не найдено");
+      showToast(`🔍 "${term}" не найдено`, true);
       return;
     }
     currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
     highlightMatch();
+    showToast(`🔍 Найдено: ${currentResult + 1}/${searchResults.length}`);
   }
 
   searchInput.addEventListener("input", () => {
     lastSearch = "";
     searchResults = [];
     currentResult = -1;
+  });
+
+  urlInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      fetchWebsiteCode();
+    }
   });
 
   updateLineNumbers();
@@ -560,12 +694,11 @@
     }
   });
 
-  // Инициализация
   window.addEventListener('DOMContentLoaded', () => {
-    // Проверяем поддержку File API
     if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
-      alert('Ваш браузер не поддерживает загрузку файлов. Пожалуйста, обновите браузер.');
+      showToast(`❌ Ваш браузер не поддерживает загрузку файлов`, true);
     }
+    urlInput.value = '';
   });
 </script>
 
