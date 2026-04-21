@@ -1,11 +1,10 @@
 
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BlackClip Studio — Голосовой / Текстовый конструктор клипов и коллажей</title>
+    <title>BlackClip Studio — Голосовой / Текстовый / Ручной конструктор клипов и коллажей</title>
     <style>
         * {
             margin: 0;
@@ -266,6 +265,12 @@
             border: 1px solid #4a5568;
         }
         .btn-download:active { transform: translateY(1px); background: #374151; }
+        .btn-upload {
+            background: #0f172a;
+            border: 1px solid #3b82f6;
+            color: #b9d0ff;
+        }
+        .btn-upload:active { transform: translateY(1px); background: #1e293b; }
 
         .library-panel {
             flex: 1.2;
@@ -478,6 +483,10 @@
             .action-btn { width: 100%; justify-content: center; }
         }
         .action-btn:hover { transform: translateY(-3px); }
+        
+        .file-input-hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -486,7 +495,7 @@
         <div class="preview-panel">
             <div class="panel-header">
                 <h2>◼ BLACKCLIP STUDIO</h2>
-                <div style="font-size: 0.75rem; color:#7e8aa2;">Голос / текст → кадр → монтаж. Коллажи и клипы на чёрном фоне</div>
+                <div style="font-size: 0.75rem; color:#7e8aa2;">Голос / текст / РУЧНАЯ ЗАГРУЗКА → кадр → монтаж. Коллажи и клипы на чёрном фоне</div>
             </div>
             <div class="mic-row">
                 <div class="mic-status-badge" id="micStatusBadge">
@@ -507,7 +516,7 @@
             </div>
             <div class="image-stage">
                 <div id="imagePlaceholderArea" style="display: flex; justify-content: center; align-items: center; width:100%;">
-                    <div class="placeholder-box">🖤<br/>скажите или введите слово</div>
+                    <div class="placeholder-box">🖤<br/>скажите, введите слово или загрузите фото</div>
                 </div>
                 <img id="dynamicImage" class="image-view" style="display: none;" alt="кадр" crossorigin="anonymous">
             </div>
@@ -517,6 +526,9 @@
                 <button id="prevPictureBtn" class="btn btn-outline">◀ Назад</button>
                 <button id="downloadImageBtn" class="btn btn-download">📸 Скачать фото</button>
                 <button id="addToLibraryBtn" class="btn btn-primary">➕ Добавить кадр</button>
+                <!-- НОВАЯ КНОПКА: РУЧНАЯ ЗАГРУЗКА ФОТО -->
+                <button id="uploadPhotoBtn" class="btn btn-upload">📂 Загрузить фото</button>
+                <input type="file" id="hiddenFileInput" accept="image/jpeg,image/png,image/webp,image/jpg" class="file-input-hidden" />
             </div>
         </div>
 
@@ -530,7 +542,7 @@
                 <span id="statDuration">0 сек</span>
             </div>
             <div id="clipGridContainer" class="collage-grid">
-                <div class="empty-library">✦ Нет кадров. Скажите или введите «добавить»</div>
+                <div class="empty-library">✦ Нет кадров. Скажите или введите «добавить» или загрузите фото вручную</div>
             </div>
             <div class="library-actions">
                 <button id="generateVideoBtn" class="btn btn-primary" style="background:#2c3e66; flex:1;">🎬 Создать клип</button>
@@ -538,7 +550,7 @@
                 <button id="clearLibraryBtn" class="btn btn-outline">🗑️ Очистить всё</button>
             </div>
             <div style="font-size:0.7rem; padding:12px 24px 20px; color:#5f6c84; text-align:center; border-top:1px solid #1e2128;">
-                🎞️ Клип: 5 сек/кадр, чёрный фон. 🖼️ Коллаж: сетка на чёрном.
+                🎞️ Клип: 5 сек/кадр, чёрный фон. 🖼️ Коллаж: сетка на чёрном. 📂 Загрузите своё фото и добавьте в монтаж.
             </div>
         </div>
     </div>
@@ -555,7 +567,7 @@
             </a>
         </div>
     </div>
-    <footer>✨ Голосовые команды: «скачай фото», «сохрани картинку», «скачай картинку» | Кнопка 📸 скачивает реальное изображение</footer>
+    <footer>✨ Голосовые команды: «скачай фото», «сохрани картинку», «скачай картинку» | 📂 Ручная загрузка фото с устройства — добавляйте свои снимки прямо в галерею</footer>
 </div>
 <div id="globalToast" class="toast-message"></div>
 
@@ -595,6 +607,10 @@
         const submitTextBtn = document.getElementById('submitTextBtn');
         const ledDot = document.getElementById('ledDot');
         const micStatusText = document.getElementById('micStatusText');
+        
+        // НОВЫЕ элементы для ручной загрузки
+        const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+        const hiddenFileInput = document.getElementById('hiddenFileInput');
 
         function showToast(msg, isError = false) {
             toastEl.textContent = msg;
@@ -603,7 +619,48 @@
             setTimeout(() => { toastEl.style.opacity = '0'; }, 2300);
         }
 
-        // === РАБОЧАЯ ФУНКЦИЯ СКАЧИВАНИЯ (через fetch + blob, обход CORS) ===
+        // === ФУНКЦИЯ РУЧНОЙ ЗАГРУЗКИ ФОТО С УСТРОЙСТВА ===
+        function handleFileUpload(file) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showToast("Пожалуйста, выберите изображение (jpg, png, webp)", true);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                // Устанавливаем как текущее изображение в превью
+                currentImageUrl = dataUrl;
+                currentWordLabel = file.name.replace(/\.[^/.]+$/, "") || "Загруженное фото";
+                isEmojiFallback = false;
+                dynamicImg.src = dataUrl;
+                dynamicImg.style.display = "block";
+                imagePlaceholderDiv.style.display = "none";
+                setSpokenPhrase(`📁 ${currentWordLabel}`);
+                showToast(`✅ Фото "${currentWordLabel}" загружено! Теперь можно добавить в монтаж`, false);
+                // Сбрасываем кеш поиска, т.к. ручное фото не связано с поиском
+                currentSearchCache = { word: "", urls: [], index: -1 };
+                dynamicImg.onerror = () => {
+                    showToast("Ошибка отображения фото", true);
+                };
+            };
+            reader.onerror = () => showToast("Ошибка чтения файла", true);
+            reader.readAsDataURL(file);
+        }
+
+        function triggerFileUpload() {
+            hiddenFileInput.click();
+        }
+
+        hiddenFileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+                hiddenFileInput.value = ''; // чтобы можно было загрузить тот же файл повторно
+            }
+        });
+        uploadPhotoBtn.addEventListener('click', triggerFileUpload);
+
+        // === ОСТАЛЬНЫЕ ФУНКЦИИ (скачивание, поиск и т.д.) ===
         async function downloadCurrentImage() {
             if (!currentImageUrl) {
                 showToast("Нет загруженного изображения для скачивания", true);
@@ -615,7 +672,18 @@
             }
             showToast("⏳ Загрузка изображения...", false);
             try {
-                // Пытаемся скачать изображение через fetch с режимом 'cors' (некоторые серверы поддерживают)
+                // если это dataUrl (ручное фото) — сразу сохраняем
+                if (currentImageUrl.startsWith('data:image')) {
+                    const link = document.createElement('a');
+                    link.href = currentImageUrl;
+                    const safeName = (currentWordLabel && currentWordLabel.trim() !== "") ? currentWordLabel.trim().replace(/[^a-zа-яё0-9]/gi, '_') : "image";
+                    link.download = `blackclip_${safeName}_${Date.now()}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast(`✅ Фото "${currentWordLabel}" сохранено`, false);
+                    return;
+                }
                 const response = await fetch(currentImageUrl, { mode: 'cors', cache: 'force-cache' });
                 if (!response.ok) throw new Error('Не удалось загрузить');
                 const blob = await response.blob();
@@ -630,14 +698,9 @@
                 URL.revokeObjectURL(blobUrl);
                 showToast(`✅ Фото "${currentWordLabel}" сохранено`, false);
             } catch (corsError) {
-                // Fallback: открыть в новой вкладке (пользователь сможет сохранить вручную)
-                console.warn("CORS или ошибка загрузки, открываем в новой вкладке", corsError);
                 const win = window.open(currentImageUrl, '_blank');
-                if (win) {
-                    showToast("⚠️ Изображение открыто в новой вкладке → сохраните вручную (ПКМ)", false);
-                } else {
-                    showToast("❌ Не удалось скачать. Возможно, защита сервера.", true);
-                }
+                if (win) showToast("⚠️ Изображение открыто в новой вкладке → сохраните вручную", false);
+                else showToast("❌ Не удалось скачать.", true);
             }
         }
 
@@ -664,7 +727,7 @@
         function renderClipLibrary() {
             clipGridContainer.innerHTML = "";
             if (clipItems.length === 0) {
-                clipGridContainer.innerHTML = '<div class="empty-library">🎬 Добавьте картинки через «добавить» или голос/текст</div>';
+                clipGridContainer.innerHTML = '<div class="empty-library">🎬 Добавьте картинки через «добавить» или загрузите фото с устройства</div>';
                 updateLibraryStats();
                 return;
             }
@@ -694,13 +757,14 @@
         }
 
         function addCurrentToClip() {
-            if (!currentImageUrl || isEmojiFallback || !currentWordLabel) {
-                showToast("Нет настоящей картинки. Сначала произнесите/введите слово (не команду)", true);
+            if (!currentImageUrl || isEmojiFallback) {
+                showToast("Нет картинки для добавления. Сначала произнесите слово или загрузите фото", true);
                 return false;
             }
-            clipItems.push({ url: currentImageUrl, word: currentWordLabel });
+            let label = currentWordLabel && currentWordLabel.trim() !== "" ? currentWordLabel : "кадр";
+            clipItems.push({ url: currentImageUrl, word: label });
             renderClipLibrary();
-            showToast(`➕ Добавлен кадр: «${currentWordLabel}» (всего ${clipItems.length})`, false);
+            showToast(`➕ Добавлен кадр: «${label}» (всего ${clipItems.length})`, false);
             return true;
         }
 
@@ -811,7 +875,7 @@
 
         function resetCurrent() {
             imagePlaceholderDiv.style.display = "flex";
-            imagePlaceholderDiv.innerHTML = `<div class="placeholder-box">🖤<br/>скажите или введите слово</div>`;
+            imagePlaceholderDiv.innerHTML = `<div class="placeholder-box">🖤<br/>скажите, введите слово или загрузите фото</div>`;
             dynamicImg.style.display = "none";
             currentImageUrl = "";
             currentWordLabel = "";
@@ -821,11 +885,9 @@
             showToast("Кадр сброшен", false);
         }
 
-        // Обработчик команд (добавлена команда "скачай фото" / "сохрани картинку")
         async function processCommandOrWord(inputText) {
             const lower = inputText.toLowerCase().trim();
             setSpokenPhrase(inputText);
-            // Команда скачивания фото (голосовая + текстовая)
             if (lower.includes("скачай фото") || lower.includes("сохрани картинку") || lower.includes("скачай картинку") || lower === "скачать фото") {
                 await downloadCurrentImage();
                 return true;
@@ -841,7 +903,7 @@
             return true;
         }
 
-        // Функции клипа/коллажа (сокращены для читаемости, логика та же)
+        // функции клипа/коллажа (как в исходном коде)
         function showRenderTimer(totalSeconds, onComplete) {
             const overlay = document.createElement('div');
             overlay.className = 'render-timer-overlay';
@@ -968,7 +1030,6 @@
             showToast(`✅ Коллаж из ${clipItems.length} кадров`, false);
         }
 
-        // Голосовые функции
         function stopMicrophone() { if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; } }
         function startMicrophone() {
             if (!window.SpeechRecognition && !window.webkitSpeechRecognition) { showToast("Ваш браузер не поддерживает голосовой ввод", true); return false; }
@@ -993,7 +1054,6 @@
 
         function onTextSubmit() { let raw = manualWordInput.value.trim(); if (raw === "") return; manualWordInput.value = ""; processCommandOrWord(raw); }
 
-        // Event Listeners
         toggleMicBtn.addEventListener('click', () => setMicMode(!isMicActive));
         submitTextBtn.addEventListener('click', onTextSubmit);
         manualWordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') onTextSubmit(); });
