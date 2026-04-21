@@ -526,9 +526,9 @@
                 <button id="prevPictureBtn" class="btn btn-outline">◀ Назад</button>
                 <button id="downloadImageBtn" class="btn btn-download">📸 Скачать фото</button>
                 <button id="addToLibraryBtn" class="btn btn-primary">➕ Добавить кадр</button>
-                <!-- НОВАЯ КНОПКА: РУЧНАЯ ЗАГРУЗКА ФОТО -->
-                <button id="uploadPhotoBtn" class="btn btn-upload">📂 Загрузить фото</button>
-                <input type="file" id="hiddenFileInput" accept="image/jpeg,image/png,image/webp,image/jpg" class="file-input-hidden" />
+                <!-- НОВАЯ КНОПКА: РУЧНАЯ ЗАГРУЗКА ФОТО (теперь поддерживает множественную загрузку) -->
+                <button id="uploadPhotoBtn" class="btn btn-upload">📂 Загрузить фото (можно несколько)</button>
+                <input type="file" id="hiddenFileInput" accept="image/jpeg,image/png,image/webp,image/jpg" multiple class="file-input-hidden" />
             </div>
         </div>
 
@@ -550,7 +550,7 @@
                 <button id="clearLibraryBtn" class="btn btn-outline">🗑️ Очистить всё</button>
             </div>
             <div style="font-size:0.7rem; padding:12px 24px 20px; color:#5f6c84; text-align:center; border-top:1px solid #1e2128;">
-                🎞️ Клип: 5 сек/кадр, чёрный фон. 🖼️ Коллаж: сетка на чёрном. 📂 Загрузите своё фото и добавьте в монтаж.
+                🎞️ Клип: 5 сек/кадр, чёрный фон. 🖼️ Коллаж: сетка на чёрном. 📂 Загрузите свои фото (можно несколько) и они сразу попадут в монтаж.
             </div>
         </div>
     </div>
@@ -567,7 +567,7 @@
             </a>
         </div>
     </div>
-    <footer>✨ Голосовые команды: «скачай фото», «сохрани картинку», «скачай картинку» | 📂 Ручная загрузка фото с устройства — добавляйте свои снимки прямо в галерею</footer>
+    <footer>✨ Голосовые команды: «скачай фото», «сохрани картинку», «скачай картинку» | 📂 Ручная загрузка фото с устройства — поддерживается множественный выбор, фото сразу в монтажный стол</footer>
 </div>
 <div id="globalToast" class="toast-message"></div>
 
@@ -619,33 +619,69 @@
             setTimeout(() => { toastEl.style.opacity = '0'; }, 2300);
         }
 
-        // === ФУНКЦИЯ РУЧНОЙ ЗАГРУЗКИ ФОТО С УСТРОЙСТВА ===
-        function handleFileUpload(file) {
-            if (!file) return;
-            if (!file.type.startsWith('image/')) {
-                showToast("Пожалуйста, выберите изображение (jpg, png, webp)", true);
+        // === НОВАЯ ФУНКЦИЯ: МАССОВАЯ ЗАГРУЗКА ФОТО С УСТРОЙСТВА С ДОБАВЛЕНИЕМ В МОНТАЖ ===
+        function handleMultipleFilesUpload(files) {
+            if (!files || files.length === 0) return;
+            
+            const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            if (imageFiles.length === 0) {
+                showToast("Пожалуйста, выберите изображения (jpg, png, webp)", true);
                 return;
             }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const dataUrl = e.target.result;
-                // Устанавливаем как текущее изображение в превью
-                currentImageUrl = dataUrl;
-                currentWordLabel = file.name.replace(/\.[^/.]+$/, "") || "Загруженное фото";
-                isEmojiFallback = false;
-                dynamicImg.src = dataUrl;
-                dynamicImg.style.display = "block";
-                imagePlaceholderDiv.style.display = "none";
-                setSpokenPhrase(`📁 ${currentWordLabel}`);
-                showToast(`✅ Фото "${currentWordLabel}" загружено! Теперь можно добавить в монтаж`, false);
-                // Сбрасываем кеш поиска, т.к. ручное фото не связано с поиском
-                currentSearchCache = { word: "", urls: [], index: -1 };
-                dynamicImg.onerror = () => {
-                    showToast("Ошибка отображения фото", true);
+
+            let loadedCount = 0;
+            let firstImageDataUrl = null;
+            let firstImageName = "";
+
+            imageFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const dataUrl = e.target.result;
+                    const fileName = file.name.replace(/\.[^/.]+$/, "") || `Фото ${index + 1}`;
+                    
+                    // Добавляем в монтажный стол
+                    clipItems.push({ url: dataUrl, word: fileName });
+                    
+                    // Запоминаем первое фото для отображения в превью
+                    if (index === 0) {
+                        firstImageDataUrl = dataUrl;
+                        firstImageName = fileName;
+                    }
+                    
+                    loadedCount++;
+                    
+                    // Когда все фото загружены, обновляем интерфейс
+                    if (loadedCount === imageFiles.length) {
+                        renderClipLibrary();
+                        
+                        // Показываем первое фото в превью
+                        if (firstImageDataUrl) {
+                            currentImageUrl = firstImageDataUrl;
+                            currentWordLabel = firstImageName;
+                            isEmojiFallback = false;
+                            dynamicImg.src = firstImageDataUrl;
+                            dynamicImg.style.display = "block";
+                            imagePlaceholderDiv.style.display = "none";
+                            setSpokenPhrase(`📁 ${firstImageName}`);
+                            showToast(`✅ Загружено ${imageFiles.length} фото! Первое в превью, все добавлены в монтаж`, false);
+                            
+                            // Сбрасываем кеш поиска
+                            currentSearchCache = { word: "", urls: [], index: -1 };
+                            dynamicImg.onerror = () => {
+                                showToast("Ошибка отображения фото", true);
+                            };
+                        } else {
+                            showToast(`✅ ${imageFiles.length} фото добавлены в монтажный стол`, false);
+                        }
+                    }
                 };
-            };
-            reader.onerror = () => showToast("Ошибка чтения файла", true);
-            reader.readAsDataURL(file);
+                reader.onerror = () => {
+                    loadedCount++;
+                    showToast(`Ошибка чтения файла: ${file.name}`, true);
+                    if (loadedCount === imageFiles.length) renderClipLibrary();
+                };
+                reader.readAsDataURL(file);
+            });
         }
 
         function triggerFileUpload() {
@@ -654,8 +690,8 @@
 
         hiddenFileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files.length > 0) {
-                handleFileUpload(e.target.files[0]);
-                hiddenFileInput.value = ''; // чтобы можно было загрузить тот же файл повторно
+                handleMultipleFilesUpload(e.target.files);
+                hiddenFileInput.value = ''; // очищаем для возможности повторной загрузки тех же файлов
             }
         });
         uploadPhotoBtn.addEventListener('click', triggerFileUpload);
