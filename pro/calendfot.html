@@ -1,1072 +1,479 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Календарь-галерея — Скины, PNG, отметки</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Календарь с фото — современный дизайн</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-        :root {
-            --bg-color: #f0f2f5;
-            --container-bg: #ffffff;
-            --text-color: #1e2a3e;
-            --day-bg: #ffffff;
-            --day-border: #dce4ec;
-            --weekend-bg: #ffe6e6;
-            --header-bg: #2c7da0;
-            --button-bg: #2a9d8f;
-            --button-hover: #21867a;
-            --gallery-border: #cbd5e1;
-            --gallery-bg: #f8fafc;
-            --marked-day-bg: #2a9d8f;
-            --today-bg: #1e6091;
-            --delete-overlay: rgba(0,0,0,0.65);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.08);
-            --accent-glow: #2a9d8f;
-            --modal-bg: rgba(0,0,0,0.9);
-        }
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(145deg, #0a0f1c 0%, #0c1222 100%);
+  color: #f0f3fa;
+  transition: background 0.3s ease, color 0.2s;
+  min-height: 100vh;
+}
 
-        /* Скин 1: Чёрный */
-        .theme-black {
-            --bg-color: #0a0c10;
-            --container-bg: #111418;
-            --text-color: #eef2ff;
-            --day-bg: #1a1f2a;
-            --day-border: #2a2f3c;
-            --weekend-bg: #2a1f2a;
-            --header-bg: #1a2a36;
-            --button-bg: #2c3e50;
-            --button-hover: #1e2f3f;
-            --gallery-border: #2a2f3a;
-            --gallery-bg: #0f131a;
-            --marked-day-bg: #f39c12;
-            --today-bg: #e67e22;
-            --delete-overlay: rgba(255, 215, 0, 0.25);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.6);
-            --accent-glow: #f39c12;
-        }
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+}
 
-        /* Скин 2: Зелёный */
-        .theme-money {
-            --bg-color: #1a2a1f;
-            --container-bg: #1f3a2a;
-            --text-color: #e2f0da;
-            --day-bg: #2a4230;
-            --day-border: #3a5a42;
-            --weekend-bg: #2e4a35;
-            --header-bg: #1f543a;
-            --button-bg: #2e7d5e;
-            --button-hover: #1f664a;
-            --gallery-border: #4a6a4e;
-            --gallery-bg: #182c1c;
-            --marked-day-bg: #ffb347;
-            --today-bg: #d4af37;
-            --delete-overlay: rgba(0,0,0,0.6);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.5);
-            --accent-glow: #ffd966;
-        }
+/* Современные стили для элементов управления */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
 
-        /* Скин 3: Светлая */
-        .theme-light {
-            --bg-color: #f0f2f5;
-            --container-bg: #ffffff;
-            --text-color: #1e2a3e;
-            --day-bg: #ffffff;
-            --day-border: #dce4ec;
-            --weekend-bg: #ffe6e6;
-            --header-bg: #2c7da0;
-            --button-bg: #2a9d8f;
-            --button-hover: #21867a;
-            --gallery-border: #cbd5e1;
-            --gallery-bg: #f8fafc;
-            --marked-day-bg: #2a9d8f;
-            --today-bg: #1e6091;
-            --delete-overlay: rgba(0,0,0,0.65);
-            --shadow-sm: 0 8px 20px rgba(0,0,0,0.08);
-            --accent-glow: #2a9d8f;
-        }
+.control-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
-        body {
-            font-family: 'Segoe UI', 'Roboto', system-ui, -apple-system, Arial, sans-serif;
-            text-align: center;
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 24px 16px;
-            color: var(--text-color);
-            transition: background 0.2s ease, color 0.2s;
-        }
+.control-row > * {
+  flex: 1;
+  min-width: 0;
+}
 
-        .header {
-            margin-bottom: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 12px;
-            align-items: center;
-            max-width: 1100px;
-            margin-left: auto;
-            margin-right: auto;
-        }
+/* Универсальный стиль для селектов, инпутов, кнопок */
+select, input[type="file"], button, .theme-select {
+  background: rgba(20, 28, 40, 0.8);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(72, 85, 120, 0.5);
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 20px;
+  color: #f0f3fa;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-family: inherit;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
 
-        .calendar-container {
-            display: inline-block;
-            background: var(--container-bg);
-            padding: 20px 18px;
-            border-radius: 28px;
-            box-shadow: var(--shadow-sm);
-            width: 100%;
-            max-width: 620px;
-            color: var(--text-color);
-            transition: all 0.2s ease;
-            margin: 0 auto;
-        }
+select:hover, input[type="file"]:hover, button:hover {
+  background: rgba(35, 45, 65, 0.9);
+  border-color: rgba(120, 140, 190, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+}
 
-        /* Галерея */
-        .image-gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            margin-bottom: 18px;
-            padding: 14px;
-            border: 1px solid var(--gallery-border);
-            border-radius: 20px;
-            background: var(--gallery-bg);
-            transition: all 0.2s;
-            justify-content: center;
-            align-items: center;
-            min-height: 160px;
-        }
+select:focus, button:focus {
+  border-color: #5d9bff;
+  box-shadow: 0 0 0 3px rgba(93, 155, 255, 0.3);
+}
 
-        /* Одно фото */
-        .image-gallery.single-photo {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+input[type="file"] {
+  padding: 10px 12px;
+  cursor: pointer;
+  background: rgba(20, 28, 40, 0.7);
+}
 
-        .image-gallery.single-photo .gallery-item {
-            width: 100%;
-            max-width: 400px;
-            cursor: pointer;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
-            transition: transform 0.2s ease;
-            background: var(--gallery-bg);
-            position: relative;
-        }
+input[type="file"]::file-selector-button {
+  background: #2a3a5e;
+  border: none;
+  border-radius: 40px;
+  padding: 6px 14px;
+  color: white;
+  font-weight: 500;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
 
-        .image-gallery.single-photo .gallery-item img {
-            width: 100%;
-            height: auto;
-            max-height: 300px;
-            object-fit: contain;
-            display: block;
-            background: var(--gallery-bg);
-        }
+input[type="file"]::file-selector-button:hover {
+  background: #3f5a8c;
+}
 
-        /* Несколько фото - сетка */
-        .image-gallery:not(.single-photo) {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 14px;
-            max-height: 320px;
-            overflow-y: auto;
-            padding: 12px;
-        }
+/* Кастомный чекбокс */
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(20, 28, 40, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 10px 16px;
+  border-radius: 40px;
+  border: 1px solid rgba(72, 85, 120, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+}
 
-        .image-gallery:not(.single-photo) .gallery-item {
-            aspect-ratio: 1 / 1;
-            border-radius: 18px;
-            background: var(--gallery-bg);
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-        }
+.checkbox-wrapper:hover {
+  background: rgba(35, 45, 65, 0.8);
+  border-color: #5d9bff;
+}
 
-        .image-gallery:not(.single-photo) .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
+.checkbox-wrapper input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #5d9bff;
+  margin: 0;
+}
 
-        .gallery-item {
-            position: relative;
-            transition: transform 0.2s, box-shadow 0.2s;
-            overflow: hidden;
-            border-radius: 18px;
-        }
+.checkbox-wrapper label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+}
 
-        .gallery-item:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 18px rgba(0,0,0,0.2);
-        }
+/* Стиль кнопки скачивания с градиентом */
+.download-btn {
+  background: linear-gradient(105deg, #3a6ea5, #2c5282);
+  border: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-size: 16px;
+  box-shadow: 0 6px 14px rgba(0, 30, 60, 0.4);
+}
 
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: var(--gallery-bg);
-        }
+.download-btn:hover {
+  background: linear-gradient(105deg, #4c7fb8, #366396);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 22px rgba(0, 40, 80, 0.5);
+}
 
-        .delete-icon {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            width: 28px;
-            height: 28px;
-            border-radius: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            font-family: monospace;
-            cursor: pointer;
-            z-index: 3;
-        }
+.download-btn:active {
+  transform: translateY(1px);
+}
 
-        .gallery-item:hover .delete-icon {
-            opacity: 1;
-            pointer-events: auto;
-        }
+/* Календарь — современный, закругленный, с тенью */
+.calendar {
+  border-radius: 32px;
+  overflow: hidden;
+  background: rgba(25, 32, 48, 0.85);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(100, 120, 160, 0.3);
+  transition: all 0.2s;
+}
 
-        /* Модальное окно для просмотра фото */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--modal-bg);
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
+.title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+  padding: 20px 12px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  letter-spacing: -0.3px;
+  backdrop-filter: blur(2px);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
 
-        .modal-content {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            border-radius: 12px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-        }
+/* ВАЖНО: фотографии без обрезки, сохраняют пропорции, календарь подстраивается */
+.header-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px 8px;
+  background: rgba(0,0,0,0.15);
+}
 
-        .close-modal {
-            position: absolute;
-            top: 20px;
-            right: 35px;
-            color: #f1f1f1;
-            font-size: 40px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+.header-img {
+  width: 100%;
+  height: auto;          /* Автоматическая высота — без обрезки, сохраняем пропорции */
+  object-fit: contain;   /* Вместо cover — фото видно целиком, не обрезается */
+  border-radius: 24px;
+  background: #0a0f1a;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: block;
+}
 
-        .close-modal:hover {
-            color: #bbb;
-        }
+.header-img:hover {
+  transform: scale(1.01);
+}
 
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
-            margin-top: 16px;
-        }
+/* Сетка дней недели и ячеек */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  padding: 12px 8px 18px;
+  gap: 4px;
+}
 
-        .day {
-            border: 1px solid var(--day-border);
-            background-color: var(--day-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 500;
-            aspect-ratio: 1;
-            max-height: 52px;
-            color: var(--text-color);
-            transition: all 0.2s;
-            position: relative;
-            cursor: pointer;
-            border-radius: 18px;
-        }
+.grid > div {
+  font-weight: 500;
+  padding: 12px 6px;
+  font-size: 15px;
+  border-radius: 40px;
+  transition: 0.1s ease;
+}
 
-        .weekend {
-            background-color: var(--weekend-bg);
-        }
+.day {
+  background: rgba(35, 45, 65, 0.5);
+  backdrop-filter: blur(2px);
+  font-weight: 500;
+}
 
-        .marked {
-            background-color: var(--marked-day-bg);
-            color: white;
-            box-shadow: inset 0 0 0 1px rgba(255,255,240,0.4), 0 0 0 1px var(--accent-glow);
-        }
+.weekend {
+  color: #ff9f7c;
+  background: rgba(255, 100, 70, 0.12);
+}
 
-        .today {
-            background-color: var(--today-bg);
-            color: white;
-            box-shadow: 0 0 0 2px gold, 0 0 6px rgba(255,215,0,0.5);
-        }
+/* Подсветка сегодняшнего дня — стильный глянец */
+.today {
+  background: linear-gradient(135deg, #ffb347, #ff8c2e);
+  color: #1e1f2c;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+  border: none;
+  transform: scale(0.98);
+}
 
-        .today-disabled {
-            background-color: var(--day-bg);
-            color: var(--text-color);
-            box-shadow: none;
-            border: 1px solid var(--day-border);
-        }
+/* Темы оформления (с сохранением современной стилистики) */
+.theme-light {
+  background: #f2f5fc;
+  color: #1e2a3a;
+}
+.theme-light .calendar {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #cdd9ff;
+  box-shadow: 0 20px 30px -10px rgba(0,0,0,0.1);
+}
+.theme-light select, .theme-light input, .theme-light button, .theme-light .checkbox-wrapper {
+  background: white;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.theme-light .download-btn {
+  background: linear-gradient(105deg, #2c5282, #1e3a5f);
+  color: white;
+}
+.theme-light .today {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: white;
+}
 
-        .mark-indicator {
-            position: absolute;
-            top: 2px;
-            right: 4px;
-            font-size: 0.7rem;
-            font-weight: bold;
-        }
+.theme-blue {
+  background: #0a192f;
+}
+.theme-blue .calendar {
+  background: #102b44;
+  border-color: #2c5282;
+}
+.theme-blue .day {
+  background: #1e3a5f;
+}
+.theme-blue .today {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  color: #0f172a;
+}
 
-        .month-year {
-            font-size: 1.7rem;
-            font-weight: 600;
-            margin: 8px 0 6px 0;
-            letter-spacing: -0.3px;
-        }
+.theme-green {
+  background: #0f2e24;
+}
+.theme-green .calendar {
+  background: #1b4d3e;
+  border-color: #2d6a4f;
+}
+.theme-green .day {
+  background: #2d6a4f;
+}
+.theme-green .today {
+  background: linear-gradient(135deg, #74c69d, #40916c);
+  color: #081c15;
+}
 
-        .day-name {
-            font-weight: 600;
-            font-size: 0.85rem;
-            margin: 0;
-        }
-
-        select, button {
-            padding: 8px 16px;
-            border-radius: 40px;
-            border: 1px solid var(--day-border);
-            background-color: var(--container-bg);
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-color);
-            transition: 0.2s;
-            cursor: pointer;
-        }
-
-        button {
-            background-color: var(--button-bg);
-            color: white;
-            border: none;
-            font-weight: 600;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-
-        button:hover {
-            background-color: var(--button-hover);
-            transform: translateY(-1px);
-        }
-
-        .file-input-container {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            border-radius: 40px;
-        }
-
-        .file-input-container input[type=file] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-
-        .file-input-label {
-            display: inline-block;
-            padding: 8px 20px;
-            background-color: var(--header-bg);
-            color: white;
-            border-radius: 40px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.2s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .theme-selector, .format-selector {
-            background: var(--container-bg);
-            border: 2px solid var(--day-border);
-            border-radius: 40px;
-            padding: 6px 12px;
-            font-weight: 600;
-        }
-
-        .quality-control {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--container-bg);
-            border: 1px solid var(--day-border);
-            border-radius: 40px;
-            padding: 4px 12px;
-        }
-
-        .quality-control label {
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .quality-control input {
-            width: 60px;
-            padding: 4px;
-            border-radius: 20px;
-            border: 1px solid var(--day-border);
-            background: var(--day-bg);
-            color: var(--text-color);
-        }
-
-        @media (max-width: 700px) {
-            .quality-control {
-                order: 10;
-            }
-        }
-
-        @media (max-width: 550px) {
-            .day {
-                font-size: 0.9rem;
-                max-height: 44px;
-            }
-            .calendar-container {
-                padding: 14px;
-            }
-            .image-gallery:not(.single-photo) {
-                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-                max-height: 260px;
-            }
-            .image-gallery.single-photo .gallery-item img {
-                max-height: 240px;
-            }
-            .header {
-                gap: 8px;
-            }
-        }
-
-        /* стили для экспорта */
-        .export-fix-light {
-            background: white !important;
-            color: #1e2a3e !important;
-        }
-        .export-fix-dark, .export-fix-black {
-            background: #111418 !important;
-            color: #eef2ff !important;
-        }
-        .export-fix-money {
-            background: #1f3a2a !important;
-            color: #e2f0da !important;
-        }
-        
-        .gallery-empty {
-            grid-column: 1 / -1;
-            padding: 28px 12px;
-            text-align: center;
-            color: var(--text-color);
-            opacity: 0.7;
-        }
-    </style>
+/* Адаптив */
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+  .grid > div {
+    padding: 8px 2px;
+    font-size: 13px;
+  }
+  .title {
+    font-size: 22px;
+  }
+}
+</style>
 </head>
 <body>
-
-<div class="header">
-    <div class="file-input-container">
-        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/bmp" multiple>
-        <label for="imageInput" class="file-input-label">📸 Загрузить PNG / JPEG</label>
+<div class="container" id="app">
+  <div class="controls">
+    <div class="control-row">
+      <input type="file" id="imgInput" multiple accept="image/*">
     </div>
-    <select id="yearSelector"></select>
-    <select id="monthSelector"></select>
-    <button id="markTodayBtn">⭐ Отметить сегодня</button>
-    <button id="unmarkTodayBtn">🔁 Снять отметку сегодня</button>
-    <button id="disableTodayHighlightBtn">🚫 Скрыть выделение "Сегодня"</button>
-    
-    <select id="formatSelector" class="format-selector">
-        <option value="png">📸 PNG (прозрачность)</option>
-        <option value="jpeg">🖼️ JPEG (меньше размер)</option>
-    </select>
-    
-    <div class="quality-control" id="qualityControl" style="display: none;">
-        <label>Качество:</label>
-        <input type="number" id="jpegQuality" min="1" max="100" value="90">
-        <span>%</span>
+    <div class="control-row">
+      <select id="month"></select>
+      <select id="year"></select>
     </div>
-    
-    <button id="downloadBtn">📥 Скачать</button>
-    <select id="skinSelector" class="theme-selector">
-        <option value="light">🌞 Светлая</option>
-        <option value="black">🖤 Чёрный</option>
-        <option value="money">💰 Зелёный</option>
-    </select>
+    <div class="control-row">
+      <select id="theme">
+        <option value="">🌙 Тёмная (Premium)</option>
+        <option value="theme-light">☀️ Светлая</option>
+        <option value="theme-blue">💙 Синяя (Deep Blue)</option>
+        <option value="theme-green">🌿 Зелёная (Forest)</option>
+      </select>
+    </div>
+    <div class="checkbox-wrapper" id="checkboxWrapper">
+      <input type="checkbox" id="toggleToday" checked>
+      <label for="toggleToday">✨ Подсветить сегодняшний день</label>
+    </div>
+    <button class="download-btn" onclick="downloadImage()">📸 Скачать JPEG / PNG (выбор формата)</button>
+  </div>
+  <div id="calendar" class="calendar"></div>
 </div>
 
-<div id="calendarContainer" class="calendar-container">
-    <div class="image-gallery" id="imageGallery"></div>
-    <div id="monthYear" class="month-year"></div>
-    <div id="calendar" class="calendar"></div>
-</div>
-
-<!-- Модальное окно для просмотра фото -->
-<div id="imageModal" class="modal">
-    <span class="close-modal">&times;</span>
-    <img class="modal-content" id="modalImage">
-</div>
-
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
-    // ---------- Глобальные данные ----------
-    let uploadedImages = [];
-    let nextImageId = 0;
-    let markedDays = JSON.parse(localStorage.getItem('markedDays')) || {};
-    let currentSkin = localStorage.getItem('currentSkin') || 'light';
-    let disableTodayHighlight = localStorage.getItem('disableTodayHighlight') === 'true';
-    let currentFormat = localStorage.getItem('exportFormat') || 'png';
-    let jpegQuality = parseInt(localStorage.getItem('jpegQuality')) || 100;
+const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const monthSelect = document.getElementById('month');
+const yearSelect = document.getElementById('year');
+const calendarDiv = document.getElementById('calendar');
+const themeSelect = document.getElementById('theme');
+const toggleTodayCheckbox = document.getElementById('toggleToday');
 
-    // ---------- Модальное окно ----------
-    const modal = document.getElementById('imageModal');
-    const modalImg = document.getElementById('modalImage');
-    const closeModal = document.querySelector('.close-modal');
+months.forEach((m,i)=>{
+ let opt=document.createElement('option'); opt.value=i; opt.text=m; monthSelect.add(opt);
+});
 
-    function openModal(imageUrl) {
-        modal.style.display = 'flex';
-        modalImg.src = imageUrl;
-    }
+for(let y=2020;y<=2035;y++){
+ let opt=document.createElement('option'); opt.value=y; opt.text=y; yearSelect.add(opt);
+}
 
-    function closeModalWindow() {
-        modal.style.display = 'none';
-        modalImg.src = '';
-    }
+monthSelect.value = new Date().getMonth();
+yearSelect.value = new Date().getFullYear();
 
-    if (closeModal) {
-        closeModal.onclick = closeModalWindow;
-    }
-    if (modal) {
-        modal.onclick = function(e) {
-            if (e.target === modal) {
-                closeModalWindow();
-            }
-        }
-    }
+function render(){
+ calendarDiv.innerHTML='';
 
-    // ---------- Работа с фотографиями ----------
-    function saveGalleryToLocal() {
-        const imagesData = uploadedImages.map(img => ({ id: img.id, dataUrl: img.dataUrl }));
-        localStorage.setItem('galleryImages', JSON.stringify(imagesData));
-        if (uploadedImages.length > 0) {
-            localStorage.setItem('nextImageId', nextImageId);
-        } else {
-            localStorage.removeItem('nextImageId');
-        }
-    }
+ let m = parseInt(monthSelect.value);
+ let y = parseInt(yearSelect.value);
 
-    function loadGalleryFromLocal() {
-        const saved = localStorage.getItem('galleryImages');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                uploadedImages = parsed.map(item => ({ id: item.id, dataUrl: item.dataUrl }));
-                if (uploadedImages.length) {
-                    nextImageId = Math.max(...uploadedImages.map(img => img.id), 0) + 1;
-                } else {
-                    nextImageId = 0;
-                }
-            } catch(e) { 
-                console.warn(e); 
-                uploadedImages = [];
-                nextImageId = 0;
-            }
-        } else {
-            uploadedImages = [];
-            nextImageId = 0;
-        }
-    }
+ let imgs = document.getElementById('imgInput').files;
+ if(imgs.length){
+   let wrap = document.createElement('div');
+   wrap.className='header-wrapper';
 
-    function renderGallery() {
-        const gallery = document.getElementById('imageGallery');
-        if (!gallery) return;
-        gallery.innerHTML = '';
+   for(let i=0;i<imgs.length;i++){
+     let img=document.createElement('img');
+     img.className='header-img';
+     // Важно: сохраняем оригинальные пропорции — никакого обрезания
+     img.style.width = '100%';
+     img.style.height = 'auto';
+     img.style.objectFit = 'contain';
+     img.src=URL.createObjectURL(imgs[i]);
+     wrap.appendChild(img);
+   }
+   calendarDiv.appendChild(wrap);
+ }
 
-        if (uploadedImages.length === 0) {
-            gallery.classList.remove('single-photo');
-            const emptyHint = document.createElement('div');
-            emptyHint.className = 'gallery-empty';
-            emptyHint.textContent = '🖼️ Нет фотографий. Загрузите PNG / JPEG';
-            gallery.appendChild(emptyHint);
-            return;
-        }
+ /* Заголовок под фото */
+ let title = document.createElement('div');
+ title.className = 'title';
+ title.textContent = months[m] + ' ' + y;
+ calendarDiv.appendChild(title);
 
-        if (uploadedImages.length === 1) {
-            gallery.classList.add('single-photo');
-        } else {
-            gallery.classList.remove('single-photo');
-        }
+ let grid=document.createElement('div'); grid.className='grid';
 
-        uploadedImages.forEach((imgObj, idx) => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'gallery-item';
-            itemDiv.setAttribute('data-id', imgObj.id);
-            
-            const img = document.createElement('img');
-            img.src = imgObj.dataUrl;
-            img.alt = `Изображение ${idx+1}`;
-            
-            const deleteSpan = document.createElement('div');
-            deleteSpan.className = 'delete-icon';
-            deleteSpan.innerHTML = '✕';
-            deleteSpan.addEventListener('click', (e) => {
-                e.stopPropagation();
-                deleteImageById(imgObj.id);
-            });
-            
-            itemDiv.appendChild(img);
-            itemDiv.appendChild(deleteSpan);
-            
-            itemDiv.addEventListener('click', (e) => {
-                if (e.target !== deleteSpan && !deleteSpan.contains(e.target)) {
-                    openModal(imgObj.dataUrl);
-                }
-            });
-            
-            gallery.appendChild(itemDiv);
-        });
-    }
+ let days=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+ days.forEach((d,i)=>{
+   let div=document.createElement('div'); div.textContent=d;
+   if(i>=5) div.classList.add('weekend');
+   grid.appendChild(div);
+ });
 
-    function deleteImageById(imageId) {
-        const index = uploadedImages.findIndex(img => img.id === imageId);
-        if (index !== -1) {
-            uploadedImages.splice(index, 1);
-            saveGalleryToLocal();
-            renderGallery();
-            showMessage('🖼️ Фото удалено', '#e67e22');
-        }
-    }
+ let first = new Date(y,m,1).getDay();
+ if(first===0) first=7;
+ let total = new Date(y,m+1,0).getDate();
 
-    function showMessage(text, bgColor = '#2a9d8f') {
-        let msgDiv = document.getElementById('tempMsg');
-        if (!msgDiv) {
-            msgDiv = document.createElement('div');
-            msgDiv.id = 'tempMsg';
-            msgDiv.style.position = 'fixed';
-            msgDiv.style.bottom = '24px';
-            msgDiv.style.left = '50%';
-            msgDiv.style.transform = 'translateX(-50%)';
-            msgDiv.style.backgroundColor = bgColor;
-            msgDiv.style.color = 'white';
-            msgDiv.style.padding = '10px 22px';
-            msgDiv.style.borderRadius = '50px';
-            msgDiv.style.zIndex = '9999';
-            msgDiv.style.fontSize = '0.9rem';
-            msgDiv.style.fontWeight = '500';
-            msgDiv.style.backdropFilter = 'blur(4px)';
-            msgDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-            msgDiv.style.opacity = '0';
-            msgDiv.style.transition = 'opacity 0.2s';
-            document.body.appendChild(msgDiv);
-        }
-        msgDiv.style.backgroundColor = bgColor;
-        msgDiv.textContent = text;
-        msgDiv.style.opacity = '1';
-        setTimeout(() => { 
-            if (msgDiv) msgDiv.style.opacity = '0'; 
-        }, 1600);
-    }
+ let today = new Date();
 
-    function loadImages(files) {
-        if (!files || files.length === 0) return;
-        
-        const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-        if (imageFiles.length === 0) {
-            showMessage('⚠️ Выберите изображения (PNG, JPEG)', '#e67e22');
-            return;
-        }
-        
-        let loadedCount = 0;
-        
-        imageFiles.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const newId = nextImageId++;
-                uploadedImages.push({ id: newId, dataUrl: e.target.result });
-                loadedCount++;
-                
-                if (loadedCount === imageFiles.length) {
-                    saveGalleryToLocal();
-                    renderGallery();
-                    showMessage(`✅ Загружено ${imageFiles.length} фото`, '#2a9d8f');
-                }
-            };
-            reader.onerror = () => { 
-                loadedCount++;
-                console.error(`Ошибка загрузки файла: ${file.name}`);
-                if (loadedCount === imageFiles.length) {
-                    saveGalleryToLocal();
-                    renderGallery();
-                    showMessage(`⚠️ Загружено ${uploadedImages.length} фото из ${imageFiles.length}`, '#e67e22');
-                }
-            };
-            reader.readAsDataURL(file);
-        });
-    }
+ for(let i=1;i<first;i++){
+   let div=document.createElement('div'); grid.appendChild(div);
+ }
 
-    // ---------- Календарь ----------
-    function initYearSelector() {
-        const yearSelector = document.getElementById('yearSelector');
-        const currentYear = new Date().getFullYear();
-        for (let i = currentYear - 6; i <= currentYear + 6; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = i;
-            yearSelector.appendChild(option);
-        }
-        yearSelector.value = currentYear;
-    }
+ for(let d=1;d<=total;d++){
+   let div=document.createElement('div'); div.textContent=d; div.className='day';
+   let dayIndex = (first + d -2)%7;
+   if(dayIndex>=5) div.classList.add('weekend');
 
-    function generateCalendar() {
-        const calendar = document.getElementById('calendar');
-        const monthYearSpan = document.getElementById('monthYear');
-        if (!calendar) return;
-        calendar.innerHTML = '';
+   /* Подсветка сегодняшнего дня */
+   if(toggleTodayCheckbox.checked && d === today.getDate() && m === today.getMonth() && y === today.getFullYear()){
+     div.classList.add('today');
+   }
 
-        const month = parseInt(document.getElementById('monthSelector').value);
-        const year = parseInt(document.getElementById('yearSelector').value);
-        const date = new Date(year, month, 1);
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        let firstDay = date.getDay();
-        firstDay = firstDay === 0 ? 6 : firstDay - 1;
+   grid.appendChild(div);
+ }
 
-        monthYearSpan.textContent = `${date.toLocaleString('ru-RU', { month: 'long' })} ${year}`;
-        const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-        weekDays.forEach(day => {
-            const dayDiv = document.createElement('div');
-            dayDiv.className = 'day';
-            dayDiv.innerHTML = `<p class="day-name">${day}</p>`;
-            calendar.appendChild(dayDiv);
-        });
+ calendarDiv.appendChild(grid);
+}
 
-        for (let i = 0; i < firstDay; i++) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.className = 'day';
-            emptyDiv.style.background = 'transparent';
-            emptyDiv.style.border = 'none';
-            emptyDiv.style.cursor = 'default';
-            emptyDiv.style.boxShadow = 'none';
-            calendar.appendChild(emptyDiv);
-        }
+monthSelect.onchange = render;
+yearSelect.onchange = render;
+document.getElementById('imgInput').onchange = render;
+themeSelect.onchange = ()=>{
+ document.body.className = themeSelect.value;
+};
+toggleTodayCheckbox.onchange = render;
 
-        const today = new Date();
-        const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+render();
 
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dayIndex = (firstDay + day - 1) % 7;
-            let dayClass = (dayIndex === 5 || dayIndex === 6) ? 'day weekend' : 'day';
-            
-            const isToday = isCurrentMonth && day === today.getDate();
-            let isTodayActive = isToday && !disableTodayHighlight;
-            
-            if (isTodayActive) {
-                dayClass += ' today';
-            } else if (isToday && disableTodayHighlight) {
-                dayClass += ' today-disabled';
-            }
-            
-            const dayKey = `${year}-${month}-${day}`;
-            if (markedDays[dayKey]) {
-                dayClass += ' marked';
-            }
-            const dayDiv = document.createElement('div');
-            dayDiv.className = dayClass;
-            dayDiv.textContent = day;
-            if (markedDays[dayKey]) {
-                const markIndicator = document.createElement('div');
-                markIndicator.className = 'mark-indicator';
-                markIndicator.textContent = '✓';
-                dayDiv.appendChild(markIndicator);
-            }
-            dayDiv.addEventListener('click', (function(y, m, d) {
-                return function() { toggleDayMark(y, m, d); };
-            })(year, month, day));
-            calendar.appendChild(dayDiv);
-        }
-        
-        updateDisableTodayButtonUI();
-    }
-
-    function toggleDayMark(year, month, day) {
-        const dayKey = `${year}-${month}-${day}`;
-        if (markedDays[dayKey]) {
-            delete markedDays[dayKey];
-            showMessage(`❌ Отметка снята с ${day}.${month+1}.${year}`, '#f39c12');
-        } else {
-            markedDays[dayKey] = true;
-            showMessage(`✅ День ${day}.${month+1}.${year} отмечен!`, '#2a9d8f');
-        }
-        localStorage.setItem('markedDays', JSON.stringify(markedDays));
-        generateCalendar();
-    }
-
-    function markToday() {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const day = today.getDate();
-        document.getElementById('yearSelector').value = year;
-        document.getElementById('monthSelector').value = month;
-        const dayKey = `${year}-${month}-${day}`;
-        if (!markedDays[dayKey]) {
-            markedDays[dayKey] = true;
-            localStorage.setItem('markedDays', JSON.stringify(markedDays));
-            generateCalendar();
-            showMessage('⭐ Сегодняшний день отмечен!', '#2a9d8f');
-        } else {
-            showMessage('ℹ️ Сегодня уже отмечен', '#f39c12');
-        }
-    }
-
-    function unmarkToday() {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const day = today.getDate();
-        const dayKey = `${year}-${month}-${day}`;
-        if (markedDays[dayKey]) {
-            delete markedDays[dayKey];
-            localStorage.setItem('markedDays', JSON.stringify(markedDays));
-            generateCalendar();
-            showMessage(`🔁 Отметка с сегодняшнего дня (${day}.${month+1}) снята`, '#e67e22');
-        } else {
-            showMessage(`Сегодня (${day}.${month+1}) не отмечен`, '#f1c40f');
-        }
-    }
-    
-    function toggleTodayHighlight() {
-        disableTodayHighlight = !disableTodayHighlight;
-        localStorage.setItem('disableTodayHighlight', disableTodayHighlight);
-        generateCalendar();
-        if (disableTodayHighlight) {
-            showMessage('🌙 Выделение текущей даты (сегодня) ОТКЛЮЧЕНО', '#f39c12');
-        } else {
-            showMessage('✨ Выделение текущей даты (сегодня) ВКЛЮЧЕНО', '#2a9d8f');
-        }
-        updateDisableTodayButtonUI();
-    }
-    
-    function updateDisableTodayButtonUI() {
-        const btn = document.getElementById('disableTodayHighlightBtn');
-        if (!btn) return;
-        if (disableTodayHighlight) {
-            btn.textContent = '✅ Включить выделение "Сегодня"';
-            btn.style.backgroundColor = '#2c3e50';
-        } else {
-            btn.textContent = '🚫 Скрыть выделение "Сегодня"';
-            btn.style.backgroundColor = '#e67e22';
-        }
-    }
-
-    // ---------- Управление скинами ----------
-    function applySkin(skinName) {
-        const body = document.body;
-        body.classList.remove('theme-black', 'theme-money', 'theme-light');
-        if (skinName === 'black') {
-            body.classList.add('theme-black');
-        } else if (skinName === 'money') {
-            body.classList.add('theme-money');
-        } else {
-            body.classList.add('theme-light');
-        }
-        currentSkin = skinName;
-        localStorage.setItem('currentSkin', skinName);
-        renderGallery();
-        generateCalendar();
-    }
-
-    function initSkinSelector() {
-        const selector = document.getElementById('skinSelector');
-        if (selector) {
-            selector.value = currentSkin;
-            selector.addEventListener('change', (e) => {
-                applySkin(e.target.value);
-            });
-        }
-        applySkin(currentSkin);
-    }
-    
-    // ---------- Управление форматом экспорта ----------
-    function initFormatSelector() {
-        const formatSelector = document.getElementById('formatSelector');
-        const qualityControl = document.getElementById('qualityControl');
-        const qualityInput = document.getElementById('jpegQuality');
-        
-        if (formatSelector) {
-            formatSelector.value = currentFormat;
-            formatSelector.addEventListener('change', (e) => {
-                currentFormat = e.target.value;
-                localStorage.setItem('exportFormat', currentFormat);
-                if (currentFormat === 'jpeg') {
-                    qualityControl.style.display = 'inline-flex';
-                } else {
-                    qualityControl.style.display = 'none';
-                }
-            });
-        }
-        
-        if (qualityInput) {
-            qualityInput.value = jpegQuality;
-            qualityInput.addEventListener('change', (e) => {
-                let val = parseInt(e.target.value);
-                if (isNaN(val)) val = 90;
-                val = Math.min(100, Math.max(1, val));
-                jpegQuality = val;
-                localStorage.setItem('jpegQuality', jpegQuality);
-                qualityInput.value = jpegQuality;
-            });
-        }
-        
-        // Показываем/скрываем контрол качества
-        if (currentFormat === 'jpeg') {
-            qualityControl.style.display = 'inline-flex';
-        } else {
-            qualityControl.style.display = 'none';
-        }
-    }
-
-    // ---------- Скачивание календаря с поддержкой PNG/JPEG ----------
-    function downloadCalendar() {
-        const originalContainer = document.getElementById('calendarContainer');
-        const downloadContainer = originalContainer.cloneNode(true);
-        const deleteIcons = downloadContainer.querySelectorAll('.delete-icon');
-        deleteIcons.forEach(icon => { icon.style.display = 'none'; });
-        
-        if (currentSkin === 'black') {
-            downloadContainer.classList.add('export-fix-black');
-        } else if (currentSkin === 'money') {
-            downloadContainer.classList.add('export-fix-money');
-        } else {
-            downloadContainer.classList.add('export-fix-light');
-        }
-        
-        downloadContainer.style.position = 'fixed';
-        downloadContainer.style.left = '-9999px';
-        downloadContainer.style.top = '0';
-        document.body.appendChild(downloadContainer);
-
-        const loadHtml2CanvasAndCapture = () => {
-            if (typeof html2canvas === 'undefined') {
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                script.onload = () => { captureImage(downloadContainer); };
-                script.onerror = () => {
-                    document.body.removeChild(downloadContainer);
-                    alert('Ошибка загрузки html2canvas');
-                };
-                document.head.appendChild(script);
-            } else {
-                captureImage(downloadContainer);
-            }
-        };
-
-        const captureImage = (container) => {
-            let bgColor = '#ffffff';
-            if (currentSkin === 'black') bgColor = '#111418';
-            else if (currentSkin === 'money') bgColor = '#1f3a2a';
-            else bgColor = '#ffffff';
-            
-            html2canvas(container, {
-                scale: 2.5,
-                useCORS: true,
-                allowTaint: false,
-                backgroundColor: bgColor,
-                logging: false
-            }).then(canvas => {
-                const link = document.createElement('a');
-                const monthVal = parseInt(document.getElementById('monthSelector').value);
-                const yearVal = document.getElementById('yearSelector').value;
-                const monthName = new Date(0, monthVal).toLocaleString('ru-RU', { month: 'long' });
-                
-                let fileName, dataUrl;
-                
-                if (currentFormat === 'jpeg') {
-                    // Конвертируем в JPEG с указанным качеством
-                    fileName = `calendar_${monthName}_${yearVal}_${currentSkin}.jpg`;
-                    dataUrl = canvas.toDataURL('image/jpeg', jpegQuality / 100);
-                    showMessage(`📸 Сохранено в JPEG (качество ${jpegQuality}%)`, '#2a9d8f');
-                } else {
-                    // Сохраняем в PNG (с прозрачностью, если нужно)
-                    fileName = `calendar_${monthName}_${yearVal}_${currentSkin}.png`;
-                    dataUrl = canvas.toDataURL('image/png');
-                    showMessage(`📸 Сохранено в PNG`, '#2a9d8f');
-                }
-                
-                link.download = fileName;
-                link.href = dataUrl;
-                link.click();
-                document.body.removeChild(container);
-            }).catch(err => {
-                console.error(err);
-                document.body.removeChild(container);
-                alert('Не удалось создать изображение');
-            });
-        };
-        loadHtml2CanvasAndCapture();
-    }
-
-    // ---------- Настройка загрузки и инициализация ----------
-    function setupFileInput() {
-        const fileInput = document.getElementById('imageInput');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files && e.target.files.length) {
-                    loadImages(e.target.files);
-                    fileInput.value = '';
-                }
-            });
-        }
-    }
-
-    window.onload = function() {
-        initYearSelector();
-        const monthSelector = document.getElementById('monthSelector');
-        for (let i = 0; i < 12; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = new Date(0, i).toLocaleString('ru-RU', { month: 'long' });
-            monthSelector.appendChild(option);
-        }
-        const currentDate = new Date();
-        monthSelector.value = currentDate.getMonth();
-
-        loadGalleryFromLocal();
-        renderGallery();
-        generateCalendar();
-        setupFileInput();
-        initSkinSelector();
-        initFormatSelector();
-
-        document.getElementById('markTodayBtn').addEventListener('click', markToday);
-        document.getElementById('unmarkTodayBtn').addEventListener('click', unmarkToday);
-        document.getElementById('disableTodayHighlightBtn').addEventListener('click', toggleTodayHighlight);
-        document.getElementById('downloadBtn').addEventListener('click', downloadCalendar);
-        document.getElementById('yearSelector').addEventListener('change', () => generateCalendar());
-        document.getElementById('monthSelector').addEventListener('change', () => generateCalendar());
-        
-        updateDisableTodayButtonUI();
-    };
+// Функция скачивания с поддержкой JPEG и PNG (пользователь выбирает)
+async function downloadImage(){
+ try {
+   const btn = document.querySelector('.download-btn');
+   const originalText = btn.innerHTML;
+   btn.innerHTML = '⏳ Генерация изображения...';
+   btn.disabled = true;
+   btn.style.opacity = '0.7';
+   
+   const canvas = await html2canvas(calendarDiv, {
+     useCORS: true,
+     backgroundColor: null,
+     scale: 2.5,
+     logging: false,
+     allowTaint: false
+   });
+   
+   // Предлагаем выбор: OK → PNG, Отмена → JPEG
+   const usePng = confirm('Выберите формат:\n\n✅ «OK» → PNG (максимальное качество, поддержка прозрачности)\n❌ «Отмена» → JPEG (компактный размер, отличное качество)');
+   
+   let mimeType = usePng ? 'image/png' : 'image/jpeg';
+   let extension = usePng ? 'png' : 'jpg';
+   let quality = usePng ? undefined : 0.94;
+   
+   canvas.toBlob(function(blob){
+     const link = document.createElement('a');
+     const dateStr = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+     link.download = `calendar_${dateStr}.${extension}`;
+     link.href = URL.createObjectURL(blob);
+     link.click();
+     URL.revokeObjectURL(link.href);
+     
+     btn.innerHTML = originalText;
+     btn.disabled = false;
+     btn.style.opacity = '1';
+   }, mimeType, quality);
+   
+ } catch(e){
+   alert('❌ Ошибка при сохранении: ' + e.message);
+   const btn = document.querySelector('.download-btn');
+   btn.innerHTML = '📸 Скачать JPEG / PNG (выбор формата)';
+   btn.disabled = false;
+   btn.style.opacity = '1';
+ }
+}
 </script>
 </body>
 </html>
