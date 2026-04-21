@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -115,7 +116,6 @@
             letter-spacing: 0.3px;
         }
 
-        /* Текстовый блок ввода */
         .text-input-row {
             background: #1c1f24;
             margin: 12px 24px;
@@ -478,13 +478,6 @@
             .action-btn { width: 100%; justify-content: center; }
         }
         .action-btn:hover { transform: translateY(-3px); }
-        .mode-switch-hint {
-            font-size: 0.65rem;
-            margin-left: 10px;
-            background: #00000066;
-            padding: 2px 8px;
-            border-radius: 20px;
-        }
     </style>
 </head>
 <body>
@@ -502,12 +495,11 @@
                 </div>
                 <button id="toggleMicModeBtn" class="toggle-mic-btn">🎤 Выкл. голос</button>
                 <div class="command-hint">
-                    🎤 «добавить» | «другая» | «назад» | «сделай клип» | «сделай коллаж» | «очисти всё»
+                    🎤 «добавить» | «другая» | «назад» | «скачай фото» | «сделай клип» | «коллаж» | «очисти всё»
                 </div>
             </div>
-            <!-- БЛОК ТЕКСТОВОГО ВВОДА (по умолчанию скрыт, показывается при отключении микрофона) -->
             <div id="textInputRow" class="text-input-row" style="display: none;">
-                <input type="text" id="manualWordInput" class="text-input-field" placeholder="Введите слово или команду (добавить, другая, назад, клип, коллаж...)" autocomplete="off">
+                <input type="text" id="manualWordInput" class="text-input-field" placeholder="Введите слово или команду (добавить, другая, назад, скачай фото, клип, коллаж...)" autocomplete="off">
                 <button id="submitTextBtn" class="text-submit-btn">⏎ Ввод</button>
             </div>
             <div class="word-card" id="globalCommandDisplay">
@@ -563,20 +555,20 @@
             </a>
         </div>
     </div>
-    <footer>Профессиональный режим | «назад» — предыдущая картинка | 16 вариантов поиска | 🔄 кнопка переключения ввода | 📸 Сохраняйте кадры одним кликом</footer>
+    <footer>✨ Голосовые команды: «скачай фото», «сохрани картинку», «скачай картинку» | Кнопка 📸 скачивает реальное изображение</footer>
 </div>
 <div id="globalToast" class="toast-message"></div>
 
 <script>
     (function(){
         let recognition = null;
-        let isMicActive = true;      // по умолчанию голос включён
+        let isMicActive = true;
         let restarting = false;
         let currentImageUrl = "";
         let currentWordLabel = "";
         let isEmojiFallback = false;
         let currentSearchCache = { word: "", urls: [], index: -1 };
-        let clipItems = [];  // { url, word }
+        let clipItems = [];
         const SLIDE_SEC = 5;
 
         // DOM элементы
@@ -611,8 +603,8 @@
             setTimeout(() => { toastEl.style.opacity = '0'; }, 2300);
         }
 
-        // НОВАЯ ФУНКЦИЯ: скачать текущее изображение
-        function downloadCurrentImage() {
+        // === РАБОЧАЯ ФУНКЦИЯ СКАЧИВАНИЯ (через fetch + blob, обход CORS) ===
+        async function downloadCurrentImage() {
             if (!currentImageUrl) {
                 showToast("Нет загруженного изображения для скачивания", true);
                 return;
@@ -621,17 +613,32 @@
                 showToast("Это эмодзи-заглушка, сохранить можно только настоящее фото", true);
                 return;
             }
-            // Создаём временную ссылку и имитируем клик для скачивания
-            const link = document.createElement('a');
-            link.href = currentImageUrl;
-            // Формируем имя файла на основе слова или даты
-            const safeName = (currentWordLabel && currentWordLabel.trim() !== "") ? currentWordLabel.trim().replace(/[^a-zа-яё0-9]/gi, '_') : "image";
-            link.download = `blackclip_${safeName}_${Date.now()}.jpg`;
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            showToast(`📸 Фото "${currentWordLabel}" сохранено`, false);
+            showToast("⏳ Загрузка изображения...", false);
+            try {
+                // Пытаемся скачать изображение через fetch с режимом 'cors' (некоторые серверы поддерживают)
+                const response = await fetch(currentImageUrl, { mode: 'cors', cache: 'force-cache' });
+                if (!response.ok) throw new Error('Не удалось загрузить');
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                const safeName = (currentWordLabel && currentWordLabel.trim() !== "") ? currentWordLabel.trim().replace(/[^a-zа-яё0-9]/gi, '_') : "image";
+                link.download = `blackclip_${safeName}_${Date.now()}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
+                showToast(`✅ Фото "${currentWordLabel}" сохранено`, false);
+            } catch (corsError) {
+                // Fallback: открыть в новой вкладке (пользователь сможет сохранить вручную)
+                console.warn("CORS или ошибка загрузки, открываем в новой вкладке", corsError);
+                const win = window.open(currentImageUrl, '_blank');
+                if (win) {
+                    showToast("⚠️ Изображение открыто в новой вкладке → сохраните вручную (ПКМ)", false);
+                } else {
+                    showToast("❌ Не удалось скачать. Возможно, защита сервера.", true);
+                }
+            }
         }
 
         function setSpokenPhrase(phrase) {
@@ -814,26 +821,31 @@
             showToast("Кадр сброшен", false);
         }
 
-        // Обработчик команд/слов (общий для голоса и текста)
+        // Обработчик команд (добавлена команда "скачай фото" / "сохрани картинку")
         async function processCommandOrWord(inputText) {
             const lower = inputText.toLowerCase().trim();
             setSpokenPhrase(inputText);
+            // Команда скачивания фото (голосовая + текстовая)
+            if (lower.includes("скачай фото") || lower.includes("сохрани картинку") || lower.includes("скачай картинку") || lower === "скачать фото") {
+                await downloadCurrentImage();
+                return true;
+            }
             if (lower.includes("добавить") || lower === "добавь" || lower.includes("в клип")) { addCurrentToClip(); return true; }
             if (lower.includes("другая") || lower.includes("другую") || lower === "следующая") { await nextAlternative(); return true; }
             if (lower.includes("назад") || lower === "предыдущая") { await prevAlternative(); return true; }
             if (lower.includes("сделай клип") || lower.includes("создай клип")) { await renderPureVideoBlack(); return true; }
-            if (lower.includes("сделай коллаж") || lower.includes("создай коллаж")) { await renderCollageBlack(); return true; }
+            if (lower.includes("сделай коллаж") || lower.includes("создай коллаж") || lower === "коллаж") { await renderCollageBlack(); return true; }
             if (lower.includes("очисти всё") || lower.includes("очисти коллекцию")) { clipItems = []; renderClipLibrary(); showToast("Монтажный стол очищен", false); return true; }
             if (lower.includes("сбросить") || lower.includes("очистить картинку")) { resetCurrent(); return true; }
             await loadPictureForWord(inputText);
             return true;
         }
 
-        // Функции рендера клипа и коллажа (без изменений)
+        // Функции клипа/коллажа (сокращены для читаемости, логика та же)
         function showRenderTimer(totalSeconds, onComplete) {
             const overlay = document.createElement('div');
             overlay.className = 'render-timer-overlay';
-            overlay.innerHTML = `<div class="timer-card"><div class="timer-digits" id="countdownDisplay">${totalSeconds}</div><div class="timer-label">⏳ создание клипа... осталось секунд</div><div style="margin-top:12px; font-size:0.8rem; color:#a0aec0;">Не выключайте экран устройства!</div></div>`;
+            overlay.innerHTML = `<div class="timer-card"><div class="timer-digits" id="countdownDisplay">${totalSeconds}</div><div class="timer-label">⏳ создание клипа... осталось секунд</div><div style="margin-top:12px; font-size:0.8rem; color:#a0aec0;">Не выключайте экран!</div></div>`;
             document.body.appendChild(overlay);
             let remaining = totalSeconds;
             const displaySpan = overlay.querySelector('#countdownDisplay');
@@ -883,7 +895,7 @@
                 a.download = `blackclip_${Date.now()}.webm`;
                 a.click();
                 URL.revokeObjectURL(url);
-                showToast("✅ Клип готов! Чёрный фон, без подписей", false);
+                showToast("✅ Клип готов!", false);
                 if(timerOverlay && timerOverlay.remove) timerOverlay.remove();
                 chunks = [];
             };
@@ -914,7 +926,7 @@
 
         async function renderCollageBlack() {
             if (clipItems.length === 0) { showToast("Нет кадров", true); return; }
-            showToast("🖼️ Создаём коллаж на чёрном фоне...", false);
+            showToast("🖼️ Создаём коллаж...", false);
             const loadImg = (url) => new Promise((resolve, reject) => { const img = new Image(); img.crossOrigin = "Anonymous"; img.src = url; img.onload = () => resolve(img); img.onerror = reject; });
             let loadedImages = [];
             try { loadedImages = await Promise.all(clipItems.map(item => loadImg(item.url))); } 
@@ -956,19 +968,10 @@
             showToast(`✅ Коллаж из ${clipItems.length} кадров`, false);
         }
 
-        // Инициализация/остановка голоса
-        function stopMicrophone() {
-            if (recognition) {
-                try { recognition.stop(); } catch(e) {}
-                recognition = null;
-            }
-        }
-
+        // Голосовые функции
+        function stopMicrophone() { if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; } }
         function startMicrophone() {
-            if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-                showToast("Ваш браузер не поддерживает голосовой ввод", true);
-                return false;
-            }
+            if (!window.SpeechRecognition && !window.webkitSpeechRecognition) { showToast("Ваш браузер не поддерживает голосовой ввод", true); return false; }
             if (recognition) stopMicrophone();
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRec();
@@ -984,40 +987,17 @@
 
         function setMicMode(active) {
             isMicActive = active;
-            if (active) {
-                startMicrophone();
-                textInputRow.style.display = "none";
-                toggleMicBtn.innerHTML = "🎤 Выкл. голос";
-                toggleMicBtn.classList.remove("mic-off");
-                micStatusText.innerText = "🎙️ микрофон активен";
-                ledDot.classList.remove("off");
-                setSpokenPhrase("— голосовой режим —");
-            } else {
-                stopMicrophone();
-                textInputRow.style.display = "flex";
-                toggleMicBtn.innerHTML = "🔇 Вкл. голос";
-                toggleMicBtn.classList.add("mic-off");
-                micStatusText.innerText = "⌨️ текстовый ввод";
-                ledDot.classList.add("off");
-                setSpokenPhrase("— текстовый режим —");
-                manualWordInput.value = "";
-                manualWordInput.focus();
-            }
+            if (active) { startMicrophone(); textInputRow.style.display = "none"; toggleMicBtn.innerHTML = "🎤 Выкл. голос"; toggleMicBtn.classList.remove("mic-off"); micStatusText.innerText = "🎙️ микрофон активен"; ledDot.classList.remove("off"); setSpokenPhrase("— голосовой режим —"); }
+            else { stopMicrophone(); textInputRow.style.display = "flex"; toggleMicBtn.innerHTML = "🔇 Вкл. голос"; toggleMicBtn.classList.add("mic-off"); micStatusText.innerText = "⌨️ текстовый ввод"; ledDot.classList.add("off"); setSpokenPhrase("— текстовый режим —"); manualWordInput.value = ""; manualWordInput.focus(); }
         }
 
-        function onTextSubmit() {
-            let raw = manualWordInput.value.trim();
-            if (raw === "") return;
-            manualWordInput.value = "";
-            processCommandOrWord(raw);
-        }
+        function onTextSubmit() { let raw = manualWordInput.value.trim(); if (raw === "") return; manualWordInput.value = ""; processCommandOrWord(raw); }
 
-        // события
+        // Event Listeners
         toggleMicBtn.addEventListener('click', () => setMicMode(!isMicActive));
         submitTextBtn.addEventListener('click', onTextSubmit);
         manualWordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') onTextSubmit(); });
         downloadImageBtn.addEventListener('click', downloadCurrentImage);
-
         clearCurrentBtn.addEventListener('click', resetCurrent);
         nextPictureBtn.addEventListener('click', nextAlternative);
         prevPictureBtn.addEventListener('click', prevAlternative);
@@ -1026,11 +1006,7 @@
         generateCollageBtn.addEventListener('click', renderCollageBlack);
         clearLibraryBtn.addEventListener('click', () => { clipItems = []; renderClipLibrary(); showToast("Коллекция очищена", false); });
         
-        window.addEventListener('load', () => {
-            renderClipLibrary();
-            resetCurrent();
-            setMicMode(true);
-        });
+        window.addEventListener('load', () => { renderClipLibrary(); resetCurrent(); setMicMode(true); });
     })();
 </script>
 </body>
