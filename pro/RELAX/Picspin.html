@@ -1,0 +1,603 @@
+
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Плавное вращение изображения | Контроль оборотов</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            font-family: system-ui, 'Segoe UI', -apple-system, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        /* контейнер — карточка под телефон */
+        .phone-card {
+            max-width: 520px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(10, 25, 35, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 64px;
+            padding: 20px 18px 30px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 4px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #FFE6B0, #C0E0FF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subhead {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #aac8e0;
+            margin-bottom: 18px;
+            border-bottom: 1px solid #2e5a6e;
+            display: inline-block;
+            width: auto;
+            margin-left: auto;
+            margin-right: auto;
+            padding-bottom: 5px;
+        }
+
+        /* область изображения */
+        .image-stage {
+            background: #05161f;
+            border-radius: 48px;
+            padding: 20px 12px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .img-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 280px;
+            background: #010a0f;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #rotImage {
+            max-width: 100%;
+            max-height: 62vh;
+            width: auto;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 32px;
+            box-shadow: 0 12px 28px black;
+            transition: none;
+            will-change: transform;
+            background: #1a2a30;
+        }
+
+        .placeholder {
+            color: #6d8eaa;
+            text-align: center;
+            padding: 50px 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            background: #0c1c24;
+            border-radius: 40px;
+            width: 100%;
+        }
+
+        /* загрузка */
+        .upload-row {
+            background: #08212e80;
+            border-radius: 60px;
+            padding: 8px 16px;
+            margin-bottom: 22px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .upload-btn {
+            background: #2c6e8f;
+            padding: 12px 22px;
+            border-radius: 60px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.1s linear;
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            border: none;
+        }
+        .upload-btn:active { background: #1c526e; transform: scale(0.96);}
+        #fileImage { display: none; }
+
+        .file-badge {
+            font-size: 0.75rem;
+            color: #cde9fe;
+            background: #03212e;
+            padding: 6px 14px;
+            border-radius: 40px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 170px;
+        }
+
+        /* панель направления */
+        .direction-panel {
+            display: flex;
+            gap: 18px;
+            margin-bottom: 22px;
+            justify-content: center;
+        }
+
+        .dir-btn {
+            background: #1f4b62;
+            border: none;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 60px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #0c2c3b;
+            transition: 0.05s linear;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: 1px;
+        }
+        .dir-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #0c2c3b;}
+
+        /* блок управления скоростью */
+        .speed-block {
+            background: #031a24b3;
+            border-radius: 60px;
+            padding: 18px 16px;
+            margin-bottom: 18px;
+            backdrop-filter: blur(5px);
+        }
+
+        .speed-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #00000066;
+            border-radius: 80px;
+            padding: 8px 12px;
+            margin-bottom: 20px;
+        }
+
+        .step-btn {
+            background: #1f5a74;
+            border: none;
+            width: 64px;
+            height: 64px;
+            font-size: 2.2rem;
+            font-weight: bold;
+            border-radius: 64px;
+            color: white;
+            cursor: pointer;
+            transition: 0.05s linear;
+            box-shadow: 0 3px 0 #0c2c3b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .step-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0c2c3b;}
+
+        .speed-readout {
+            background: #020f16;
+            border-radius: 60px;
+            padding: 12px 24px;
+            text-align: center;
+            min-width: 130px;
+        }
+        .speed-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: 'Monaco', 'Courier New', monospace;
+            color: #FFDD77;
+            line-height: 1;
+        }
+        .speed-unit {
+            font-size: 0.9rem;
+            color: #b8d4f0;
+            margin-left: 5px;
+        }
+
+        /* ручной ввод */
+        .manual-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #00000044;
+            padding: 8px 12px;
+            border-radius: 80px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .manual-input {
+            flex: 3;
+            background: #00161f;
+            border: 1.5px solid #2c7b9e;
+            padding: 14px 20px;
+            border-radius: 60px;
+            font-size: 1.2rem;
+            text-align: center;
+            color: #f9f3cf;
+            font-weight: 600;
+            font-family: monospace;
+            outline: none;
+        }
+        .confirm-manual {
+            background: #3d8db0;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            flex: 1;
+        }
+        .confirm-manual:active { background: #216684; transform: scale(0.96);}
+        .info-note {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 14px;
+            color: #9bc1db;
+        }
+
+        footer {
+            font-size: 0.6rem;
+            text-align: center;
+            color: #4d7f97;
+            margin-top: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="phone-card">
+    <h1>⚡ Вращение PRO</h1>
+    <div style="text-align:center;"><span class="subhead">плавность • точность • обороты</span></div>
+
+    <!-- превью изображения -->
+    <div class="image-stage">
+        <div class="img-container">
+            <img id="rotImage" src="" alt="Изображение" style="display: none;">
+            <div id="placeholderMsg" class="placeholder">📸 Загрузите изображение</div>
+        </div>
+    </div>
+
+    <!-- загрузка -->
+    <div class="upload-row">
+        <button class="upload-btn" id="selectFileBtn">📂 Выбрать фото</button>
+        <div id="fileNameLabel" class="file-badge">нет файла</div>
+        <input type="file" id="fileImage" accept="image/jpeg,image/png,image/webp,image/gif">
+    </div>
+
+    <!-- кнопки направления (смена знака) -->
+    <div class="direction-panel">
+        <button class="dir-btn" id="clockwiseDir">🕒 ПО ЧАСОВОЙ</button>
+        <button class="dir-btn" id="counterDir">🔄 ПРОТИВ ЧАС.</button>
+    </div>
+
+    <!-- управление скоростью +/– -->
+    <div class="speed-block">
+        <div class="speed-stepper">
+            <button class="step-btn" id="minusSpeedBtn">−</button>
+            <div class="speed-readout">
+                <span class="speed-number" id="rpmValue">0.00</span>
+                <span class="speed-unit">об/с</span>
+            </div>
+            <button class="step-btn" id="plusSpeedBtn">+</button>
+        </div>
+
+        <!-- задание скорости через поле + кнопка подтвердить -->
+        <div class="manual-group">
+            <input type="number" id="manualSpeedInput" class="manual-input" placeholder="скорость" step="0.1" value="0.5">
+            <button id="applySpeedManual" class="confirm-manual">✅ ПОДТВЕРДИТЬ</button>
+        </div>
+        <div class="info-note">
+            💡 <strong>Отрицательное значение</strong> = вращение против часовой стрелки<br>
+            Например: <strong>-1.2</strong> или <strong>2.5</strong> об/сек
+        </div>
+    </div>
+    <footer>плавное вращение на основе времени | угол накапливается непрерывно</footer>
+</div>
+
+<script>
+    (function() {
+        // ---- элементы DOM ----
+        const img = document.getElementById('rotImage');
+        const placeholderDiv = document.getElementById('placeholderMsg');
+        const fileInput = document.getElementById('fileImage');
+        const selectBtn = document.getElementById('selectFileBtn');
+        const fileNameSpan = document.getElementById('fileNameLabel');
+
+        const clockwiseBtn = document.getElementById('clockwiseDir');
+        const counterBtn = document.getElementById('counterDir');
+
+        const minusBtn = document.getElementById('minusSpeedBtn');
+        const plusBtn = document.getElementById('plusSpeedBtn');
+        const rpmSpan = document.getElementById('rpmValue');
+
+        const manualInput = document.getElementById('manualSpeedInput');
+        const applyBtn = document.getElementById('applySpeedManual');
+
+        // ---- состояние анимации (ПЛАВНОЕ НАКОПЛЕНИЕ) ----
+        let currentRotationDeg = 0;     // текущий угол в градусах (накопленный)
+        let targetRotationSpeed = 0;     // скорость вращения в оборотах в секунду (положительная: CW, отрицательная: CCW)
+        
+        let animationActive = true;
+        let lastTimestamp = null;
+        let animationId = null;
+        let imageReady = false;           // загружено ли валидное изображение
+
+        // ---- вспомогательные функции ----
+        function updateSpeedUI() {
+            // отображаем с двумя знаками
+            rpmSpan.innerText = targetRotationSpeed.toFixed(2);
+            // синхронизируем поле ввода, только если оно не под фокусом (чтобы не мешать)
+            if (document.activeElement !== manualInput) {
+                manualInput.value = targetRotationSpeed.toFixed(2);
+            }
+        }
+
+        // устанавливаем новую скорость (может быть отрицательной)
+        function setRotationSpeed(newSpeedRPS) {
+            // ограничим разумными пределами: max 12 об/сек (очень быстро, но плавно), min -12
+            let clamped = Math.min(12.0, Math.max(-12.0, newSpeedRPS));
+            targetRotationSpeed = clamped;
+            updateSpeedUI();
+        }
+
+        // изменить скорость на дельту (шаг 0.1 для плавной регулировки)
+        function changeSpeed(delta) {
+            if (!imageReady) {
+                // если картинки нет, всё равно дадим поменять значение, но вращать начнём после загрузки
+                setRotationSpeed(targetRotationSpeed + delta);
+                return;
+            }
+            let newVal = targetRotationSpeed + delta;
+            // округляем до 2-3 знаков для чистоты
+            setRotationSpeed(parseFloat(newVal.toFixed(3)));
+        }
+
+        // установить направление (сохраняя модуль скорости)
+        function setDirection(isClockwise) {
+            if (!imageReady) {
+                // предупредим, но дадим изменить настройку (картинка потом)
+                if(!confirm("Изображение не загружено. Загрузите картинку для вращения.")) return;
+                return;
+            }
+            let absVal = Math.abs(targetRotationSpeed);
+            // если скорость была 0, сделаем базовую 0.7 об/сек для наглядности
+            if (absVal < 0.01) {
+                absVal = 0.7;
+            }
+            let newSpeed = isClockwise ? absVal : -absVal;
+            setRotationSpeed(newSpeed);
+        }
+
+        // ---- ГЛАВНАЯ АНИМАЦИЯ: плавное вращение без рывков ----
+        // Идея: каждый кадр считаем разницу времени и добавляем delta_angle = speed_rps * delta_seconds * 360
+        function startPrecisionAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            lastTimestamp = null;
+            
+            function animateFrame(nowMs) {
+                if (!imageReady) {
+                    // если нет картинки — просто продолжаем цикл без изменения угла
+                    lastTimestamp = null;
+                    animationId = requestAnimationFrame(animateFrame);
+                    return;
+                }
+                
+                if (lastTimestamp === null) {
+                    lastTimestamp = nowMs;
+                    animationId = requestAnimationFrame(animateFrame);
+                    return;
+                }
+                
+                // Вычисляем прошедшее время (секунды), ограничим максимум 100 мс чтобы избежать скачков
+                let deltaMs = Math.min(100, nowMs - lastTimestamp);
+                if (deltaMs > 0 && targetRotationSpeed !== 0) {
+                    const deltaSec = deltaMs / 1000;
+                    // изменение угла в градусах: обороты_в_сек * дельта_сек * 360
+                    const deltaDeg = targetRotationSpeed * deltaSec * 360;
+                    currentRotationDeg += deltaDeg;
+                    
+                    // Нормализация угла необязательна для визуала, но чтобы число не росло бесконечно
+                    // оставляем в пределах 0-360 (это не влияет на плавность)
+                    currentRotationDeg = ((currentRotationDeg % 360) + 360) % 360;
+                    
+                    // ПРИМЕНЯЕМ ПОВОРОТ
+                    img.style.transform = `rotate(${currentRotationDeg}deg)`;
+                } else if (targetRotationSpeed === 0) {
+                    // если скорость 0 — угол не меняем, трансформация остаётся прежней (позиция фиксируется)
+                    // ничего не делаем, но keep-alive
+                }
+                
+                lastTimestamp = nowMs;
+                animationId = requestAnimationFrame(animateFrame);
+            }
+            
+            animationId = requestAnimationFrame(animateFrame);
+        }
+        
+        // перезапускаем анимацию (например, при загрузке нового изображения)
+        function restartAnimationEngine() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            lastTimestamp = null;
+            startPrecisionAnimation();
+        }
+        
+        // -----  ЗАГРУЗКА ИЗОБРАЖЕНИЯ -----
+        function loadNewImage(file) {
+            if (!file) return;
+            
+            // отменяем старый blob URL если был
+            if (img.src && img.src.startsWith('blob:')) {
+                URL.revokeObjectURL(img.src);
+            }
+            
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+                // всё готово
+                img.style.display = 'block';
+                placeholderDiv.style.display = 'none';
+                imageReady = true;
+                
+                // ВАЖНО: сбрасываем накопленный угол, чтобы изображение начинало вращение из нейтрального положения
+                currentRotationDeg = 0;
+                img.style.transform = `rotate(0deg)`;
+                
+                // перезапускаем анимацию с новым сбросом таймера (lastTimestamp обнулится)
+                restartAnimationEngine();
+                
+                // отображаем имя файла
+                let fname = file.name;
+                if (fname.length > 28) fname = fname.slice(0,25)+'...';
+                fileNameSpan.innerText = fname;
+            };
+            
+            img.onerror = () => {
+                console.warn("Ошибка загрузки картинки");
+                placeholderDiv.style.display = 'flex';
+                img.style.display = 'none';
+                imageReady = false;
+                fileNameSpan.innerText = "ошибка формата";
+                URL.revokeObjectURL(objectUrl);
+                // перезапускаем анимацию (хотя она просто ничего не рисует)
+                restartAnimationEngine();
+            };
+            
+            img.src = objectUrl;
+        }
+        
+        // ---- инициализация событий и интерфейса ----
+        function initEvents() {
+            // выбор файла через кнопку
+            selectBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    loadNewImage(file);
+                } else if (file) {
+                    alert("Пожалуйста, выберите изображение (JPEG, PNG, WEBP, GIF)");
+                    fileInput.value = '';
+                }
+            });
+            
+            // направление
+            clockwiseBtn.addEventListener('click', () => {
+                if (!imageReady) { alert("Сначала загрузите изображение"); return; }
+                setDirection(true);
+            });
+            counterBtn.addEventListener('click', () => {
+                if (!imageReady) { alert("Сначала загрузите изображение"); return; }
+                setDirection(false);
+            });
+            
+            // + / - скорость (шаг 0.1 об/с)
+            plusBtn.addEventListener('click', () => {
+                if (!imageReady) { alert("Загрузите изображение для вращения"); return; }
+                changeSpeed(0.1);
+            });
+            minusBtn.addEventListener('click', () => {
+                if (!imageReady) { alert("Загрузите изображение для вращения"); return; }
+                changeSpeed(-0.1);
+            });
+            
+            // подтверждение ручной скорости
+            applyBtn.addEventListener('click', () => {
+                if (!imageReady) { alert("Нет активного изображения. Загрузите картинку."); return; }
+                let raw = manualInput.value.trim();
+                if (raw === "") raw = "0";
+                let newSpeed = parseFloat(raw);
+                if (isNaN(newSpeed)) {
+                    alert("Введите корректное число, например: 1.2 или -0.8");
+                    return;
+                }
+                setRotationSpeed(newSpeed);
+            });
+            
+            // по нажатию Enter в поле ввода тоже подтверждаем
+            manualInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyBtn.click();
+                }
+            });
+            
+            // дополнительная проверка: если скорость установлена, а картинка загрузилась потом — вращение автоматически начнётся
+            // и если скорость меняется, угол продолжает плавно накапливаться.
+            // Также: чтобы исключить любые "рывки" мы не используем переходы CSS, только постоянное накопление угла
+            // на основе реальной разницы времени.
+        }
+        
+        // Инициализация анимации с нуля
+        imageReady = false;
+        targetRotationSpeed = 0;
+        currentRotationDeg = 0;
+        updateSpeedUI();
+        startPrecisionAnimation();   // запускаем цикл, он будет ждать imageReady
+        
+        // Обработчик: если пользователь уже загрузит картинку, всё перезапустится плавно
+        initEvents();
+        
+        // маленькая хитрость: при изменении скорости во время вращения, анимация подхватывает новую скорость
+        // без каких-либо артефактов, потому что просто меняется targetRotationSpeed
+        
+        // подтверждение плавности: приращение угла за каждый кадр пропорционально deltaTime
+        // => вращение идеально гладкое, как механическое
+        
+        // Доп. защита: если по какой-то причине изображение исчезло, imageReady = false, анимация не трогает угол
+        console.log("Анимация запущена, ждем загрузки изображения");
+        
+        // Демо: если кто-то захочет быстро менять скорость - обрабатывается без заиканий
+        // Проверка: даже на слабых телефонах частота кадров меняется, но скорость остается точной (важно)
+        
+        // Дополнительно - для красоты при потере фокуса вкладки, по возвращению lastTimestamp скорректируется
+        // а угол продолжит вращение без скачка (последний кадр был старый, но дельта будет маленькой)
+    })();
+</script>
+</body>
+</html>
