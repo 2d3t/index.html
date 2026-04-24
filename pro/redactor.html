@@ -22,7 +22,6 @@
     .toolbar input {
       padding: 5px;
     }
-    /* Общие стили для всех кнопок и кнопкообразных элементов */
     .toolbar button,
     .toolbar label[for="fileUpload"] {
       padding: 6px 10px;
@@ -49,7 +48,6 @@
     .toolbar button.copied {
       background: #4CAF50;
     }
-    /* Стили для поля ввода URL */
     .url-input {
       background: #444;
       border: 1px solid #666;
@@ -107,16 +105,20 @@
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.5s ease;
+      position: absolute;
+      top: 60px;
+      left: 0;
+      background: white;
     }
     .preview.active {
       opacity: 1;
       visibility: visible;
+      position: relative;
+      top: 0;
     }
-    /* Скрываем стандартный input file */
     .file-input {
       display: none;
     }
-    /* Оверлей для полноэкранного режима */
     .fullscreen-overlay {
       position: fixed;
       top: 0;
@@ -150,17 +152,18 @@
       transform: scale(1.05);
       transition: transform 0.2s;
     }
-    /* Стили для кнопки получения кода при загрузке */
     .fetch-loading {
       background: #f0ad4e !important;
       cursor: wait !important;
+    }
+    .editor.hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <!-- Поле ввода URL и кнопка получения кода -->
   <input type="text" id="urlInput" class="url-input" placeholder="HTML сайта (https://example.com)" value="">
   <button id="fetchButton" onclick="fetchWebsiteCode()">👁️‍🗨️</button>
   
@@ -180,28 +183,26 @@
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
   
-  <!-- Кнопка для полноэкранного режима -->
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
-  <!-- Кнопка для загрузки файлов -->
   <label for="fileUpload" title="Открыть файл (поддерживаются текстовые форматы)">Файлы 📂</label>
-  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="loadFile(event)">
+  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="handleFileWithFullscreenRestore(event)">
 </div>
   
-<div class="editor">
+<div class="editor" id="editorContainer">
   <div class="line-numbers" id="lineNumbers"></div>
   <textarea id="codeArea" oninput="updateLineNumbers()" onscroll="syncScroll()"></textarea>
 </div>
 
 <iframe class="preview" id="previewFrame"></iframe>
 
-<!-- Оверлей для полноэкранного режима -->
 <div class="fullscreen-overlay" id="fullscreenOverlay">
-  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти из полного экрана</button>
+  <button class="fullscreen-exit-btn" id="forceExitFullscreenBtn">✕ Выйти из полного экрана</button>
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
 </div>
 
 <script>
+  // ========== ЭЛЕМЕНТЫ ==========
   const textarea = document.getElementById('codeArea');
   const lineNumbers = document.getElementById('lineNumbers');
   const previewFrame = document.getElementById('previewFrame');
@@ -213,12 +214,18 @@
   const fullscreenFrame = document.getElementById('fullscreenFrame');
   const urlInput = document.getElementById('urlInput');
   const fetchButton = document.getElementById('fetchButton');
+  const editorContainer = document.getElementById('editorContainer');
+  const forceExitFullscreenBtn = document.getElementById('forceExitFullscreenBtn');
 
+  // ========== ПЕРЕМЕННЫЕ СОСТОЯНИЯ ==========
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
+  let wasInPreviewBeforeFile = false;
+  let fullscreenWasActive = false;
+  let lastPreviewUrl = null;
 
-  // ========== ФУНКЦИЯ ПОЛУЧЕНИЯ КОДА САЙТА (БЕЗ ВСПЛЫВАЮЩИХ УВЕДОМЛЕНИЙ) ==========
+  // ========== ПОЛУЧЕНИЕ КОДА САЙТА ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
     
@@ -226,12 +233,10 @@
       return;
     }
     
-    // Добавляем https:// если протокол не указан
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url;
     }
     
-    // Сохраняем исходный текст кнопки и добавляем состояние загрузки
     const originalButtonText = fetchButton.textContent;
     fetchButton.textContent = 'Загрузка... ⏳';
     fetchButton.classList.add('fetch-loading');
@@ -250,14 +255,10 @@
         throw new Error('Получен пустой ответ от сервера');
       }
       
-      // Сохраняем текущее состояние в историю
       saveState();
-      
-      // Вставляем полученный код в редактор
       textarea.value = html;
       updateLineNumbers();
       
-      // Очищаем историю поиска
       lastSearch = "";
       searchResults = [];
       currentResult = -1;
@@ -265,22 +266,18 @@
     } catch (error) {
       console.error('Ошибка при загрузке:', error);
     } finally {
-      // Восстанавливаем кнопку
       fetchButton.textContent = originalButtonText;
       fetchButton.classList.remove('fetch-loading');
       fetchButton.disabled = false;
     }
   }
 
-  // ========== ИЗВЛЕЧЕНИЕ HTML-КОНТЕНТА (между DOCTYPE и </html>) ==========
+  // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
   function extractHtmlContent(rawCode) {
     if (!rawCode || rawCode.trim() === '') return '';
     
-    let startTag = '<!DOCTYPE html';
     let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
-    
     if (startIndex === -1) {
-      startTag = '<html';
       startIndex = rawCode.toLowerCase().indexOf('<html');
     }
     
@@ -359,7 +356,6 @@
     updateLineNumbers();
   }
 
-  // ========== ЗАПУСК ПРОСМОТРА ==========
   function runCode() {
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode);
@@ -373,23 +369,31 @@
     
     const blob = new Blob([finalCode], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
+    
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(lastPreviewUrl);
+    }
+    lastPreviewUrl = url;
+    
     previewFrame.src = url;
     fullscreenFrame.src = url;
 
     previewFrame.classList.add("active");
+    editorContainer.classList.add('hidden');
     document.querySelector('.editor').style.display = "none";
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showEditor() {
     if (isFullscreen) {
-      exitFullscreen();
+      forceExitFullscreen();
     }
     
     previewFrame.classList.remove("active");
+    editorContainer.classList.remove('hidden');
     setTimeout(() => {
       document.querySelector('.editor').style.display = "flex";
-    }, 500);
+    }, 100);
   }
 
   function shareCode() {
@@ -399,6 +403,7 @@
     link.href = URL.createObjectURL(blob);
     link.download = 'code.html';
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 100);
   }
 
   function saveState() {
@@ -425,8 +430,8 @@
     }
   }
 
-  // ========== ЗАГРУЗКА ФАЙЛА ==========
-  function loadFile(event) {
+  // ========== ЗАГРУЗКА ФАЙЛА С ВОССТАНОВЛЕНИЕМ ПОЛНОЭКРАННОГО РЕЖИМА ==========
+  function handleFileWithFullscreenRestore(event) {
     const file = event.target.files[0];
     if (!file) return;
     
@@ -446,17 +451,43 @@
       return;
     }
     
+    wasInPreviewBeforeFile = previewFrame.classList.contains('active');
+    fullscreenWasActive = isFullscreen;
+    
     const reader = new FileReader();
     
-    reader.onload = function(e) {
+    reader.onload = (e) => {
       const content = e.target.result;
       saveState();
       textarea.value = content;
       updateLineNumbers();
+      
+      if (wasInPreviewBeforeFile) {
+        const cleanHtml = extractHtmlContent(content) || content;
+        const blob = new Blob([cleanHtml], { type: 'text/html' });
+        const newUrl = URL.createObjectURL(blob);
+        
+        if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(lastPreviewUrl);
+        }
+        lastPreviewUrl = newUrl;
+        
+        previewFrame.src = newUrl;
+        fullscreenFrame.src = newUrl;
+        
+        if (fullscreenWasActive && !isFullscreen) {
+          setTimeout(() => {
+            if (previewFrame.classList.contains('active') && !isFullscreen && fullscreenOverlay) {
+              enterFullscreenInternal();
+            }
+          }, 150);
+        }
+      }
+      
       event.target.value = '';
     };
     
-    reader.onerror = function() {
+    reader.onerror = () => {
       event.target.value = '';
     };
     
@@ -470,14 +501,27 @@
     }
     
     if (isFullscreen) {
-      exitFullscreen();
+      forceExitFullscreen();
     } else {
-      enterFullscreen();
+      enterFullscreenInternal();
     }
   }
 
-  function enterFullscreen() {
+  function enterFullscreenInternal() {
     if (!previewFrame.classList.contains('active')) return;
+    
+    const rawCode = textarea.value;
+    const cleanHtml = extractHtmlContent(rawCode) || rawCode;
+    const blob = new Blob([cleanHtml], { type: 'text/html' });
+    const newUrl = URL.createObjectURL(blob);
+    
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(lastPreviewUrl);
+    }
+    lastPreviewUrl = newUrl;
+    
+    fullscreenFrame.src = newUrl;
+    previewFrame.src = newUrl;
     
     fullscreenOverlay.classList.add('active');
     isFullscreen = true;
@@ -486,47 +530,83 @@
     
     previewFrame.classList.remove('active');
     document.querySelector('.toolbar').style.display = 'none';
-    
-    document.addEventListener('keydown', handleEscapeKey);
+    editorContainer.style.display = 'none';
     
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
         console.log(`Ошибка полноэкранного режима: ${err.message}`);
       });
     }
+    
+    document.addEventListener('keydown', handleEscapeKey);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
   }
 
-  function exitFullscreen() {
+  // ПРИНУДИТЕЛЬНЫЙ ВЫХОД ИЗ ПОЛНОЭКРАННОГО РЕЖИМА
+  function forceExitFullscreen() {
+    // 1. Выходим из браузерного полноэкранного режима
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(e => console.log);
+    }
+    
+    // 2. Скрываем оверлей
     fullscreenOverlay.classList.remove('active');
+    
+    // 3. Сбрасываем флаги
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
     
+    // 4. Показываем нормальный интерфейс
     previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
+    editorContainer.style.display = 'flex';
+    editorContainer.classList.remove('hidden');
     
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
+    // 5. Обновляем контент preview
+    const rawCode = textarea.value;
+    const cleanHtml = extractHtmlContent(rawCode) || rawCode;
+    const blob = new Blob([cleanHtml], { type: 'text/html' });
+    const newUrl = URL.createObjectURL(blob);
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(lastPreviewUrl);
     }
+    lastPreviewUrl = newUrl;
+    previewFrame.src = newUrl;
+    fullscreenFrame.src = newUrl;
     
+    // 6. Удаляем обработчики
     document.removeEventListener('keydown', handleEscapeKey);
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    
+    // 7. Дополнительная страховка: если по какой-то причине оверлей ещё виден, скрываем его снова
+    setTimeout(() => {
+      if (fullscreenOverlay.classList.contains('active')) {
+        fullscreenOverlay.classList.remove('active');
+      }
+      if (isFullscreen) {
+        isFullscreen = false;
+      }
+    }, 50);
   }
 
   function handleEscapeKey(event) {
     if (event.key === 'Escape' && isFullscreen) {
-      exitFullscreen();
+      forceExitFullscreen();
+    }
+  }
+  
+  function handleFullscreenChange() {
+    if (!document.fullscreenElement && isFullscreen && fullscreenOverlay.classList.contains('active')) {
+      setTimeout(() => {
+        if (isFullscreen && fullscreenOverlay.classList.contains('active') && !document.fullscreenElement) {
+          fullscreenOverlay.requestFullscreen().catch(e => console.log);
+        }
+      }, 200);
     }
   }
 
-  document.addEventListener('fullscreenchange', function() {
-    if (!document.fullscreenElement && isFullscreen) {
-      exitFullscreen();
-    }
-  });
-
-  textarea.addEventListener('input', saveState);
-
-  // ---------- ПОИСК ----------
+  // ========== ПОИСК ==========
   let searchResults = [];
   let currentResult = -1;
   let lastSearch = "";
@@ -593,13 +673,14 @@
     highlightMatch();
   }
 
+  // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
+  textarea.addEventListener('input', saveState);
   searchInput.addEventListener("input", () => {
     lastSearch = "";
     searchResults = [];
     currentResult = -1;
   });
 
-  // Enter для URL
   urlInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -607,7 +688,6 @@
     }
   });
 
-  updateLineNumbers();
   document.getElementById('lineNumber').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -615,15 +695,17 @@
     }
   });
 
-  // Инициализация
-  window.addEventListener('DOMContentLoaded', () => {
-    // Тихая проверка поддержки, без сообщений
-    if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
-      // Ничего не показываем пользователю, просто заглушка
-      console.log('File API не поддерживается');
-    }
-    urlInput.value = '';
-  });
+  // Привязываем кнопку принудительного выхода
+  if (forceExitFullscreenBtn) {
+    forceExitFullscreenBtn.onclick = function() {
+      forceExitFullscreen();
+    };
+  }
+
+  // Инициализация - чистый редактор
+  updateLineNumbers();
+  textarea.value = '';
+  updateLineNumbers();
 </script>
 
 </body>
