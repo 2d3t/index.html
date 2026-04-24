@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KlikEdit 🎀 - Полноэкранный режим (финал)</title>
+  <title>KlikEdit 🎀</title>
   <style>
     body {
       margin: 0;
@@ -141,11 +140,6 @@
       font-size: 16px;
       font-weight: bold;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
-    }
-    .fullscreen-exit-btn:hover {
-      background: rgba(0, 0, 0, 0.95);
-      transform: scale(1.05);
     }
     .fetch-loading {
       background: #f0ad4e !important;
@@ -178,7 +172,7 @@
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
   <label for="fileUpload" title="Открыть файл">Файлы 📂</label>
-  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="loadFile(event)">
+  <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md" onchange="loadFile(event)">
 </div>
   
 <div class="editor">
@@ -199,7 +193,6 @@
   const previewFrame = document.getElementById('previewFrame');
   const copyButton = document.getElementById('copyButton');
   const searchInput = document.getElementById('searchInput');
-  const fileUpload = document.getElementById('fileUpload');
   const fullscreenButton = document.getElementById('fullscreenButton');
   const fullscreenOverlay = document.getElementById('fullscreenOverlay');
   const fullscreenFrame = document.getElementById('fullscreenFrame');
@@ -209,16 +202,12 @@
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
+  let manualExit = false;
 
-  // ========== ПОЛУЧЕНИЕ КОДА САЙТА ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
-    
     if (!url) return;
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
     
     const originalButtonText = fetchButton.textContent;
     fetchButton.textContent = 'Загрузка... ⏳';
@@ -227,25 +216,11 @@
     
     try {
       const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const html = await response.text();
-      
-      if (!html || html.length === 0) {
-        throw new Error('Пустой ответ');
-      }
-      
       saveState();
       textarea.value = html;
       updateLineNumbers();
-      
-      lastSearch = "";
-      searchResults = [];
-      currentResult = -1;
-      
     } catch (error) {
       console.error('Ошибка:', error);
     } finally {
@@ -257,25 +232,16 @@
 
   function extractHtmlContent(rawCode) {
     if (!rawCode || rawCode.trim() === '') return '';
-    
-    let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
-    if (startIndex === -1) {
-      startIndex = rawCode.toLowerCase().indexOf('<html');
-    }
-    
+    let startIndex = rawCode.toLowerCase().indexOf('<!doctype html');
+    if (startIndex === -1) startIndex = rawCode.toLowerCase().indexOf('<html');
     if (startIndex === -1) return rawCode;
-    
     let endIndex = rawCode.toLowerCase().lastIndexOf('</html>');
-    if (endIndex === -1) return rawCode.substring(startIndex);
-    
-    return rawCode.substring(startIndex, endIndex + 7);
+    return endIndex === -1 ? rawCode.substring(startIndex) : rawCode.substring(startIndex, endIndex + 7);
   }
 
   function updateLineNumbers() {
     const lines = textarea.value.split('\n').length;
-    const extraLines = Math.ceil(lines * 0.5);
-    const totalLines = lines + extraLines;
-
+    const totalLines = lines + Math.ceil(lines * 0.5);
     lineNumbers.innerHTML = '';
     for (let i = 1; i <= totalLines; i++) {
       const div = document.createElement("div");
@@ -291,41 +257,24 @@
 
   function goToLine() {
     const line = parseInt(document.getElementById('lineNumber').value);
-    const lines = textarea.value.split('\n');
-    const extraLines = Math.ceil(lines.length * 0.5);
-    const totalLines = lines.length + extraLines;
-
-    if (!isNaN(line) && line > 0 && line <= totalLines) {
-        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-        const linePos = (line - 1) * lineHeight;
-        const visibleHeight = textarea.clientHeight;
-        const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
-        
-        textarea.scrollTop = Math.max(0, scrollPos);
-        highlightActiveLine(line);
+    if (!isNaN(line) && line > 0) {
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+      textarea.scrollTop = (line - 1) * lineHeight - textarea.clientHeight / 2;
+      highlightActiveLine(line);
     }
   }
 
   function highlightActiveLine(line) {
-    const lineElements = Array.from(lineNumbers.children);
-    lineElements.forEach((el, index) => {
-      el.classList.remove('active-line');
-      if (line && index === (line - 1)) {
-        el.classList.add('active-line');
-      }
+    Array.from(lineNumbers.children).forEach((el, i) => {
+      el.classList.toggle('active-line', line && i === (line - 1));
     });
   }
 
   function copyText() {
     textarea.select();
     document.execCommand('copy');
-    
-    copyButton.classList.add('copied');
-    copyButton.textContent = "Скопировано"; 
-    setTimeout(() => {
-      copyButton.classList.remove('copied');
-      copyButton.textContent = "Скопировать 📃"; 
-    }, 1000); 
+    copyButton.textContent = "Скопировано";
+    setTimeout(() => copyButton.textContent = "Скопировать 📃", 1000);
   }
 
   function clearAll() {
@@ -335,40 +284,23 @@
   }
 
   function runCode() {
-    const rawCode = textarea.value;
-    const cleanHtml = extractHtmlContent(rawCode);
-    
-    let finalCode = cleanHtml;
-    if (rawCode.trim() !== '' && cleanHtml === '') {
-      finalCode = rawCode;
-    } else if (rawCode.trim() === '') {
-      finalCode = '';
-    }
-    
-    const blob = new Blob([finalCode], { type: 'text/html' });
+    const cleanHtml = extractHtmlContent(textarea.value) || textarea.value;
+    const blob = new Blob([cleanHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     previewFrame.src = url;
     fullscreenFrame.src = url;
-
     previewFrame.classList.add("active");
     document.querySelector('.editor').style.display = "none";
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showEditor() {
-    if (isFullscreen) {
-      exitFullscreen();
-    }
-    
+    if (isFullscreen) exitFullscreen();
     previewFrame.classList.remove("active");
-    setTimeout(() => {
-      document.querySelector('.editor').style.display = "flex";
-    }, 500);
+    setTimeout(() => document.querySelector('.editor').style.display = "flex", 500);
   }
 
   function shareCode() {
-    const code = textarea.value;
-    const blob = new Blob([code], { type: 'text/plain' });
+    const blob = new Blob([textarea.value], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'code.html';
@@ -377,10 +309,8 @@
 
   function saveState() {
     history.push(textarea.value);
+    if (history.length > 100) history.shift();
     redoStack = [];
-    if (history.length > 100) {
-      history.shift();
-    }
   }
 
   function undo() {
@@ -402,203 +332,84 @@
   function loadFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
-    const fileName = file.name;
-    const fileExtension = fileName.split('.').pop().toLowerCase();
-    
-    const supportedExtensions = [
-      'html', 'htm', 'txt', 'py', 'js', 'css', 'json', 'xml', 'md', 'csv', 
-      'log', 'ini', 'cfg', 'conf', 'sh', 'bat', 'ps1', 'rb', 'php', 'java', 
-      'c', 'cpp', 'h', 'cs', 'go', 'rs', 'swift', 'kt', 'sql', 'yaml', 'yml', 
-      'toml', 'pl', 'pm', 'r', 'lua', 'vim', 'ts', 'jsx', 'tsx', 'vue', 'scss', 
-      'less', 'sass', 'styl'
-    ];
-    
-    if (!supportedExtensions.includes(fileExtension)) {
-      event.target.value = '';
-      return;
-    }
-    
     const reader = new FileReader();
-    
-    reader.onload = function(e) {
-      const content = e.target.result;
+    reader.onload = (e) => {
       saveState();
-      textarea.value = content;
+      textarea.value = e.target.result;
       updateLineNumbers();
-      event.target.value = '';
     };
-    
-    reader.onerror = function() {
-      event.target.value = '';
-    };
-    
     reader.readAsText(file, 'UTF-8');
   }
 
-  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ - ПРОСТОЕ РЕШЕНИЕ ==========
-  // Главная идея: не пытаемся "восстановить" полноэкранный режим после диалога,
-  // а просто корректно обрабатываем события. При клике на input file внутри iframe
-  // браузер сам выходит из fullscreen - это НЕИЗБЕЖНО (ограничение безопасности браузера).
-  // Выход из полноэкранного режима по кнопке работает всегда.
-  
+  // ========== ИСПРАВЛЕННЫЙ ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
-    if (!previewFrame.classList.contains('active')) {
-      return;
-    }
-    
-    if (isFullscreen) {
-      exitFullscreen();
-    } else {
-      enterFullscreen();
-    }
+    if (!previewFrame.classList.contains('active')) return;
+    isFullscreen ? exitFullscreen() : enterFullscreen();
   }
 
   function enterFullscreen() {
-    if (!previewFrame.classList.contains('active')) return;
-    
-    // Показываем оверлей
     fullscreenOverlay.classList.add('active');
     isFullscreen = true;
+    manualExit = false;
     fullscreenButton.textContent = 'Обычный экран ⛶';
     fullscreenButton.style.background = '#4CAF50';
-    
-    // Скрываем обычный превью и тулбар
     previewFrame.classList.remove('active');
     document.querySelector('.toolbar').style.display = 'none';
-    
-    // Запрашиваем полноэкранный режим для оверлея
-    if (fullscreenOverlay.requestFullscreen) {
-      fullscreenOverlay.requestFullscreen().catch(err => {
-        console.log('Ошибка fullscreen:', err);
-        // Если не удалось войти в полноэкранный режим, откатываем состояние
-        if (err.name === 'NotAllowedError') {
-          exitFullscreen();
-        }
-      });
-    }
+    document.addEventListener('keydown', handleEscapeKey);
+    if (fullscreenOverlay.requestFullscreen) fullscreenOverlay.requestFullscreen();
   }
 
   function exitFullscreen() {
-    // Выходим из полноэкранного режима браузера, если мы в нём
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
-    
-    // Скрываем оверлей и сбрасываем флаги
+    manualExit = true;
+    if (document.fullscreenElement) document.exitFullscreen();
+    finalizeExit();
+  }
+
+  function finalizeExit() {
     fullscreenOverlay.classList.remove('active');
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
-    
-    // Показываем обычный превью и тулбар
     previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
+    document.removeEventListener('keydown', handleEscapeKey);
   }
 
-  // Следим за изменением полноэкранного режима (нажатие Escape или выход)
-  document.addEventListener('fullscreenchange', function() {
-    // Если полноэкранный режим был потерян, но мы считаем, что всё ещё в нём
+  document.addEventListener('fullscreenchange', () => {
     if (!document.fullscreenElement && isFullscreen) {
-      // Полноэкранный режим сброшен браузером (например, из-за диалога выбора файла в iframe)
-      // В этом случае мы сами выходим из режима, чтобы синхронизировать состояние
-      if (fullscreenOverlay.classList.contains('active')) {
-        // Просто выходим из режима - это самое стабильное поведение
+      if (manualExit) {
+        finalizeExit();
+      } else {
+        // Если выход вызван системой (выбор файла), скрываем оверлей, но сохраняем состояние
         fullscreenOverlay.classList.remove('active');
+        previewFrame.classList.add('active');
+        document.querySelector('.toolbar').style.display = 'flex';
         isFullscreen = false;
         fullscreenButton.textContent = 'Полный экран ⛶';
         fullscreenButton.style.background = '';
-        previewFrame.classList.add('active');
-        document.querySelector('.toolbar').style.display = 'flex';
       }
     }
   });
 
-  textarea.addEventListener('input', saveState);
-
-  // ---------- ПОИСК ----------
-  let searchResults = [];
-  let currentResult = -1;
-  let lastSearch = "";
-
-  function findAll(term) {
-    searchResults = [];
-    currentResult = -1;
-    if (!term) return;
-
-    const text = textarea.value;
-    let index = text.indexOf(term);
-    while (index !== -1) {
-      searchResults.push(index);
-      index = text.indexOf(term, index + term.length);
-    }
-  }
-
-  function highlightMatch() {
-    if (searchResults.length === 0) return;
-
-    const pos = searchResults[currentResult];
-    const term = searchInput.value;
-
-    textarea.focus();
-    textarea.setSelectionRange(pos, pos + term.length);
-
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-    const before = textarea.value.substring(0, pos).split("\n").length;
-    const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2;
-    textarea.scrollTop = Math.max(0, scrollPos);
+  function handleEscapeKey(e) {
+    if (e.key === 'Escape' && isFullscreen) exitFullscreen();
   }
 
   function findNext() {
     const term = searchInput.value;
     if (!term) return;
-
-    if (term !== lastSearch) {
-      findAll(term);
-      lastSearch = term;
+    const text = textarea.value;
+    let idx = text.indexOf(term, textarea.selectionEnd);
+    if (idx === -1) idx = text.indexOf(term);
+    if (idx !== -1) {
+      textarea.setSelectionRange(idx, idx + term.length);
+      textarea.focus();
     }
-    if (searchResults.length === 0) return;
-    currentResult = (currentResult + 1) % searchResults.length;
-    highlightMatch();
   }
 
-  function findPrev() {
-    const term = searchInput.value;
-    if (!term) return;
-
-    if (term !== lastSearch) {
-      findAll(term);
-      lastSearch = term;
-    }
-    if (searchResults.length === 0) return;
-    currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
-    highlightMatch();
-  }
-
-  searchInput.addEventListener("input", () => {
-    lastSearch = "";
-    searchResults = [];
-    currentResult = -1;
-  });
-
-  urlInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      fetchWebsiteCode();
-    }
-  });
-
+  textarea.addEventListener('input', () => { saveState(); updateLineNumbers(); });
+  urlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') fetchWebsiteCode(); });
   updateLineNumbers();
-  document.getElementById('lineNumber').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      goToLine();
-    }
-  });
-
-  window.addEventListener('DOMContentLoaded', () => {
-    urlInput.value = '';
-  });
 </script>
 
 </body>
