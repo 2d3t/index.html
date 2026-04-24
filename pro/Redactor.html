@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KlikEdit 🎀 - Исправленный полноэкранный режим</title>
+  <title>KlikEdit 🎀 - Полноэкранный режим (финал)</title>
   <style>
     body {
       margin: 0;
@@ -209,7 +209,6 @@
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
-  let fullscreenCheckInterval = null;
 
   // ========== ПОЛУЧЕНИЕ КОДА САЙТА ==========
   async function fetchWebsiteCode() {
@@ -437,7 +436,12 @@
     reader.readAsText(file, 'UTF-8');
   }
 
-  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ - ПРОСТОЙ И НАДЁЖНЫЙ ==========
+  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ - ПРОСТОЕ РЕШЕНИЕ ==========
+  // Главная идея: не пытаемся "восстановить" полноэкранный режим после диалога,
+  // а просто корректно обрабатываем события. При клике на input file внутри iframe
+  // браузер сам выходит из fullscreen - это НЕИЗБЕЖНО (ограничение безопасности браузера).
+  // Выход из полноэкранного режима по кнопке работает всегда.
+  
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
       return;
@@ -467,44 +471,21 @@
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
         console.log('Ошибка fullscreen:', err);
+        // Если не удалось войти в полноэкранный режим, откатываем состояние
+        if (err.name === 'NotAllowedError') {
+          exitFullscreen();
+        }
       });
     }
-    
-    // Устанавливаем интервал для восстановления полноэкранного режима
-    // Это решает проблему выхода при клике на input file внутри iframe
-    if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
-    fullscreenCheckInterval = setInterval(() => {
-      // Если мы в полноэкранном режиме, но оверлей активен, а fullscreen сброшен - восстанавливаем
-      if (isFullscreen && fullscreenOverlay.classList.contains('active')) {
-        if (!document.fullscreenElement) {
-          // Потеряли полноэкранный режим (например из-за диалога выбора файла)
-          if (fullscreenOverlay.requestFullscreen) {
-            fullscreenOverlay.requestFullscreen().catch(() => {});
-          }
-        }
-      } else if (!isFullscreen) {
-        // Если вышли из режима, очищаем интервал
-        if (fullscreenCheckInterval) {
-          clearInterval(fullscreenCheckInterval);
-          fullscreenCheckInterval = null;
-        }
-      }
-    }, 300);
   }
 
   function exitFullscreen() {
-    // Сначала выходим из полноэкранного режима браузера
-    if (document.exitFullscreen) {
+    // Выходим из полноэкранного режима браузера, если мы в нём
+    if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
     
-    // Очищаем интервал восстановления
-    if (fullscreenCheckInterval) {
-      clearInterval(fullscreenCheckInterval);
-      fullscreenCheckInterval = null;
-    }
-    
-    // Скрываем оверлей
+    // Скрываем оверлей и сбрасываем флаги
     fullscreenOverlay.classList.remove('active');
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
@@ -515,18 +496,14 @@
     document.querySelector('.toolbar').style.display = 'flex';
   }
 
-  // Следим за изменением полноэкранного режима (например, при нажатии Escape)
+  // Следим за изменением полноэкранного режима (нажатие Escape или выход)
   document.addEventListener('fullscreenchange', function() {
+    // Если полноэкранный режим был потерян, но мы считаем, что всё ещё в нём
     if (!document.fullscreenElement && isFullscreen) {
-      // Если полноэкранный режим был потерян не через нашу функцию exitFullscreen
-      // Но оверлей активен - значит нужно выйти корректно
+      // Полноэкранный режим сброшен браузером (например, из-за диалога выбора файла в iframe)
+      // В этом случае мы сами выходим из режима, чтобы синхронизировать состояние
       if (fullscreenOverlay.classList.contains('active')) {
-        // Очищаем интервал
-        if (fullscreenCheckInterval) {
-          clearInterval(fullscreenCheckInterval);
-          fullscreenCheckInterval = null;
-        }
-        // Сбрасываем состояние
+        // Просто выходим из режима - это самое стабильное поведение
         fullscreenOverlay.classList.remove('active');
         isFullscreen = false;
         fullscreenButton.textContent = 'Полный экран ⛶';
