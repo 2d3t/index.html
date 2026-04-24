@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KlikEdit 🎀 — Полноэкранный редактор</title>
+  <title>KlikEdit 🎀</title>
   <style>
     body {
       margin: 0;
@@ -157,7 +157,6 @@
       background: #f0ad4e !important;
       cursor: wait !important;
     }
-    /* Скрываем редактор когда просмотр активен */
     .editor.hidden {
       display: none;
     }
@@ -222,11 +221,11 @@
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
-  let wasInPreviewBeforeFile = false;      // Был ли активен просмотр перед выбором файла
-  let fullscreenWasActive = false;          // Был ли активен полноэкранный режим
-  let lastPreviewUrl = null;                // Последний URL для восстановления фрейма
+  let wasInPreviewBeforeFile = false;
+  let fullscreenWasActive = false;
+  let lastPreviewUrl = null;
 
-  // ========== ПОЛУЧЕНИЕ КОДА САЙТА (РАБОТАЕТ) ==========
+  // ========== ПОЛУЧЕНИЕ КОДА САЙТА ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
     
@@ -371,7 +370,6 @@
     const blob = new Blob([finalCode], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    // Сохраняем URL для восстановления
     if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(lastPreviewUrl);
     }
@@ -380,7 +378,6 @@
     previewFrame.src = url;
     fullscreenFrame.src = url;
 
-    // Переключаем режим просмотра
     previewFrame.classList.add("active");
     editorContainer.classList.add('hidden');
     document.querySelector('.editor').style.display = "none";
@@ -433,7 +430,7 @@
     }
   }
 
-  // ========== ГЛАВНОЕ: ЗАГРУЗКА ФАЙЛА С ВОССТАНОВЛЕНИЕМ ПОЛНОЭКРАННОГО РЕЖИМА ==========
+  // ========== ЗАГРУЗКА ФАЙЛА С ВОССТАНОВЛЕНИЕМ ПОЛНОЭКРАННОГО РЕЖИМА ==========
   function handleFileWithFullscreenRestore(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -454,7 +451,6 @@
       return;
     }
     
-    // ЗАПОМИНАЕМ состояние ДО загрузки файла
     wasInPreviewBeforeFile = previewFrame.classList.contains('active');
     fullscreenWasActive = isFullscreen;
     
@@ -466,9 +462,7 @@
       textarea.value = content;
       updateLineNumbers();
       
-      // Если мы были в режиме просмотра — обновляем отображение
       if (wasInPreviewBeforeFile) {
-        // Обновляем содержимое preview
         const cleanHtml = extractHtmlContent(content) || content;
         const blob = new Blob([cleanHtml], { type: 'text/html' });
         const newUrl = URL.createObjectURL(blob);
@@ -481,14 +475,10 @@
         previewFrame.src = newUrl;
         fullscreenFrame.src = newUrl;
         
-        // Если был активен полноэкранный режим, но после выбора файла он сбросился
         if (fullscreenWasActive && !isFullscreen) {
-          // Планируем тихий возврат в полноэкранный режим
           setTimeout(() => {
-            // Проверяем, что мы всё ещё в режиме просмотра и полноэкранный не активен
             if (previewFrame.classList.contains('active') && !isFullscreen && fullscreenOverlay) {
-              // Восстанавливаем полноэкранный режим
-              enterFullscreenSilent();
+              enterFullscreenInternal();
             }
           }, 150);
         }
@@ -504,7 +494,7 @@
     reader.readAsText(file, 'UTF-8');
   }
 
-  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ (С ПОДДЕРЖКОЙ ВОССТАНОВЛЕНИЯ) ==========
+  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
       return;
@@ -513,14 +503,13 @@
     if (isFullscreen) {
       exitFullscreen();
     } else {
-      enterFullscreenSilent();
+      enterFullscreenInternal();
     }
   }
 
-  function enterFullscreenSilent() {
+  function enterFullscreenInternal() {
     if (!previewFrame.classList.contains('active')) return;
     
-    // Синхронизируем актуальный контент
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode) || rawCode;
     const blob = new Blob([cleanHtml], { type: 'text/html' });
@@ -543,7 +532,6 @@
     document.querySelector('.toolbar').style.display = 'none';
     editorContainer.style.display = 'none';
     
-    // Пытаемся активировать нативный полноэкранный режим для оверлея
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
         console.log(`Ошибка полноэкранного режима: ${err.message}`);
@@ -557,18 +545,34 @@
   function exitFullscreen() {
     if (!isFullscreen) return;
     
+    // Принудительно выходим из полноэкранного режима браузера
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(e => console.log);
     }
     
+    // Обязательно скрываем оверлей и сбрасываем флаги
     fullscreenOverlay.classList.remove('active');
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
     
+    // Возвращаем интерфейс в обычное состояние
     previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
     editorContainer.style.display = 'flex';
+    editorContainer.classList.remove('hidden');
+    
+    // Обновляем контент preview на случай, если код изменился
+    const rawCode = textarea.value;
+    const cleanHtml = extractHtmlContent(rawCode) || rawCode;
+    const blob = new Blob([cleanHtml], { type: 'text/html' });
+    const newUrl = URL.createObjectURL(blob);
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(lastPreviewUrl);
+    }
+    lastPreviewUrl = newUrl;
+    previewFrame.src = newUrl;
+    fullscreenFrame.src = newUrl;
     
     document.removeEventListener('keydown', handleEscapeKey);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -581,10 +585,7 @@
   }
   
   function handleFullscreenChange() {
-    // Если полноэкранный режим был сброшен системой (например, из-за диалога выбора файла)
     if (!document.fullscreenElement && isFullscreen && fullscreenOverlay.classList.contains('active')) {
-      // Оверлей активен, но браузер вышел из полноэкранного режима
-      // Пытаемся восстановить через небольшую задержку
       setTimeout(() => {
         if (isFullscreen && fullscreenOverlay.classList.contains('active') && !document.fullscreenElement) {
           fullscreenOverlay.requestFullscreen().catch(e => console.log);
@@ -682,26 +683,9 @@
     }
   });
 
-  // Инициализация
+  // Инициализация - чистый редактор, без информационных сообщений
   updateLineNumbers();
-  
-  // Устанавливаем начальный код для демонстрации
-  textarea.value = `<!DOCTYPE html>
-<html>
-<head>
-    <title>KlikEdit Демо</title>
-    <style>
-        body { font-family: Arial; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        h1 { font-size: 3em; }
-        button { padding: 10px 20px; font-size: 1.2em; border-radius: 8px; border: none; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h1>🎀 KlikEdit Работает!</h1>
-    <p>Полноэкранный режим + автовозврат после выбора файла</p>
-    <button onclick="alert('Привет!')">Нажми меня</button>
-</body>
-</html>`;
+  textarea.value = '';
   updateLineNumbers();
 </script>
 
