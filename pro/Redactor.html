@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KlikEdit 🎀 - Полноэкранный режим без выбросов</title>
+  <title>KlikEdit 🎀 - Исправленный полноэкранный режим</title>
   <style>
     body {
       margin: 0;
@@ -23,7 +23,6 @@
     .toolbar input {
       padding: 5px;
     }
-    /* Общие стили для всех кнопок и кнопкообразных элементов */
     .toolbar button,
     .toolbar label[for="fileUpload"] {
       padding: 6px 10px;
@@ -50,7 +49,6 @@
     .toolbar button.copied {
       background: #4CAF50;
     }
-    /* Стили для поля ввода URL */
     .url-input {
       background: #444;
       border: 1px solid #666;
@@ -113,11 +111,9 @@
       opacity: 1;
       visibility: visible;
     }
-    /* Скрываем стандартный input file */
     .file-input {
       display: none;
     }
-    /* Оверлей для полноэкранного режима (улучшен) */
     .fullscreen-overlay {
       position: fixed;
       top: 0;
@@ -127,8 +123,6 @@
       background: white;
       z-index: 10000;
       display: none;
-      /* Запрещаем любые внешние события, которые могут выбить из полноэкранного режима */
-      isolation: isolate;
     }
     .fullscreen-overlay.active {
       display: block;
@@ -153,21 +147,15 @@
       background: rgba(0, 0, 0, 0.95);
       transform: scale(1.05);
     }
-    /* Стили для кнопки получения кода при загрузке */
     .fetch-loading {
       background: #f0ad4e !important;
       cursor: wait !important;
-    }
-    /* Предотвращаем случайные выходы из полноэкранного режима */
-    .fullscreen-overlay iframe {
-      pointer-events: auto !important; /* Оставляем интерактивность, но контролируем */
     }
   </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <!-- Поле ввода URL и кнопка получения кода -->
   <input type="text" id="urlInput" class="url-input" placeholder="HTML сайта (https://example.com)" value="">
   <button id="fetchButton" onclick="fetchWebsiteCode()">👁️‍🗨️</button>
   
@@ -187,11 +175,9 @@
   <button onclick="showEditor()">Редактор 🛠️</button>
   <button onclick="runCode()">Просмотр 🖥️</button>
   
-  <!-- Кнопка для полноэкранного режима -->
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
-  <!-- Кнопка для загрузки файлов -->
-  <label for="fileUpload" title="Открыть файл (поддерживаются текстовые форматы)">Файлы 📂</label>
+  <label for="fileUpload" title="Открыть файл">Файлы 📂</label>
   <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="loadFile(event)">
 </div>
   
@@ -202,7 +188,6 @@
 
 <iframe class="preview" id="previewFrame"></iframe>
 
-<!-- Оверлей для полноэкранного режима с блокировкой выхода -->
 <div class="fullscreen-overlay" id="fullscreenOverlay">
   <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти из полного экрана</button>
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
@@ -224,15 +209,13 @@
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
-  let fullscreenBlockerActive = false; // Флаг для предотвращения случайного выхода
+  let fullscreenCheckInterval = null;
 
-  // ========== ФУНКЦИЯ ПОЛУЧЕНИЯ КОДА САЙТА ==========
+  // ========== ПОЛУЧЕНИЕ КОДА САЙТА ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
     
-    if (!url) {
-      return;
-    }
+    if (!url) return;
     
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url;
@@ -247,13 +230,13 @@
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}`);
       }
       
       const html = await response.text();
       
       if (!html || html.length === 0) {
-        throw new Error('Получен пустой ответ от сервера');
+        throw new Error('Пустой ответ');
       }
       
       saveState();
@@ -265,7 +248,7 @@
       currentResult = -1;
       
     } catch (error) {
-      console.error('Ошибка при загрузке:', error);
+      console.error('Ошибка:', error);
     } finally {
       fetchButton.textContent = originalButtonText;
       fetchButton.classList.remove('fetch-loading');
@@ -276,22 +259,15 @@
   function extractHtmlContent(rawCode) {
     if (!rawCode || rawCode.trim() === '') return '';
     
-    let startTag = '<!DOCTYPE html';
     let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
-    
     if (startIndex === -1) {
-      startTag = '<html';
       startIndex = rawCode.toLowerCase().indexOf('<html');
     }
     
-    if (startIndex === -1) {
-      return rawCode;
-    }
+    if (startIndex === -1) return rawCode;
     
     let endIndex = rawCode.toLowerCase().lastIndexOf('</html>');
-    if (endIndex === -1) {
-      return rawCode.substring(startIndex);
-    }
+    if (endIndex === -1) return rawCode.substring(startIndex);
     
     return rawCode.substring(startIndex, endIndex + 7);
   }
@@ -461,7 +437,7 @@
     reader.readAsText(file, 'UTF-8');
   }
 
-  // ========== УЛУЧШЕННЫЙ ПОЛНОЭКРАННЫЙ РЕЖИМ С ЗАЩИТОЙ ОТ ВЫБРОСА ==========
+  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ - ПРОСТОЙ И НАДЁЖНЫЙ ==========
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
       return;
@@ -477,155 +453,86 @@
   function enterFullscreen() {
     if (!previewFrame.classList.contains('active')) return;
     
-    // Активируем блокировку выхода
-    fullscreenBlockerActive = true;
-    
+    // Показываем оверлей
     fullscreenOverlay.classList.add('active');
     isFullscreen = true;
     fullscreenButton.textContent = 'Обычный экран ⛶';
     fullscreenButton.style.background = '#4CAF50';
     
+    // Скрываем обычный превью и тулбар
     previewFrame.classList.remove('active');
     document.querySelector('.toolbar').style.display = 'none';
     
-    // Улучшенная обработка: предотвращаем выход при фокусе на элементах iframe
-    const iframeDoc = fullscreenFrame.contentDocument || fullscreenFrame.contentWindow?.document;
-    
-    // Добавляем обработчики для предотвращения потери полноэкранного режима при взаимодействии с iframe
-    const preventExit = (e) => {
-      // Не даем событиям внутри iframe вызывать выход из fullscreen
-      if (fullscreenBlockerActive && isFullscreen) {
-        e.stopPropagation();
-        // Дополнительно: если вдруг браузер пытается выйти, принудительно остаёмся
-        if (document.fullscreenElement !== fullscreenOverlay && fullscreenOverlay.classList.contains('active')) {
-          // Повторно запрашиваем полноэкранный режим, если он был потерян
-          if (fullscreenOverlay.requestFullscreen && !document.fullscreenElement) {
-            fullscreenOverlay.requestFullscreen().catch(() => {});
-          }
-        }
-      }
-    };
-    
-    // Добавляем обработчики на само окно и iframe
-    window.addEventListener('blur', preventExit);
-    
-    // Перехватываем любые попытки выхода через fullscreenchange
-    const fullscreenChangeHandler = () => {
-      if (isFullscreen && fullscreenBlockerActive && fullscreenOverlay.classList.contains('active')) {
-        // Если полноэкранный элемент не наш оверлей, но мы все еще хотим быть в fullscreen
-        if (document.fullscreenElement !== fullscreenOverlay && fullscreenOverlay.classList.contains('active')) {
-          // Возвращаемся в полноэкранный режим
-          if (fullscreenOverlay.requestFullscreen) {
-            fullscreenOverlay.requestFullscreen().catch(err => {
-              console.log('Не удалось восстановить полноэкранный режим:', err);
-            });
-          }
-        }
-      }
-    };
-    
-    document.addEventListener('fullscreenchange', fullscreenChangeHandler);
-    
-    // Сохраняем обработчики для последующего удаления
-    window._fullscreenPreventExit = preventExit;
-    window._fullscreenChangeHandler = fullscreenChangeHandler;
-    
-    // Обработчик escape
-    const customEscapeHandler = (event) => {
-      if (event.key === 'Escape' && isFullscreen && fullscreenBlockerActive) {
-        // Мы сами контролируем выход через кнопку, но браузерный escape тоже должен работать
-        // Но не даем ему выбросить нас при нажатии внутри input в iframe
-        if (event.target === document.body || event.target === fullscreenOverlay) {
-          exitFullscreen();
-        } else {
-          // Если событие пришло из iframe, игнорируем его, чтобы не вылететь
-          event.preventDefault();
-          event.stopPropagation();
-        }
-      }
-    };
-    
-    document.addEventListener('keydown', customEscapeHandler);
-    window._customEscapeHandler = customEscapeHandler;
-    
-    // Запрос полноэкранного режима
+    // Запрашиваем полноэкранный режим для оверлея
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
-        console.log(`Ошибка полноэкранного режима: ${err.message}`);
-        fullscreenBlockerActive = false;
+        console.log('Ошибка fullscreen:', err);
       });
     }
     
-    // Дополнительная защита: каждые 100 мс проверяем, не потеряли ли мы полноэкранный режим (только на время активации)
-    if (window._fullscreenInterval) clearInterval(window._fullscreenInterval);
-    window._fullscreenInterval = setInterval(() => {
-      if (isFullscreen && fullscreenBlockerActive && fullscreenOverlay.classList.contains('active')) {
-        if (document.fullscreenElement !== fullscreenOverlay) {
-          // Восстанавливаем полноэкранный режим, если он был сброшен (например, из-за диалога выбора файла)
-          if (fullscreenOverlay.requestFullscreen && !document.fullscreenElement) {
+    // Устанавливаем интервал для восстановления полноэкранного режима
+    // Это решает проблему выхода при клике на input file внутри iframe
+    if (fullscreenCheckInterval) clearInterval(fullscreenCheckInterval);
+    fullscreenCheckInterval = setInterval(() => {
+      // Если мы в полноэкранном режиме, но оверлей активен, а fullscreen сброшен - восстанавливаем
+      if (isFullscreen && fullscreenOverlay.classList.contains('active')) {
+        if (!document.fullscreenElement) {
+          // Потеряли полноэкранный режим (например из-за диалога выбора файла)
+          if (fullscreenOverlay.requestFullscreen) {
             fullscreenOverlay.requestFullscreen().catch(() => {});
           }
         }
       } else if (!isFullscreen) {
-        if (window._fullscreenInterval) clearInterval(window._fullscreenInterval);
+        // Если вышли из режима, очищаем интервал
+        if (fullscreenCheckInterval) {
+          clearInterval(fullscreenCheckInterval);
+          fullscreenCheckInterval = null;
+        }
       }
-    }, 200);
+    }, 300);
   }
 
   function exitFullscreen() {
-    // Отключаем блокировку выхода
-    fullscreenBlockerActive = false;
-    isFullscreen = false;
-    
-    // Очищаем интервал защиты
-    if (window._fullscreenInterval) {
-      clearInterval(window._fullscreenInterval);
-      window._fullscreenInterval = null;
-    }
-    
-    // Удаляем обработчики
-    if (window._fullscreenPreventExit) {
-      window.removeEventListener('blur', window._fullscreenPreventExit);
-      window._fullscreenPreventExit = null;
-    }
-    if (window._fullscreenChangeHandler) {
-      document.removeEventListener('fullscreenchange', window._fullscreenChangeHandler);
-      window._fullscreenChangeHandler = null;
-    }
-    if (window._customEscapeHandler) {
-      document.removeEventListener('keydown', window._customEscapeHandler);
-      window._customEscapeHandler = null;
-    }
-    
-    fullscreenOverlay.classList.remove('active');
-    fullscreenButton.textContent = 'Полный экран ⛶';
-    fullscreenButton.style.background = '';
-    
-    previewFrame.classList.add('active');
-    document.querySelector('.toolbar').style.display = 'flex';
-    
+    // Сначала выходим из полноэкранного режима браузера
     if (document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
+    
+    // Очищаем интервал восстановления
+    if (fullscreenCheckInterval) {
+      clearInterval(fullscreenCheckInterval);
+      fullscreenCheckInterval = null;
+    }
+    
+    // Скрываем оверлей
+    fullscreenOverlay.classList.remove('active');
+    isFullscreen = false;
+    fullscreenButton.textContent = 'Полный экран ⛶';
+    fullscreenButton.style.background = '';
+    
+    // Показываем обычный превью и тулбар
+    previewFrame.classList.add('active');
+    document.querySelector('.toolbar').style.display = 'flex';
   }
 
-  // Обработчик для глобального fullscreenchange (на случай, если браузер сам выходит)
+  // Следим за изменением полноэкранного режима (например, при нажатии Escape)
   document.addEventListener('fullscreenchange', function() {
-    if (!document.fullscreenElement && isFullscreen && fullscreenBlockerActive) {
-      // Если мы все еще в активном режиме, но fullscreen потерян, пытаемся восстановить
+    if (!document.fullscreenElement && isFullscreen) {
+      // Если полноэкранный режим был потерян не через нашу функцию exitFullscreen
+      // Но оверлей активен - значит нужно выйти корректно
       if (fullscreenOverlay.classList.contains('active')) {
-        setTimeout(() => {
-          if (isFullscreen && fullscreenBlockerActive && !document.fullscreenElement) {
-            fullscreenOverlay.requestFullscreen().catch(() => {});
-          }
-        }, 50);
-      } else {
-        // Если оверлей не активен, сбрасываем флаги
-        if (isFullscreen) {
-          isFullscreen = false;
-          fullscreenButton.textContent = 'Полный экран ⛶';
-          fullscreenButton.style.background = '';
+        // Очищаем интервал
+        if (fullscreenCheckInterval) {
+          clearInterval(fullscreenCheckInterval);
+          fullscreenCheckInterval = null;
         }
+        // Сбрасываем состояние
+        fullscreenOverlay.classList.remove('active');
+        isFullscreen = false;
+        fullscreenButton.textContent = 'Полный экран ⛶';
+        fullscreenButton.style.background = '';
+        previewFrame.classList.add('active');
+        document.querySelector('.toolbar').style.display = 'flex';
       }
     }
   });
@@ -667,34 +574,26 @@
 
   function findNext() {
     const term = searchInput.value;
-    if (!term) {
-      return;
-    }
+    if (!term) return;
 
     if (term !== lastSearch) {
       findAll(term);
       lastSearch = term;
     }
-    if (searchResults.length === 0) {
-      return;
-    }
+    if (searchResults.length === 0) return;
     currentResult = (currentResult + 1) % searchResults.length;
     highlightMatch();
   }
 
   function findPrev() {
     const term = searchInput.value;
-    if (!term) {
-      return;
-    }
+    if (!term) return;
 
     if (term !== lastSearch) {
       findAll(term);
       lastSearch = term;
     }
-    if (searchResults.length === 0) {
-      return;
-    }
+    if (searchResults.length === 0) return;
     currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
     highlightMatch();
   }
@@ -721,9 +620,6 @@
   });
 
   window.addEventListener('DOMContentLoaded', () => {
-    if (!window.File || !window.FileReader || !window.FileList || !window.Blob) {
-      console.log('File API не поддерживается');
-    }
     urlInput.value = '';
   });
 </script>
