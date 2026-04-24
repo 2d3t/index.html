@@ -19,6 +19,9 @@
       color: white;
       flex-wrap: wrap;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
     .toolbar input {
       padding: 5px;
@@ -159,6 +162,10 @@
     }
     .editor.hidden {
       display: none;
+    }
+    /* Дополнительный класс для плавного скролла */
+    html {
+      scroll-behavior: smooth;
     }
   </style>
 </head>
@@ -382,12 +389,14 @@
     previewFrame.classList.add("active");
     editorContainer.classList.add('hidden');
     document.querySelector('.editor').style.display = "none";
+    
+    // При переключении на просмотр прокручиваем вверх, чтобы сразу видеть iframe
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function showEditor() {
     if (isFullscreen) {
-      forceExitFullscreen();
+      forceExitFullscreenInternal();
     }
     
     previewFrame.classList.remove("active");
@@ -395,6 +404,16 @@
     setTimeout(() => {
       document.querySelector('.editor').style.display = "flex";
     }, 100);
+    
+    // Прокручиваем к редактору, чтобы он был сразу в поле зрения
+    setTimeout(() => {
+      const editorEl = document.getElementById('editorContainer');
+      if (editorEl) {
+        editorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // также гарантируем, что body прокрутится в начало
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 120);
   }
 
   function shareCode() {
@@ -448,6 +467,7 @@
     ];
     
     if (!supportedExtensions.includes(fileExtension)) {
+      alert('Неподдерживаемый формат файла. Пожалуйста, выберите текстовый файл с кодом.');
       event.target.value = '';
       return;
     }
@@ -489,6 +509,7 @@
     };
     
     reader.onerror = () => {
+      alert('Ошибка при чтении файла');
       event.target.value = '';
     };
     
@@ -498,11 +519,20 @@
   // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
     if (!previewFrame.classList.contains('active')) {
+      // Если не в режиме просмотра, сначала переключаемся на просмотр
+      if (!previewFrame.classList.contains('active')) {
+        runCode();
+        setTimeout(() => {
+          if (previewFrame.classList.contains('active')) {
+            enterFullscreenInternal();
+          }
+        }, 200);
+      }
       return;
     }
     
     if (isFullscreen) {
-      forceExitFullscreen();
+      forceExitFullscreenInternal();
     } else {
       enterFullscreenInternal();
     }
@@ -536,6 +566,7 @@
     if (fullscreenOverlay.requestFullscreen) {
       fullscreenOverlay.requestFullscreen().catch(err => {
         console.log(`Ошибка полноэкранного режима: ${err.message}`);
+        // Если не удалось войти в полноэкранный режим, всё равно показываем оверлей
       });
     }
     
@@ -543,8 +574,8 @@
     document.addEventListener('fullscreenchange', handleFullscreenChange);
   }
 
-  // ПРИНУДИТЕЛЬНЫЙ ВЫХОД ИЗ ПОЛНОЭКРАННОГО РЕЖИМА
-  function forceExitFullscreen() {
+  // ОСНОВНАЯ ФУНКЦИЯ ВЫХОДА ИЗ ПОЛНОЭКРАННОГО РЕЖИМА С ПРОКРУТКОЙ
+  function forceExitFullscreenInternal() {
     // 1. Выходим из браузерного полноэкранного режима
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(e => console.log);
@@ -558,13 +589,18 @@
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
     
-    // 4. Показываем нормальный интерфейс
-    previewFrame.classList.add('active');
+    // 4. Показываем нормальный интерфейс (редактор + панель)
     document.querySelector('.toolbar').style.display = 'flex';
     editorContainer.style.display = 'flex';
     editorContainer.classList.remove('hidden');
     
-    // 5. Обновляем контент preview
+    // 5. Убедимся, что preview активен, но не перекрывает редактор
+    previewFrame.classList.add('active');
+    // Возвращаем отображение редактора как flex
+    const editorFlex = document.querySelector('.editor');
+    if (editorFlex) editorFlex.style.display = 'flex';
+    
+    // 6. Обновляем контент preview
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode) || rawCode;
     const blob = new Blob([cleanHtml], { type: 'text/html' });
@@ -576,34 +612,54 @@
     previewFrame.src = newUrl;
     fullscreenFrame.src = newUrl;
     
-    // 6. Удаляем обработчики
+    // 7. Удаляем обработчики
     document.removeEventListener('keydown', handleEscapeKey);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     
-    // 7. Дополнительная страховка: если по какой-то причине оверлей ещё виден, скрываем его снова
+    // 8. КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: принудительная прокрутка в самый верх страницы
+    //    и скролл до редактора кода, чтобы интерфейс не уходил вниз
     setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      // Дополнительно подстраховка - прокручиваем к контейнеру редактора
+      const editorElem = document.getElementById('editorContainer');
+      if (editorElem) {
+        editorElem.scrollIntoView({ behavior: 'auto', block: 'start' });
+      }
+      // Убираем возможный оверфлоу
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
+    }, 10);
+    
+    // Дополнительная страховка через 30 мс
+    setTimeout(() => {
+      window.scrollTo(0, 0);
       if (fullscreenOverlay.classList.contains('active')) {
         fullscreenOverlay.classList.remove('active');
       }
       if (isFullscreen) {
         isFullscreen = false;
       }
-    }, 50);
+    }, 30);
+  }
+
+  // Публичная функция для вызова из кнопки (чтобы была доступна в onclick)
+  function forceExitFullscreen() {
+    forceExitFullscreenInternal();
   }
 
   function handleEscapeKey(event) {
     if (event.key === 'Escape' && isFullscreen) {
-      forceExitFullscreen();
+      forceExitFullscreenInternal();
     }
   }
   
   function handleFullscreenChange() {
+    // Если система вышла из полноэкранного режима, но наш внутренний флаг активен
     if (!document.fullscreenElement && isFullscreen && fullscreenOverlay.classList.contains('active')) {
-      setTimeout(() => {
-        if (isFullscreen && fullscreenOverlay.classList.contains('active') && !document.fullscreenElement) {
-          fullscreenOverlay.requestFullscreen().catch(e => console.log);
-        }
-      }, 200);
+      forceExitFullscreenInternal();
+    } else if (document.fullscreenElement && isFullscreen && !fullscreenOverlay.classList.contains('active')) {
+      // Синхронизация: если fullscreen активен но overlay скрыт
+      fullscreenOverlay.classList.add('active');
     }
   }
 
@@ -651,6 +707,7 @@
       lastSearch = term;
     }
     if (searchResults.length === 0) {
+      alert('Ничего не найдено');
       return;
     }
     currentResult = (currentResult + 1) % searchResults.length;
@@ -668,6 +725,7 @@
       lastSearch = term;
     }
     if (searchResults.length === 0) {
+      alert('Ничего не найдено');
       return;
     }
     currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
@@ -699,14 +757,17 @@
   // Привязываем кнопку принудительного выхода
   if (forceExitFullscreenBtn) {
     forceExitFullscreenBtn.onclick = function() {
-      forceExitFullscreen();
+      forceExitFullscreenInternal();
     };
   }
 
-  // Инициализация - чистый редактор
+  // Инициализация
   updateLineNumbers();
   textarea.value = '';
   updateLineNumbers();
+  
+  // Начальная прокрутка вверх на всякий случай
+  window.scrollTo(0, 0);
 </script>
 
 </body>
