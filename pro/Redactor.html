@@ -198,7 +198,7 @@
 <iframe class="preview" id="previewFrame"></iframe>
 
 <div class="fullscreen-overlay" id="fullscreenOverlay">
-  <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Выйти из полного экрана</button>
+  <button class="fullscreen-exit-btn" id="forceExitFullscreenBtn">✕ Выйти из полного экрана</button>
   <iframe id="fullscreenFrame" style="width:100%; height:100%; border:none;"></iframe>
 </div>
 
@@ -216,6 +216,7 @@
   const urlInput = document.getElementById('urlInput');
   const fetchButton = document.getElementById('fetchButton');
   const editorContainer = document.getElementById('editorContainer');
+  const forceExitFullscreenBtn = document.getElementById('forceExitFullscreenBtn');
 
   // ========== ПЕРЕМЕННЫЕ СОСТОЯНИЯ ==========
   let history = [];
@@ -386,7 +387,7 @@
 
   function showEditor() {
     if (isFullscreen) {
-      exitFullscreen();
+      forceExitFullscreen();
     }
     
     previewFrame.classList.remove("active");
@@ -501,7 +502,7 @@
     }
     
     if (isFullscreen) {
-      exitFullscreen();
+      forceExitFullscreen();
     } else {
       enterFullscreenInternal();
     }
@@ -542,27 +543,28 @@
     document.addEventListener('fullscreenchange', handleFullscreenChange);
   }
 
-  function exitFullscreen() {
-    if (!isFullscreen) return;
-    
-    // Принудительно выходим из полноэкранного режима браузера
+  // ПРИНУДИТЕЛЬНЫЙ ВЫХОД ИЗ ПОЛНОЭКРАННОГО РЕЖИМА
+  function forceExitFullscreen() {
+    // 1. Выходим из браузерного полноэкранного режима
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(e => console.log);
     }
     
-    // Обязательно скрываем оверлей и сбрасываем флаги
+    // 2. Скрываем оверлей
     fullscreenOverlay.classList.remove('active');
+    
+    // 3. Сбрасываем флаги
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
     
-    // Возвращаем интерфейс в обычное состояние
+    // 4. Показываем нормальный интерфейс
     previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
     editorContainer.style.display = 'flex';
     editorContainer.classList.remove('hidden');
     
-    // Обновляем контент preview на случай, если код изменился
+    // 5. Обновляем контент preview
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode) || rawCode;
     const blob = new Blob([cleanHtml], { type: 'text/html' });
@@ -574,13 +576,24 @@
     previewFrame.src = newUrl;
     fullscreenFrame.src = newUrl;
     
+    // 6. Удаляем обработчики
     document.removeEventListener('keydown', handleEscapeKey);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    
+    // 7. Дополнительная страховка: если по какой-то причине оверлей ещё виден, скрываем его снова
+    setTimeout(() => {
+      if (fullscreenOverlay.classList.contains('active')) {
+        fullscreenOverlay.classList.remove('active');
+      }
+      if (isFullscreen) {
+        isFullscreen = false;
+      }
+    }, 50);
   }
 
   function handleEscapeKey(event) {
     if (event.key === 'Escape' && isFullscreen) {
-      exitFullscreen();
+      forceExitFullscreen();
     }
   }
   
@@ -683,7 +696,14 @@
     }
   });
 
-  // Инициализация - чистый редактор, без информационных сообщений
+  // Привязываем кнопку принудительного выхода
+  if (forceExitFullscreenBtn) {
+    forceExitFullscreenBtn.onclick = function() {
+      forceExitFullscreen();
+    };
+  }
+
+  // Инициализация - чистый редактор
   updateLineNumbers();
   textarea.value = '';
   updateLineNumbers();
