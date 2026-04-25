@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Тренд-Анализатор PRO | Детектор всплесков + пробой</title>
+    <title>AI Тренд-Анализатор PRO | Детектор всплесков + позиция + голос</title>
     <style>
         * {
             box-sizing: border-box;
@@ -156,19 +156,47 @@
         }
         button:active { transform: scale(0.97); }
         .reset-btn { background: rgba(30,41,59,0.8); margin-top: 8px; }
+        .voice-btn { background: linear-gradient(95deg, #4f46e5, #7c3aed); margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .voice-btn:active { transform: scale(0.97); }
         footer { font-size: 0.6rem; text-align: center; color: #4b556b; margin-top: 20px; }
         .highlight { color: #facc15; font-weight: bold; }
+        .trend-stats {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .stat-chip {
+            background: #111827;
+            border-radius: 40px;
+            padding: 6px 12px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        .position-bar {
+            background: #1e293b;
+            border-radius: 20px;
+            height: 8px;
+            margin: 12px 0 8px;
+            overflow: hidden;
+        }
+        .position-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #facc15);
+            border-radius: 20px;
+        }
     </style>
 </head>
 <body>
 <div class="phone-card">
     <h1>⟳ TrendMind PRO</h1>
-    <div class="sub">детектор всплесков • анализ импульсных точек • прогноз пробоя</div>
+    <div class="sub">детектор всплесков • позиция на графике • пробой • 🎙️ голосовой вердикт (авто)</div>
 
     <div class="upload-zone" id="uploadZone">
         <div class="upload-icon">📈⚡📊</div>
         <div class="upload-text">Нажмите, загрузить скриншот графика</div>
-        <div class="file-info">PNG / JPG — автоанализ + отчёт о пиковых всплесках</div>
+        <div class="file-info">PNG / JPG — автоанализ + отчёт + МГНОВЕННАЯ ОЗВУЧКА</div>
         <input type="file" id="fileInput" accept="image/*" style="display: none;">
     </div>
 
@@ -184,18 +212,18 @@
         <div class="forecast" id="forecastText">⚡ ожидание данных</div>
         <div class="confidence" id="confidenceText">Уверенность: 0%</div>
         
-        <!-- ДЕТАЛИЗИРОВАННЫЙ ОТЧЁТ -->
         <div class="detail-report" id="detailReport">
             <strong>📋 Детальный анализ</strong><br>
             • Анализ пиковых точек появится после загрузки.
         </div>
         <div class="logic-note" id="logicDesc">
-            ✨ Алгоритм: тренд + анализ резких всплесков в последней трети для прогноза пробоя.
+            ✨ Алгоритм: тренд + всплески + позиция цены в диапазоне + голосовой вердикт.
         </div>
     </div>
 
+    <button id="voiceReportBtn" class="voice-btn">🎙️ Повторить ВЕРДИКТ</button>
     <button id="resetBtn" class="reset-btn">⟳ Выбрать другое изображение</button>
-    <footer>Умный детектор: если много всплесков вверх за последний отрезок → жди пробоя вверх</footer>
+    <footer>📍 Анализ позиции: где вы находитесь на графике (перекупленность/перепроданность) + автоматический голос</footer>
 </div>
 
 <script>
@@ -205,17 +233,61 @@
         const fileInput = document.getElementById('fileInput');
         const uploadZone = document.getElementById('uploadZone');
         const resetBtn = document.getElementById('resetBtn');
+        const voiceBtn = document.getElementById('voiceReportBtn');
         const trendLabelSpan = document.getElementById('trendLabel');
         const forecastTextSpan = document.getElementById('forecastText');
         const confidenceSpan = document.getElementById('confidenceText');
         const detailReportDiv = document.getElementById('detailReport');
-        const logicDescSpan = document.getElementById('logicDesc');
 
         let originalImage = null;
         let canvasWidth = 450, canvasHeight = 300;
+        let lastAnalysisResult = null;
+        let isSpeaking = false;
+
+        // --- ГОЛОСОВОЙ МОДУЛЬ с отменой конфликтов ---
+        function speakText(message, rate = 0.92, pitch = 1.0, autoQueue = true) {
+            if (!('speechSynthesis' in window)) return;
+            if (autoQueue) window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.lang = 'ru-RU';
+            utterance.rate = rate;
+            utterance.pitch = pitch;
+            utterance.volume = 1;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function welcomeVoice() {
+            setTimeout(() => {
+                speakText("Добро пожаловать в Тренд Майнд Про. Загрузите скриншот линии тренда интересующего вас актива. Анализ и голосовой вердикт будут автоматически.", 0.9);
+            }, 400);
+        }
+
+        // Мгновенная озвучка результата (автоматическая)
+        function autoVoiceVerdict() {
+            if (!lastAnalysisResult) return;
+            const res = lastAnalysisResult;
+            let verdict = `Анализ завершён. ${res.directionText}. ${res.forecastMessage}. Уверенность ${res.confidence} процентов. `;
+            verdict += `Позиция на графике: ${res.positionDescription}. `;
+            verdict += `Всплесков вверх: ${res.upSpikes}, вниз: ${res.downSpikes}. `;
+            if (res.spikeSignal.includes("пробоя вверх")) verdict += `Сильный сигнал пробоя вверх. `;
+            else if (res.spikeSignal.includes("пробоя вниз")) verdict += `Высокий риск пробоя вниз. `;
+            else verdict += `Всплески сбалансированы. `;
+            verdict += `Рекомендация: ${res.recommendation}.`;
+            speakText(verdict, 0.92);
+        }
+
+        // Повторная ручная озвучка
+        function repeatVoiceVerdict() {
+            if (!lastAnalysisResult) {
+                speakText("Анализ ещё не выполнен. Пожалуйста, загрузите изображение графика.");
+                return;
+            }
+            autoVoiceVerdict();
+        }
 
         function fullReset() {
             originalImage = null;
+            lastAnalysisResult = null;
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle = "#050a12";
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -226,7 +298,6 @@
             forecastTextSpan.innerText = '⚡ загрузите изображение';
             confidenceSpan.innerText = 'Уверенность: 0%';
             detailReportDiv.innerHTML = '<strong>📋 Детальный анализ</strong><br>• После загрузки появится статистика всплесков и сигнал пробоя.';
-            logicDescSpan.innerHTML = '✨ Алгоритм: тренд + анализ резких всплесков в последней трети для прогноза пробоя.';
         }
 
         function resizeCanvasToFitImage(img) {
@@ -249,15 +320,14 @@
                 const img = new Image();
                 img.onload = () => {
                     resizeCanvasToFitImage(img);
-                    runFullAnalysis();  // мгновенный полный анализ
-                    logicDescSpan.innerHTML = `✅ Анализ завершён. Учтены тренд + пиковые всплески.`;
+                    runFullAnalysis(); 
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
-        // ---------- ЯРКОСТЬ И ИЗВЛЕЧЕНИЕ ТОЧЕК ----------
+        // --- ВЫДЕЛЕНИЕ ТОЧЕК КРИВОЙ ---
         function getLuminance(r,g,b) { return 0.299*r + 0.587*g + 0.114*b; }
 
         function extractCurvePoints(imageData, width, height) {
@@ -273,7 +343,6 @@
                 if(bestY !== -1 && minLum < 155) points.push({x: x, y: bestY});
                 else points.push(null);
             }
-            // интерполяция пропусков
             for(let i=0; i<points.length; i++) {
                 if(points[i] === null) {
                     let left=i-1, right=i+1;
@@ -288,7 +357,6 @@
                     else points[i] = {x:i, y:height/2};
                 }
             }
-            // сглаживание окном 5
             let smoothed = [];
             for(let i=0; i<points.length; i++) {
                 let sumY=0, cnt=0;
@@ -301,50 +369,29 @@
             return smoothed;
         }
 
-        // ---------- НОВАЯ ФУНКЦИЯ: АНАЛИЗ ВСПЛЕСКОВ (ПИКОВЫХ ТОЧЕК) ----------
-        // Возвращает: { spikeUpCount, spikeDownCount, dominantSpike, spikeSignal, spikeIntensity }
+        // Анализ всплесков
         function analyzeSpikePattern(points, imgHeight) {
-            if(!points || points.length < 12) return { spikeUpCount:0, spikeDownCount:0, dominantSpike:'none', spikeSignal:'недостаточно данных', spikeIntensity:0 };
-            
+            if(!points || points.length < 12) return { spikeUpCount:0, spikeDownCount:0, dominantSpike:'none', spikeSignal:'недостаточно данных', spikeIntensity:0, avgUpMag:0, avgDownMag:0 };
             const n = points.length;
-            const lastThirdStart = Math.floor(n * 0.66); // последняя треть графика (ключевая зона)
-            
-            // выделяем последнюю треть
+            const lastThirdStart = Math.floor(n * 0.66);
             let recentPoints = points.slice(lastThirdStart);
             if(recentPoints.length < 6) recentPoints = points.slice(Math.max(0, n-20));
-            
-            // Определяем "всплески" — резкие изменения между соседними точками (по модулю dy)
-            // Нормализуем порог: всплеск если |dy| > 0.08 * высоты графика (амплитуда значительная)
-            const spikeThreshold = imgHeight * 0.065; // 6.5% от высоты — значительное движение
-            
-            let upSpikes = 0;
-            let downSpikes = 0;
-            let spikeMagnitudesUp = [];
-            let spikeMagnitudesDown = [];
-            
+            const spikeThreshold = imgHeight * 0.065;
+            let upSpikes = 0, downSpikes = 0;
+            let spikeMagnitudesUp = [], spikeMagnitudesDown = [];
             for(let i=1; i<recentPoints.length; i++) {
                 const dy = recentPoints[i].y - recentPoints[i-1].y;
                 const absDy = Math.abs(dy);
                 if(absDy > spikeThreshold) {
-                    if(dy < 0) {  // dy < 0 означает рост цены (так как y уменьшается)
-                        upSpikes++;
-                        spikeMagnitudesUp.push(absDy);
-                    } else {
-                        downSpikes++;
-                        spikeMagnitudesDown.push(absDy);
-                    }
+                    if(dy < 0) { upSpikes++; spikeMagnitudesUp.push(absDy); }
+                    else { downSpikes++; spikeMagnitudesDown.push(absDy); }
                 }
             }
-            
-            // Интенсивность всплесков (средняя величина)
             const avgUpMag = spikeMagnitudesUp.length ? spikeMagnitudesUp.reduce((a,b)=>a+b,0)/spikeMagnitudesUp.length : 0;
             const avgDownMag = spikeMagnitudesDown.length ? spikeMagnitudesDown.reduce((a,b)=>a+b,0)/spikeMagnitudesDown.length : 0;
-            
             let dominantSpike = 'neutral';
             let spikeSignal = 'нет явных всплесков';
             let spikeIntensity = 0;
-            
-            // Если разница в количестве всплесков значительная + магнитуда
             if(upSpikes > downSpikes + 1 || (upSpikes >= 2 && avgUpMag > avgDownMag*1.2)) {
                 dominantSpike = 'up';
                 spikeSignal = '🚀 МНОГО РЕЗКИХ ВСПЛЕСКОВ ВВЕРХ! Высокая вероятность пробоя вверх.';
@@ -360,76 +407,85 @@
                 spikeSignal = '🌀 Всплески сбалансированы — вероятно продолжение флета или ложные сигналы.';
                 spikeIntensity = 25;
             }
-            
-            return {
-                spikeUpCount: upSpikes,
-                spikeDownCount: downSpikes,
-                dominantSpike: dominantSpike,
-                spikeSignal: spikeSignal,
-                spikeIntensity: spikeIntensity,
-                avgUpMag: avgUpMag,
-                avgDownMag: avgDownMag
-            };
+            return { spikeUpCount: upSpikes, spikeDownCount: downSpikes, dominantSpike, spikeSignal, spikeIntensity, avgUpMag, avgDownMag };
         }
-        
-        // Анализ тренда (классический) + комбинируем с всплесками для итогового прогноза
-        function analyzeTrendFromPoints(points, imgHeight) {
+
+        // НОВОЕ: анализ позиции последней точки относительно всего диапазона (0% = низ, 100% = верх)
+        function analyzePosition(points, imgHeight) {
+            if(!points || points.length === 0) return { percent: 50, description: "неопределённая позиция", zone: "нейтральная" };
+            const lastY = points[points.length-1].y;
+            // поиск мин и макс по Y среди всех точек
+            let minY = Infinity, maxY = -Infinity;
+            for(let p of points) {
+                if(p.y < minY) minY = p.y;
+                if(p.y > maxY) maxY = p.y;
+            }
+            const range = maxY - minY;
+            if(range < 1) return { percent: 50, description: "диапазон слишком узок", zone: "нейтральная" };
+            let percent = ((lastY - minY) / range) * 100;
+            percent = Math.min(100, Math.max(0, percent));
+            let description = "", zone = "";
+            if(percent >= 80) { description = `цена в зоне перекупленности (${percent.toFixed(1)}% от минимума графика) — возможен откат вниз`; zone = "перекупленность"; }
+            else if(percent <= 20) { description = `цена в зоне перепроданности (${percent.toFixed(1)}% от минимума) — потенциал роста`; zone = "перепроданность"; }
+            else { description = `цена в средней зоне (${percent.toFixed(1)}% от диапазона) — нейтральная позиция без экстремумов`; zone = "нейтральная"; }
+            return { percent, description, zone, minY, maxY, lastY };
+        }
+
+        // Сегментный анализ тренда + ускорение
+        function analyzeTrendWithSegments(points, imgHeight) {
             if(!points || points.length < 5) return null;
             const n = points.length;
-            let slopes = [];
-            for(let i=1; i<n; i++) slopes.push(points[i].y - points[i-1].y);
-            const sorted = [...slopes].sort((a,b)=>a-b);
-            const medianSlope = sorted[Math.floor(sorted.length/2)];
-            const lastThird = Math.floor(n*0.66);
-            let recentSlopes = [];
-            for(let i=Math.max(1, lastThird); i<n; i++) recentSlopes.push(points[i].y - points[i-1].y);
-            let recentMean = recentSlopes.length ? recentSlopes.reduce((a,b)=>a+b,0)/recentSlopes.length : medianSlope;
-            const alpha = 0.6;
-            let effectiveSlope = alpha * medianSlope + (1-alpha) * recentMean;
-            const totalChange = points[n-1].y - points[0].y;
-            const totalRel = totalChange / imgHeight;
-            
+            const seg1 = points.slice(0, Math.floor(n*0.33));
+            const seg2 = points.slice(Math.floor(n*0.33), Math.floor(n*0.66));
+            const seg3 = points.slice(Math.floor(n*0.66));
+            const getSlope = (seg) => seg.length<2?0:(seg[seg.length-1].y - seg[0].y)/(seg[seg.length-1].x - seg[0].x);
+            const slopeSeg1 = getSlope(seg1);
+            const slopeSeg2 = getSlope(seg2);
+            const slopeSeg3 = getSlope(seg3);
+            const angleDeg = Math.atan2(Math.abs(slopeSeg3), 1) * (180 / Math.PI);
+            let trendStrength = 0;
+            const sign = (v) => v===0?0:(v<0?-1:1);
+            const s1 = sign(slopeSeg1), s2 = sign(slopeSeg2), s3 = sign(slopeSeg3);
+            if(s1 === s2 && s2 === s3 && s1 !==0) trendStrength = 85;
+            else if(s1 === s3 && s2 !==0) trendStrength = 65;
+            else if(s3 !==0 && (s1===s3 || s2===s3)) trendStrength = 50;
+            else trendStrength = 35;
+            const weightedSlope = (slopeSeg1*0.2 + slopeSeg2*0.3 + slopeSeg3*0.5);
             let baseDirection = 'SIDEWAYS';
             let displayDirection = '➡️ БОКОВОЙ (флет)';
-            if(Math.abs(effectiveSlope) < 1.0 && Math.abs(totalRel) < 0.04) {
-                displayDirection = '➡️ БОКОВОЙ (флет)';
+            const totalChange = points[n-1].y - points[0].y;
+            if(Math.abs(weightedSlope) < 1.2 && Math.abs(totalChange) < imgHeight*0.04) {
+                displayDirection = '➡️ БОКОВОЙ';
                 baseDirection = 'SIDEWAYS';
-            } else if(effectiveSlope < 0) {
+            } else if(weightedSlope < 0) {
                 displayDirection = '📈 ВВЕРХ (бычий)';
                 baseDirection = 'UP';
             } else {
                 displayDirection = '📉 ВНИЗ (медвежий)';
                 baseDirection = 'DOWN';
             }
-            
-            // уверенность
-            let slopeStd = 0;
-            if(slopes.length) {
-                const meanSlope = slopes.reduce((a,b)=>a+b,0)/slopes.length;
-                slopeStd = Math.sqrt(slopes.map(s=>Math.pow(s-meanSlope,2)).reduce((a,b)=>a+b,0)/slopes.length);
-            }
-            let consistency = 1 - Math.min(1, slopeStd / (Math.abs(effectiveSlope)+0.8));
-            let magnitudeConf = Math.min(0.9, Math.abs(effectiveSlope) / 4.0);
-            let confidence = Math.floor((consistency * 0.6 + magnitudeConf * 0.4) * 100);
-            confidence = Math.min(94, Math.max(20, confidence));
-            
+            let acceleration = slopeSeg3 - slopeSeg2;
+            let momentumDesc = (acceleration < -0.2) ? "ускорение роста" : (acceleration > 0.2) ? "ускорение падения" : "равномерное движение";
+            let confidence = Math.min(92, Math.max(35, Math.floor(trendStrength * 0.7 + (Math.abs(weightedSlope) * 5))));
             const lastPoint = points[n-1];
             const forecastSteps = 28;
-            let forecastY = lastPoint.y + effectiveSlope * forecastSteps;
+            let forecastY = lastPoint.y + weightedSlope * forecastSteps;
             forecastY = Math.min(imgHeight-5, Math.max(5, forecastY));
-            
             return {
                 direction: displayDirection,
                 baseDirection: baseDirection,
                 confidence: confidence,
-                rawSlope: effectiveSlope,
+                rawSlope: weightedSlope,
+                slopeSeg1, slopeSeg2, slopeSeg3,
+                angleDeg: Math.min(70, angleDeg),
+                trendStrength: trendStrength,
+                momentumDesc: momentumDesc,
                 forecastPoint: {x: lastPoint.x + forecastSteps, y: forecastY},
                 lastPoint: lastPoint,
                 allPoints: points
             };
         }
-        
-        // ---------- ОСНОВНОЙ АНАЛИЗ С ДЕТАЛЬНЫМ ОТЧЁТОМ ----------
+
         function runFullAnalysis() {
             if(!originalImage) return;
             const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
@@ -439,30 +495,30 @@
                 forecastTextSpan.innerText = "попробуйте контрастный скриншот";
                 confidenceSpan.innerText = "Уверенность: 0%";
                 detailReportDiv.innerHTML = '<strong>📋 Детальный анализ</strong><br>• Не удалось выделить линию графика. Загрузите чёткий скриншот.';
+                lastAnalysisResult = null;
                 return;
             }
             
-            // 1. Тренд
-            const trend = analyzeTrendFromPoints(points, canvasHeight);
+            const trend = analyzeTrendWithSegments(points, canvasHeight);
             if(!trend) return;
-            
-            // 2. Анализ пиковых всплесков (последняя треть)
             const spikeData = analyzeSpikePattern(points, canvasHeight);
+            const positionData = analyzePosition(points, canvasHeight);
             
-            // 3. КОМБИНИРОВАННЫЙ ПРОГНОЗ с учётом всплесков
             let finalForecastMsg = "";
             let finalDirectionText = trend.direction;
             let adjustedConfidence = trend.confidence;
+            let recommendation = "Следите за объёмами.";
             
-            // Логика: если доминирующие всплески вверх и тренд восходящий или боковой => усиленный сигнал вверх
             if(spikeData.dominantSpike === 'up') {
                 if(trend.baseDirection === 'UP' || trend.baseDirection === 'SIDEWAYS') {
                     finalForecastMsg = "🚀 СИГНАЛ ПРОБОЯ ВВЕРХ! Множество резких всплесков + тренд готов к рывку.";
                     finalDirectionText = "📈 ПРОБОЙ ВВЕРХ (бычий)";
                     adjustedConfidence = Math.min(96, trend.confidence + 15);
+                    recommendation = "Рассмотрите покупки на откатах.";
                 } else {
-                    finalForecastMsg = "⚠️ Всплески вверх, но основной тренд нисходящий — возможен ложный пробой или разворот.";
+                    finalForecastMsg = "⚠️ Всплески вверх, но тренд нисходящий — возможен ложный пробой.";
                     adjustedConfidence = trend.confidence + 5;
+                    recommendation = "Ждите подтверждения разворота.";
                 }
             } 
             else if(spikeData.dominantSpike === 'down') {
@@ -470,62 +526,82 @@
                     finalForecastMsg = "🔻 СИГНАЛ ПРОБОЯ ВНИЗ! Резкие импульсы вниз усиливают медвежий сценарий.";
                     finalDirectionText = "📉 ПРОБОЙ ВНИЗ (медвежий)";
                     adjustedConfidence = Math.min(96, trend.confidence + 15);
+                    recommendation = "Фиксация длинных, короткие приоритетны.";
                 } else {
-                    finalForecastMsg = "⚠️ Всплески вниз, но тренд восходящий — возможна коррекция, но пробой под вопросом.";
+                    finalForecastMsg = "⚠️ Всплески вниз, но тренд восходящий — возможна коррекция.";
                     adjustedConfidence = trend.confidence + 3;
+                    recommendation = "Аккуратно, возможна коррекция.";
                 }
             }
             else {
-                // нейтральные всплески
-                if(trend.baseDirection === 'UP') finalForecastMsg = "📈 Тренд восходящий, всплески сбалансированы — движение продолжится без резких пробоев.";
-                else if(trend.baseDirection === 'DOWN') finalForecastMsg = "📉 Тренд нисходящий, без доминантных всплесков — плавное снижение.";
-                else finalForecastMsg = "➡️ Флет, всплески отсутствуют — вероятно консолидация.";
+                if(trend.baseDirection === 'UP') finalForecastMsg = "📈 Тренд восходящий, всплески сбалансированы.";
+                else if(trend.baseDirection === 'DOWN') finalForecastMsg = "📉 Тренд нисходящий, плавное снижение.";
+                else finalForecastMsg = "➡️ Флет, всплески отсутствуют — вероятна консолидация.";
                 adjustedConfidence = trend.confidence;
+                recommendation = "Рынок неопределённый, используйте стоп-лоссы.";
             }
             
-            // Финальное обновление UI
+            // Дополнительная корректировка прогноза от позиции (перекупленность/перепроданность)
+            let positionNote = "";
+            if(positionData.zone === "перекупленность" && trend.baseDirection === "UP") {
+                positionNote = "⚠️ Цена в перекупленности, возможен откат несмотря на восходящий тренд.";
+                recommendation += " Не гонитесь за покупками на вершине.";
+            } else if(positionData.zone === "перепроданность" && trend.baseDirection === "DOWN") {
+                positionNote = "💡 Цена в перепроданности, даже при нисходящем тренде возможен отскок.";
+                recommendation += " Риск шорт-позиций повышен.";
+            } else if(positionData.zone === "перепроданность") {
+                positionNote = "📊 Зона перепроданности — потенциал роста.";
+            } else if(positionData.zone === "перекупленность") {
+                positionNote = "📊 Зона перекупленности — риск коррекции.";
+            }
+            
             trendLabelSpan.innerText = finalDirectionText;
             forecastTextSpan.innerText = finalForecastMsg;
             confidenceSpan.innerText = `Уверенность: ${adjustedConfidence}%`;
             
-            // ДЕТАЛИЗИРОВАННЫЙ ОТЧЁТ
-            const upSpikeCount = spikeData.spikeUpCount;
-            const downSpikeCount = spikeData.spikeDownCount;
-            const avgUp = spikeData.avgUpMag ? spikeData.avgUpMag.toFixed(1) : 0;
-            const avgDown = spikeData.avgDownMag ? spikeData.avgDownMag.toFixed(1) : 0;
-            
-            let spikeAnalysisHtml = `
-                <strong>📊 Анализ пиковых всплесков (последняя треть графика)</strong><br>
-                <span class="spike-badge">📈 Всплески вверх: ${upSpikeCount}</span>
-                <span class="spike-badge">📉 Всплески вниз: ${downSpikeCount}</span><br>
-                <span>🔹 Средняя амплитуда вверх: ${avgUp} px | вниз: ${avgDown} px</span><br>
-                <span>⚡ Вывод: ${spikeData.spikeSignal}</span><br>
-                <span>🎯 Интенсивность импульса: ${Math.floor(spikeData.spikeIntensity)}%</span>
+            const detailHtml = `
+                <strong>📊 Расширенный анализ + позиция на графике</strong>
+                <div class="position-bar"><div class="position-fill" style="width: ${positionData.percent}%;"></div></div>
+                <div><strong>📍 Текущая позиция:</strong> ${positionData.description}</div>
+                ${positionNote ? `<div class="highlight">${positionNote}</div>` : ""}
+                <div class="trend-stats">
+                    <span class="stat-chip">📐 Угол: ${trend.angleDeg.toFixed(1)}°</span>
+                    <span class="stat-chip">⚡ Сила: ${trend.trendStrength}%</span>
+                    <span class="stat-chip">🚀 ${trend.momentumDesc}</span>
+                </div>
+                <span>📈 Сегменты: ${trend.slopeSeg1.toFixed(1)} | ${trend.slopeSeg2.toFixed(1)} | ${trend.slopeSeg3.toFixed(1)} (отриц. = рост)</span><br>
+                <strong>📊 Пиковые всплески:</strong> ↑ ${spikeData.spikeUpCount} / ↓ ${spikeData.spikeDownCount}<br>
+                <span>⚡ ${spikeData.spikeSignal}</span><br>
+                <strong>🧠 Прогноз:</strong> ${finalForecastMsg}<br>
+                <strong>💡 Рекомендация:</strong> ${recommendation}
             `;
+            detailReportDiv.innerHTML = detailHtml;
             
-            const trendSlopeFormatted = trend.rawSlope.toFixed(2);
-            const totalMove = (points[points.length-1].y - points[0].y).toFixed(1);
+            // Сохраняем для голоса
+            lastAnalysisResult = {
+                directionText: finalDirectionText,
+                forecastMessage: finalForecastMsg,
+                confidence: adjustedConfidence,
+                upSpikes: spikeData.spikeUpCount,
+                downSpikes: spikeData.spikeDownCount,
+                spikeSignal: spikeData.spikeSignal,
+                recommendation: recommendation,
+                positionDescription: positionData.description,
+                zone: positionData.zone,
+                angle: trend.angleDeg
+            };
             
-            detailReportDiv.innerHTML = `
-                <strong>📋 Детальный отчёт</strong><br>
-                • Угол наклона линии: ${trendSlopeFormatted} px/шаг (отрицательный = рост цены)<br>
-                • Общее изменение за график: ${totalMove} пикселей<br>
-                ${spikeAnalysisHtml}<br>
-                <strong>🧠 Комбинированный прогноз:</strong> ${finalForecastMsg}
-            `;
+            drawAdvancedOverlay(trend, spikeData, canvasWidth, canvasHeight, positionData);
             
-            // отрисовка линий
-            drawAdvancedOverlay(trend, spikeData, canvasWidth, canvasHeight);
+            // АВТОМАТИЧЕСКАЯ МГНОВЕННАЯ ОЗВУЧКА
+            setTimeout(() => { autoVoiceVerdict(); }, 100);
         }
         
-        // Отрисовка с дополнительной информацией о всплесках
-        function drawAdvancedOverlay(trend, spikeData, w, h) {
+        function drawAdvancedOverlay(trend, spikeData, w, h, positionData) {
             if(!trend || !trend.allPoints || !originalImage) return;
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.drawImage(originalImage, 0, 0, canvasWidth, canvasHeight);
-            
             const pts = trend.allPoints;
-            // основная линия (голубая)
             ctx.beginPath();
             ctx.lineWidth = 2.8;
             ctx.strokeStyle = '#3b82f6';
@@ -534,42 +610,32 @@
                 else ctx.lineTo(pts[i].x, pts[i].y);
             }
             ctx.stroke();
-            
-            // выделим зону последней трети (прямоугольник)
             const lastThirdStartX = pts[Math.floor(pts.length * 0.66)].x;
             ctx.globalAlpha = 0.2;
             ctx.fillStyle = '#facc15';
             ctx.fillRect(lastThirdStartX, 0, canvasWidth - lastThirdStartX, canvasHeight);
             ctx.globalAlpha = 1;
-            
-            // отрисовка трендовой линии (оранжевая)
-            if(pts.length) {
-                const startPoint = pts[0];
-                const endTrendX = trend.lastPoint.x;
-                const slope = trend.rawSlope;
-                const trendEndY = startPoint.y + slope * (endTrendX - startPoint.x);
-                ctx.beginPath();
-                ctx.moveTo(startPoint.x, startPoint.y);
-                ctx.lineTo(endTrendX, trendEndY);
-                ctx.strokeStyle = '#f97316';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([8,6]);
-                ctx.stroke();
-                
-                // прогноз
-                const forecastEndX = trend.forecastPoint.x;
-                const forecastEndY = startPoint.y + slope * (forecastEndX - startPoint.x);
-                ctx.beginPath();
-                ctx.moveTo(endTrendX, trendEndY);
-                ctx.lineTo(forecastEndX, forecastEndY);
-                ctx.strokeStyle = '#facc15';
-                ctx.lineWidth = 3.2;
-                ctx.stroke();
-                drawArrow(ctx, forecastEndX, forecastEndY, slope);
-                ctx.setLineDash([]);
-            }
-            
-            // маркеры всплесков (красные точки для сильных движений)
+            const startPoint = pts[0];
+            const endTrendX = trend.lastPoint.x;
+            const slope = trend.rawSlope;
+            const trendEndY = startPoint.y + slope * (endTrendX - startPoint.x);
+            ctx.beginPath();
+            ctx.moveTo(startPoint.x, startPoint.y);
+            ctx.lineTo(endTrendX, trendEndY);
+            ctx.strokeStyle = '#f97316';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8,6]);
+            ctx.stroke();
+            const forecastEndX = trend.forecastPoint.x;
+            const forecastEndY = startPoint.y + slope * (forecastEndX - startPoint.x);
+            ctx.beginPath();
+            ctx.moveTo(endTrendX, trendEndY);
+            ctx.lineTo(forecastEndX, forecastEndY);
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 3.2;
+            ctx.stroke();
+            drawArrow(ctx, forecastEndX, forecastEndY, slope);
+            ctx.setLineDash([]);
             if(spikeData && pts.length) {
                 const threshold = canvasHeight * 0.065;
                 const lastThirdStartIdx = Math.floor(pts.length * 0.66);
@@ -580,11 +646,17 @@
                         ctx.arc(pts[i].x, pts[i].y, 5, 0, 2*Math.PI);
                         ctx.fillStyle = (pts[i].y < pts[i-1].y) ? '#2dd4bf' : '#f97316';
                         ctx.fill();
-                        ctx.shadowBlur = 4;
-                        ctx.shadowColor = 'white';
                     }
                 }
-                ctx.shadowBlur = 0;
+            }
+            if(positionData && positionData.lastY) {
+                ctx.beginPath();
+                ctx.arc(pts[pts.length-1].x, pts[pts.length-1].y, 8, 0, 2*Math.PI);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = "#facc15aa";
+                ctx.fill();
             }
         }
         
@@ -601,11 +673,13 @@
             ctx.fill();
         }
         
-        // События
         uploadZone.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleImageUpload(e.target.files[0]); });
         resetBtn.addEventListener('click', () => { fullReset(); fileInput.value = ''; fileInput.click(); });
+        voiceBtn.addEventListener('click', () => repeatVoiceVerdict());
+        
         fullReset();
+        welcomeVoice();
     })();
 </script>
 </body>
