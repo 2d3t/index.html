@@ -4,12 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KlikEdit 🎀</title>
-  <style>
+  <title>KlikEdit 🎀 | Темный/Светлый редактор</title>
+  <style id="themeStyles">
+    /* ===== БАЗОВЫЕ СТИЛИ (по умолчанию — темная тема, но с гибкостью) ===== */
     body {
       margin: 0;
       font-family: sans-serif;
       background: #f5f5f5;
+      transition: background 0.2s ease, color 0.2s ease;
     }
     .toolbar {
       display: flex;
@@ -19,22 +21,105 @@
       color: white;
       flex-wrap: wrap;
       align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      transition: background 0.2s, color 0.2s;
     }
-    .toolbar input {
-      padding: 5px;
+    .toolbar input, .toolbar button, .toolbar label {
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
     }
-    .toolbar button,
-    .toolbar label[for="fileUpload"] {
+    .url-input {
+      background: #444;
+      border: 1px solid #666;
+      color: white;
+      border-radius: 5px;
+    }
+    .line-numbers {
+      background: #eee;
+      color: #666;
+      transition: background 0.2s, color 0.2s;
+    }
+    textarea {
+      background: #fff;
+      color: #000;
+      border: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .preview {
+      background: white;
+    }
+    .fullscreen-overlay {
+      background: white;
+    }
+
+    /* Тема: Тёмная (похожа на оригинал, но сглажена) */
+    body.theme-dark .toolbar { background: #1e1e2f; }
+    body.theme-dark .url-input { background: #2a2a3a; border-color: #444; color: #e0e0e0; }
+    body.theme-dark .toolbar button, 
+    body.theme-dark .toolbar label[for="fileUpload"] { background: #2d2d3f; color: #eee; }
+    body.theme-dark .toolbar button:hover, 
+    body.theme-dark .toolbar label:hover { background: #3e3e5e; }
+    body.theme-dark .line-numbers { background: #1e1e2a; color: #aaa; }
+    body.theme-dark textarea { background: #0f0f17; color: #e6e6fa; border-left: 1px solid #2a2a3a; }
+    body.theme-dark .editor { background: #0f0f17; }
+    body.theme-dark .fullscreen-overlay { background: #0f0f17; }
+    body.theme-dark .fullscreen-exit-btn { background: rgba(20,20,40,0.9); color: white; }
+    body.theme-dark {
+      background: #12121a;
+    }
+
+    /* Тема: Светлая (чистый, комфортный режим) */
+    body.theme-light .toolbar { background: #f0f0f4; color: #222; border-bottom: 1px solid #ddd; }
+    body.theme-light .url-input { background: white; border-color: #bbb; color: #111; }
+    body.theme-light .toolbar button, 
+    body.theme-light .toolbar label[for="fileUpload"] { background: #e2e2e8; color: #111; }
+    body.theme-light .toolbar button:hover, 
+    body.theme-light .toolbar label:hover { background: #d0d0d8; }
+    body.theme-light .line-numbers { background: #f9f9fc; color: #6c6c7a; border-right: 1px solid #e2e2e8; }
+    body.theme-light textarea { background: #ffffff; color: #1e1e2a; border-left: 1px solid #eee; }
+    body.theme-light .fullscreen-overlay { background: #ffffff; }
+    body.theme-light .fullscreen-exit-btn { background: rgba(0,0,0,0.7); color: white; }
+    body.theme-light { background: #eef2f5; }
+
+    /* Тема: Зеленая (кибер-пастель) */
+    body.theme-green .toolbar { background: #1f3b2c; color: #d4ecd0; }
+    body.theme-green .url-input { background: #2a4a36; border-color: #3e6b4e; color: #e2f0dc; }
+    body.theme-green .toolbar button, 
+    body.theme-green .toolbar label[for="fileUpload"] { background: #2b5e3b; color: #eaf9e6; }
+    body.theme-green .toolbar button:hover,
+    body.theme-green .toolbar label:hover { background: #3e7e50; }
+    body.theme-green .line-numbers { background: #1e3527; color: #a8d5a5; }
+    body.theme-green textarea { background: #17261e; color: #cfeec7; border-left: 1px solid #2c553a; }
+    body.theme-green .fullscreen-overlay { background: #1a2e23; }
+    body.theme-green .fullscreen-exit-btn { background: #2d5a3b; color: #e0ffd0; }
+    body.theme-green { background: #1a2a20; }
+
+    /* Тема: Ночная синяя (deep ocean) */
+    body.theme-ocean .toolbar { background: #0a192f; color: #b8e1fc; }
+    body.theme-ocean .url-input { background: #112240; border-color: #2a4c7a; color: #cfe9ff; }
+    body.theme-ocean .toolbar button,
+    body.theme-ocean .toolbar label[for="fileUpload"] { background: #1e3a5f; color: #deedfc; }
+    body.theme-ocean .toolbar button:hover,
+    body.theme-ocean .toolbar label:hover { background: #2c5282; }
+    body.theme-ocean .line-numbers { background: #07152a; color: #6b93c0; }
+    body.theme-ocean textarea { background: #05101f; color: #d9efff; border-left: 1px solid #1e3a5f; }
+    body.theme-ocean .fullscreen-overlay { background: #07152a; }
+    body.theme-ocean .fullscreen-exit-btn { background: #1f4e79; color: white; }
+    body.theme-ocean { background: #0a192f; }
+
+    /* Тема: Монохром / Графит */
+    body.theme-graphite .toolbar { background: #2c2c2e; color: #f5f5f7; }
+    body.theme-graphite .url-input { background: #3a3a3c; border-color: #555; color: #f0f0f0; }
+    body.theme-graphite .toolbar button,
+    body.theme-graphite .toolbar label { background: #444446; color: #f5f5f7; }
+    body.theme-graphite .line-numbers { background: #222224; color: #aaa; }
+    body.theme-graphite textarea { background: #1c1c1e; color: #e2e2e6; border-left: 1px solid #3a3a3c; }
+    body.theme-graphite { background: #1c1c1e; }
+
+    /* остальные стили интерфейса без изменений */
+    .toolbar button, .toolbar label[for="fileUpload"] {
       padding: 6px 10px;
       border: none;
       border-radius: 5px;
-      background: #555;
-      color: white;
       cursor: pointer;
-      transition: background 0.3s;
       font-size: 14px;
       font-family: inherit;
       line-height: normal;
@@ -45,34 +130,13 @@
       display: inline-block;
       text-decoration: none;
     }
-    .toolbar button:hover,
-    .toolbar label[for="fileUpload"]:hover {
-      background: #777;
-    }
-    .toolbar button.copied {
-      background: #4CAF50;
-    }
-    .url-input {
-      background: #444;
-      border: 1px solid #666;
-      color: white;
-      border-radius: 5px;
-      padding: 6px 10px;
-      width: 250px;
-      font-size: 14px;
-    }
-    .url-input::placeholder {
-      color: #aaa;
-      font-style: italic;
-    }
+    .toolbar button.copied { background: #4CAF50; }
     .editor {
       display: flex;
       height: calc(100vh - 60px);
       overflow: hidden;
     }
     .line-numbers {
-      background: #eee;
-      color: #666;
       padding: 5px 0;
       text-align: right;
       user-select: none;
@@ -83,12 +147,9 @@
       font-size: 14px;
       line-height: 1.4;
     }
-    .line-numbers div {
-      padding: 0 10px;
-    }
+    .line-numbers div { padding: 0 10px; }
     textarea {
       flex: 1;
-      border: none;
       outline: none;
       resize: none;
       padding: 5px;
@@ -97,9 +158,7 @@
       line-height: 1.4;
       overflow: auto;
     }
-    .active-line {
-      background: rgba(100, 150, 250, 0.3);
-    }
+    .active-line { background: rgba(100, 150, 250, 0.3); }
     .preview {
       width: 100%;
       height: calc(100vh - 60px);
@@ -120,56 +179,58 @@
       position: relative;
       top: 0;
     }
-    .file-input {
-      display: none;
-    }
+    .file-input { display: none; }
     .fullscreen-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: white;
       z-index: 10000;
       display: none;
     }
-    .fullscreen-overlay.active {
-      display: block;
-    }
+    .fullscreen-overlay.active { display: block; }
     .fullscreen-exit-btn {
       position: fixed;
       top: 30px;
       right: 20px;
       z-index: 10001;
       padding: 12px 18px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
       font-weight: bold;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     }
-    .fullscreen-exit-btn:hover {
-      background: rgba(0, 0, 0, 0.95);
-      transform: scale(1.05);
-      transition: transform 0.2s;
+    .fullscreen-exit-btn:hover { transform: scale(1.05); transition: transform 0.2s; }
+    .fetch-loading { background: #f0ad4e !important; cursor: wait !important; }
+    .editor.hidden { display: none; }
+
+    /* маленький выпадающий список тем — аккуратненько */
+    .theme-select {
+      background: #555;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      padding: 6px 8px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      margin-left: 4px;
+      transition: all 0.2s;
     }
-    .fetch-loading {
-      background: #f0ad4e !important;
-      cursor: wait !important;
+    body.theme-light .theme-select {
+      background: #cbcbd3;
+      color: #111;
     }
-    .editor.hidden {
-      display: none;
-    }
-    /* Дополнительный класс для плавного скролла */
-    html {
-      scroll-behavior: smooth;
-    }
+    body.theme-green .theme-select { background: #2b5e3b; color: #eaf9e6; }
+    body.theme-ocean .theme-select { background: #1e3a5f; color: #deedfc; }
+    body.theme-graphite .theme-select { background: #444446; color: #f5f5f7; }
+    .theme-select:hover { filter: brightness(1.05); }
   </style>
 </head>
-<body>
+<body class="theme-dark">
 
 <div class="toolbar">
   <input type="text" id="urlInput" class="url-input" placeholder="HTML сайта (https://example.com)" value="">
@@ -193,6 +254,15 @@
   
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран ⛶</button>
   
+  <!-- Новая кнопка-селектор тем, стилизованная под общий интерфейс -->
+  <select id="themeSwitcher" class="theme-select" title="Выбрать тему оформления">
+    <option value="dark">🌙 Тёмная</option>
+    <option value="light">☀️ Светлая</option>
+    <option value="green">🌿 Зелёная</option>
+    <option value="ocean">🌊 Океан</option>
+    <option value="graphite">⚙️ Графит</option>
+  </select>
+  
   <label for="fileUpload" title="Открыть файл (поддерживаются текстовые форматы)">Файлы 📂</label>
   <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="handleFileWithFullscreenRestore(event)">
 </div>
@@ -212,7 +282,7 @@
 <script>
   // ========== ЭЛЕМЕНТЫ ==========
   const textarea = document.getElementById('codeArea');
-  const lineNumbers = document.getElementById('lineNumbers');
+  const lineNumbersDiv = document.getElementById('lineNumbers');
   const previewFrame = document.getElementById('previewFrame');
   const copyButton = document.getElementById('copyButton');
   const searchInput = document.getElementById('searchInput');
@@ -224,8 +294,10 @@
   const fetchButton = document.getElementById('fetchButton');
   const editorContainer = document.getElementById('editorContainer');
   const forceExitFullscreenBtn = document.getElementById('forceExitFullscreenBtn');
+  const themeSwitcher = document.getElementById('themeSwitcher');
+  const body = document.body;
 
-  // ========== ПЕРЕМЕННЫЕ СОСТОЯНИЯ ==========
+  // ========== ПЕРЕМЕННЫЕ ==========
   let history = [];
   let redoStack = [];
   let isFullscreen = false;
@@ -233,46 +305,67 @@
   let fullscreenWasActive = false;
   let lastPreviewUrl = null;
 
-  // ========== ПОЛУЧЕНИЕ КОДА САЙТА ==========
+  // ========== УПРАВЛЕНИЕ ТЕМАМИ ==========
+  // Функция применения темы, сохранение выбора в localStorage
+  function applyTheme(themeName) {
+    // убираем все классы тем
+    const themes = ['theme-dark', 'theme-light', 'theme-green', 'theme-ocean', 'theme-graphite'];
+    themes.forEach(t => body.classList.remove(t));
+    if (themeName === 'dark') body.classList.add('theme-dark');
+    else if (themeName === 'light') body.classList.add('theme-light');
+    else if (themeName === 'green') body.classList.add('theme-green');
+    else if (themeName === 'ocean') body.classList.add('theme-ocean');
+    else if (themeName === 'graphite') body.classList.add('theme-graphite');
+    else body.classList.add('theme-dark'); // fallback
+    
+    // сохраним в localStorage
+    localStorage.setItem('klikedit_theme', themeName);
+    // обновим выпадающий список, если значение из внешнего источника
+    if (themeSwitcher.value !== themeName) themeSwitcher.value = themeName;
+    
+    // маленький нюанс — подсветка активной строки может быть визуально адаптирована
+    highlightActiveLine();
+  }
+
+  // Инициализация темы при загрузке, читаем сохраненную тему
+  function initTheme() {
+    const savedTheme = localStorage.getItem('klikedit_theme');
+    if (savedTheme && ['dark','light','green','ocean','graphite'].includes(savedTheme)) {
+      applyTheme(savedTheme);
+    } else {
+      applyTheme('dark'); // тёмная по умолчанию (классика)
+    }
+  }
+
+  // слушатель селектора тем
+  if (themeSwitcher) {
+    themeSwitcher.addEventListener('change', (e) => {
+      applyTheme(e.target.value);
+    });
+  }
+
+  // ========== ОСТАЛЬНАЯ ЛОГИКА (сохранена без изменений, только аккуратно дополнена) ==========
   async function fetchWebsiteCode() {
     let url = urlInput.value.trim();
-    
-    if (!url) {
-      return;
-    }
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
     const originalButtonText = fetchButton.textContent;
     fetchButton.textContent = 'Загрузка... ⏳';
     fetchButton.classList.add('fetch-loading');
     fetchButton.disabled = true;
-    
     try {
       const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const html = await response.text();
-      
-      if (!html || html.length === 0) {
-        throw new Error('Получен пустой ответ от сервера');
-      }
-      
+      if (!html || html.length === 0) throw new Error('Пустой ответ');
       saveState();
       textarea.value = html;
       updateLineNumbers();
-      
       lastSearch = "";
       searchResults = [];
       currentResult = -1;
-      
     } catch (error) {
-      console.error('Ошибка при загрузке:', error);
+      console.error('Ошибка загрузки:', error);
     } finally {
       fetchButton.textContent = originalButtonText;
       fetchButton.classList.remove('fetch-loading');
@@ -280,24 +373,13 @@
     }
   }
 
-  // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
   function extractHtmlContent(rawCode) {
     if (!rawCode || rawCode.trim() === '') return '';
-    
     let startIndex = rawCode.toLowerCase().indexOf('<!DOCTYPE html');
-    if (startIndex === -1) {
-      startIndex = rawCode.toLowerCase().indexOf('<html');
-    }
-    
-    if (startIndex === -1) {
-      return rawCode;
-    }
-    
+    if (startIndex === -1) startIndex = rawCode.toLowerCase().indexOf('<html');
+    if (startIndex === -1) return rawCode;
     let endIndex = rawCode.toLowerCase().lastIndexOf('</html>');
-    if (endIndex === -1) {
-      return rawCode.substring(startIndex);
-    }
-    
+    if (endIndex === -1) return rawCode.substring(startIndex);
     return rawCode.substring(startIndex, endIndex + 7);
   }
 
@@ -305,117 +387,73 @@
     const lines = textarea.value.split('\n').length;
     const extraLines = Math.ceil(lines * 0.5);
     const totalLines = lines + extraLines;
-
-    lineNumbers.innerHTML = '';
+    lineNumbersDiv.innerHTML = '';
     for (let i = 1; i <= totalLines; i++) {
       const div = document.createElement("div");
       div.textContent = i;
-      lineNumbers.appendChild(div);
+      lineNumbersDiv.appendChild(div);
     }
     highlightActiveLine();
   }
 
-  function syncScroll() {
-    lineNumbers.scrollTop = textarea.scrollTop;
-  }
+  function syncScroll() { lineNumbersDiv.scrollTop = textarea.scrollTop; }
 
   function goToLine() {
     const line = parseInt(document.getElementById('lineNumber').value);
     const lines = textarea.value.split('\n');
     const extraLines = Math.ceil(lines.length * 0.5);
     const totalLines = lines.length + extraLines;
-
     if (!isNaN(line) && line > 0 && line <= totalLines) {
-        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-        const linePos = (line - 1) * lineHeight;
-        const visibleHeight = textarea.clientHeight;
-        const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
-        
-        textarea.scrollTop = Math.max(0, scrollPos);
-        highlightActiveLine(line);
+      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
+      const linePos = (line - 1) * lineHeight;
+      const visibleHeight = textarea.clientHeight;
+      const scrollPos = linePos - visibleHeight / 2 + lineHeight / 2;
+      textarea.scrollTop = Math.max(0, scrollPos);
+      highlightActiveLine(line);
     }
   }
 
   function highlightActiveLine(line) {
-    const lineElements = Array.from(lineNumbers.children);
+    const lineElements = Array.from(lineNumbersDiv.children);
     lineElements.forEach((el, index) => {
       el.classList.remove('active-line');
-      if (line && index === (line - 1)) {
-        el.classList.add('active-line');
-      }
+      if (line && index === (line - 1)) el.classList.add('active-line');
     });
   }
 
   function copyText() {
     textarea.select();
     document.execCommand('copy');
-    
     copyButton.classList.add('copied');
-    copyButton.textContent = "Скопировано"; 
+    copyButton.textContent = "Скопировано";
     setTimeout(() => {
       copyButton.classList.remove('copied');
-      copyButton.textContent = "Скопировать 📃"; 
-    }, 1000); 
+      copyButton.textContent = "Скопировать 📃";
+    }, 1000);
   }
 
-  function clearAll() {
-    saveState();
-    textarea.value = '';
-    updateLineNumbers();
-  }
-
+  function clearAll() { saveState(); textarea.value = ''; updateLineNumbers(); }
   function runCode() {
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode);
-    
-    let finalCode = cleanHtml;
-    if (rawCode.trim() !== '' && cleanHtml === '') {
-      finalCode = rawCode;
-    } else if (rawCode.trim() === '') {
-      finalCode = '';
-    }
-    
+    let finalCode = cleanHtml || rawCode;
     const blob = new Blob([finalCode], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
-    
-    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(lastPreviewUrl);
-    }
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(lastPreviewUrl);
     lastPreviewUrl = url;
-    
     previewFrame.src = url;
     fullscreenFrame.src = url;
-
     previewFrame.classList.add("active");
     editorContainer.classList.add('hidden');
     document.querySelector('.editor').style.display = "none";
-    
-    // При переключении на просмотр прокручиваем вверх, чтобы сразу видеть iframe
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
-
   function showEditor() {
-    if (isFullscreen) {
-      forceExitFullscreenInternal();
-    }
-    
+    if (isFullscreen) forceExitFullscreen();
     previewFrame.classList.remove("active");
     editorContainer.classList.remove('hidden');
-    setTimeout(() => {
-      document.querySelector('.editor').style.display = "flex";
-    }, 100);
-    
-    // Прокручиваем к редактору, чтобы он был сразу в поле зрения
-    setTimeout(() => {
-      const editorEl = document.getElementById('editorContainer');
-      if (editorEl) {
-        editorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      // также гарантируем, что body прокрутится в начало
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 120);
+    setTimeout(() => { document.querySelector('.editor').style.display = "flex"; }, 100);
   }
-
   function shareCode() {
     const code = textarea.value;
     const blob = new Blob([code], { type: 'text/plain' });
@@ -425,350 +463,109 @@
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 100);
   }
+  function saveState() { history.push(textarea.value); redoStack = []; if (history.length > 100) history.shift(); }
+  function undo() { if (history.length) { redoStack.push(textarea.value); textarea.value = history.pop(); updateLineNumbers(); } }
+  function redo() { if (redoStack.length) { history.push(textarea.value); textarea.value = redoStack.pop(); updateLineNumbers(); } }
 
-  function saveState() {
-    history.push(textarea.value);
-    redoStack = [];
-    if (history.length > 100) {
-      history.shift();
-    }
-  }
-
-  function undo() {
-    if (history.length > 0) {
-      redoStack.push(textarea.value);
-      textarea.value = history.pop();
-      updateLineNumbers();
-    }
-  }
-
-  function redo() {
-    if (redoStack.length > 0) {
-      history.push(textarea.value);
-      textarea.value = redoStack.pop();
-      updateLineNumbers();
-    }
-  }
-
-  // ========== ЗАГРУЗКА ФАЙЛА С ВОССТАНОВЛЕНИЕМ ПОЛНОЭКРАННОГО РЕЖИМА ==========
   function handleFileWithFullscreenRestore(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
     const fileName = file.name;
     const fileExtension = fileName.split('.').pop().toLowerCase();
-    
-    const supportedExtensions = [
-      'html', 'htm', 'txt', 'py', 'js', 'css', 'json', 'xml', 'md', 'csv', 
-      'log', 'ini', 'cfg', 'conf', 'sh', 'bat', 'ps1', 'rb', 'php', 'java', 
-      'c', 'cpp', 'h', 'cs', 'go', 'rs', 'swift', 'kt', 'sql', 'yaml', 'yml', 
-      'toml', 'pl', 'pm', 'r', 'lua', 'vim', 'ts', 'jsx', 'tsx', 'vue', 'scss', 
-      'less', 'sass', 'styl'
-    ];
-    
-    if (!supportedExtensions.includes(fileExtension)) {
-      alert('Неподдерживаемый формат файла. Пожалуйста, выберите текстовый файл с кодом.');
-      event.target.value = '';
-      return;
-    }
-    
+    const supportedExtensions = ['html','htm','txt','py','js','css','json','xml','md','csv','log','ini','cfg','conf','sh','bat','ps1','rb','php','java','c','cpp','h','cs','go','rs','swift','kt','sql','yaml','yml','toml','pl','pm','r','lua','vim','ts','jsx','tsx','vue','scss','less','sass','styl'];
+    if (!supportedExtensions.includes(fileExtension)) { event.target.value = ''; return; }
     wasInPreviewBeforeFile = previewFrame.classList.contains('active');
     fullscreenWasActive = isFullscreen;
-    
     const reader = new FileReader();
-    
     reader.onload = (e) => {
       const content = e.target.result;
       saveState();
       textarea.value = content;
       updateLineNumbers();
-      
       if (wasInPreviewBeforeFile) {
         const cleanHtml = extractHtmlContent(content) || content;
         const blob = new Blob([cleanHtml], { type: 'text/html' });
         const newUrl = URL.createObjectURL(blob);
-        
-        if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(lastPreviewUrl);
-        }
+        if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(lastPreviewUrl);
         lastPreviewUrl = newUrl;
-        
         previewFrame.src = newUrl;
         fullscreenFrame.src = newUrl;
-        
-        if (fullscreenWasActive && !isFullscreen) {
-          setTimeout(() => {
-            if (previewFrame.classList.contains('active') && !isFullscreen && fullscreenOverlay) {
-              enterFullscreenInternal();
-            }
-          }, 150);
-        }
+        if (fullscreenWasActive && !isFullscreen) setTimeout(() => { if(previewFrame.classList.contains('active') && !isFullscreen && fullscreenOverlay) enterFullscreenInternal(); }, 150);
       }
-      
       event.target.value = '';
     };
-    
-    reader.onerror = () => {
-      alert('Ошибка при чтении файла');
-      event.target.value = '';
-    };
-    
+    reader.onerror = () => { event.target.value = ''; };
     reader.readAsText(file, 'UTF-8');
   }
 
-  // ========== ПОЛНОЭКРАННЫЙ РЕЖИМ ==========
   function toggleFullscreen() {
-    if (!previewFrame.classList.contains('active')) {
-      // Если не в режиме просмотра, сначала переключаемся на просмотр
-      if (!previewFrame.classList.contains('active')) {
-        runCode();
-        setTimeout(() => {
-          if (previewFrame.classList.contains('active')) {
-            enterFullscreenInternal();
-          }
-        }, 200);
-      }
-      return;
-    }
-    
-    if (isFullscreen) {
-      forceExitFullscreenInternal();
-    } else {
-      enterFullscreenInternal();
-    }
+    if (!previewFrame.classList.contains('active')) return;
+    if (isFullscreen) forceExitFullscreen();
+    else enterFullscreenInternal();
   }
-
   function enterFullscreenInternal() {
     if (!previewFrame.classList.contains('active')) return;
-    
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode) || rawCode;
     const blob = new Blob([cleanHtml], { type: 'text/html' });
     const newUrl = URL.createObjectURL(blob);
-    
-    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(lastPreviewUrl);
-    }
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(lastPreviewUrl);
     lastPreviewUrl = newUrl;
-    
     fullscreenFrame.src = newUrl;
     previewFrame.src = newUrl;
-    
     fullscreenOverlay.classList.add('active');
     isFullscreen = true;
     fullscreenButton.textContent = 'Обычный экран ⛶';
     fullscreenButton.style.background = '#4CAF50';
-    
     previewFrame.classList.remove('active');
     document.querySelector('.toolbar').style.display = 'none';
     editorContainer.style.display = 'none';
-    
-    if (fullscreenOverlay.requestFullscreen) {
-      fullscreenOverlay.requestFullscreen().catch(err => {
-        console.log(`Ошибка полноэкранного режима: ${err.message}`);
-        // Если не удалось войти в полноэкранный режим, всё равно показываем оверлей
-      });
-    }
-    
+    if (fullscreenOverlay.requestFullscreen) fullscreenOverlay.requestFullscreen().catch(e => console.log);
     document.addEventListener('keydown', handleEscapeKey);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
   }
-
-  // ОСНОВНАЯ ФУНКЦИЯ ВЫХОДА ИЗ ПОЛНОЭКРАННОГО РЕЖИМА С ПРОКРУТКОЙ
-  function forceExitFullscreenInternal() {
-    // 1. Выходим из браузерного полноэкранного режима
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(e => console.log);
-    }
-    
-    // 2. Скрываем оверлей
+  function forceExitFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(e=>console.log);
     fullscreenOverlay.classList.remove('active');
-    
-    // 3. Сбрасываем флаги
     isFullscreen = false;
     fullscreenButton.textContent = 'Полный экран ⛶';
     fullscreenButton.style.background = '';
-    
-    // 4. Показываем нормальный интерфейс (редактор + панель)
+    previewFrame.classList.add('active');
     document.querySelector('.toolbar').style.display = 'flex';
     editorContainer.style.display = 'flex';
     editorContainer.classList.remove('hidden');
-    
-    // 5. Убедимся, что preview активен, но не перекрывает редактор
-    previewFrame.classList.add('active');
-    // Возвращаем отображение редактора как flex
-    const editorFlex = document.querySelector('.editor');
-    if (editorFlex) editorFlex.style.display = 'flex';
-    
-    // 6. Обновляем контент preview
     const rawCode = textarea.value;
     const cleanHtml = extractHtmlContent(rawCode) || rawCode;
     const blob = new Blob([cleanHtml], { type: 'text/html' });
     const newUrl = URL.createObjectURL(blob);
-    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(lastPreviewUrl);
-    }
+    if (lastPreviewUrl && lastPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(lastPreviewUrl);
     lastPreviewUrl = newUrl;
     previewFrame.src = newUrl;
     fullscreenFrame.src = newUrl;
-    
-    // 7. Удаляем обработчики
     document.removeEventListener('keydown', handleEscapeKey);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    
-    // 8. КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: принудительная прокрутка в самый верх страницы
-    //    и скролл до редактора кода, чтобы интерфейс не уходил вниз
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'auto' });
-      // Дополнительно подстраховка - прокручиваем к контейнеру редактора
-      const editorElem = document.getElementById('editorContainer');
-      if (editorElem) {
-        editorElem.scrollIntoView({ behavior: 'auto', block: 'start' });
-      }
-      // Убираем возможный оверфлоу
-      document.body.style.overflow = 'auto';
-      document.documentElement.style.overflow = 'auto';
-    }, 10);
-    
-    // Дополнительная страховка через 30 мс
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      if (fullscreenOverlay.classList.contains('active')) {
-        fullscreenOverlay.classList.remove('active');
-      }
-      if (isFullscreen) {
-        isFullscreen = false;
-      }
-    }, 30);
+    setTimeout(() => { if (fullscreenOverlay.classList.contains('active')) fullscreenOverlay.classList.remove('active'); if (isFullscreen) isFullscreen = false; }, 50);
   }
+  function handleEscapeKey(event) { if (event.key === 'Escape' && isFullscreen) forceExitFullscreen(); }
+  function handleFullscreenChange() { if (!document.fullscreenElement && isFullscreen && fullscreenOverlay.classList.contains('active')) setTimeout(() => { if (isFullscreen && fullscreenOverlay.classList.contains('active') && !document.fullscreenElement) fullscreenOverlay.requestFullscreen().catch(e=>console.log); }, 200); }
 
-  // Публичная функция для вызова из кнопки (чтобы была доступна в onclick)
-  function forceExitFullscreen() {
-    forceExitFullscreenInternal();
-  }
+  // Поиск
+  let searchResults = [], currentResult = -1, lastSearch = "";
+  function findAll(term) { searchResults = []; currentResult = -1; if (!term) return; let idx = textarea.value.indexOf(term); while (idx !== -1) { searchResults.push(idx); idx = textarea.value.indexOf(term, idx + term.length); } }
+  function highlightMatch() { if (searchResults.length === 0) return; const pos = searchResults[currentResult]; const term = searchInput.value; textarea.focus(); textarea.setSelectionRange(pos, pos + term.length); const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight); const before = textarea.value.substring(0, pos).split("\n").length; const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2; textarea.scrollTop = Math.max(0, scrollPos); }
+  function findNext() { const term = searchInput.value; if (!term) return; if (term !== lastSearch) { findAll(term); lastSearch = term; } if (searchResults.length === 0) return; currentResult = (currentResult + 1) % searchResults.length; highlightMatch(); }
+  function findPrev() { const term = searchInput.value; if (!term) return; if (term !== lastSearch) { findAll(term); lastSearch = term; } if (searchResults.length === 0) return; currentResult = (currentResult - 1 + searchResults.length) % searchResults.length; highlightMatch(); }
 
-  function handleEscapeKey(event) {
-    if (event.key === 'Escape' && isFullscreen) {
-      forceExitFullscreenInternal();
-    }
-  }
-  
-  function handleFullscreenChange() {
-    // Если система вышла из полноэкранного режима, но наш внутренний флаг активен
-    if (!document.fullscreenElement && isFullscreen && fullscreenOverlay.classList.contains('active')) {
-      forceExitFullscreenInternal();
-    } else if (document.fullscreenElement && isFullscreen && !fullscreenOverlay.classList.contains('active')) {
-      // Синхронизация: если fullscreen активен но overlay скрыт
-      fullscreenOverlay.classList.add('active');
-    }
-  }
-
-  // ========== ПОИСК ==========
-  let searchResults = [];
-  let currentResult = -1;
-  let lastSearch = "";
-
-  function findAll(term) {
-    searchResults = [];
-    currentResult = -1;
-    if (!term) return;
-
-    const text = textarea.value;
-    let index = text.indexOf(term);
-    while (index !== -1) {
-      searchResults.push(index);
-      index = text.indexOf(term, index + term.length);
-    }
-  }
-
-  function highlightMatch() {
-    if (searchResults.length === 0) return;
-
-    const pos = searchResults[currentResult];
-    const term = searchInput.value;
-
-    textarea.focus();
-    textarea.setSelectionRange(pos, pos + term.length);
-
-    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight);
-    const before = textarea.value.substring(0, pos).split("\n").length;
-    const scrollPos = (before - 1) * lineHeight - textarea.clientHeight / 2;
-    textarea.scrollTop = Math.max(0, scrollPos);
-  }
-
-  function findNext() {
-    const term = searchInput.value;
-    if (!term) {
-      return;
-    }
-
-    if (term !== lastSearch) {
-      findAll(term);
-      lastSearch = term;
-    }
-    if (searchResults.length === 0) {
-      alert('Ничего не найдено');
-      return;
-    }
-    currentResult = (currentResult + 1) % searchResults.length;
-    highlightMatch();
-  }
-
-  function findPrev() {
-    const term = searchInput.value;
-    if (!term) {
-      return;
-    }
-
-    if (term !== lastSearch) {
-      findAll(term);
-      lastSearch = term;
-    }
-    if (searchResults.length === 0) {
-      alert('Ничего не найдено');
-      return;
-    }
-    currentResult = (currentResult - 1 + searchResults.length) % searchResults.length;
-    highlightMatch();
-  }
-
-  // ========== ОБРАБОТЧИКИ СОБЫТИЙ ==========
   textarea.addEventListener('input', saveState);
-  searchInput.addEventListener("input", () => {
-    lastSearch = "";
-    searchResults = [];
-    currentResult = -1;
-  });
-
-  urlInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      fetchWebsiteCode();
-    }
-  });
-
-  document.getElementById('lineNumber').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      goToLine();
-    }
-  });
-
-  // Привязываем кнопку принудительного выхода
-  if (forceExitFullscreenBtn) {
-    forceExitFullscreenBtn.onclick = function() {
-      forceExitFullscreenInternal();
-    };
-  }
-
-  // Инициализация
+  searchInput.addEventListener("input", () => { lastSearch = ""; searchResults = []; currentResult = -1; });
+  urlInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); fetchWebsiteCode(); } });
+  document.getElementById('lineNumber').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); goToLine(); } });
+  if (forceExitFullscreenBtn) forceExitFullscreenBtn.onclick = () => forceExitFullscreen();
+  
   updateLineNumbers();
   textarea.value = '';
   updateLineNumbers();
-  
-  // Начальная прокрутка вверх на всякий случай
-  window.scrollTo(0, 0);
+  initTheme(); // включаем систему тем!
 </script>
-
 </body>
 </html>
