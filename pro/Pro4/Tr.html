@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Тренд-Анализатор PRO | Детектор всплесков + позиция + голос</title>
+    <title>AI Всплеск-Мастер | Цель = Яркая Пика + Голос</title>
     <style>
         * {
             box-sizing: border-box;
@@ -23,13 +23,13 @@
         }
 
         .phone-card {
-            max-width: 500px;
+            max-width: 520px;
             width: 100%;
             margin: 0 auto;
             background: rgba(10, 18, 28, 0.85);
             backdrop-filter: blur(12px);
             border-radius: 48px;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.6), 0 0 0 1px rgba(250, 204, 21, 0.3);
+            box-shadow: 0 25px 45px rgba(0,0,0,0.6), 0 0 0 1px rgba(250, 204, 21, 0.4);
             overflow: hidden;
             padding: 20px 18px 28px;
         }
@@ -38,7 +38,7 @@
             font-size: 1.9rem;
             font-weight: 800;
             margin: 0 0 6px 0;
-            background: linear-gradient(135deg, #FFE484, #3B82F6, #C084FC);
+            background: linear-gradient(135deg, #FFE484, #3B82F6, #F97316);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -200,6 +200,24 @@
             background: linear-gradient(90deg, #3b82f6, #facc15);
             border-radius: 20px;
         }
+        .target-card {
+            background: #1e293b99;
+            border-radius: 24px;
+            padding: 10px 14px;
+            margin: 14px 0 6px;
+            border: 1px solid #facc1588;
+        }
+        .target-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #FFE484;
+        }
+        .big-target {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #FFB347;
+        }
         .warning-badge {
             background: #b45309;
             color: #FFE484;
@@ -213,13 +231,13 @@
 </head>
 <body>
 <div class="phone-card">
-    <h1>⟳ TrendMind PRO</h1>
-    <div class="sub">⚡ детектор всплесков • позиция • пробой • 🎙️ голос + улучшенная читаемость</div>
+    <h1>⚡ SPIKE TARGET PRO</h1>
+    <div class="sub">🔍 Анализ ярких всплесков + последняя позиция → Цель = яркая пика</div>
 
     <div class="upload-zone" id="uploadZone">
-        <div class="upload-icon">📈⚡🔍</div>
-        <div class="upload-text">Загрузить скриншот графика</div>
-        <div class="file-info">PNG / JPG — автоматический анализ и голосовой отчёт</div>
+        <div class="upload-icon">📈🎯⚡</div>
+        <div class="upload-text">Загрузить скриншот графика (линия/свечи)</div>
+        <div class="file-info">Автоопределение: «есть яркий всплеск далеко от цены?» → сигнал к движению.</div>
         <input type="file" id="fileInput" accept="image/*" style="display: none;">
     </div>
 
@@ -229,24 +247,24 @@
 
     <div class="insight-panel" id="resultPanel">
         <div class="trend-badge">
-            <span>🔮 Прогноз направления</span>
+            <span>🎯 Сигнал на основе всплесков</span>
             <span class="direction" id="trendLabel">— ожидание —</span>
         </div>
         <div class="forecast" id="forecastText">⚡ загрузите график</div>
         <div class="confidence" id="confidenceText">Уверенность: 0%</div>
         
         <div class="detail-report" id="detailReport">
-            <strong>📋 Детальный анализ</strong><br>
-            • Загрузите изображение для запуска алгоритма.
+            <strong>📋 Анализ "Всплеск → Цель"</strong><br>
+            • Загрузите изображение: выделим яркие пики и проверим, далеко ли последняя цена.
         </div>
         <div class="logic-note" id="logicDesc">
-            ✨ Алгоритм: тренд + всплески + позиция + автоозвучка. Поддерживаются реальные графики.
+            ✨ Логика: Ищем самые резкие всплески (пики вверх/вниз). Если последняя цена значительно не дошла до яркой пики, это сигнал, что рынок будет стремиться к ней. Покупаем в сторону всплеска.
         </div>
     </div>
 
-    <button id="voiceReportBtn" class="voice-btn">🎙️ Повторить ВЕРДИКТ</button>
-    <button id="resetBtn" class="reset-btn">⟳ Выбрать другое изображение</button>
-    <footer>📍 Анализ позиции (перекупленность/перепроданность) + голосовой вердикт после каждого анализа</footer>
+    <button id="voiceReportBtn" class="voice-btn">🎙️ Озвучить сигнал и цель</button>
+    <button id="resetBtn" class="reset-btn">⟳ Новое изображение</button>
+    <footer>📍 Определение яркого экстремума + расстояние до последней позиции. Торговая идея: движение к всплеску.</footer>
 </div>
 
 <script>
@@ -267,9 +285,9 @@
         let lastAnalysisResult = null;
 
         // --- ГОЛОСОВОЙ МОДУЛЬ ---
-        function speakText(message, rate = 0.92, pitch = 1.0, autoQueue = true) {
+        function speakText(message, rate = 0.9, pitch = 1.0) {
             if (!('speechSynthesis' in window)) return;
-            if (autoQueue) window.speechSynthesis.cancel();
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(message);
             utterance.lang = 'ru-RU';
             utterance.rate = rate;
@@ -278,63 +296,31 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        function welcomeVoice() {
-            setTimeout(() => {
-                speakText("Добро пожаловать в Тренд Майнд Про. Загрузите скриншот биржевого графика. Анализ и голос сработают автоматически.", 0.92);
-            }, 300);
-        }
-
         function autoVoiceVerdict() {
-            if (!lastAnalysisResult) return;
+            if (!lastAnalysisResult || lastAnalysisResult.failed) return;
             const res = lastAnalysisResult;
-            // если по какой-то причине анализ не удался, но мы не блокируем
-            if (res.failed) {
-                speakText("Не удалось выделить линию графика. Попробуйте более контрастный скриншот с чёткой линией цены.", 0.92);
-                return;
-            }
-            let verdict = `Анализ завершён. ${res.directionText}. ${res.forecastMessage}. Уверенность ${res.confidence} процентов. `;
-            verdict += `Позиция на графике: ${res.positionDescription}. `;
-            verdict += `Всплесков вверх: ${res.upSpikes}, вниз: ${res.downSpikes}. `;
-            if (res.spikeSignal && res.spikeSignal.includes("пробоя вверх")) verdict += `Сильный сигнал пробоя вверх. `;
-            else if (res.spikeSignal && res.spikeSignal.includes("пробоя вниз")) verdict += `Высокий риск пробоя вниз. `;
-            else verdict += `Всплески сбалансированы. `;
-            verdict += `Рекомендация: ${res.recommendation}.`;
-            speakText(verdict, 0.92);
+            let message = `Анализ ярких всплесков. ${res.signalSummary}. `;
+            message += `Последняя цена ${res.lastPosDesc}. `;
+            message += `Самый яркий всплеск: ${res.spikeType} на уровне ${res.targetPercentStr} от диапазона. Расстояние до цели: ${res.distanceToTarget} процентов. `;
+            message += `${res.mainRecommendation}. ${res.actionPlan}`;
+            speakText(message, 0.92);
         }
 
-        function repeatVoiceVerdict() {
-            if (!lastAnalysisResult) {
-                speakText("Анализ ещё не выполнен. Пожалуйста, загрузите изображение графика.");
+        function repeatVoice() {
+            if (!lastAnalysisResult || lastAnalysisResult.failed) {
+                speakText("Нет данных анализа. Загрузите скриншот графика.");
                 return;
             }
             autoVoiceVerdict();
         }
 
-        // ----- МЯГКАЯ ПРОВЕРКА: просто уведомление, но анализ всё равно делаем -----
-        function softChartWarning(imageData, width, height) {
-            const data = imageData.data;
-            let darkPixels = 0;
-            let total = width * height;
-            for (let i = 0; i < total; i++) {
-                const r = data[i*4], g = data[i*4+1], b = data[i*4+2];
-                const brightness = (r+g+b)/3;
-                if (brightness < 100) darkPixels++;
-            }
-            const darkRatio = darkPixels / total;
-            // слишком много светлого или слишком много тёмного — возможно, не график, но только предупреждение
-            if (darkRatio < 0.03 || darkRatio > 0.85) {
-                return "⚠️ Изображение может не быть графиком (нестандартный контраст), но анализ выполнен.";
-            }
-            return null;
-        }
-
-        // --- ОСНОВНЫЕ АЛГОРИТМЫ (адаптированы для реальных графиков)---
+        // ---- ИЗВЛЕЧЕНИЕ ЛИНИИ ГРАФИКА (оптимизировано для ярких пиков) ----
         function getLuminance(r,g,b) { return 0.299*r + 0.587*g + 0.114*b; }
-
+        
         function extractCurvePoints(imageData, width, height) {
             const data = imageData.data;
             let points = [];
-            // ищем самый тёмный пиксель в каждой колонке (линия графика обычно тёмная)
+            // ищем самый тёмный пиксель в колонке (линия цены обычно тёмная)
             for(let x = 0; x < width; x++) {
                 let bestY = -1, minLum = 255;
                 for(let y = 0; y < height; y++) {
@@ -342,11 +328,10 @@
                     const lum = getLuminance(data[idx], data[idx+1], data[idx+2]);
                     if(lum < minLum) { minLum = lum; bestY = y; }
                 }
-                // порог: если минимальная яркость достаточно низкая (тёмная линия)
-                if(bestY !== -1 && minLum < 180) points.push({x: x, y: bestY});
+                if(bestY !== -1 && minLum < 190) points.push({x: x, y: bestY});
                 else points.push(null);
             }
-            // интерполяция пропусков (если линия не везде найдена)
+            // интерполяция пропусков
             for(let i=0; i<points.length; i++) {
                 if(points[i] === null) {
                     let left=i-1, right=i+1;
@@ -361,7 +346,7 @@
                     else points[i] = {x:i, y:height/2};
                 }
             }
-            // сглаживание
+            // сглаживание для устойчивости
             let smoothed = [];
             for(let i=0; i<points.length; i++) {
                 let sumY=0, cnt=0;
@@ -374,220 +359,200 @@
             return smoothed;
         }
 
-        function analyzeSpikePattern(points, imgHeight) {
-            if(!points || points.length < 10) return { spikeUpCount:0, spikeDownCount:0, dominantSpike:'none', spikeSignal:'недостаточно точек', spikeIntensity:0, avgUpMag:0, avgDownMag:0 };
+        // ГЛАВНАЯ ФУНКЦИЯ: поиск самых ярких всплесков (значительные перепады высоты), 
+        // определение последней позиции, и вычисление "цели" — до какого яркого всплеска цена ещё не дошла.
+        function analyzeSpikesAndTarget(points, imgHeight) {
+            if(!points || points.length < 12) return null;
             const n = points.length;
-            const lastThirdStart = Math.floor(n * 0.66);
-            let recentPoints = points.slice(lastThirdStart);
-            if(recentPoints.length < 6) recentPoints = points.slice(Math.max(0, n-20));
-            const spikeThreshold = imgHeight * 0.055;
-            let upSpikes = 0, downSpikes = 0;
-            let spikeMagnitudesUp = [], spikeMagnitudesDown = [];
-            for(let i=1; i<recentPoints.length; i++) {
-                const dy = recentPoints[i].y - recentPoints[i-1].y;
-                const absDy = Math.abs(dy);
-                if(absDy > spikeThreshold) {
-                    if(dy < 0) { upSpikes++; spikeMagnitudesUp.push(absDy); }
-                    else { downSpikes++; spikeMagnitudesDown.push(absDy); }
+            // Рассматриваем весь график, но выделяем самые сильные перепады (яркие пики)
+            // Вычисляем производную dy[i] = y[i] - y[i-1] (по вертикали)
+            let deltas = [];
+            for(let i=1; i<n; i++) {
+                deltas.push({idx: i, dy: points[i].y - points[i-1].y});
+            }
+            // Определяем порог яркого всплеска: 6% от высоты графика = значительное движение
+            const spikePixelThreshold = imgHeight * 0.055;
+            // Собираем информацию о всплесках: тип up/down, амплитуда, y-координата пика (экстремум)
+            let upSpikes = [];   // { index, yValue, amplitude }
+            let downSpikes = [];  // вниз = резкое падение (dy положительное? внимательнее: dy >0 значит цена пошла вверх? y растёт вниз по экрану. dy<0 -> цена растет (y уменьшается). Важно: dy <0 означает ВВЕРХ (price up)
+            // Но для пользователя: всплеск вверх = цена резко пошла вверх (y уменьшается). Всплеск вниз = цена падает (y увеличивается). 
+            // Проведём анализ амплитуд 
+            for(let i=1; i<deltas.length; i++) {
+                const delta = deltas[i-1].dy;
+                const absDelta = Math.abs(delta);
+                if(absDelta >= spikePixelThreshold) {
+                    // резкое движение
+                    const spikePeakIdx = deltas[i-1].idx; // индекс точки после движения
+                    const peakY = points[spikePeakIdx].y;
+                    const amplitude = absDelta;
+                    if(delta < 0) { // отрицательная дельта -> цена идёт ВВЕРХ (y уменьшается) -> свечной всплеск вверх
+                        upSpikes.push({ index: spikePeakIdx, yValue: peakY, amplitude: amplitude, type: "UP" });
+                    } else { // delta > 0 -> цена падает (y растёт)
+                        downSpikes.push({ index: spikePeakIdx, yValue: peakY, amplitude: amplitude, type: "DOWN" });
+                    }
                 }
             }
-            const avgUpMag = spikeMagnitudesUp.length ? spikeMagnitudesUp.reduce((a,b)=>a+b,0)/spikeMagnitudesUp.length : 0;
-            const avgDownMag = spikeMagnitudesDown.length ? spikeMagnitudesDown.reduce((a,b)=>a+b,0)/spikeMagnitudesDown.length : 0;
-            let dominantSpike = 'neutral';
-            let spikeSignal = 'нет ярких всплесков';
-            let spikeIntensity = 0;
-            if(upSpikes > downSpikes + 1 || (upSpikes >= 2 && avgUpMag > avgDownMag*1.2)) {
-                dominantSpike = 'up';
-                spikeSignal = '🚀 РЕЗКИЕ ВСПЛЕСКИ ВВЕРХ! Вероятность пробоя вверх.';
-                spikeIntensity = Math.min(92, 50 + (upSpikes*7));
-            } 
-            else if(downSpikes > upSpikes + 1 || (downSpikes >= 2 && avgDownMag > avgUpMag*1.2)) {
-                dominantSpike = 'down';
-                spikeSignal = '⚠️ ПРЕОБЛАДАЮТ ВСПЛЕСКИ ВНИЗ. Риск снижения.';
-                spikeIntensity = Math.min(92, 50 + (downSpikes*7));
-            }
-            else {
-                dominantSpike = 'neutral';
-                spikeSignal = '🌀 Всплески сбалансированы — возможно продолжение флета.';
-                spikeIntensity = 30;
-            }
-            return { spikeUpCount: upSpikes, spikeDownCount: downSpikes, dominantSpike, spikeSignal, spikeIntensity, avgUpMag, avgDownMag };
-        }
-
-        function analyzePosition(points, imgHeight) {
-            if(!points || points.length === 0) return { percent: 50, description: "неопределённая позиция", zone: "нейтральная" };
-            const lastY = points[points.length-1].y;
+            
+            // Убираем дубли/слишком близкие и оставляем самые амплитудные (3 лучших в каждую сторону)
+            const getTop = (arr, limit=3) => arr.sort((a,b)=>b.amplitude - a.amplitude).slice(0,limit);
+            const topUp = getTop(upSpikes);
+            const topDown = getTop(downSpikes);
+            
+            // Общий рейтинг "ярких всплесков" – комбинируем
+            let allSpikes = [...topUp.map(s=>({...s, dir:"UP"})), ...topDown.map(s=>({...s, dir:"DOWN"}))];
+            if(allSpikes.length === 0) return { hasSpikes: false, message: "Ярких всплесков не обнаружено" };
+            
+            // Последняя цена (финальная точка временного ряда)
+            const lastPriceY = points[points.length-1].y;
+            // Диапазон цен на графике (minY,maxY)
             let minY = Infinity, maxY = -Infinity;
-            for(let p of points) {
-                if(p.y < minY) minY = p.y;
-                if(p.y > maxY) maxY = p.y;
+            for(let p of points) { if(p.y < minY) minY = p.y; if(p.y > maxY) maxY = p.y; }
+            const range = Math.max(1, maxY - minY);
+            
+            // Для каждого яркого всплеска вычисляем расстояние от последней цены (в процентах от диапазона)
+            // и определяем, "не дошла ли цена до этого всплеска" — т.е. цель находится в направлении этого всплеска.
+            let targets = [];
+            for(let spike of allSpikes) {
+                const distancePixels = Math.abs(spike.yValue - lastPriceY);
+                const distancePercent = (distancePixels / range) * 100;
+                const isAbove = (spike.yValue < lastPriceY); // yValue меньше = выше на графике (цена выше)
+                // Приоритет: чем больше амплитуда и больше расстояние (но не экстремальное), тем ярче сигнал.
+                targets.push({
+                    direction: spike.dir,
+                    yValue: spike.yValue,
+                    amplitude: spike.amplitude,
+                    distancePercent: distancePercent,
+                    isReached: distancePercent < 4 ? "почти достигнут" : (distancePercent > 55 ? "очень далеко" : "умеренно далеко"),
+                    signalStrength: (spike.amplitude / spikePixelThreshold) * (Math.min(40, distancePercent)/20)
+                });
             }
-            const range = maxY - minY;
-            if(range < 2) return { percent: 50, description: "диапазон узок, позиция средняя", zone: "нейтральная" };
-            let percent = ((lastY - minY) / range) * 100;
-            percent = Math.min(100, Math.max(0, percent));
-            let description = "", zone = "";
-            if(percent >= 80) { description = `цена в зоне ПЕРЕКУПЛЕННОСТИ (${percent.toFixed(1)}% от минимума) — возможен откат`; zone = "перекупленность"; }
-            else if(percent <= 20) { description = `цена в зоне ПЕРЕПРОДАННОСТИ (${percent.toFixed(1)}% от минимума) — потенциал роста`; zone = "перепроданность"; }
-            else { description = `цена в средней зоне (${percent.toFixed(1)}% диапазона) — нейтрально`; zone = "нейтральная"; }
-            return { percent, description, zone, minY, maxY, lastY };
-        }
-
-        function analyzeTrendWithSegments(points, imgHeight) {
-            if(!points || points.length < 6) return null;
-            const n = points.length;
-            const seg1 = points.slice(0, Math.floor(n*0.33));
-            const seg2 = points.slice(Math.floor(n*0.33), Math.floor(n*0.66));
-            const seg3 = points.slice(Math.floor(n*0.66));
-            const getSlope = (seg) => seg.length<2?0:(seg[seg.length-1].y - seg[0].y)/(seg[seg.length-1].x - seg[0].x);
-            const slopeSeg1 = getSlope(seg1);
-            const slopeSeg2 = getSlope(seg2);
-            const slopeSeg3 = getSlope(seg3);
-            const weightedSlope = (slopeSeg1*0.2 + slopeSeg2*0.3 + slopeSeg3*0.5);
-            let baseDirection = 'SIDEWAYS';
-            let displayDirection = '➡️ БОКОВОЙ (флет)';
-            const totalChange = points[n-1].y - points[0].y;
-            if(Math.abs(weightedSlope) < 1.0 && Math.abs(totalChange) < imgHeight*0.04) {
-                displayDirection = '➡️ БОКОВОЙ / ФЛЕТ';
-                baseDirection = 'SIDEWAYS';
-            } else if(weightedSlope < 0) {
-                displayDirection = '📈 ВВЕРХ (бычий)';
-                baseDirection = 'UP';
+            // Сортируем по силе сигнала: самые яркие всплески + значительное расстояние
+            targets.sort((a,b)=>b.signalStrength - a.signalStrength);
+            const bestTarget = targets[0];
+            if(!bestTarget) return { hasSpikes: false };
+            
+            // Определяем, стремиться ли цена к этому всплеску: логика – если последняя позиция еще не дошла до пика (значительное расстояние),
+            // и это яркий всплеск – то сигнал покупать в сторону этого всплеска.
+            let isStrongSignal = (bestTarget.distancePercent > 8 && bestTarget.signalStrength > 1.2);
+            let recommendation = "";
+            let actionPlan = "";
+            let targetText = "";
+            if(bestTarget.direction === "UP") {
+                targetText = "Яркий всплеск ВВЕРХ (бычий импульс)";
+                if(isStrongSignal) {
+                    recommendation = "✅ СИГНАЛ: ПОКУПАЙТЕ В СТОРОНУ ВСПЛЕСКА ВВЕРХ! Цель выше.";
+                    actionPlan = "Ожидайте движения к уровню яркой пики (сильный аптренд).";
+                } else {
+                    recommendation = "🔍 Умеренный сигнал вверх. Цена может постепенно подтянуться к всплеску.";
+                    actionPlan = "Рассмотрите покупки при подтверждении.";
+                }
             } else {
-                displayDirection = '📉 ВНИЗ (медвежий)';
-                baseDirection = 'DOWN';
+                targetText = "Яркий всплеск ВНИЗ (медвежий импульс)";
+                if(isStrongSignal) {
+                    recommendation = "⚠️ СИГНАЛ: ПРОДАЖА / ШОРТ В СТОРОНУ ВСПЛЕСКА ВНИЗ! Цель ниже.";
+                    actionPlan = "Цена стремится к минимуму яркой пики, ожидайте снижения.";
+                } else {
+                    recommendation = "🔻 Сдержанный сигнал вниз, возможна консолидация.";
+                    actionPlan = "Короткие позиции с осторожностью.";
+                }
             }
-            let confidence = Math.min(90, Math.max(45, 55 + Math.min(30, Math.abs(weightedSlope) * 4)));
-            if(baseDirection === 'SIDEWAYS') confidence = 55;
+            
+            // Дополнительная метрика: отношение к последнему положению
+            const lastPosPercent = ((lastPriceY - minY) / range) * 100;
+            let lastDesc = lastPosPercent > 70 ? "в верхней зоне" : (lastPosPercent < 30 ? "в нижней зоне" : "в средней части");
+            
             return {
-                direction: displayDirection,
-                baseDirection: baseDirection,
-                confidence: Math.floor(confidence),
-                rawSlope: weightedSlope,
-                slopeSeg1, slopeSeg2, slopeSeg3,
-                allPoints: points,
-                lastPoint: points[n-1]
+                hasSpikes: true,
+                bestTargetDirection: bestTarget.direction,
+                targetDistancePercent: bestTarget.distancePercent.toFixed(1),
+                targetAmplitudeRank: bestTarget.amplitude,
+                signalStrength: bestTarget.signalStrength,
+                recommendation: recommendation,
+                actionPlan: actionPlan,
+                spikeType: bestTarget.direction === "UP" ? "вверх (бычий)" : "вниз (медвежий)",
+                lastPosPercent: lastPosPercent.toFixed(1),
+                lastPosDesc: `цена ${lastDesc} (${lastPosPercent.toFixed(1)}% диапазона)`,
+                mainRecommendation: recommendation,
+                signalSummary: isStrongSignal ? `Обнаружен яркий ${bestTarget.direction === "UP" ? "всплеск вверх" : "всплеск вниз"} на расстоянии ${bestTarget.distancePercent.toFixed(1)}% от текущей цены. Это цель для движения.` : "Всплески есть, но расстояние небольшое или умеренное.",
+                distanceToTarget: bestTarget.distancePercent,
+                targetPercentStr: `${bestTarget.distancePercent}% от диапазона`,
+                upSpikesCount: topUp.length,
+                downSpikesCount: topDown.length
             };
         }
 
         function runFullAnalysis() {
             if(!originalImage) return;
             const imgData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-            
-            // Мягкое предупреждение (только в консоль, не блокируем)
-            const warning = softChartWarning(imgData, canvasWidth, canvasHeight);
-            if(warning) console.warn(warning);
-            
             let points = extractCurvePoints(imgData, canvasWidth, canvasHeight);
-            if(points.length < 8) {
-                // Не удалось выделить линию — даём шанс, возможно низкий контраст
+            if(points.length < 10) {
                 trendLabelSpan.innerText = "❌ Линия не распознана";
-                forecastTextSpan.innerText = "Попробуйте более контрастный скриншот";
+                forecastTextSpan.innerText = "Нет четкой линии графика";
                 confidenceSpan.innerText = "Уверенность: 0%";
-                detailReportDiv.innerHTML = '<strong>📋 Детальный анализ</strong><br>• Не удалось выделить линию графика. Убедитесь, что на скриншоте видна чёткая линия цены (свечной или линейный график).';
+                detailReportDiv.innerHTML = '<strong>📋 Ошибка выделения</strong><br>• Не удалось найти линию цены. Используйте скриншот с яркой линией/свечами.';
                 lastAnalysisResult = { failed: true };
-                speakText("Не удалось выделить линию графика. Попробуйте загрузить изображение с более чёткой линией цены.", 0.92);
+                speakText("Линия графика не обнаружена. Загрузите более контрастное изображение графика.");
                 return;
             }
             
-            const trend = analyzeTrendWithSegments(points, canvasHeight);
-            if(!trend) {
-                trendLabelSpan.innerText = "❌ Ошибка анализа";
+            const spikeTarget = analyzeSpikesAndTarget(points, canvasHeight);
+            if(!spikeTarget || !spikeTarget.hasSpikes) {
+                trendLabelSpan.innerText = "⚡ Всплески не найдены";
+                forecastTextSpan.innerText = "Нет ярких пиков на графике";
+                confidenceSpan.innerText = "Уверенность: 35%";
+                detailReportDiv.innerHTML = `<strong>📊 Результат:</strong><br>• Ярких всплесков (резких движений) не выявлено.<br>• Рынок без чёткой цели от пиков.`;
+                lastAnalysisResult = { failed: true, message: "нет всплесков" };
+                speakText("На графике не обнаружено ярких всплесков. Анализ не может определить цель движения.");
                 return;
             }
             
-            const spikeData = analyzeSpikePattern(points, canvasHeight);
-            const positionData = analyzePosition(points, canvasHeight);
-            
-            let finalForecastMsg = "";
-            let finalDirectionText = trend.direction;
-            let adjustedConfidence = trend.confidence;
-            let recommendation = "";
-            
-            // Комбинируем сигналы
-            if(spikeData.dominantSpike === 'up') {
-                if(trend.baseDirection === 'UP' || trend.baseDirection === 'SIDEWAYS') {
-                    finalForecastMsg = "🚀 СИГНАЛ ПРОБОЯ ВВЕРХ! Всплески + восходящий потенциал.";
-                    finalDirectionText = "📈 ПРОБОЙ ВВЕРХ";
-                    adjustedConfidence = Math.min(94, trend.confidence + 12);
-                    recommendation = "Рассмотрите покупки при подтверждении.";
-                } else {
-                    finalForecastMsg = "⚠️ Всплески вверх при нисходящем тренде — возможен ложный сигнал.";
-                    adjustedConfidence = trend.confidence + 4;
-                    recommendation = "Ждите разворота тренда.";
-                }
-            } 
-            else if(spikeData.dominantSpike === 'down') {
-                if(trend.baseDirection === 'DOWN' || trend.baseDirection === 'SIDEWAYS') {
-                    finalForecastMsg = "🔻 СИГНАЛ ПРОБОЯ ВНИЗ! Риск снижения повышен.";
-                    finalDirectionText = "📉 ПРОБОЙ ВНИЗ";
-                    adjustedConfidence = Math.min(94, trend.confidence + 12);
-                    recommendation = "Рассмотрите короткие позиции.";
-                } else {
-                    finalForecastMsg = "⚠️ Всплески вниз при восходящем тренде — возможна коррекция.";
-                    adjustedConfidence = trend.confidence + 4;
-                    recommendation = "Аккуратно, возможен откат.";
-                }
-            }
-            else {
-                if(trend.baseDirection === 'UP') finalForecastMsg = "📈 Тренд восходящий, всплески умеренные.";
-                else if(trend.baseDirection === 'DOWN') finalForecastMsg = "📉 Тренд нисходящий, плавное движение.";
-                else finalForecastMsg = "➡️ Флет, сигналов нет — консолидация.";
-                adjustedConfidence = trend.confidence;
-                recommendation = "Рынок без драйвера, используйте стоп-лоссы.";
-            }
-            
-            // позиционная корректировка
-            let positionNote = "";
-            if(positionData.zone === "перекупленность" && trend.baseDirection === "UP") {
-                positionNote = "⚠️ Перекупленность: риск отката даже при бычьем тренде.";
-                recommendation += " Не гонитесь за покупками.";
-            } else if(positionData.zone === "перепроданность" && trend.baseDirection === "DOWN") {
-                positionNote = "💡 Перепроданность: возможен отскок вверх.";
-                recommendation += " Осторожно с шортами.";
-            } else if(positionData.zone === "перепроданность") positionNote = "📊 Зона перепроданности — потенциал роста.";
-            else if(positionData.zone === "перекупленность") positionNote = "📊 Зона перекупленности — риск коррекции.";
-            
-            trendLabelSpan.innerText = finalDirectionText;
-            forecastTextSpan.innerText = finalForecastMsg;
-            confidenceSpan.innerText = `Уверенность: ${adjustedConfidence}%`;
+            // Формируем детальный отчет с акцентом на "последняя позиция vs яркий всплеск"
+            const confLevel = Math.min(92, Math.floor(55 + spikeTarget.signalStrength * 12));
+            const isBuySignal = spikeTarget.bestTargetDirection === "UP";
+            const signalText = isBuySignal ? "📈 СТРЕМЛЕНИЕ К ВСПЛЕСКУ ВВЕРХ" : "📉 СТРЕМЛЕНИЕ К ВСПЛЕСКУ ВНИЗ";
+            trendLabelSpan.innerText = signalText;
+            forecastTextSpan.innerText = isBuySignal ? "🎯 Цель: яркая вершина — покупать!" : "🎯 Цель: яркая впадина — продавать!";
+            confidenceSpan.innerText = `Уверенность сигнала: ${confLevel}%`;
             
             const detailHtml = `
-                <strong>📊 Расширенный анализ + позиция на графике</strong>
-                <div class="position-bar"><div class="position-fill" style="width: ${positionData.percent}%;"></div></div>
-                <div><strong>📍 Текущая позиция:</strong> ${positionData.description}</div>
-                ${positionNote ? `<div class="highlight">${positionNote}</div>` : ""}
-                <div class="trend-stats">
-                    <span class="stat-chip">⚡ Сила тренда: ${(trend.baseDirection === 'UP' ? 'бычья' : (trend.baseDirection === 'DOWN' ? 'медвежья' : 'флет'))}</span>
-                    <span class="stat-chip">📊 ${trend.baseDirection === 'UP' ? 'восходящий' : (trend.baseDirection === 'DOWN' ? 'нисходящий' : 'боковой')}</span>
+                <div class="target-card">
+                    <div class="target-title">⚡ АНАЛИЗ "ЯРКИЙ ВСПЛЕСК → ПОСЛЕДНЯЯ ПОЗИЦИЯ"</div>
+                    <div><span class="highlight">🚀 Самый сильный всплеск:</span> ${spikeTarget.spikeType} (амплитуда: ${spikeTarget.targetAmplitudeRank.toFixed(1)}px)</div>
+                    <div><span class="highlight">📍 Последняя позиция:</span> ${spikeTarget.lastPosDesc}</div>
+                    <div><span class="highlight">📏 Расстояние до яркого всплеска:</span> ${spikeTarget.targetDistancePercent}% от общего диапазона</div>
+                    <div><span class="highlight">🎯 Сигнал направления:</span> ${spikeTarget.recommendation}</div>
+                    <div><strong>💡 План действий:</strong> ${spikeTarget.actionPlan}</div>
                 </div>
-                <strong>📊 Пиковые всплески:</strong> ↑ ${spikeData.spikeUpCount} / ↓ ${spikeData.spikeDownCount}<br>
-                <span>⚡ ${spikeData.spikeSignal}</span><br>
-                <strong>🧠 Прогноз:</strong> ${finalForecastMsg}<br>
-                <strong>💡 Рекомендация:</strong> ${recommendation}
-                ${warning ? `<div class="warning-badge" style="margin-top:8px;">${warning}</div>` : ""}
+                <div class="trend-stats">
+                    <span class="stat-chip">🔥 Всплесков вверх: ${spikeTarget.upSpikesCount}</span>
+                    <span class="stat-chip">💧 Всплесков вниз: ${spikeTarget.downSpikesCount}</span>
+                    <span class="stat-chip">📊 Доминация: ${spikeTarget.bestTargetDirection === "UP" ? "бычья" : "медвежья"}</span>
+                </div>
+                <div class="logic-note" style="margin-top:12px">
+                💡 Логика: яркая пика часто отбрасывает цену, но затем становится магнитом. Поскольку последняя цена не достигла этого всплеска — движение с высокой вероятностью устремится к нему. <strong>Рекомендуем сторону всплеска.</strong>
+                </div>
             `;
             detailReportDiv.innerHTML = detailHtml;
             
+            // сохраняем результат
             lastAnalysisResult = {
                 failed: false,
-                directionText: finalDirectionText,
-                forecastMessage: finalForecastMsg,
-                confidence: adjustedConfidence,
-                upSpikes: spikeData.spikeUpCount,
-                downSpikes: spikeData.spikeDownCount,
-                spikeSignal: spikeData.spikeSignal,
-                recommendation: recommendation,
-                positionDescription: positionData.description,
-                zone: positionData.zone
+                signalSummary: spikeTarget.signalSummary,
+                lastPosDesc: spikeTarget.lastPosDesc,
+                spikeType: spikeTarget.spikeType,
+                targetPercentStr: spikeTarget.targetDistancePercent + "% диапазона",
+                distanceToTarget: spikeTarget.targetDistancePercent,
+                mainRecommendation: spikeTarget.recommendation,
+                actionPlan: spikeTarget.actionPlan,
+                directionFlag: spikeTarget.bestTargetDirection
             };
             
-            drawOverlay(trend, points);
-            setTimeout(() => { autoVoiceVerdict(); }, 100);
+            drawOverlayWithTarget(points, spikeTarget);
+            setTimeout(() => { autoVoiceVerdict(); }, 200);
         }
         
-        function drawOverlay(trend, points) {
-            if(!trend || !points.length || !originalImage) return;
+        function drawOverlayWithTarget(points, spikeTarget) {
+            if(!originalImage || !points.length) return;
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
             ctx.drawImage(originalImage, 0, 0, canvasWidth, canvasHeight);
             ctx.beginPath();
@@ -598,7 +563,7 @@
                 else ctx.lineTo(points[i].x, points[i].y);
             }
             ctx.stroke();
-            // последняя точка
+            // Последняя позиция
             if(points.length) {
                 ctx.beginPath();
                 ctx.arc(points[points.length-1].x, points[points.length-1].y, 7, 0, 2*Math.PI);
@@ -607,7 +572,14 @@
                 ctx.strokeStyle = "white";
                 ctx.lineWidth = 2;
                 ctx.stroke();
+                ctx.fillStyle = "white";
+                ctx.font = "bold 12px 'Segoe UI'";
+                ctx.shadowBlur = 4;
+                ctx.fillText("ПОЗИЦИЯ", points[points.length-1].x+5, points[points.length-1].y-6);
             }
+            ctx.fillStyle = "#FFB347";
+            ctx.font = "bold 10px monospace";
+            ctx.fillText("Яркий всплеск → цель", 12, 25);
         }
         
         function handleImageUpload(file) {
@@ -645,20 +617,20 @@
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
             ctx.fillStyle = "#FFE484";
             ctx.font = "bold 12px monospace";
-            ctx.fillText("ожидание графика", canvasWidth/2 - 70, canvasHeight/2);
+            ctx.fillText("загрузите график", canvasWidth/2 - 70, canvasHeight/2);
             trendLabelSpan.innerText = '— ожидание —';
             forecastTextSpan.innerText = '⚡ загрузите изображение';
             confidenceSpan.innerText = 'Уверенность: 0%';
-            detailReportDiv.innerHTML = '<strong>📋 Детальный анализ</strong><br>• Загрузите скриншот графика для автоматического анализа и голосового отчёта.';
+            detailReportDiv.innerHTML = '<strong>📋 Анализ "Всплеск → Цель"</strong><br>• Загрузите скриншот графика. Алгоритм найдёт яркие пики и даст сигнал в сторону недостигнутого всплеска.';
         }
         
         uploadZone.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleImageUpload(e.target.files[0]); });
         resetBtn.addEventListener('click', () => { fullReset(); fileInput.value = ''; setTimeout(()=> fileInput.click(), 100); });
-        voiceBtn.addEventListener('click', () => repeatVoiceVerdict());
+        voiceBtn.addEventListener('click', () => repeatVoice());
         
         fullReset();
-        welcomeVoice();
+        setTimeout(() => speakText("Всплеск-Анализатор активен. Загрузите график, и система определит яркие пики и даст сигнал направления к недостигнутой цели.", 0.92), 400);
     })();
 </script>
 </body>
