@@ -4,325 +4,410 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Музыкальный Плеер - Полная версия</title>
+    <title>Vibify | Современный музыкальный плеер</title>
     <style>
-        :root {
-            --primary: #8a2be2;
-            --primary-dark: #6a1cb0;
-            --bg-dark: #121212;
-            --bg-card: #1e1e1e;
-            --bg-hover: #2a2a2a;
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-            --text-muted: #888888;
-            --border: #333333;
-            --success: #4caf50;
-            --danger: #f44336;
-            --warning: #ff9800;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --bg-gradient-start: #0a0a0f;
+            --bg-gradient-end: #1a1a2e;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --primary: #7c3aed;
+            --primary-glow: #8b5cf6;
+            --primary-light: #a78bfa;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --card-bg: rgba(30, 30, 46, 0.7);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
         }
 
         body {
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Glow эффект для плеера */
+        .player-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.15), transparent 70%);
+            transition: opacity 0.3s ease;
+        }
+
+        .player-glow.active {
+            animation: pulseGlow 0.8s ease infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { opacity: 0.3; background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.2), transparent 70%); }
+            100% { opacity: 0.8; background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.5), transparent 70%); }
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
         }
 
-        header {
+        /* Header */
+        .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
+            animation: fadeInDown 0.6s ease;
         }
 
-        h1 {
-            color: var(--primary);
-            margin-bottom: 10px;
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--primary-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
         }
 
         .subtitle {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: 0.9rem;
         }
 
-        .main-content {
-            display: flex;
-            flex: 1;
-            gap: 20px;
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 24px;
         }
 
-        .playlist-section {
-            flex: 1;
-            background-color: var(--bg-card);
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
         }
 
-        .player-section {
-            flex: 2;
-            background-color: var(--bg-card);
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
+        /* Glassmorphism Cards */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .section-title {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: var(--text-primary);
+        .glass-card:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            letter-spacing: -0.01em;
         }
 
-        .playlist-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.85rem;
             cursor: pointer;
-            transition: background-color 0.3s;
-            font-size: 14px;
-            display: flex;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
-        button:hover {
-            background-color: var(--primary-dark);
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
         }
 
-        button.secondary {
-            background-color: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.5);
         }
 
-        button.secondary:hover {
-            background-color: var(--bg-hover);
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--glass-border);
         }
 
-        button.danger {
-            background-color: var(--danger);
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: var(--primary-light);
         }
 
-        button.danger:hover {
-            background-color: #d32f2f;
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
         }
 
-        button.success {
-            background-color: var(--success);
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.4);
         }
 
-        button.success:hover {
-            background-color: #388e3c;
-        }
-
+        /* Playlist List */
         .playlist-list {
-            flex: 1;
+            max-height: 280px;
             overflow-y: auto;
-            margin-bottom: 15px;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .playlist-item {
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 8px;
-            background-color: var(--bg-dark);
-            cursor: pointer;
-            transition: background-color 0.2s;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 12px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
 
         .playlist-item:hover {
-            background-color: var(--bg-hover);
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
         }
 
         .playlist-item.active {
-            background-color: var(--primary-dark);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(139, 92, 246, 0.1));
+            border-color: var(--primary);
         }
 
-        .playlist-item .name {
-            font-weight: 500;
+        .playlist-info .name {
+            font-weight: 600;
+            margin-bottom: 4px;
         }
 
-        .playlist-item .count {
+        .playlist-info .count {
+            font-size: 0.75rem;
             color: var(--text-muted);
-            font-size: 12px;
         }
 
+        /* Track List */
         .track-list {
-            flex: 1;
+            max-height: 350px;
             overflow-y: auto;
-            margin-bottom: 15px;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .track-item {
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 5px;
-            background-color: var(--bg-dark);
-            cursor: pointer;
-            transition: background-color 0.2s;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 14px;
+            padding: 10px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
         .track-item:hover {
-            background-color: var(--bg-hover);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .track-item.playing {
-            background-color: var(--primary-dark);
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(139, 92, 246, 0.2));
+            border-left: 3px solid var(--primary);
         }
 
-        .track-item .track-info {
-            flex: 1;
-        }
-
-        .track-item .title {
+        .track-info .title {
             font-weight: 500;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
 
-        .track-item .artist {
+        .track-info .artist {
+            font-size: 0.7rem;
             color: var(--text-muted);
-            font-size: 12px;
         }
 
-        .track-item .duration {
+        .duration {
+            font-size: 0.75rem;
             color: var(--text-muted);
-            font-size: 12px;
-            margin-right: 10px;
+            margin-right: 12px;
         }
 
-        .track-actions {
-            display: flex;
-            gap: 5px;
+        /* Player Section */
+        .now-playing {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 32px;
         }
 
-        .player-controls {
+        .cover-art {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 24px;
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .player-controls button {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
             justify-content: center;
+            font-size: 3rem;
+            box-shadow: 0 8px 32px rgba(124, 58, 237, 0.3);
+            transition: all 0.3s;
+        }
+
+        .visualizer-container {
+            margin: 20px 0;
+            height: 60px;
+            display: flex;
             align-items: center;
-            font-size: 16px;
+            justify-content: center;
+            gap: 4px;
         }
 
-        .play-pause {
-            width: 50px;
-            height: 50px;
-            font-size: 20px;
+        .visualizer-bar {
+            width: 4px;
+            background: linear-gradient(180deg, var(--primary), var(--primary-light));
+            border-radius: 2px;
+            transition: height 0.05s linear;
         }
 
+        .track-title-main {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .track-artist-main {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Progress Bar */
         .progress-container {
-            margin-top: 20px;
+            margin: 20px 0;
         }
 
         .progress-bar {
-            width: 100%;
             height: 6px;
-            background-color: var(--border);
-            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
             cursor: pointer;
-            position: relative;
+            overflow: hidden;
         }
 
-        .progress {
+        .progress-fill {
             height: 100%;
-            background-color: var(--primary);
-            border-radius: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            border-radius: 10px;
             width: 0%;
+            transition: width 0.1s linear;
         }
 
         .time-info {
             display: flex;
             justify-content: space-between;
-            margin-top: 5px;
-            font-size: 12px;
+            margin-top: 8px;
+            font-size: 0.7rem;
             color: var(--text-muted);
         }
 
-        .current-track {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: var(--bg-dark);
-            border-radius: 8px;
+        /* Player Controls */
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 24px 0;
         }
 
-        .track-title {
-            font-size: 18px;
-            font-weight: 500;
-            margin-bottom: 5px;
+        .control-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .track-artist {
-            color: var(--text-muted);
-            font-size: 14px;
+        .control-btn:hover {
+            background: var(--primary);
+            transform: scale(1.05);
         }
 
+        .play-btn {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-glow));
+            font-size: 1.6rem;
+            box-shadow: 0 4px 20px rgba(124, 58, 237, 0.5);
+        }
+
+        /* Mode Buttons */
+        .mode-group {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .mode-btn {
+            padding: 6px 14px;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 40px;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Volume */
         .volume-control {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 12px;
+            margin-top: 20px;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .volume-slider {
             flex: 1;
-            -webkit-appearance: none;
             height: 4px;
-            background: var(--border);
-            border-radius: 2px;
-            outline: none;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
         }
 
         .volume-slider::-webkit-slider-thumb {
@@ -334,665 +419,664 @@
             cursor: pointer;
         }
 
-        .player-mode-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .file-drop-area {
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            padding: 30px;
+        /* File Drop */
+        .file-drop {
+            border: 2px dashed var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
             text-align: center;
-            margin-bottom: 15px;
             cursor: pointer;
-            transition: border-color 0.3s;
+            transition: all 0.2s;
+            margin-bottom: 16px;
         }
 
-        .file-drop-area:hover, .file-drop-area.dragover {
+        .file-drop.dragover {
             border-color: var(--primary);
-            background-color: var(--bg-hover);
+            background: rgba(124, 58, 237, 0.1);
         }
 
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 100;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
             justify-content: center;
             align-items: center;
         }
 
         .modal-content {
-            background-color: var(--bg-card);
-            padding: 20px;
-            border-radius: 10px;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 28px;
             width: 90%;
             max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid var(--border);
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
+            border: 1px solid var(--glass-border);
         }
 
         .file-list {
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: auto;
-            margin-top: 10px;
+            margin: 16px 0;
         }
 
         .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px;
-            background: var(--bg-dark);
-            margin-bottom: 5px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .empty-state {
             text-align: center;
             color: var(--text-muted);
-            padding: 30px;
+            padding: 40px;
+            font-style: italic;
         }
 
-        @media (max-width: 768px) {
-            .main-content { flex-direction: column; }
-            .track-item { flex-direction: column; align-items: flex-start; gap: 5px; }
+        .flex-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Музыкальный Плеер</h1>
-            <p class="subtitle">С несколькими файлами, сохранением и загрузкой плейлистов с музыкой</p>
-        </header>
-        
-        <div class="main-content">
-            <div class="playlist-section">
-                <div class="section-title">
-                    <span>Плейлисты</span>
-                    <div>
-                        <button id="savePlaylistsBtn" class="secondary">💾 Сохранить</button>
-                        <button id="loadPlaylistsBtn" class="secondary">📂 Загрузить</button>
-                    </div>
-                </div>
-                <div class="playlist-controls">
-                    <button id="createPlaylistBtn">📝 Создать плейлист</button>
-                    <button id="addTracksBtn" class="success">🎵 Добавить треки (несколько)</button>
-                </div>
-                <div class="playlist-list" id="playlistList"></div>
-                <div class="section-title"><span>Треки в плейлисте</span></div>
-                <div class="track-list" id="trackList"></div>
-            </div>
-            
-            <div class="player-section">
-                <div class="current-track">
-                    <div class="track-title" id="currentTrackTitle">Не выбрано</div>
-                    <div class="track-artist" id="currentTrackArtist">Выберите трек</div>
-                </div>
-                <div class="progress-container">
-                    <div class="progress-bar" id="progressBar"><div class="progress" id="progress"></div></div>
-                    <div class="time-info"><span id="currentTime">0:00</span><span id="duration">0:00</span></div>
-                </div>
-                <div class="player-controls">
-                    <button id="prevBtn">⏮</button>
-                    <button id="playPauseBtn" class="play-pause">▶</button>
-                    <button id="nextBtn">⏭</button>
-                </div>
-                <div class="player-mode-controls">
-                    <button id="shuffleBtn" class="secondary">🔀 Случайный порядок: Выкл</button>
-                    <button id="repeatBtn" class="secondary">🔁 Повтор: Выкл</button>
-                </div>
-                <div class="volume-control">
-                    <span>🔊</span>
-                    <input type="range" min="0" max="1" step="0.01" value="0.7" class="volume-slider" id="volumeSlider">
+<div class="player-glow" id="playerGlow"></div>
+<div class="container">
+    <div class="header">
+        <div class="logo">🎧 Vibify</div>
+        <div class="subtitle">Музыка, которая заставляет светиться</div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Левый блок: плейлисты и треки -->
+        <div class="glass-card">
+            <div class="section-header">
+                <span>📻 Мои плейлисты</span>
+                <div class="flex-group">
+                    <button class="btn btn-outline" id="savePlaylistsBtn">💾 Сохранить</button>
+                    <button class="btn btn-outline" id="loadPlaylistsBtn">📂 Загрузить</button>
                 </div>
             </div>
+            <div class="flex-group" style="margin-bottom: 16px;">
+                <button class="btn btn-primary" id="createPlaylistBtn">➕ Создать</button>
+                <button class="btn btn-primary" id="addTracksBtn">🎵 Добавить треки</button>
+            </div>
+            <div class="playlist-list" id="playlistList"></div>
+
+            <div class="section-header" style="margin-top: 20px;">
+                <span>🎶 Треки</span>
+            </div>
+            <div class="track-list" id="trackList"></div>
+        </div>
+
+        <!-- Правый блок: плеер -->
+        <div class="glass-card">
+            <div class="now-playing">
+                <div class="cover-art" id="coverArt">🎵</div>
+                <div class="visualizer-container" id="visualizer">
+                    <!-- визуализатор будет заполнен через JS -->
+                </div>
+                <div class="track-title-main" id="currentTrackTitle">Не выбрано</div>
+                <div class="track-artist-main" id="currentTrackArtist">Выберите трек для прослушивания</div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="time-info">
+                    <span id="currentTime">0:00</span>
+                    <span id="duration">0:00</span>
+                </div>
+            </div>
+
+            <div class="player-controls">
+                <button class="control-btn" id="prevBtn">⏮</button>
+                <button class="control-btn play-btn" id="playPauseBtn">▶</button>
+                <button class="control-btn" id="nextBtn">⏭</button>
+            </div>
+
+            <div class="mode-group">
+                <button class="mode-btn" id="shuffleBtn">🔀 Случайный</button>
+                <button class="mode-btn" id="repeatBtn">🔁 Повтор</button>
+            </div>
+
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" min="0" max="1" step="0.01" value="0.7" class="volume-slider" id="volumeSlider">
+            </div>
         </div>
     </div>
-    
-    <!-- Модальные окна -->
-    <div class="modal" id="createPlaylistModal">
-        <div class="modal-content">
-            <div class="form-group"><label>Название плейлиста</label><input type="text" id="playlistName" placeholder="Введите название"></div>
-            <div class="modal-actions"><button id="cancelCreatePlaylist" class="secondary">Отмена</button><button id="confirmCreatePlaylist">Создать</button></div>
+</div>
+
+<!-- Модалка создания плейлиста -->
+<div class="modal" id="createModal">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 16px;">Новый плейлист</h3>
+        <input type="text" id="playlistNameInput" placeholder="Название" style="width:100%; padding:12px; border-radius:16px; background:#2a2a3a; border:none; color:white;">
+        <div class="flex-group" style="margin-top: 20px; justify-content: flex-end;">
+            <button class="btn btn-outline" id="cancelCreateBtn">Отмена</button>
+            <button class="btn btn-primary" id="confirmCreateBtn">Создать</button>
         </div>
     </div>
-    
-    <div class="modal" id="addTracksModal">
-        <div class="modal-content">
-            <h3>Добавить несколько аудиофайлов</h3>
-            <div class="file-drop-area" id="fileDropArea">📁 Нажмите или перетащите файлы сюда (можно несколько)</div>
-            <input type="file" id="modalFileInput" class="file-input" accept="audio/*" multiple style="display:none">
-            <div id="selectedFilesList" class="file-list"></div>
-            <div class="modal-actions"><button id="cancelAddTracks" class="secondary">Отмена</button><button id="confirmAddTracks" class="success">➕ Добавить все</button></div>
+</div>
+
+<!-- Модалка добавления треков -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 16px;">Добавить аудиофайлы</h3>
+        <div class="file-drop" id="fileDropArea">
+            📁 Нажмите или перетащите файлы сюда<br>
+            <small style="opacity:0.6;">Поддерживаются MP3, WAV, OGG (можно несколько)</small>
+        </div>
+        <input type="file" id="fileInputElem" multiple accept="audio/*" style="display:none">
+        <div id="selectedFilesContainer" class="file-list"></div>
+        <div class="flex-group" style="margin-top: 16px; justify-content: flex-end;">
+            <button class="btn btn-outline" id="cancelAddBtn">Отмена</button>
+            <button class="btn btn-primary" id="confirmAddBtn">Добавить</button>
         </div>
     </div>
-    
-    <div class="modal" id="loadPlaylistsModal">
-        <div class="modal-content">
-            <h3>Загрузить плейлисты (JSON)</h3>
-            <div class="form-group"><label>Файл .json</label><input type="file" id="playlistFile" accept=".json"></div>
-            <div class="modal-actions"><button id="cancelLoadPlaylists" class="secondary">Отмена</button><button id="confirmLoadPlaylists">Загрузить</button></div>
+</div>
+
+<!-- Модалка загрузки -->
+<div class="modal" id="loadModal">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 16px;">Загрузить плейлисты</h3>
+        <input type="file" id="loadFileInput" accept=".json" style="width:100%; padding:12px; background:#2a2a3a; border-radius:16px; border:none; color:white;">
+        <div class="flex-group" style="margin-top: 20px; justify-content: flex-end;">
+            <button class="btn btn-outline" id="cancelLoadBtn">Отмена</button>
+            <button class="btn btn-primary" id="confirmLoadBtn">Загрузить</button>
         </div>
     </div>
+</div>
 
-    <script>
-        // ==================== ИНИЦИАЛИЗАЦИЯ INDEXEDDB ДЛЯ ХРАНЕНИЯ ФАЙЛОВ ====================
-        const DB_NAME = 'MusicPlayerDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'audioFiles';
-        let db = null;
+<script>
+    // ---------- IndexedDB ----------
+    const DB_NAME = 'VibifyDB';
+    const STORE_NAME = 'audioStore';
+    let db = null;
 
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    resolve(db);
-                };
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-            });
-        }
-
-        async function saveAudioFileToDB(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const arrayBuffer = e.target.result;
-                    const id = `file_${Date.now()}_${file.name}`;
-                    const transaction = db.transaction([STORE_NAME], 'readwrite');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const record = { id, name: file.name, type: file.type, data: arrayBuffer };
-                    const request = store.put(record);
-                    request.onsuccess = () => resolve(id);
-                    request.onerror = () => reject(request.error);
-                };
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
-        }
-
-        async function loadAudioFileFromDB(id) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.get(id);
-                request.onsuccess = () => {
-                    const record = request.result;
-                    if (record && record.data) {
-                        const blob = new Blob([record.data], { type: record.type });
-                        const url = URL.createObjectURL(blob);
-                        resolve(url);
-                    } else reject('File not found');
-                };
-                request.onerror = reject;
-            });
-        }
-
-        // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
-        let playlists = [];        // { id, name, tracks: [{ id, title, artist, duration, fileId, fileName }] }
-        let currentPlaylistId = null;
-        let currentTrackId = null;
-        let audio = new Audio();
-        let isPlaying = false;
-        let isShuffle = false;
-        let isRepeat = false;
-        let playedHistory = [];
-        
-        // DOM элементы
-        const playlistListDiv = document.getElementById('playlistList');
-        const trackListDiv = document.getElementById('trackList');
-        const createPlaylistBtn = document.getElementById('createPlaylistBtn');
-        const addTracksBtn = document.getElementById('addTracksBtn');
-        const savePlaylistsBtn = document.getElementById('savePlaylistsBtn');
-        const loadPlaylistsBtn = document.getElementById('loadPlaylistsBtn');
-        const playPauseBtn = document.getElementById('playPauseBtn');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const shuffleBtn = document.getElementById('shuffleBtn');
-        const repeatBtn = document.getElementById('repeatBtn');
-        const progressBar = document.getElementById('progressBar');
-        const progress = document.getElementById('progress');
-        const currentTimeEl = document.getElementById('currentTime');
-        const durationEl = document.getElementById('duration');
-        const currentTrackTitle = document.getElementById('currentTrackTitle');
-        const currentTrackArtist = document.getElementById('currentTrackArtist');
-        const volumeSlider = document.getElementById('volumeSlider');
-        
-        // Модалки
-        const createModal = document.getElementById('createPlaylistModal');
-        const addModal = document.getElementById('addTracksModal');
-        const loadModal = document.getElementById('loadPlaylistsModal');
-        const playlistNameInput = document.getElementById('playlistName');
-        const confirmCreate = document.getElementById('confirmCreatePlaylist');
-        const cancelCreate = document.getElementById('cancelCreatePlaylist');
-        const fileDropArea = document.getElementById('fileDropArea');
-        const modalFileInput = document.getElementById('modalFileInput');
-        const selectedFilesList = document.getElementById('selectedFilesList');
-        const confirmAdd = document.getElementById('confirmAddTracks');
-        const cancelAdd = document.getElementById('cancelAddTracks');
-        const playlistFileInput = document.getElementById('playlistFile');
-        const confirmLoad = document.getElementById('confirmLoadPlaylists');
-        const cancelLoad = document.getElementById('cancelLoadPlaylists');
-        
-        let pendingFiles = []; // временные файлы для добавления
-        
-        // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
-        function formatTime(sec) {
-            if (isNaN(sec)) return '0:00';
-            const m = Math.floor(sec / 60);
-            const s = Math.floor(sec % 60);
-            return `${m}:${s < 10 ? '0' : ''}${s}`;
-        }
-        
-        function savePlaylistsToLocalStorage() {
-            // Сохраняем метаданные плейлистов (без blob-ссылок, только fileId)
-            const dataToStore = playlists.map(pl => ({
-                id: pl.id,
-                name: pl.name,
-                tracks: pl.tracks.map(t => ({
-                    id: t.id,
-                    title: t.title,
-                    artist: t.artist,
-                    duration: t.duration,
-                    fileId: t.fileId,
-                    fileName: t.fileName
-                }))
-            }));
-            localStorage.setItem('musicPlayerFullData', JSON.stringify(dataToStore));
-        }
-        
-        async function loadPlaylistsFromLocalStorage() {
-            const saved = localStorage.getItem('musicPlayerFullData');
-            if (!saved) return false;
-            try {
-                const parsed = JSON.parse(saved);
-                playlists = parsed.map(pl => ({ ...pl, tracks: pl.tracks || [] }));
-                // Восстанавливаем URL для каждого трека из IndexedDB
-                for (let pl of playlists) {
-                    for (let track of pl.tracks) {
-                        if (track.fileId) {
-                            try {
-                                const url = await loadAudioFileFromDB(track.fileId);
-                                track.url = url;
-                            } catch(e) { console.warn('Не удалось загрузить файл', track.fileId); }
-                        }
-                    }
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => { db = req.result; resolve(db); };
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 }
-                return true;
-            } catch(e) { return false; }
-        }
-        
-        async function savePlaylistsToFile() {
-            if (playlists.length === 0) { alert('Нет плейлистов'); return; }
-            // Для экспорта сохраняем метаданные (файлы уже в IndexedDB)
-            const exportData = playlists.map(pl => ({
-                id: pl.id,
-                name: pl.name,
-                tracks: pl.tracks.map(t => ({
-                    id: t.id,
-                    title: t.title,
-                    artist: t.artist,
-                    duration: t.duration,
-                    fileId: t.fileId,
-                    fileName: t.fileName
-                }))
-            }));
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const blob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'playlists_backup.json';
-            a.click();
-            URL.revokeObjectURL(url);
-            alert('Плейлисты сохранены (аудиофайлы уже в базе браузера)');
-        }
-        
-        async function loadPlaylistsFromFile(file) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    playlists = imported.map(pl => ({ ...pl, tracks: pl.tracks || [] }));
-                    // Восстанавливаем URL
-                    for (let pl of playlists) {
-                        for (let track of pl.tracks) {
-                            if (track.fileId) {
-                                try {
-                                    const url = await loadAudioFileFromDB(track.fileId);
-                                    track.url = url;
-                                } catch(err) { console.warn('Файл не найден в БД', track.fileId); track.url = null; }
-                            }
-                        }
-                    }
-                    savePlaylistsToLocalStorage();
-                    renderPlaylists();
-                    if (playlists.length) selectPlaylist(playlists[0].id);
-                    alert('Плейлисты загружены!');
-                } catch(err) { alert('Ошибка JSON'); }
             };
-            reader.readAsText(file);
+        });
+    }
+
+    async function saveFileToDB(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const id = `audio_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put({ id, name: file.name, type: file.type, data: reader.result });
+                tx.oncomplete = () => resolve(id);
+                tx.onerror = reject;
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    async function loadFileFromDB(id) {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get(id);
+            req.onsuccess = () => {
+                if (req.result) {
+                    const blob = new Blob([req.result.data], { type: req.result.type });
+                    resolve(URL.createObjectURL(blob));
+                } else reject('not found');
+            };
+            req.onerror = reject;
+        });
+    }
+
+    // ---------- Глобальное состояние ----------
+    let playlists = [];           // { id, name, tracks: [{ id, title, artist, duration, fileId, url? }] }
+    let currentPlaylistId = null;
+    let currentTrackId = null;
+    let audio = new Audio();
+    let isPlaying = false;
+    let isShuffle = false;
+    let isRepeat = false;
+    let playedHistory = [];
+    let visualizerInterval = null;
+    let pendingFiles = [];
+
+    // DOM
+    const playlistDiv = document.getElementById('playlistList');
+    const trackDiv = document.getElementById('trackList');
+    const createPlaylistBtn = document.getElementById('createPlaylistBtn');
+    const addTracksBtn = document.getElementById('addTracksBtn');
+    const saveBtn = document.getElementById('savePlaylistsBtn');
+    const loadBtn = document.getElementById('loadPlaylistsBtn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const shuffleModeBtn = document.getElementById('shuffleBtn');
+    const repeatModeBtn = document.getElementById('repeatBtn');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const currentTimeSpan = document.getElementById('currentTime');
+    const durationSpan = document.getElementById('duration');
+    const currentTitleSpan = document.getElementById('currentTrackTitle');
+    const currentArtistSpan = document.getElementById('currentTrackArtist');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const playerGlow = document.getElementById('playerGlow');
+    const coverArt = document.getElementById('coverArt');
+    const visualizerContainer = document.getElementById('visualizer');
+
+    // Модалки
+    const createModal = document.getElementById('createModal');
+    const addModal = document.getElementById('addModal');
+    const loadModal = document.getElementById('loadModal');
+    const playlistNameInput = document.getElementById('playlistNameInput');
+    const confirmCreateBtn = document.getElementById('confirmCreateBtn');
+    const cancelCreateBtn = document.getElementById('cancelCreateBtn');
+    const fileDropArea = document.getElementById('fileDropArea');
+    const fileInputElem = document.getElementById('fileInputElem');
+    const selectedFilesContainer = document.getElementById('selectedFilesContainer');
+    const confirmAddBtn = document.getElementById('confirmAddBtn');
+    const cancelAddBtn = document.getElementById('cancelAddBtn');
+    const loadFileInput = document.getElementById('loadFileInput');
+    const confirmLoadBtn = document.getElementById('confirmLoadBtn');
+    const cancelLoadBtn = document.getElementById('cancelLoadBtn');
+
+    // ---------- Визуализатор ----------
+    function startVisualizer() {
+        if (visualizerInterval) clearInterval(visualizerInterval);
+        if (!isPlaying) return;
+        visualizerContainer.innerHTML = '';
+        const barsCount = 24;
+        for (let i = 0; i < barsCount; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'visualizer-bar';
+            bar.style.height = '4px';
+            visualizerContainer.appendChild(bar);
         }
-        
-        // ==================== ОТРИСОВКА ====================
-        function renderPlaylists() {
-            playlistListDiv.innerHTML = '';
-            if (!playlists.length) {
-                playlistListDiv.innerHTML = '<div class="empty-state">Нет плейлистов, создайте!</div>';
+        visualizerInterval = setInterval(() => {
+            if (!isPlaying || audio.paused || !audio.currentTime) {
+                if (visualizerInterval) clearInterval(visualizerInterval);
                 return;
             }
-            playlists.forEach(pl => {
-                const div = document.createElement('div');
-                div.className = `playlist-item ${currentPlaylistId === pl.id ? 'active' : ''}`;
-                div.innerHTML = `<div><div class="name">${escapeHtml(pl.name)}</div><div class="count">${pl.tracks.length} треков</div></div><button class="danger del-pl" data-id="${pl.id}">✕</button>`;
-                div.addEventListener('click', (e) => { if(!e.target.classList.contains('del-pl')) selectPlaylist(pl.id); });
-                div.querySelector('.del-pl').addEventListener('click', (e) => { e.stopPropagation(); deletePlaylist(pl.id); });
-                playlistListDiv.appendChild(div);
+            const intensity = audio.volume * (audio.currentTime % 0.5) * 2 + 0.2;
+            const bars = document.querySelectorAll('.visualizer-bar');
+            bars.forEach((bar, idx) => {
+                const height = 4 + Math.sin(Date.now() * 0.008 + idx) * 12 * intensity + Math.random() * 8;
+                bar.style.height = `${Math.min(40, Math.max(4, height))}px`;
             });
-        }
-        
-        function renderTracks() {
-            trackListDiv.innerHTML = '';
-            if (!currentPlaylistId) { trackListDiv.innerHTML = '<div class="empty-state">Выберите плейлист</div>'; return; }
-            const playlist = playlists.find(p => p.id === currentPlaylistId);
-            if (!playlist || !playlist.tracks.length) { trackListDiv.innerHTML = '<div class="empty-state">Нет треков, добавьте музыку</div>'; return; }
-            playlist.tracks.forEach((track, idx) => {
-                const div = document.createElement('div');
-                div.className = `track-item ${currentTrackId === track.id ? 'playing' : ''}`;
-                div.innerHTML = `
-                    <div class="track-info"><div class="title">${escapeHtml(track.title)}</div><div class="artist">${escapeHtml(track.artist)}</div></div>
-                    <div class="track-actions"><span class="duration">${track.duration}</span><button class="danger del-track" data-id="${track.id}">✕</button></div>
-                `;
-                div.addEventListener('click', (e) => { if(!e.target.classList.contains('del-track')) playTrackById(track.id); });
-                div.querySelector('.del-track').addEventListener('click', (e) => { e.stopPropagation(); deleteTrack(track.id); });
-                trackListDiv.appendChild(div);
-            });
-        }
-        
-        function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-        
-        // ==================== ЛОГИКА ПЛЕЙЛИСТОВ ====================
-        function createPlaylist(name) {
-            const id = 'pl_' + Date.now() + '_' + Math.random();
-            playlists.push({ id, name, tracks: [] });
-            savePlaylistsToLocalStorage();
-            renderPlaylists();
-            selectPlaylist(id);
-        }
-        
-        function deletePlaylist(id) {
-            if(!confirm('Удалить плейлист?')) return;
-            const idx = playlists.findIndex(p => p.id === id);
-            if(idx !== -1) playlists.splice(idx,1);
-            if(currentPlaylistId === id) { currentPlaylistId = null; currentTrackId = null; audio.pause(); isPlaying=false; updatePlayPauseBtn(); updateCurrentTrackDisplay(); }
-            savePlaylistsToLocalStorage();
-            renderPlaylists();
-            renderTracks();
-        }
-        
-        function selectPlaylist(id) {
-            currentPlaylistId = id;
-            currentTrackId = null;
-            playedHistory = [];
-            audio.pause(); isPlaying=false; updatePlayPauseBtn();
-            renderPlaylists();
-            renderTracks();
-            updateCurrentTrackDisplay();
-        }
-        
-        // ==================== РАБОТА С ТРЕКАМИ (МНОЖЕСТВЕННОЕ ДОБАВЛЕНИЕ) ====================
-        async function addMultipleTracksToCurrentPlaylist(files) {
-            if(!currentPlaylistId) { alert('Сначала создайте/выберите плейлист'); return false; }
-            const playlist = playlists.find(p => p.id === currentPlaylistId);
-            if(!playlist) return false;
-            let added = 0;
-            for(const file of files) {
-                if(!file.type.startsWith('audio/')) continue;
-                const fileId = await saveAudioFileToDB(file);
-                const url = await loadAudioFileFromDB(fileId);
-                const trackId = 'tr_' + Date.now() + '_' + Math.random() + '_' + file.name;
-                const title = file.name.replace(/\.[^/.]+$/, '');
-                playlist.tracks.push({
-                    id: trackId,
-                    title: title,
-                    artist: 'Неизвестный',
-                    duration: '0:00',
-                    fileId: fileId,
-                    fileName: file.name,
-                    url: url
-                });
-                added++;
-            }
-            if(added) {
-                savePlaylistsToLocalStorage();
-                renderTracks();
-                alert(`Добавлено ${added} треков!`);
-                return true;
-            }
-            return false;
-        }
-        
-        function deleteTrack(trackId) {
-            const playlist = playlists.find(p => p.id === currentPlaylistId);
-            if(!playlist) return;
-            const idx = playlist.tracks.findIndex(t => t.id === trackId);
-            if(idx === -1) return;
-            if(currentTrackId === trackId) { audio.pause(); isPlaying=false; updatePlayPauseBtn(); currentTrackId = null; updateCurrentTrackDisplay(); }
-            playlist.tracks.splice(idx,1);
-            if(currentTrackId === trackId) currentTrackId = null;
-            savePlaylistsToLocalStorage();
-            renderTracks();
-        }
-        
-        async function playTrackById(trackId) {
-            const playlist = playlists.find(p => p.id === currentPlaylistId);
-            if(!playlist) return;
-            const track = playlist.tracks.find(t => t.id === trackId);
-            if(!track) return;
-            if(!track.url && track.fileId) {
-                try {
-                    track.url = await loadAudioFileFromDB(track.fileId);
-                } catch(e) { alert('Не удалось загрузить аудиофайл'); return; }
-            }
-            if(!track.url) { alert('Файл недоступен'); return; }
-            audio.src = track.url;
-            currentTrackId = track.id;
-            if(isShuffle && !playedHistory.includes(trackId)) playedHistory.push(trackId);
-            try {
-                await audio.play();
-                isPlaying = true;
-                updatePlayPauseBtn();
-                renderTracks();
-                updateCurrentTrackDisplay();
-            } catch(e) { console.error(e); alert('Ошибка воспроизведения'); }
-        }
-        
-        function getCurrentTrackObject() {
-            const pl = playlists.find(p => p.id === currentPlaylistId);
-            if(!pl || !currentTrackId) return null;
-            return pl.tracks.find(t => t.id === currentTrackId);
-        }
-        
-        function getPlaylistTracks() {
-            const pl = playlists.find(p => p.id === currentPlaylistId);
-            return pl ? pl.tracks : [];
-        }
-        
-        async function playNext() {
-            const tracks = getPlaylistTracks();
-            if(!tracks.length) return;
-            if(isShuffle) {
-                let available = tracks.filter(t => !playedHistory.includes(t.id));
-                if(!available.length) { playedHistory = []; available = tracks; }
-                if(available.length) {
-                    const random = available[Math.floor(Math.random()*available.length)];
-                    await playTrackById(random.id);
+        }, 60);
+    }
+
+    function stopVisualizer() {
+        if (visualizerInterval) clearInterval(visualizerInterval);
+        visualizerContainer.innerHTML = '';
+    }
+
+    function updateGlow(isActive) {
+        if (isActive) playerGlow.classList.add('active');
+        else playerGlow.classList.remove('active');
+    }
+
+    // ---------- Работа с плейлистами ----------
+    function saveToLocalStorage() {
+        const data = playlists.map(pl => ({
+            id: pl.id,
+            name: pl.name,
+            tracks: pl.tracks.map(t => ({ id: t.id, title: t.title, artist: t.artist, duration: t.duration, fileId: t.fileId }))
+        }));
+        localStorage.setItem('vibify_data', JSON.stringify(data));
+    }
+
+    async function loadFromLocalStorage() {
+        const raw = localStorage.getItem('vibify_data');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        playlists = parsed;
+        for (let pl of playlists) {
+            for (let t of pl.tracks) {
+                if (t.fileId) {
+                    try { t.url = await loadFileFromDB(t.fileId); } catch(e) { t.url = null; }
                 }
-            } else {
-                let idx = tracks.findIndex(t => t.id === currentTrackId);
-                let nextIdx = (idx + 1) % tracks.length;
-                await playTrackById(tracks[nextIdx].id);
             }
         }
-        
-        async function playPrev() {
-            const tracks = getPlaylistTracks();
-            if(!tracks.length) return;
-            if(isShuffle && playedHistory.length > 1) {
-                const prevId = playedHistory[playedHistory.length-2];
-                await playTrackById(prevId);
-            } else {
-                let idx = tracks.findIndex(t => t.id === currentTrackId);
-                let prevIdx = (idx - 1 + tracks.length) % tracks.length;
-                await playTrackById(tracks[prevIdx].id);
-            }
+        return true;
+    }
+
+    function renderPlaylists() {
+        if (!playlists.length) { playlistDiv.innerHTML = '<div class="empty-state">✨ Создайте первый плейлист</div>'; return; }
+        playlistDiv.innerHTML = playlists.map(pl => `
+            <div class="playlist-item ${currentPlaylistId === pl.id ? 'active' : ''}" data-id="${pl.id}">
+                <div class="playlist-info"><div class="name">${escapeHtml(pl.name)}</div><div class="count">${pl.tracks.length} треков</div></div>
+                <button class="btn btn-outline delete-pl" data-id="${pl.id}" style="padding:4px 10px;">✕</button>
+            </div>
+        `).join('');
+        document.querySelectorAll('.playlist-item').forEach(el => {
+            const id = el.dataset.id;
+            el.addEventListener('click', (e) => { if (!e.target.classList.contains('delete-pl')) selectPlaylist(id); });
+            const delBtn = el.querySelector('.delete-pl');
+            if (delBtn) delBtn.addEventListener('click', (e) => { e.stopPropagation(); deletePlaylistById(id); });
+        });
+    }
+
+    async function renderTracks() {
+        if (!currentPlaylistId) { trackDiv.innerHTML = '<div class="empty-state">🎵 Выберите плейлист слева</div>'; return; }
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        if (!pl || !pl.tracks.length) { trackDiv.innerHTML = '<div class="empty-state">🎶 Добавьте треки через кнопку выше</div>'; return; }
+        trackDiv.innerHTML = pl.tracks.map(t => `
+            <div class="track-item ${currentTrackId === t.id ? 'playing' : ''}" data-id="${t.id}">
+                <div class="track-info"><div class="title">${escapeHtml(t.title)}</div><div class="artist">${escapeHtml(t.artist)}</div></div>
+                <div class="flex-group"><span class="duration">${t.duration}</span><button class="btn btn-outline del-track" data-id="${t.id}" style="padding:4px 8px;">✕</button></div>
+            </div>
+        `).join('');
+        document.querySelectorAll('.track-item').forEach(el => {
+            const id = el.dataset.id;
+            el.addEventListener('click', (e) => { if (!e.target.classList.contains('del-track')) playTrackById(id); });
+            const del = el.querySelector('.del-track');
+            if (del) del.addEventListener('click', (e) => { e.stopPropagation(); deleteTrackById(id); });
+        });
+    }
+
+    function selectPlaylist(id) {
+        currentPlaylistId = id;
+        currentTrackId = null;
+        playedHistory = [];
+        audio.pause(); isPlaying = false;
+        updatePlayBtn();
+        updateGlow(false);
+        stopVisualizer();
+        renderPlaylists();
+        renderTracks();
+        updateNowPlaying(null);
+    }
+
+    async function deletePlaylistById(id) {
+        if (!confirm('Удалить плейлист?')) return;
+        playlists = playlists.filter(p => p.id !== id);
+        if (currentPlaylistId === id) currentPlaylistId = null;
+        saveToLocalStorage();
+        renderPlaylists();
+        renderTracks();
+        if (!currentPlaylistId) updateNowPlaying(null);
+    }
+
+    async function playTrackById(trackId) {
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        if (!pl) return;
+        const track = pl.tracks.find(t => t.id === trackId);
+        if (!track) return;
+        if (!track.url && track.fileId) {
+            try { track.url = await loadFileFromDB(track.fileId); } catch(e) { alert('Ошибка загрузки файла'); return; }
         }
-        
-        function togglePlayPause() {
-            if(!currentPlaylistId) { alert('Выберите плейлист'); return; }
-            const tracks = getPlaylistTracks();
-            if(!tracks.length) { alert('Нет треков'); return; }
-            if(!currentTrackId) { playTrackById(tracks[0].id); return; }
-            if(isPlaying) { audio.pause(); isPlaying=false; updatePlayPauseBtn(); }
-            else { audio.play(); isPlaying=true; updatePlayPauseBtn(); }
+        if (!track.url) return;
+        audio.src = track.url;
+        currentTrackId = track.id;
+        if (isShuffle && !playedHistory.includes(track.id)) playedHistory.push(track.id);
+        try {
+            await audio.play();
+            isPlaying = true;
+            updatePlayBtn();
+            renderTracks();
+            updateNowPlaying(track);
+            startVisualizer();
+            updateGlow(true);
+        } catch(e) { console.error(e); }
+    }
+
+    function updateNowPlaying(track) {
+        if (track) {
+            currentTitleSpan.innerText = track.title;
+            currentArtistSpan.innerText = track.artist;
+            coverArt.innerHTML = '🎵';
+            coverArt.style.background = 'linear-gradient(135deg, #7c3aed, #a78bfa)';
+        } else {
+            currentTitleSpan.innerText = 'Не выбрано';
+            currentArtistSpan.innerText = 'Выберите трек';
+            coverArt.innerHTML = '🎵';
         }
-        
-        function handleTrackEnd() {
-            if(isRepeat) { audio.currentTime = 0; audio.play(); }
-            else playNext();
-        }
-        
-        function updateProgress() {
-            if(audio.duration) {
-                progress.style.width = (audio.currentTime/audio.duration)*100 + '%';
-                currentTimeEl.textContent = formatTime(audio.currentTime);
-            }
-        }
-        function setDurationMeta() {
-            durationEl.textContent = formatTime(audio.duration);
-            const track = getCurrentTrackObject();
-            if(track && track.duration === '0:00') {
-                track.duration = formatTime(audio.duration);
-                savePlaylistsToLocalStorage();
-                renderTracks();
-            }
-        }
-        function seek(e) { if(audio.duration) { const rect = progressBar.getBoundingClientRect(); const x = e.clientX - rect.left; audio.currentTime = (x/rect.width)*audio.duration; } }
-        function setVolume() { audio.volume = volumeSlider.value; }
-        function updatePlayPauseBtn() { playPauseBtn.textContent = isPlaying ? '⏸' : '▶'; }
-        function updateCurrentTrackDisplay() {
-            const track = getCurrentTrackObject();
-            if(track) { currentTrackTitle.textContent = track.title; currentTrackArtist.textContent = track.artist; }
-            else { currentTrackTitle.textContent = 'Не выбрано'; currentTrackArtist.textContent = 'Выберите трек'; }
-        }
-        function toggleShuffle() { isShuffle = !isShuffle; if(isShuffle) playedHistory = currentTrackId ? [currentTrackId] : []; shuffleBtn.textContent = `🔀 Случайный порядок: ${isShuffle ? 'Вкл' : 'Выкл'}`; shuffleBtn.classList.toggle('active', isShuffle); }
-        function toggleRepeat() { isRepeat = !isRepeat; repeatBtn.textContent = `🔁 Повтор: ${isRepeat ? 'Вкл' : 'Выкл'}`; repeatBtn.classList.toggle('active', isRepeat); }
-        
-        // ==================== UI МОДАЛЕЙ ====================
-        function showAddTracksModal() {
-            if(!currentPlaylistId) { alert('Сначала выберите плейлист'); return; }
-            pendingFiles = [];
-            selectedFilesList.innerHTML = '';
-            addModal.style.display = 'flex';
-        }
-        function updateSelectedFilesList() {
-            selectedFilesList.innerHTML = pendingFiles.map((f,i) => `<div class="file-item">${f.name} <button class="danger" data-idx="${i}">✕</button></div>`).join('');
-            document.querySelectorAll('[data-idx]').forEach(btn => {
-                btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.idx); pendingFiles.splice(idx,1); updateSelectedFilesList(); });
+    }
+
+    function deleteTrackById(trackId) {
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        if (!pl) return;
+        pl.tracks = pl.tracks.filter(t => t.id !== trackId);
+        if (currentTrackId === trackId) { audio.pause(); isPlaying = false; updatePlayBtn(); currentTrackId = null; updateNowPlaying(null); updateGlow(false); stopVisualizer(); }
+        saveToLocalStorage();
+        renderTracks();
+    }
+
+    async function addMultipleTracks(files) {
+        if (!currentPlaylistId) { alert('Сначала выберите плейлист'); return; }
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        let added = 0;
+        for (let file of files) {
+            if (!file.type.startsWith('audio/')) continue;
+            const fileId = await saveFileToDB(file);
+            const url = await loadFileFromDB(fileId);
+            const trackId = `tr_${Date.now()}_${Math.random()}`;
+            pl.tracks.push({
+                id: trackId,
+                title: file.name.replace(/\.[^/.]+$/, ''),
+                artist: 'Исполнитель',
+                duration: '0:00',
+                fileId: fileId,
+                url: url
             });
+            added++;
         }
-        function handleFileSelectFromModal(files) {
-            const audioFiles = Array.from(files).filter(f => f.type.startsWith('audio/'));
-            pendingFiles.push(...audioFiles);
-            updateSelectedFilesList();
+        if (added) {
+            saveToLocalStorage();
+            renderTracks();
+            alert(`✅ Добавлено ${added} треков`);
         }
-        async function confirmAddFiles() {
-            if(pendingFiles.length === 0) { alert('Выберите файлы'); return; }
-            await addMultipleTracksToCurrentPlaylist(pendingFiles);
-            pendingFiles = [];
-            addModal.style.display = 'none';
-        }
-        
-        // ==================== ЗАГРУЗКА ПРИ СТАРТЕ ====================
-        async function init() {
-            await openDB();
-            const loaded = await loadPlaylistsFromLocalStorage();
-            if(!loaded || playlists.length===0) {
-                // демо-плейлист
-                const demoId = 'pl_demo';
-                playlists = [{ id: demoId, name: 'Пример', tracks: [] }];
-                savePlaylistsToLocalStorage();
+    }
+
+    async function nextTrack() {
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        if (!pl || !pl.tracks.length) return;
+        if (isShuffle) {
+            let available = pl.tracks.filter(t => !playedHistory.includes(t.id));
+            if (!available.length) { playedHistory = []; available = pl.tracks; }
+            if (available.length) {
+                const random = available[Math.floor(Math.random() * available.length)];
+                await playTrackById(random.id);
             }
-            renderPlaylists();
-            if(playlists.length) selectPlaylist(playlists[0].id);
-            
-            // События
-            createPlaylistBtn.onclick = () => { playlistNameInput.value=''; createModal.style.display='flex'; };
-            confirmCreate.onclick = () => { const name = playlistNameInput.value.trim(); if(name) createPlaylist(name); createModal.style.display='none'; };
-            cancelCreate.onclick = () => createModal.style.display='none';
-            addTracksBtn.onclick = showAddTracksModal;
-            cancelAdd.onclick = () => addModal.style.display='none';
-            confirmAdd.onclick = confirmAddFiles;
-            fileDropArea.onclick = () => modalFileInput.click();
-            fileDropArea.addEventListener('dragover', e => { e.preventDefault(); fileDropArea.classList.add('dragover'); });
-            fileDropArea.addEventListener('dragleave', () => fileDropArea.classList.remove('dragover'));
-            fileDropArea.addEventListener('drop', e => { e.preventDefault(); fileDropArea.classList.remove('dragover'); const files = Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('audio/')); pendingFiles.push(...files); updateSelectedFilesList(); });
-            modalFileInput.onchange = (e) => { handleFileSelectFromModal(e.target.files); modalFileInput.value=''; };
-            savePlaylistsBtn.onclick = savePlaylistsToFile;
-            loadPlaylistsBtn.onclick = () => loadModal.style.display='flex';
-            confirmLoad.onclick = async () => { const file = playlistFileInput.files[0]; if(file) await loadPlaylistsFromFile(file); loadModal.style.display='none'; playlistFileInput.value=''; };
-            cancelLoad.onclick = () => loadModal.style.display='none';
-            playPauseBtn.onclick = togglePlayPause;
-            prevBtn.onclick = playPrev;
-            nextBtn.onclick = playNext;
-            shuffleBtn.onclick = toggleShuffle;
-            repeatBtn.onclick = toggleRepeat;
-            progressBar.onclick = seek;
-            volumeSlider.oninput = setVolume;
-            audio.addEventListener('timeupdate', updateProgress);
-            audio.addEventListener('loadedmetadata', setDurationMeta);
-            audio.addEventListener('ended', handleTrackEnd);
-            audio.volume = 0.7;
-            volumeSlider.value = 0.7;
+        } else {
+            let idx = pl.tracks.findIndex(t => t.id === currentTrackId);
+            let nextIdx = (idx + 1) % pl.tracks.length;
+            await playTrackById(pl.tracks[nextIdx].id);
         }
-        
-        init();
-    </script>
+    }
+
+    async function prevTrack() {
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        if (!pl || !pl.tracks.length) return;
+        if (isShuffle && playedHistory.length > 1) {
+            const prevId = playedHistory[playedHistory.length - 2];
+            await playTrackById(prevId);
+        } else {
+            let idx = pl.tracks.findIndex(t => t.id === currentTrackId);
+            let prevIdx = (idx - 1 + pl.tracks.length) % pl.tracks.length;
+            await playTrackById(pl.tracks[prevIdx].id);
+        }
+    }
+
+    // ---------- UI Helpers ----------
+    function updatePlayBtn() { playPauseBtn.innerHTML = isPlaying ? '⏸' : '▶'; }
+    function togglePlayPause() {
+        if (!currentPlaylistId) { alert('Выберите плейлист'); return; }
+        const pl = playlists.find(p => p.id === currentPlaylistId);
+        if (!pl || !pl.tracks.length) { alert('Нет треков'); return; }
+        if (!currentTrackId) { playTrackById(pl.tracks[0].id); return; }
+        if (isPlaying) { audio.pause(); isPlaying = false; updatePlayBtn(); updateGlow(false); stopVisualizer(); }
+        else { audio.play(); isPlaying = true; updatePlayBtn(); updateGlow(true); startVisualizer(); }
+    }
+
+    function updateProgress() {
+        if (audio.duration) {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progressFill.style.width = `${percent}%`;
+            currentTimeSpan.innerText = formatTime(audio.currentTime);
+        }
+    }
+    function setDurationMeta() {
+        if (audio.duration) {
+            durationSpan.innerText = formatTime(audio.duration);
+            const pl = playlists.find(p => p.id === currentPlaylistId);
+            if (pl && currentTrackId) {
+                const track = pl.tracks.find(t => t.id === currentTrackId);
+                if (track && track.duration === '0:00') { track.duration = formatTime(audio.duration); saveToLocalStorage(); renderTracks(); }
+            }
+        }
+    }
+    function formatTime(sec) { if (isNaN(sec)) return '0:00'; const m = Math.floor(sec / 60); const s = Math.floor(sec % 60); return `${m}:${s < 10 ? '0' : ''}${s}`; }
+    function seek(e) { if (audio.duration) { const rect = progressBar.getBoundingClientRect(); const x = e.clientX - rect.left; audio.currentTime = (x / rect.width) * audio.duration; } }
+    function setVolume() { audio.volume = volumeSlider.value; }
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    function toggleShuffle() { isShuffle = !isShuffle; if (isShuffle && currentTrackId) playedHistory = [currentTrackId]; shuffleModeBtn.classList.toggle('active', isShuffle); }
+    function toggleRepeat() { isRepeat = !isRepeat; repeatModeBtn.classList.toggle('active', isRepeat); }
+
+    // ---------- Модалки ----------
+    function showCreateModal() { createModal.style.display = 'flex'; }
+    function hideCreateModal() { createModal.style.display = 'none'; playlistNameInput.value = ''; }
+    function createNewPlaylist() {
+        const name = playlistNameInput.value.trim();
+        if (!name) return;
+        const id = `pl_${Date.now()}`;
+        playlists.push({ id, name, tracks: [] });
+        saveToLocalStorage();
+        renderPlaylists();
+        selectPlaylist(id);
+        hideCreateModal();
+    }
+
+    function showAddModal() {
+        if (!currentPlaylistId) { alert('Сначала выберите плейлист'); return; }
+        pendingFiles = [];
+        selectedFilesContainer.innerHTML = '';
+        addModal.style.display = 'flex';
+    }
+    function updatePendingFilesList() {
+        selectedFilesContainer.innerHTML = pendingFiles.map((f, idx) => `<div class="file-item">${f.name} <button class="btn btn-outline" data-idx="${idx}" style="padding:2px 8px;">✕</button></div>`).join('');
+        document.querySelectorAll('[data-idx]').forEach(btn => {
+            btn.addEventListener('click', (e) => { const idx = parseInt(btn.dataset.idx); pendingFiles.splice(idx, 1); updatePendingFilesList(); });
+        });
+    }
+    async function confirmAddFiles() {
+        if (!pendingFiles.length) { alert('Выберите файлы'); return; }
+        await addMultipleTracks(pendingFiles);
+        addModal.style.display = 'none';
+        pendingFiles = [];
+    }
+
+    async function exportPlaylists() {
+        const exportData = playlists.map(pl => ({ id: pl.id, name: pl.name, tracks: pl.tracks.map(t => ({ id: t.id, title: t.title, artist: t.artist, duration: t.duration, fileId: t.fileId })) }));
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'vibify_backup.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    async function importPlaylists(file) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const imported = JSON.parse(e.target.result);
+            playlists = imported;
+            for (let pl of playlists) {
+                for (let tr of pl.tracks) {
+                    if (tr.fileId) { try { tr.url = await loadFileFromDB(tr.fileId); } catch(e) { tr.url = null; } }
+                }
+            }
+            saveToLocalStorage();
+            renderPlaylists();
+            if (playlists.length) selectPlaylist(playlists[0].id);
+            alert('Загружено!');
+        };
+        reader.readAsText(file);
+    }
+
+    // ---------- Инициализация ----------
+    async function init() {
+        await openDB();
+        const loaded = await loadFromLocalStorage();
+        if (!loaded || !playlists.length) {
+            playlists = [{ id: 'demo', name: 'Демо', tracks: [] }];
+            saveToLocalStorage();
+        }
+        renderPlaylists();
+        if (playlists.length) selectPlaylist(playlists[0].id);
+        audio.addEventListener('timeupdate', updateProgress);
+        audio.addEventListener('loadedmetadata', setDurationMeta);
+        audio.addEventListener('ended', () => { if (isRepeat) { audio.currentTime = 0; audio.play(); } else nextTrack(); });
+        progressBar.addEventListener('click', seek);
+        volumeSlider.addEventListener('input', setVolume);
+        playPauseBtn.addEventListener('click', togglePlayPause);
+        prevBtn.addEventListener('click', prevTrack);
+        nextBtn.addEventListener('click', nextTrack);
+        shuffleModeBtn.addEventListener('click', toggleShuffle);
+        repeatModeBtn.addEventListener('click', toggleRepeat);
+        createPlaylistBtn.addEventListener('click', showCreateModal);
+        confirmCreateBtn.addEventListener('click', createNewPlaylist);
+        cancelCreateBtn.addEventListener('click', hideCreateModal);
+        addTracksBtn.addEventListener('click', showAddModal);
+        cancelAddBtn.addEventListener('click', () => addModal.style.display = 'none');
+        confirmAddBtn.addEventListener('click', confirmAddFiles);
+        fileDropArea.addEventListener('click', () => fileInputElem.click());
+        fileDropArea.addEventListener('dragover', e => { e.preventDefault(); fileDropArea.classList.add('dragover'); });
+        fileDropArea.addEventListener('dragleave', () => fileDropArea.classList.remove('dragover'));
+        fileDropArea.addEventListener('drop', e => { e.preventDefault(); fileDropArea.classList.remove('dragover'); const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/')); pendingFiles.push(...files); updatePendingFilesList(); });
+        fileInputElem.addEventListener('change', (e) => { pendingFiles.push(...Array.from(e.target.files)); updatePendingFilesList(); fileInputElem.value = ''; });
+        saveBtn.addEventListener('click', exportPlaylists);
+        loadBtn.addEventListener('click', () => loadModal.style.display = 'flex');
+        cancelLoadBtn.addEventListener('click', () => loadModal.style.display = 'none');
+        confirmLoadBtn.addEventListener('click', async () => { if (loadFileInput.files[0]) await importPlaylists(loadFileInput.files[0]); loadModal.style.display = 'none'; loadFileInput.value = ''; });
+        window.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) e.target.style.display = 'none'; });
+        audio.volume = 0.7;
+        volumeSlider.value = 0.7;
+    }
+    init();
+</script>
 </body>
 </html>
