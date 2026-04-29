@@ -1,0 +1,535 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Global News Explorer - Новости мира</title>
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="manifest" href="index.html/manifest.json">
+    <meta name="theme-color" content="#0a0f2a">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0f2a 0%, #0a1a3a 100%);
+            color: #f0f3fa;
+            font-family: 'Segoe UI', 'Poppins', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Modern Glassmorphism Header */
+        .globe-header {
+            text-align: center;
+            padding: 1.5rem 1rem 0.8rem;
+            backdrop-filter: blur(10px);
+            background: rgba(10, 15, 42, 0.6);
+            border-bottom: 1px solid rgba(72, 187, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFFFFF, #64B5F6, #42A5F5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.25rem;
+            text-shadow: 0 2px 10px rgba(0, 160, 255, 0.2);
+        }
+
+        .sub {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .sub i {
+            font-size: 0.8rem;
+            color: #64B5F6;
+        }
+
+        /* Info Card */
+        .info-card {
+            background: rgba(20, 28, 58, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            margin: 18px auto 12px;
+            max-width: 720px;
+            width: 90%;
+            padding: 14px 24px;
+            text-align: center;
+            border: 1px solid rgba(100, 181, 246, 0.4);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .info-card p {
+            font-size: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .info-card i {
+            font-size: 1.3rem;
+            color: #64B5F6;
+        }
+
+        .country-badge {
+            background: #1e3a8a;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: bold;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Map Container */
+        #chartdiv {
+            width: 100%;
+            height: 480px;
+            margin: 0 auto;
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5);
+            background: #03081a;
+        }
+
+        /* Controls */
+        .controls-panel {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin: 20px 0 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(25, 35, 70, 0.8);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(100, 181, 246, 0.5);
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 60px;
+            color: #eef2ff;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-family: inherit;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn i {
+            font-size: 1.1rem;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+            border-color: #90caf9;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -8px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+        }
+
+        /* Social Share */
+        .share-section {
+            background: rgba(10, 20, 40, 0.5);
+            border-radius: 28px;
+            margin: 20px auto 25px;
+            padding: 12px 20px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(100, 181, 246, 0.2);
+        }
+
+        .share-section p {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #b3e0ff;
+        }
+
+        .share-buttons {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #1f2a48;
+            padding: 8px 20px;
+            border-radius: 50px;
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.2s;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .share-btn i {
+            font-size: 1.2rem;
+        }
+
+        .share-btn.facebook:hover { background: #1877f2; transform: scale(1.02);}
+        .share-btn.twitter:hover { background: #1da1f2; transform: scale(1.02);}
+        .share-btn.vk:hover { background: #4c75a3; transform: scale(1.02);}
+        .share-btn.telegram:hover { background: #0088cc; transform: scale(1.02);}
+
+        /* footer counter */
+        .counter-footer {
+            text-align: center;
+            padding: 15px 10px;
+            font-size: 0.75rem;
+            opacity: 0.7;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 15px;
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 1.7rem; }
+            #chartdiv { height: 380px; }
+            .btn { padding: 8px 18px; font-size: 0.85rem; }
+            .info-card p { font-size: 0.85rem; }
+        }
+
+        /* subtle loading */
+        .globe-glow {
+            position: relative;
+        }
+        
+        /* custom tooltip styling via amCharts will be handled in JS, but background enhancement */
+        .am5-tooltip { backdrop-filter: blur(12px); border-radius: 20px !important;}
+    </style>
+</head>
+<body>
+
+<div class="globe-header">
+    <h1><i class="fas fa-globe-americas" style="margin-right: 10px;"></i> Global News Explorer</h1>
+    <div class="sub">
+        <i class="fas fa-map-marker-alt"></i> <span>Click any country → Latest news headlines from Google</span>
+        <i class="fas fa-newspaper"></i>
+    </div>
+</div>
+
+<div class="info-card" id="statusCard">
+    <p>
+        <i class="fas fa-info-circle"></i> 
+        <span id="statusText">🌍 Tap on a country to search for breaking news</span>
+    </p>
+</div>
+
+<div id="chartdiv" class="globe-glow"></div>
+
+<div class="controls-panel">
+    <button id="toggleRotation" class="btn"><i class="fas fa-pause-circle"></i> <span>Stop Rotation</span></button>
+    <button id="resetView" class="btn"><i class="fas fa-sync-alt"></i> Reset View</button>
+</div>
+
+<div class="share-section">
+    <p><i class="fas fa-share-alt"></i> Share this global news map</p>
+    <div class="share-buttons">
+        <a href="#" id="fbShare" class="share-btn facebook" target="_blank"><i class="fab fa-facebook-f"></i> Facebook</a>
+        <a href="#" id="twShare" class="share-btn twitter" target="_blank"><i class="fab fa-twitter"></i> Twitter</a>
+        <a href="#" id="vkShare" class="share-btn vk" target="_blank"><i class="fab fa-vk"></i> VK</a>
+        <a href="#" id="tgShare" class="share-btn telegram" target="_blank"><i class="fab fa-telegram-plane"></i> Telegram</a>
+    </div>
+</div>
+
+<center class="counter-footer">
+    <a href='https://www.free-counters.org/' style="color:#aaa;">Visit counter</a> 
+    <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=2f743762864763112c7120f08e9697713b83db63'></script>
+    <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1267337/t/0"></script>
+</center>
+
+<script>
+    am5.ready(function () {
+        // --- Create root element and theme
+        let root = am5.Root.new("chartdiv");
+        root.setThemes([am5themes_Animated.new(root)]);
+
+        // --- Orthographic globe map
+        let chart = root.container.children.push(
+            am5map.MapChart.new(root, {
+                panX: "rotateX",
+                panY: "rotateY",
+                projection: am5map.geoOrthographic(),
+                homeGeoPoint: { latitude: 0, longitude: 0 },
+                maxPanX: Infinity,
+                minPanX: -Infinity
+            })
+        );
+
+        // Ocean background (radial gradient effect will be deep blue)
+        chart.seriesContainer.set("background", am5.Rectangle.new(root, {
+            fill: am5.color(0x06102b),
+            fillOpacity: 1
+        }));
+
+        // Create polygon series for world map
+        let polygonSeries = chart.series.push(
+            am5map.MapPolygonSeries.new(root, {
+                geoJSON: am5geodata_worldLow,
+                calculateAggregates: true
+            })
+        );
+
+        // Style countries: modern gradient feel
+        polygonSeries.set("fill", am5.color(0x2c3e66));
+        polygonSeries.set("stroke", am5.color(0x4a6b9e));
+        polygonSeries.set("strokeWidth", 0.6);
+        
+        // Template for interactive polygons
+        let polygonTemplate = polygonSeries.mapPolygons.template;
+        polygonTemplate.setAll({
+            interactive: true,
+            tooltipText: "{name}",
+            tooltipY: 0,
+            fill: am5.color(0x3a5a8c),
+            stroke: am5.color(0x7e9bc0),
+            strokeWidth: 0.8,
+            cursorOverStyle: "pointer"
+        });
+
+        // Hover effects
+        polygonTemplate.states.create("hover", {
+            fill: am5.color(0x5d8bc9),
+            stroke: am5.color(0xffd966),
+            strokeWidth: 1.5,
+            scale: 1.01
+        });
+
+        // subtle animation on load
+        polygonTemplate.animate({
+            key: "fill",
+            to: am5.color(0x4c74b3),
+            duration: 800,
+            easing: am5.ease.out(am5.ease.cubic)
+        });
+
+        // --- Rotation animation (continuous)
+        let rotationAnimation = chart.animate({
+            key: "rotationX",
+            from: 0,
+            to: 360,
+            loops: Infinity,
+            duration: 32000,
+            easing: am5.ease.linear
+        });
+
+        // --- State management for UI feedback + Google News search (english query)
+        const statusSpan = document.getElementById("statusText");
+        const statusCardDiv = document.getElementById("statusCard");
+        let activeTimeout = null;
+        
+        // Clear previous timeout and reset status after 4 seconds
+        function resetStatusMessage(defaultMsg = true) {
+            if (activeTimeout) clearTimeout(activeTimeout);
+            if (defaultMsg) {
+                activeTimeout = setTimeout(() => {
+                    statusSpan.innerHTML = "🌍 Tap on a country to search for breaking news";
+                    statusCardDiv.style.borderColor = "rgba(100, 181, 246, 0.4)";
+                }, 4000);
+            }
+        }
+
+        // Function to open Google News search for a specific country (English language results)
+        function searchCountryNews(countryName) {
+            if (!countryName) return;
+            // Construct query: "latest news from [Country]" in English
+            // Google search URL: results with news filter implicit but we can use standard web search, 
+            // but we want news mode: use "https://www.google.com/search?q=..." and we set "tbm=nws" for news tab
+            const searchQuery = `latest news from ${countryName}`;
+            const encodedQuery = encodeURIComponent(searchQuery);
+            // Using Google News focused results (tbm=nws) ensures news articles
+            const newsUrl = `https://www.google.com/search?q=${encodedQuery}&tbm=nws`;
+            window.open(newsUrl, "_blank");
+        }
+
+        // Click handler: on country select → open Google News in new tab
+        polygonSeries.mapPolygons.template.events.on("click", function (ev) {
+            // get country name from data context
+            let dataItem = ev.target.dataItem;
+            if (!dataItem) return;
+            let countryName = dataItem.dataContext.name;
+            if (!countryName) {
+                // fallback for some territories that might lack name
+                countryName = "this region";
+            }
+            
+            // Update status card with nice feedback
+            statusSpan.innerHTML = `<i class="fas fa-newspaper"></i> <span class="country-badge"><i class="fas fa-search"></i> ${countryName}</span> → Opening latest news...`;
+            statusCardDiv.style.borderColor = "#64b5f6";
+            if (activeTimeout) clearTimeout(activeTimeout);
+            activeTimeout = setTimeout(() => {
+                statusSpan.innerHTML = "🌍 Tap on a country to search for breaking news";
+                statusCardDiv.style.borderColor = "rgba(100, 181, 246, 0.4)";
+            }, 3500);
+            
+            // Open Google News results in a new tab (English query)
+            searchCountryNews(countryName);
+        });
+
+        // --- Toggle rotation button
+        const toggleBtn = document.getElementById("toggleRotation");
+        const btnSpan = toggleBtn.querySelector("span");
+        const btnIcon = toggleBtn.querySelector("i");
+        
+        toggleBtn.addEventListener("click", function () {
+            if (rotationAnimation && !rotationAnimation.isStopped()) {
+                rotationAnimation.stop();
+                toggleBtn.innerHTML = '<i class="fas fa-play-circle"></i> <span>Resume Rotation</span>';
+                // restructure icon+text via innerHTML, but we also keep ref (fine)
+            } else {
+                rotationAnimation = chart.animate({
+                    key: "rotationX",
+                    from: chart.get("rotationX") || 0,
+                    to: (chart.get("rotationX") || 0) + 360,
+                    loops: Infinity,
+                    duration: 32000,
+                    easing: am5.ease.linear
+                });
+                toggleBtn.innerHTML = '<i class="fas fa-pause-circle"></i> <span>Stop Rotation</span>';
+            }
+        });
+        
+        // --- Reset view button: reset rotation X/Y to home position and stop animation optionally but keep state
+        const resetBtn = document.getElementById("resetView");
+        resetBtn.addEventListener("click", function () {
+            // stop any ongoing rotation to avoid conflict
+            if (rotationAnimation && !rotationAnimation.isStopped()) {
+                rotationAnimation.stop();
+                toggleBtn.innerHTML = '<i class="fas fa-play-circle"></i> <span>Resume Rotation</span>';
+            }
+            // animate smoothly to default rotation (0 deg, 0 tilt)
+            chart.animate({
+                key: "rotationX",
+                to: 0,
+                duration: 1200,
+                easing: am5.ease.out(am5.ease.cubic)
+            });
+            chart.animate({
+                key: "rotationY",
+                to: 0,
+                duration: 1200,
+                easing: am5.ease.out(am5.ease.cubic)
+            });
+            // optional after reset, user can resume manually
+            statusSpan.innerHTML = "🌍 View reset! Click any country to read news.";
+            resetStatusMessage(true);
+        });
+        
+        // Optional: small effect to highlight countries with pulsing animation? nicer touch
+        // Adding a subtle glow on series
+        chart.appear(1000, 100);
+        
+        // --- Dynamic share links with current page URL (use actual location or fallback)
+        function getShareUrl() {
+            // we reference the actual deployed URL or current page
+            return window.location.href;
+        }
+        
+        const shareText = "Explore world news with this interactive globe! Click any country to get latest English news from Google. 🌍📰";
+        const currentUrl = encodeURIComponent(getShareUrl());
+        const encodedText = encodeURIComponent(shareText);
+        
+        // Facebook
+        const fbBtn = document.getElementById("fbShare");
+        fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
+        // Twitter
+        const twBtn = document.getElementById("twShare");
+        twBtn.href = `https://twitter.com/intent/tweet?text=${encodedText}&url=${currentUrl}`;
+        // VK
+        const vkBtn = document.getElementById("vkShare");
+        vkBtn.href = `https://vk.com/share.php?url=${currentUrl}&title=${encodedText}`;
+        // Telegram
+        const tgBtn = document.getElementById("tgShare");
+        tgBtn.href = `https://t.me/share/url?url=${currentUrl}&text=${encodedText}`;
+        
+        // Additional small improvement: update tooltip style to be light modern
+        polygonTemplate.set("tooltipPosition", "fixed");
+        
+        // Fine tune chart background: add starry effect? optional little stars improvement:
+        // For cleaner globe: set background image subtle gradient, but it's a rectangle; we can keep it deep blue.
+        
+        // Extra feature: slight tilt in Y rotation for nicer look? but default is okay
+        // final: start rotation from 0, but we can nudge initial angle for better view of Americas/Eurasia
+        // set initial rotation to 30? not needed, but rotate a bit to make initial view dynamic
+        setTimeout(() => {
+            // makes initial experience less static: rotate to 30 deg slowly on load
+            chart.animate({
+                key: "rotationX",
+                to: 30,
+                duration: 1800,
+                easing: am5.ease.out(am5.ease.cubic)
+            });
+        }, 500);
+        
+        // Error handling for missing names: also include a fallback on click for any polygon without name
+        // Additional robust mapping: some countries have Russian or local name but we use name property -> English typically
+        // amcharts worldLow uses English names.
+        
+        // For a few small islands, but works fine.
+        
+        // We add custom CSS for responsive tooltips directly, to have white background and black text better readability
+        const styleTag = document.createElement('style');
+        styleTag.textContent = `
+            .am5-tooltip { background: #0f172ad9 !important; backdrop-filter: blur(8px); border-radius: 24px !important; border: 1px solid #3b82f6; color: white !important; font-weight: 500; padding: 8px 16px; font-family: inherit; }
+            .am5-tooltip-text { color: white !important; }
+        `;
+        document.head.appendChild(styleTag);
+        
+        // special: if any country click causes multiple windows, but each click opens a new tab for news (desired)
+        // Enhance status message on global click events for a smoother feel
+        
+        // Optional small spin indicator to show that Globe is interactive
+        console.log("🌐 Global News Globe ready — click any country for latest English news!");
+    });
+    
+    // Additional fallback for dynamic loaded elements (safety)
+    window.addEventListener('load', () => {
+        // slight delay to ensure amcharts renders
+        const globeDiv = document.getElementById('chartdiv');
+        if(globeDiv) globeDiv.style.opacity = '1';
+    });
+</script>
+
+<!-- Improved UX: preload fonts and responsive touch improvements -->
+</body>
+</html>
