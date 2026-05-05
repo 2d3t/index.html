@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Global News Explorer - Два клика до новостей</title>
+    <title>Global News Explorer - Новости на языке страны</title>
     <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
     <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
@@ -100,6 +101,16 @@
             align-items: center;
             gap: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .language-tag {
+            background: #ff9800;
+            color: #1e1e2a;
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 8px;
         }
 
         .highlight-tip {
@@ -246,17 +257,17 @@
 <body>
 
 <div class="globe-header">
-    <h1><i class="fas fa-globe-americas" style="margin-right: 10px;"></i> Global News Explorer</h1>
+    <h1><i class="fas fa-globe-europe" style="margin-right: 10px;"></i> Global News Explorer</h1>
     <div class="sub">
-        <i class="fas fa-mouse-pointer"></i> <span>Click once → country name | Click twice → latest news</span>
-        <i class="fas fa-newspaper"></i>
+        <i class="fas fa-mouse-pointer"></i> <span>Click once → country name | Click twice → news in <strong style="color:#ffb74d;">native language</strong></span>
+        <i class="fas fa-language"></i>
     </div>
 </div>
 
 <div class="info-card" id="statusCard">
     <p>
         <i class="fas fa-info-circle"></i> 
-        <span id="statusText">🌍 Tap any country → first click shows the name, second click opens English news</span>
+        <span id="statusText">🌍 Tap any country → first click shows the name, second click opens news in the country's own language</span>
     </p>
 </div>
 
@@ -268,7 +279,7 @@
 </div>
 
 <div class="share-section">
-    <p><i class="fas fa-share-alt"></i> Share this interactive news globe</p>
+    <p><i class="fas fa-share-alt"></i> Share this interactive globe — news in your language!</p>
     <div class="share-buttons">
         <a href="#" id="fbShare" class="share-btn facebook" target="_blank"><i class="fab fa-facebook-f"></i> Facebook</a>
         <a href="#" id="twShare" class="share-btn twitter" target="_blank"><i class="fab fa-twitter"></i> Twitter</a>
@@ -278,13 +289,118 @@
 </div>
 
 <center class="counter-footer">
-    <a href='https://www.free-counters.org/' style="color:#aaa;">Visit counter</a> 
+    <a href='https://www.free-counters.org/' style="color:#aaa;">🌐 globe visits</a> 
     <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=2f743762864763112c7120f08e9697713b83db63'></script>
     <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1267337/t/0"></script>
 </center>
 
 <script>
     am5.ready(function () {
+        // --- Language mapping: country name (English as in geoJSON) -> Google language tag (lr=lang_XX) and native language name for display
+        // Более 80 стран с основными языками + fallback английский
+        const languageMap = {
+            // Европа
+            "Russia": { lr: "lang_ru", display: "Русский" },
+            "Germany": { lr: "lang_de", display: "Deutsch" },
+            "France": { lr: "lang_fr", display: "Français" },
+            "Italy": { lr: "lang_it", display: "Italiano" },
+            "Spain": { lr: "lang_es", display: "Español" },
+            "United Kingdom": { lr: "lang_en", display: "English" },
+            "Ukraine": { lr: "lang_uk", display: "Українська" },
+            "Poland": { lr: "lang_pl", display: "Polski" },
+            "Netherlands": { lr: "lang_nl", display: "Nederlands" },
+            "Sweden": { lr: "lang_sv", display: "Svenska" },
+            "Norway": { lr: "lang_no", display: "Norsk" },
+            "Denmark": { lr: "lang_da", display: "Dansk" },
+            "Finland": { lr: "lang_fi", display: "Suomi" },
+            "Belgium": { lr: "lang_fr", display: "Français / Nederlands" },
+            "Switzerland": { lr: "lang_de", display: "Deutsch" },
+            "Austria": { lr: "lang_de", display: "Deutsch" },
+            "Greece": { lr: "lang_el", display: "Ελληνικά" },
+            "Portugal": { lr: "lang_pt", display: "Português" },
+            "Czech Republic": { lr: "lang_cs", display: "Čeština" },
+            "Hungary": { lr: "lang_hu", display: "Magyar" },
+            "Romania": { lr: "lang_ro", display: "Română" },
+            "Bulgaria": { lr: "lang_bg", display: "Български" },
+            "Serbia": { lr: "lang_sr", display: "Српски" },
+            "Croatia": { lr: "lang_hr", display: "Hrvatski" },
+            "Slovakia": { lr: "lang_sk", display: "Slovenčina" },
+            "Slovenia": { lr: "lang_sl", display: "Slovenščina" },
+            "Lithuania": { lr: "lang_lt", display: "Lietuvių" },
+            "Latvia": { lr: "lang_lv", display: "Latviešu" },
+            "Estonia": { lr: "lang_et", display: "Eesti" },
+            "Iceland": { lr: "lang_is", display: "Íslenska" },
+            "Ireland": { lr: "lang_en", display: "English" },
+            // Азия
+            "China": { lr: "lang_zh", display: "中文" },
+            "Japan": { lr: "lang_ja", display: "日本語" },
+            "South Korea": { lr: "lang_ko", display: "한국어" },
+            "India": { lr: "lang_hi", display: "हिन्दी / English" },
+            "Indonesia": { lr: "lang_id", display: "Bahasa Indonesia" },
+            "Thailand": { lr: "lang_th", display: "ไทย" },
+            "Vietnam": { lr: "lang_vi", display: "Tiếng Việt" },
+            "Malaysia": { lr: "lang_ms", display: "Bahasa Melayu" },
+            "Philippines": { lr: "lang_tl", display: "Filipino" },
+            "Pakistan": { lr: "lang_ur", display: "اردو" },
+            "Bangladesh": { lr: "lang_bn", display: "বাংলা" },
+            "Turkey": { lr: "lang_tr", display: "Türkçe" },
+            "Iran": { lr: "lang_fa", display: "فارسی" },
+            "Saudi Arabia": { lr: "lang_ar", display: "العربية" },
+            "Israel": { lr: "lang_iw", display: "עברית" },
+            "United Arab Emirates": { lr: "lang_ar", display: "العربية" },
+            "Iraq": { lr: "lang_ar", display: "العربية" },
+            "Kazakhstan": { lr: "lang_kk", display: "Қазақша" },
+            "Uzbekistan": { lr: "lang_uz", display: "O‘zbek" },
+            "Afghanistan": { lr: "lang_ps", display: "پښتو" },
+            "Nepal": { lr: "lang_ne", display: "नेपाली" },
+            "Sri Lanka": { lr: "lang_si", display: "සිංහල" },
+            "Myanmar": { lr: "lang_my", display: "မြန်မာ" },
+            "Cambodia": { lr: "lang_km", display: "ខ្មែរ" },
+            "Mongolia": { lr: "lang_mn", display: "Монгол" },
+            // Африка
+            "Egypt": { lr: "lang_ar", display: "العربية" },
+            "South Africa": { lr: "lang_af", display: "Afrikaans / English" },
+            "Nigeria": { lr: "lang_en", display: "English" },
+            "Kenya": { lr: "lang_sw", display: "Kiswahili" },
+            "Morocco": { lr: "lang_ar", display: "العربية" },
+            "Algeria": { lr: "lang_ar", display: "العربية" },
+            "Tunisia": { lr: "lang_ar", display: "العربية" },
+            "Ethiopia": { lr: "lang_am", display: "አማርኛ" },
+            "Ghana": { lr: "lang_en", display: "English" },
+            "Angola": { lr: "lang_pt", display: "Português" },
+            "Mozambique": { lr: "lang_pt", display: "Português" },
+            "Senegal": { lr: "lang_fr", display: "Français" },
+            "Madagascar": { lr: "lang_mg", display: "Malagasy" },
+            // Америка
+            "United States": { lr: "lang_en", display: "English" },
+            "Canada": { lr: "lang_en", display: "English / Français" },
+            "Mexico": { lr: "lang_es", display: "Español" },
+            "Brazil": { lr: "lang_pt", display: "Português" },
+            "Argentina": { lr: "lang_es", display: "Español" },
+            "Chile": { lr: "lang_es", display: "Español" },
+            "Colombia": { lr: "lang_es", display: "Español" },
+            "Peru": { lr: "lang_es", display: "Español" },
+            "Venezuela": { lr: "lang_es", display: "Español" },
+            "Ecuador": { lr: "lang_es", display: "Español" },
+            "Cuba": { lr: "lang_es", display: "Español" },
+            "Bolivia": { lr: "lang_es", display: "Español" },
+            "Paraguay": { lr: "lang_es", display: "Español" },
+            "Uruguay": { lr: "lang_es", display: "Español" },
+            "Guyana": { lr: "lang_en", display: "English" },
+            "Suriname": { lr: "lang_nl", display: "Nederlands" },
+            // Океания
+            "Australia": { lr: "lang_en", display: "English" },
+            "New Zealand": { lr: "lang_en", display: "English" },
+            "Fiji": { lr: "lang_en", display: "English" },
+            "Papua New Guinea": { lr: "lang_en", display: "English" }
+        };
+        
+        // fallback английский
+        function getLanguageForCountry(countryName) {
+            if (languageMap[countryName]) return languageMap[countryName];
+            return { lr: "lang_en", display: "English (global)" };
+        }
+        
         // --- Create root
         let root = am5.Root.new("chartdiv");
         root.setThemes([am5themes_Animated.new(root)]);
@@ -344,15 +460,13 @@
             easing: am5.ease.linear
         });
 
-        // --- TWO-CLICK LOGIC: track clicked countries state
-        // Объект для хранения стран, ожидающих второго клика
-        let pendingCountry = null;      // хранит название страны для повторного клика
-        let pendingTimeout = null;      // таймер для сброса ожидания
+        // --- TWO-CLICK LOGIC with native language news
+        let pendingCountry = null;
+        let pendingTimeout = null;
         
         const statusSpan = document.getElementById("statusText");
         const statusCard = document.getElementById("statusCard");
         
-        // Функция сброса ожидания (после таймаута или при клике на другую страну)
         function clearPendingState(resetStatusToDefault = true) {
             if (pendingTimeout) {
                 clearTimeout(pendingTimeout);
@@ -360,68 +474,71 @@
             }
             pendingCountry = null;
             if (resetStatusToDefault) {
-                statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens English news";
+                statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens news in the country's own language";
                 statusCard.style.borderColor = "rgba(100, 181, 246, 0.4)";
             }
         }
         
-        // Открытие новостей на Google (английский запрос: "latest news from [Country]")
+        // Открытие новостей на языке страны
         function openNewsForCountry(countryName) {
             if (!countryName) return;
-            // Запрос на английском: "latest news from Italy" и т.д. – и открываем вкладку новостей Google (tbm=nws)
+            const langInfo = getLanguageForCountry(countryName);
+            // Формируем запрос: "latest news from X" но Google с lr=lang_XX покажет новости на нужном языке
+            // Для лучшего UX добавим локальный текст: "новости страна" но на английском поиск работает хорошо с фильтром языка.
             const searchQuery = `latest news from ${countryName}`;
             const encodedQuery = encodeURIComponent(searchQuery);
-            const newsUrl = `https://www.google.com/search?q=${encodedQuery}&tbm=nws`;
+            let newsUrl = `https://www.google.com/search?q=${encodedQuery}&tbm=nws`;
+            // Добавляем параметр языка, если язык не английский или даже английский можно добавить для точности
+            if (langInfo.lr) {
+                newsUrl += `&lr=${langInfo.lr}`;
+            }
             window.open(newsUrl, "_blank");
+            return langInfo.display;
         }
         
-        // Обновление статуса при первом клике (показать название)
         function showCountryNameAndWait(countryName) {
-            // Меняем сообщение: показываем название и просим кликнуть снова
-            statusSpan.innerHTML = `<i class="fas fa-globe"></i> <span class="country-badge"><i class="fas fa-flag"></i> ${countryName}</span> → ✅ Click again to get latest news!`;
+            const langInfo = getLanguageForCountry(countryName);
+            const langDisplay = langInfo.display;
+            statusSpan.innerHTML = `<i class="fas fa-globe"></i> <span class="country-badge"><i class="fas fa-flag"></i> ${countryName}</span> <span class="language-tag"><i class="fas fa-language"></i> ${langDisplay}</span> → ✅ Click again to get news in native language!`;
             statusCard.style.borderColor = "#ffb74d";
-            // Устанавливаем таймаут: если пользователь не кликнул повторно через 5 секунд, сбрасываем ожидание
             if (pendingTimeout) clearTimeout(pendingTimeout);
             pendingTimeout = setTimeout(() => {
                 if (pendingCountry === countryName) {
-                    // Возвращаем стандартное сообщение
                     statusSpan.innerHTML = "⏳ Timeout. Click again on any country to start over.";
                     setTimeout(() => {
                         if (!pendingCountry) {
-                            statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens English news";
+                            statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens news in the country's own language";
                             statusCard.style.borderColor = "rgba(100, 181, 246, 0.4)";
                         }
                     }, 2000);
                     clearPendingState(false);
-                    // но оставляем через секунду полный ресет
                     setTimeout(() => {
                         if (!pendingCountry) {
-                            statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens English news";
+                            statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens news in the country's own language";
                             statusCard.style.borderColor = "rgba(100, 181, 246, 0.4)";
                         }
                     }, 2500);
                 } else {
                     clearPendingState(true);
                 }
-            }, 5000);
+            }, 7000);
         }
         
-        // --- Клик по стране (основная логика: первый клик показывает имя, второй — открывает новости)
+        // --- Клик по стране (первый / второй)
         polygonSeries.mapPolygons.template.events.on("click", function (ev) {
             let dataItem = ev.target.dataItem;
             if (!dataItem) return;
             let countryName = dataItem.dataContext.name;
-            if (!countryName) {
-                // если нет имени, пропускаем (мелкие территории)
-                return;
-            }
+            if (!countryName) return;
             
-            // Случай 1: Ничего не ожидает (pendingCountry === null)
+            // Игнорируем зоны без имени (мелкие острова)
+            if (countryName === "Greenland" || countryName === "Antarctica") return;
+            
+            // Случай 1: Нет ожидающей страны
             if (pendingCountry === null) {
-                // Первый клик: запоминаем страну и показываем сообщение
                 pendingCountry = countryName;
                 showCountryNameAndWait(countryName);
-                // Дополнительно: визуальный фидбек на карте
+                // Анимация подсветки
                 ev.target.animate({
                     key: "fill",
                     to: am5.color(0xffaa66),
@@ -440,41 +557,34 @@
                 return;
             }
             
-            // Случай 2: Ожидается страна (pendingCountry не null)
+            // Случай 2: Ожидание
             if (pendingCountry !== null) {
-                // Если кликнули по той же самой стране -> ВТОРОЙ КЛИК, открываем новости
+                // Тот же самый country -> открываем новости на родном языке
                 if (pendingCountry === countryName) {
-                    // Второй клик: открываем новости на Google (английский запрос)
-                    openNewsForCountry(countryName);
-                    
-                    // Обновляем статус: показываем, что новости открыты
-                    statusSpan.innerHTML = `<i class="fas fa-newspaper"></i> 📰 Opening news for <strong>${countryName}</strong> in new tab...`;
+                    const langDisplay = openNewsForCountry(countryName);
+                    statusSpan.innerHTML = `<i class="fas fa-newspaper"></i> 📰 Opening news for <strong>${countryName}</strong> in <strong>${langDisplay}</strong> language...`;
                     statusCard.style.borderColor = "#4caf50";
                     
-                    // Сбрасываем ожидание после успешного перехода
                     if (pendingTimeout) clearTimeout(pendingTimeout);
                     pendingCountry = null;
                     pendingTimeout = null;
                     
-                    // Через 3 секунды вернуть стандартное сообщение
                     setTimeout(() => {
                         if (pendingCountry === null) {
-                            statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens English news";
+                            statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens news in the country's own language";
                             statusCard.style.borderColor = "rgba(100, 181, 246, 0.4)";
                         }
-                    }, 3500);
+                    }, 4000);
                 } 
                 else {
-                    // Кликнули по другой стране, пока ожидалась предыдущая: сбрасываем старую и активируем новую
-                    // Сбрасываем предыдущее ожидание
+                    // Другая страна: сброс предыдущей, активация новой
                     if (pendingTimeout) clearTimeout(pendingTimeout);
-                    // Теперь устанавливаем новую страну как ожидающую
                     const oldCountry = pendingCountry;
                     pendingCountry = countryName;
-                    // Обновляем сообщение: говорим, что цель изменена
-                    statusSpan.innerHTML = `<i class="fas fa-exchange-alt"></i> Changed: now <strong>${countryName}</strong>. Click again for news.`;
+                    const newLang = getLanguageForCountry(countryName).display;
+                    statusSpan.innerHTML = `<i class="fas fa-exchange-alt"></i> Changed: now <strong>${countryName}</strong> (${newLang}). Click again for immediate news.`;
                     statusCard.style.borderColor = "#ffb74d";
-                    // Новый таймаут
+                    
                     pendingTimeout = setTimeout(() => {
                         if (pendingCountry === countryName) {
                             statusSpan.innerHTML = "⏳ Timeout. Tap again to activate news mode.";
@@ -485,14 +595,13 @@
                             }, 2000);
                             clearPendingState(false);
                             setTimeout(() => {
-                                if (!pendingCountry) statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens English news";
+                                if (!pendingCountry) statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens news in the country's own language";
                             }, 2200);
                         } else {
                             clearPendingState(true);
                         }
-                    }, 5000);
+                    }, 7000);
                     
-                    // Визуальный фидбек для новой страны
                     ev.target.animate({
                         key: "fill",
                         to: am5.color(0xffaa66),
@@ -525,7 +634,7 @@
             }
         });
         
-        // Reset View: reset rotation and clear pending state gracefully
+        // Reset View: reset rotation and clear pending state
         const resetBtn = document.getElementById("resetView");
         resetBtn.addEventListener("click", function () {
             if (rotationAnimation && !rotationAnimation.isStopped()) {
@@ -534,22 +643,21 @@
             }
             chart.animate({ key: "rotationX", to: 0, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
             chart.animate({ key: "rotationY", to: 0, duration: 1000, easing: am5.ease.out(am5.ease.cubic) });
-            // Сброс ожидания
             if (pendingTimeout) clearTimeout(pendingTimeout);
             pendingCountry = null;
             pendingTimeout = null;
-            statusSpan.innerHTML = "🌍 View reset! First click: country name, second click: news.";
+            statusSpan.innerHTML = "🌍 View reset! First click: country name, second click: news in native language.";
             statusCard.style.borderColor = "rgba(100, 181, 246, 0.4)";
             setTimeout(() => {
                 if (pendingCountry === null) {
-                    statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens English news";
+                    statusSpan.innerHTML = "🌍 Tap any country → first click shows the name, second click opens news in the country's own language";
                 }
             }, 2800);
         });
         
         // --- Share links
         function getShareUrl() { return window.location.href; }
-        const shareText = "Explore world news with a cool interactive globe! Click any country twice: first see the name, second get latest English news from Google. 🌍📰";
+        const shareText = "Global News Explorer: click any country twice — get latest news in the country's own language! Interactive 3D globe. 🌐📰";
         const currentUrl = encodeURIComponent(getShareUrl());
         const encodedText = encodeURIComponent(shareText);
         document.getElementById("fbShare").href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
@@ -557,12 +665,12 @@
         document.getElementById("vkShare").href = `https://vk.com/share.php?url=${currentUrl}&title=${encodedText}`;
         document.getElementById("tgShare").href = `https://t.me/share/url?url=${currentUrl}&text=${encodedText}`;
         
-        // small rotation initial view nice angle
+        // initial rotation nice angle
         setTimeout(() => {
             chart.animate({ key: "rotationX", to: 25, duration: 1400, easing: am5.ease.out(am5.ease.cubic) });
         }, 400);
         
-        // style tooltip
+        // tooltip style fix
         const styleTag = document.createElement('style');
         styleTag.textContent = `.am5-tooltip { background: #0f172ad9 !important; backdrop-filter: blur(8px); border-radius: 24px !important; border: 1px solid #3b82f6; color: white !important; }`;
         document.head.appendChild(styleTag);
