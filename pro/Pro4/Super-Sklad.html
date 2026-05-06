@@ -1,12 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Мультисклад — фото вещей, большой просмотр, контрастная тема</title>
+    <title>Мультисклад — фото вещей, поиск с миниатюрами, тёмная тема fix</title>
     <style id="theme-style">
-        /* ========== СВЕТЛАЯ ТЕМА (КОНТРАСТНАЯ, ЧИСТАЯ) ========== */
+        /* ========== СВЕТЛАЯ ТЕМА ========== */
         :root {
             --bg-gradient-start: #eef2fa;
             --bg-gradient-end: #ffffff;
@@ -14,6 +13,7 @@
             --card-bg: #ffffff;
             --text-primary: #0a1c2f;
             --text-secondary: #1e3a5f;
+            --text-muted: #2c4c6e;
             --border-light: #cbdee9;
             --input-bg: #f8fcff;
             --chip-bg: #ffffff;
@@ -36,14 +36,15 @@
             --text-on-accent: #0a1c2f;
         }
 
-        /* ========== ТЁМНАЯ ТЕМА (МАКСИМАЛЬНАЯ КОНТРАСТНОСТЬ) ========== */
+        /* ========== ТЁМНАЯ ТЕМА (ВСЕ ТЕКСТЫ ЯРКИЕ И КОНТРАСТНЫЕ) ========== */
         body.dark {
             --bg-gradient-start: #0a0d18;
             --bg-gradient-end: #121826;
             --app-bg: rgba(18, 23, 40, 0.97);
             --card-bg: #1e293b;
             --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e6;
+            --text-secondary: #e2e8f0;
+            --text-muted: #cbd5e6;
             --border-light: #3a4a62;
             --input-bg: #0f172f;
             --chip-bg: #2d3b52;
@@ -54,7 +55,7 @@
             --search-bg: #0f1825;
             --results-bg: #1a253a;
             --items-grid-bg: #0f1625;
-            --placeholder-text: #a0bbdf;
+            --placeholder-text: #b9d0f0;
             --btn-outline-bg: #1f2e46;
             --btn-outline-border: #4a607c;
             --btn-outline-text: #eef3ff;
@@ -155,30 +156,73 @@
         }
         .search-results.show { display: block; }
         .result-item {
-            padding: 12px 8px;
+            padding: 14px 12px;
             border-bottom: 1px solid var(--border-light);
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 14px;
         }
-        .result-info { flex: 3; display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; }
-        .result-ware {
+        .result-info {
+            flex: 3;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+        .result-ware-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--input-bg);
+            border-radius: 40%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--accent-glow);
+        }
+        .result-ware-icon img { width: 100%; height: 100%; object-fit: cover; }
+        .result-ware-icon span { font-size: 24px; }
+        .result-ware-name {
             font-weight: 800;
             background: var(--accent-glow);
             padding: 4px 16px;
             border-radius: 40px;
             color: var(--text-on-accent);
-            font-size: 0.85rem;
+            font-size: 0.9rem;
+        }
+        .result-items-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .result-item-thumb {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--chip-bg);
+            padding: 4px 12px 4px 8px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-light);
+        }
+        .result-item-thumb img {
+            width: 26px;
+            height: 26px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: var(--input-bg);
         }
         .goto-ware-btn {
             background: var(--tab-active);
             border-radius: 40px;
-            padding: 6px 20px;
+            padding: 8px 24px;
             font-weight: 600;
             cursor: pointer;
             color: var(--tab-active-text);
+            white-space: nowrap;
         }
         .warehouse-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; align-items: center; }
         .tab-btn {
@@ -317,10 +361,10 @@
             cursor: pointer;
             padding: 4px 8px;
         }
-        .empty-list { text-align: center; padding: 32px; color: var(--placeholder-text); font-weight: 500; }
+        .empty-list { text-align: center; padding: 32px; color: var(--text-muted); font-weight: 500; background: var(--items-grid-bg); border-radius: 32px; }
         footer { font-size: 0.7rem; text-align: center; margin-top: 36px; color: var(--text-secondary); }
 
-        /* Модальное окно для БОЛЬШОГО просмотра фото */
+        /* Модальное окно */
         .image-modal {
             display: none;
             position: fixed;
@@ -351,7 +395,6 @@
             max-height: 70vh;
             border-radius: 32px;
             object-fit: contain;
-            box-shadow: 0 4px 12px black;
         }
         .modal-caption {
             font-weight: 600;
@@ -366,20 +409,18 @@
             background: var(--tab-active);
             color: var(--tab-active-text);
             padding: 8px 24px;
-            font-size: 0.9rem;
         }
         @media (max-width: 550px) {
             .app { padding: 18px; }
             .action-panel { flex-direction: column; align-items: stretch; }
             .left-buttons { justify-content: center; }
-            .modal-content img { max-width: 90vw; max-height: 60vh; }
         }
     </style>
 </head>
 <body>
 <div class="app">
     <h1>
-        🧩 Мультисклад · Крупное фото
+        🧩 Мультисклад · Фото + Миниатюры в поиске
         <span style="display: flex; gap: 12px;">
             <button id="themeToggleBtn" class="theme-toggle">🌙 Тёмная тема</button>
             <span class="badge">📸 клик на фото → увеличенный просмотр</span>
@@ -388,7 +429,7 @@
 
     <div class="search-wrapper">
         <div class="search-global">
-            <input type="text" id="globalSearchInput" placeholder="🔍 Поиск вещей во всех складах...">
+            <input type="text" id="globalSearchInput" placeholder="🔍 Искать вещи по всем складам...">
         </div>
         <div class="search-actions">
             <button id="globalSearchBtn">🔎 Найти</button>
@@ -396,7 +437,7 @@
         </div>
     </div>
     <div id="searchResultsPanel" class="search-results">
-        <div style="font-weight:800; margin-bottom: 8px;">📌 Результаты поиска (переход к складу)</div>
+        <div style="font-weight:800; margin-bottom: 12px; color: var(--text-primary);">📌 Результаты поиска (с миниатюрами склада и вещей)</div>
         <div id="searchResultsList"></div>
     </div>
 
@@ -417,7 +458,7 @@
         </div>
         <button id="resetEmptyBtn" class="btn-outline">🗑 Начать с чистого листа</button>
     </div>
-    <footer>✨ Фото хранятся в хорошем качестве • Клик по фото — увеличить (и заменить при желании) • Тёмная тема с улучшенным контрастом</footer>
+    <footer>✨ Поиск показывает иконки склада и миниатюры вещей • Качественные фото • Контрастная тёмная тема</footer>
 </div>
 
 <!-- Модальное окно предпросмотра -->
@@ -433,7 +474,7 @@
 </div>
 
 <script>
-    // ----- Глобальное состояние -----
+    // ----- Глобальные данные -----
     let warehouses = [];
     let nextId = 100;
     function genId() { 
@@ -442,40 +483,52 @@
         return newId;
     }
     let activeWarehouseId = null;
-    let currentReplaceCallback = null;   // для замены из модалки
+    let currentReplaceCallback = null;
 
-    // ----- Работа с фото (увеличенное качество: maxSize 400px для предметов, 180 для иконок, но миниатюры уменьшаются при рендере) 
-    // Теперь сохраняем фото в приличном разрешении (до 400px), а в карточках показываем через обычный тег img с CSS-ограничением 60px.
-    function resizeImageHighQuality(file, callback, maxSize = 400) {
+    // ----- Фото: сохраняем в высоком качестве (до 500px для вещей, 200px для иконок) -----
+    function resizeHighQuality(file, callback, maxSize = 500) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
                 let width = img.width, height = img.height;
-                const max = maxSize;
                 if (width > height) {
-                    if (width > max) { height = (height * max) / width; width = max; }
+                    if (width > maxSize) { height = (height * maxSize) / width; width = maxSize; }
                 } else {
-                    if (height > max) { width = (width * max) / height; height = max; }
+                    if (height > maxSize) { width = (width * maxSize) / height; height = maxSize; }
                 }
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                // сохраняем качество 0.9, чтобы было чётко
                 callback(canvas.toDataURL('image/jpeg', 0.9));
             };
             img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
-    // Для иконок склада – до 200px, достаточно для увеличения
-    function resizeIcon(file, callback) {
-        resizeImageHighQuality(file, callback, 200);
+
+    function setItemPhoto(wareId, index, file) {
+        if (!file || !file.type.match('image.*')) { alert("Выберите изображение"); return; }
+        resizeHighQuality(file, (base64) => {
+            const warehouse = warehouses.find(w => w.id === wareId);
+            if (warehouse && warehouse.items[index]) {
+                warehouse.items[index].photoBase64 = base64;
+                renderAll();
+            }
+        }, 480);
     }
 
-    // Сортировка и утилиты
+    function setWarehouseIcon(wareId, file) {
+        if (!file || !file.type.match('image.*')) { alert("Выберите изображение"); return; }
+        resizeHighQuality(file, (base64) => {
+            const warehouse = warehouses.find(w => w.id === wareId);
+            if (warehouse) { warehouse.iconBase64 = base64; renderAll(); }
+        }, 200);
+    }
+
+    // Сортировка
     function sortItemsByName(itemsArray) {
         return [...itemsArray].sort((a,b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }));
     }
@@ -511,26 +564,6 @@
         return true;
     }
 
-    // Установка фото предмета с высоким разрешением
-    function setItemPhoto(wareId, index, file) {
-        if (!file || !file.type.match('image.*')) { alert("Выберите изображение"); return; }
-        resizeImageHighQuality(file, (base64) => {
-            const warehouse = warehouses.find(w => w.id === wareId);
-            if (warehouse && warehouse.items[index]) {
-                warehouse.items[index].photoBase64 = base64;
-                renderAll();
-            }
-        }, 420);  // Достаточно для качественного просмотра
-    }
-
-    function setWarehouseIcon(wareId, file) {
-        if (!file || !file.type.match('image.*')) { alert("Выберите изображение"); return; }
-        resizeIcon(file, (base64) => {
-            const warehouse = warehouses.find(w => w.id === wareId);
-            if (warehouse) { warehouse.iconBase64 = base64; renderAll(); }
-        });
-    }
-
     function deleteItemFromWarehouse(wareId, index) {
         const warehouse = warehouses.find(w => w.id === wareId);
         if (warehouse && warehouse.items[index]) {
@@ -546,44 +579,35 @@
         return false;
     }
 
-    // Модальный просмотр с возможностью замены
+    // Модальный просмотр
     function showPhotoModal(imageBase64, title, onReplace) {
         const modal = document.getElementById('imageModal');
         const previewImg = document.getElementById('modalPreviewImg');
         const labelSpan = document.getElementById('modalPhotoLabel');
-        if (imageBase64) {
-            previewImg.src = imageBase64;
-        } else {
-            previewImg.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"%3E%3Cpath d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 8h-4v4h-4v-4H6V9h4V5h4v4h4v2z"/%3E%3C/svg%3E';
-        }
+        previewImg.src = imageBase64 || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23999"%3E%3Cpath d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 8h-4v4h-4v-4H6V9h4V5h4v4h4v2z"/%3E%3C/svg%3E';
         labelSpan.innerText = title || 'Фото';
         modal.classList.add('active');
         currentReplaceCallback = onReplace;
     }
+    function closeModal() { document.getElementById('imageModal').classList.remove('active'); currentReplaceCallback = null; }
 
-    function closeModal() {
-        document.getElementById('imageModal').classList.remove('active');
-        currentReplaceCallback = null;
-    }
-
-    // переход к складу
+    // Переход к складу
     function jumpToWarehouse(wareId) {
-        const exists = warehouses.some(w => w.id === wareId);
-        if (exists) {
+        if (warehouses.some(w => w.id === wareId)) {
             activeWarehouseId = wareId;
             renderAll();
             document.querySelector('.warehouse-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
-    // ----- Рендер -----
+    // ---------- РЕНДЕР ----------
     function renderAll() { renderTabs(); renderActiveTabContent(); }
 
     function renderTabs() {
         const container = document.getElementById('tabsContainer');
         container.innerHTML = '';
         if (warehouses.length === 0) {
-            container.innerHTML = '<div style="padding: 8px; opacity:0.7;">✨ Нет складов. Нажмите «Новый склад»</div>';
+            container.innerHTML = '<div style="padding: 8px; color: var(--text-secondary); font-weight: 500;">✨ Нет складов. Нажмите «Новый склад»</div>';
             return;
         }
         warehouses.forEach(wh => {
@@ -601,12 +625,12 @@
         if (!activeWarehouseId && warehouses.length > 0) activeWarehouseId = warehouses[0].id;
         const warehouse = warehouses.find(w => w.id === activeWarehouseId);
         if (!warehouse) {
-            container.innerHTML = '<div style="padding: 50px; text-align:center;">🏭 Выберите или создайте склад</div>';
+            container.innerHTML = '<div style="padding: 50px; text-align:center; color: var(--text-muted); font-weight: 500;">🏭 Выберите или создайте склад</div>';
             return;
         }
 
         const itemsHtml = warehouse.items.length === 0 
-            ? '<div class="empty-list">📭 Нет вещей. Добавьте через список.</div>'
+            ? '<div class="empty-list">📭 Нет вещей. Добавьте через список или один предмет.</div>'
             : warehouse.items.map((item, idx) => {
                 const photoHtml = item.photoBase64 ? `<img src="${item.photoBase64}" alt="item">` : '<span class="item-photo-placeholder">📷</span>';
                 return `
@@ -651,32 +675,26 @@
         container.innerHTML = html;
         const wareId = warehouse.id;
 
-        // Переименование склада
+        // Склад: переименование
         document.getElementById(`wareName_${wareId}`)?.addEventListener('change', (e) => {
             let newName = e.target.value.trim();
             if (newName) warehouse.name = newName; else warehouse.name = "Склад";
             renderTabs(); renderActiveTabContent();
         });
-
-        // Иконка склада: показываем модалку с превью и заменой
+        // Иконка склада
         const iconDiv = document.getElementById(`warehouseIcon_${wareId}`);
         if (iconDiv) {
             iconDiv.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const imgSrc = warehouse.iconBase64 || null;
-                showPhotoModal(imgSrc, `Иконка склада: ${warehouse.name}`, () => {
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = 'image/*';
-                    fileInput.onchange = (ev) => {
-                        if (ev.target.files[0]) setWarehouseIcon(wareId, ev.target.files[0]);
-                        closeModal();
-                    };
-                    fileInput.click();
+                showPhotoModal(warehouse.iconBase64, `Иконка склада: ${warehouse.name}`, () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (ev) => { if(ev.target.files[0]) setWarehouseIcon(wareId, ev.target.files[0]); closeModal(); };
+                    input.click();
                 });
             });
         }
-
         // Добавление предметов
         document.getElementById(`addBulkBtn_${wareId}`)?.addEventListener('click', () => {
             const raw = document.getElementById(`bulkInput_${wareId}`).value;
@@ -709,26 +727,20 @@
 
         const grid = document.getElementById(`itemsGrid_${wareId}`);
         if(grid){
-            // Фото предмета: клик = увеличенное превью + возможность замены
             grid.querySelectorAll('.item-photo').forEach(el => {
                 const idx = parseInt(el.dataset.photoIdx);
                 const item = warehouse.items[idx];
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const imgUrl = item?.photoBase64 || null;
-                    showPhotoModal(imgUrl, `📦 Предмет: ${item?.name}`, () => {
+                    showPhotoModal(item?.photoBase64, `📦 Предмет: ${item?.name}`, () => {
                         const fileInput = document.createElement('input');
                         fileInput.type = 'file';
                         fileInput.accept = 'image/*';
-                        fileInput.onchange = (ev) => {
-                            if(ev.target.files[0]) setItemPhoto(wareId, idx, ev.target.files[0]);
-                            closeModal();
-                        };
+                        fileInput.onchange = (ev) => { if(ev.target.files[0]) setItemPhoto(wareId, idx, ev.target.files[0]); closeModal(); };
                         fileInput.click();
                     });
                 });
             });
-            // переименование предмета
             grid.querySelectorAll('.item-name').forEach(el => {
                 const idx = parseInt(el.dataset.nameIdx);
                 el.addEventListener('click', (e) => {
@@ -760,7 +772,7 @@
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
-    // поиск с переходом
+    // ---------- ПОИСК С МИНИАТЮРАМИ ----------
     function performGlobalSearch() {
         const query = document.getElementById('globalSearchInput').value.trim().toLowerCase();
         const panel = document.getElementById('searchResultsPanel');
@@ -768,31 +780,48 @@
         if(!query) { panel.classList.remove('show'); return; }
         const found = [];
         for(let wh of warehouses){
-            const matched = wh.items.filter(i => i.name.toLowerCase().includes(query));
-            if(matched.length) found.push({ wareId: wh.id, warehouseName: wh.name, items: matched.map(i=>i.name) });
+            const matchedItems = wh.items.filter(i => i.name.toLowerCase().includes(query));
+            if(matchedItems.length) {
+                found.push({ wareId: wh.id, warehouseName: wh.name, warehouseIcon: wh.iconBase64, items: matchedItems });
+            }
         }
-        if(!found.length){
-            listDiv.innerHTML = `<div>😕 Ничего не найдено для «${escapeHtml(query)}»</div>`;
+        if(found.length === 0){
+            listDiv.innerHTML = `<div style="padding: 12px; color: var(--text-muted);">😕 Ничего не найдено для «${escapeHtml(query)}»</div>`;
             panel.classList.add('show'); return;
         }
         let html = '';
-        found.forEach(f => {
-            html += `<div class="result-item">
-                        <div class="result-info"><span class="result-ware">📌 ${escapeHtml(f.warehouseName)}</span><span>${f.items.map(i=>`🔹 ${escapeHtml(i)}`).join(', ')}</span></div>
-                        <button class="goto-ware-btn" data-ware-id="${f.wareId}">🔁 Перейти к складу</button>
-                    </div>`;
-        });
+        for(let f of found){
+            // иконка склада
+            const wareIconHtml = f.warehouseIcon ? `<img src="${f.warehouseIcon}" alt="icon">` : `<span>🏚️</span>`;
+            // миниатюры найденных вещей
+            let itemsThumbs = '';
+            for(let item of f.items){
+                const thumbImg = item.photoBase64 ? `<img src="${item.photoBase64}" style="width:28px;height:28px;border-radius:12px;object-fit:cover;">` : `📷`;
+                itemsThumbs += `<span class="result-item-thumb">${thumbImg}<span>${escapeHtml(item.name)}</span></span>`;
+            }
+            html += `
+                <div class="result-item">
+                    <div class="result-info">
+                        <div class="result-ware-icon">${wareIconHtml}</div>
+                        <span class="result-ware-name">${escapeHtml(f.warehouseName)}</span>
+                        <div class="result-items-preview">${itemsThumbs}</div>
+                    </div>
+                    <button class="goto-ware-btn" data-ware-id="${f.wareId}">🔁 Перейти к складу</button>
+                </div>
+            `;
+        }
         listDiv.innerHTML = html;
         panel.classList.add('show');
         document.querySelectorAll('.goto-ware-btn').forEach(btn => {
             btn.addEventListener('click', (e) => jumpToWarehouse(parseInt(btn.dataset.wareId)));
         });
     }
+
     function clearSearch() { document.getElementById('globalSearchInput').value = ''; document.getElementById('searchResultsPanel').classList.remove('show'); }
 
     // JSON
     function saveAllToJson() {
-        const data = { version: "multisklad_hd", warehouses: warehouses.map(w => ({ id:w.id, name:w.name, iconBase64:w.iconBase64||null, items:w.items.map(i=>({name:i.name, photoBase64:i.photoBase64||null})) })) };
+        const data = { version: "multisklad_final", warehouses: warehouses.map(w => ({ id:w.id, name:w.name, iconBase64:w.iconBase64||null, items:w.items.map(i=>({name:i.name, photoBase64:i.photoBase64||null})) })) };
         const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `multisklad_${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
     }
@@ -812,37 +841,23 @@
                 nextId = maxId+1;
                 activeWarehouseId = warehouses[0]?.id||null;
                 renderAll();
-                alert(`✅ Загружено ${warehouses.length} складов. Фото в отличном качестве.`);
-            } catch(e){ alert("Ошибка при загрузке JSON"); }
+                alert(`✅ Загружено ${warehouses.length} складов.`);
+            } catch(e){ alert("Ошибка загрузки JSON"); }
         };
         reader.readAsText(file);
     }
     function createNewWarehouse() { let name = prompt("Название склада:","Новый склад")||"Склад"; const newId=genId(); warehouses.push({ id:newId, name:name.trim(), items:[], iconBase64:null }); activeWarehouseId=newId; renderAll(); }
     function resetToEmpty() { if(confirm("Сбросить всё?")){ warehouses=[]; nextId=100; activeWarehouseId=null; renderAll(); } }
 
-    // Модальные контролы
+    // Модальные кнопки
     function initModal() {
         const modal = document.getElementById('imageModal');
         document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
-        document.getElementById('modalReplaceBtn').addEventListener('click', () => {
-            if(currentReplaceCallback) currentReplaceCallback();
-            else closeModal();
-        });
+        document.getElementById('modalReplaceBtn').addEventListener('click', () => { if(currentReplaceCallback) currentReplaceCallback(); else closeModal(); });
         modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
     }
 
-    function init() {
-        warehouses = []; nextId=100; activeWarehouseId=null;
-        renderAll(); initTheme(); initModal();
-        document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
-        document.getElementById('globalSearchBtn').addEventListener('click', performGlobalSearch);
-        document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
-        document.getElementById('globalSearchInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') performGlobalSearch(); });
-        document.getElementById('saveAllWarehousesBtn').addEventListener('click', saveAllToJson);
-        document.getElementById('loadMultiJsonInput').addEventListener('change', (e) => { if(e.target.files[0]) loadFromJsonFile(e.target.files[0]); e.target.value=''; });
-        document.getElementById('createNewWarehouseBtn').addEventListener('click', createNewWarehouse);
-        document.getElementById('resetEmptyBtn').addEventListener('click', resetToEmpty);
-    }
+    // Тема
     function initTheme() {
         const savedTheme = localStorage.getItem('multisklad_theme');
         if (savedTheme === 'dark') {
@@ -863,6 +878,19 @@
             localStorage.setItem('multisklad_theme', 'dark');
             document.getElementById('themeToggleBtn').innerHTML = '☀️ Светлая тема';
         }
+    }
+
+    function init() {
+        warehouses = []; nextId=100; activeWarehouseId=null;
+        renderAll(); initTheme(); initModal();
+        document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+        document.getElementById('globalSearchBtn').addEventListener('click', performGlobalSearch);
+        document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+        document.getElementById('globalSearchInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') performGlobalSearch(); });
+        document.getElementById('saveAllWarehousesBtn').addEventListener('click', saveAllToJson);
+        document.getElementById('loadMultiJsonInput').addEventListener('change', (e) => { if(e.target.files[0]) loadFromJsonFile(e.target.files[0]); e.target.value=''; });
+        document.getElementById('createNewWarehouseBtn').addEventListener('click', createNewWarehouse);
+        document.getElementById('resetEmptyBtn').addEventListener('click', resetToEmpty);
     }
     init();
 </script>
