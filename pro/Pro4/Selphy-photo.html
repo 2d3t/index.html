@@ -1,0 +1,701 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>🎤 Голосовой фотоальбом | Команды: фото → добавить → галерея</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* для удобства тапов, но текст копировать можно */
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #181e2c, #0a0c14);
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            padding: 16px;
+        }
+
+        .app-container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* карточка камеры */
+        .camera-card {
+            background: rgba(30, 34, 48, 0.75);
+            backdrop-filter: blur(10px);
+            border-radius: 44px;
+            padding: 20px 18px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,210,100,0.2);
+        }
+
+        .preview-container {
+            background: #000;
+            border-radius: 32px;
+            overflow: hidden;
+            aspect-ratio: 3 / 4;
+            position: relative;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.5);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .flash-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.1s ease;
+            z-index: 10;
+        }
+
+        .flash-active {
+            opacity: 0.85;
+        }
+
+        /* голосовая панель */
+        .voice-panel {
+            background: rgba(0,0,0,0.6);
+            border-radius: 60px;
+            padding: 10px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .voice-status {
+            background: #252a3f;
+            border-radius: 32px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #eef;
+        }
+
+        .voice-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 12px;
+            background: #6c757d;
+            transition: all 0.2s;
+        }
+
+        .voice-dot.active {
+            background: #2ecc71;
+            box-shadow: 0 0 8px #2ecc71;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; transform: scale(0.9);}
+            100% { opacity: 1; transform: scale(1.2);}
+        }
+
+        .last-command {
+            background: #11141f;
+            border-radius: 28px;
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            color: #cbd5ff;
+            word-break: break-word;
+            flex: 1;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0 10px;
+        }
+
+        .btn {
+            border: none;
+            background: #2c2f47;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #5f72c4, #3a4a9e);
+        }
+
+        .btn-success {
+            background: #1f7543;
+        }
+
+        .btn-warning {
+            background: #b4652c;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        /* галерея избранного */
+        .gallery-section {
+            background: #0f1220cc;
+            backdrop-filter: blur(8px);
+            border-radius: 36px;
+            padding: 16px 14px 20px;
+            margin-top: 15px;
+        }
+
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+            padding: 0 8px;
+        }
+
+        .gallery-title {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: #ffe6b3;
+        }
+
+        .badge-count {
+            background: #2a2e4a;
+            border-radius: 60px;
+            padding: 4px 14px;
+            font-size: 0.8rem;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+            max-height: 330px;
+            overflow-y: auto;
+            padding: 6px 4px;
+        }
+
+        .gallery-item {
+            background: #1b1f32;
+            border-radius: 24px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 3 / 4;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            transition: 0.1s;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .delete-single {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            color: #ff8a7a;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 30px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        .gallery-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .empty-gallery {
+            text-align: center;
+            color: #8f9bb5;
+            padding: 26px;
+            font-style: italic;
+        }
+
+        hr {
+            border-color: #2e3450;
+            margin: 16px 0;
+        }
+
+        .small-note {
+            font-size: 0.7rem;
+            color: #7c85ac;
+            text-align: center;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- Камера + голос -->
+    <div class="camera-card">
+        <div class="preview-container" id="previewContainer">
+            <video id="video" autoplay playsinline muted></video>
+            <div id="flashOverlay" class="flash-overlay"></div>
+        </div>
+
+        <div class="voice-panel">
+            <div class="voice-status">
+                <span id="voiceDot" class="voice-dot"></span>
+                <span id="voiceStatusText">Голос выкл</span>
+            </div>
+            <div class="last-command" id="lastCommandDisplay">
+                📍 Скажите: «фото» → «добавить» (в галерею)
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn btn-primary" id="manualCaptureBtn">📸 Фото (снимок)</button>
+            <button class="btn btn-success" id="addToGalleryBtn">⭐ Добавить последнее фото</button>
+            <button class="btn" id="toggleVoiceBtn">🎙️ Включить голос</button>
+        </div>
+        <div class="small-note">
+            🎤 <strong>Голосовые команды:</strong> «фото» / «сделай фото» / «селфи» — быстрый снимок. <br>
+            ✅ «добавить» / «сохранить» / «это добавить» — копирует последний снимок в вашу галерею. <br>
+            📸 После добавления можно скачать все фото сразу (или каждое по отдельности).
+        </div>
+    </div>
+
+    <!-- ГАЛЕРЕЯ ИЗБРАННЫХ ФОТО -->
+    <div class="gallery-section">
+        <div class="gallery-header">
+            <span class="gallery-title">📚 Моя фотогалерея</span>
+            <span class="badge-count" id="galleryCount">0 фото</span>
+        </div>
+        <div id="galleryGrid" class="gallery-grid">
+            <div class="empty-gallery">✨ Здесь будут фото, которые вы добавили командой «добавить» ✨</div>
+        </div>
+        <div class="gallery-buttons">
+            <button class="btn" id="downloadAllBtn">💾 Скачать всё (ZIP)</button>
+            <button class="btn btn-warning" id="clearGalleryBtn">🗑️ Очистить галерею</button>
+        </div>
+        <div class="small-note" style="margin-top:12px">
+            💡 Каждое фото можно удалить крестиком или сохранить отдельно (правой кнопкой / долгим тапом).
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+    (function(){
+        // ---------- DOM элементы ----------
+        const video = document.getElementById('video');
+        const flashOverlay = document.getElementById('flashOverlay');
+        const manualBtn = document.getElementById('manualCaptureBtn');
+        const addToGalleryBtn = document.getElementById('addToGalleryBtn');
+        const toggleVoiceBtn = document.getElementById('toggleVoiceBtn');
+        const lastCommandSpan = document.getElementById('lastCommandDisplay');
+        const voiceDot = document.getElementById('voiceDot');
+        const voiceStatusText = document.getElementById('voiceStatusText');
+        const galleryGrid = document.getElementById('galleryGrid');
+        const galleryCountSpan = document.getElementById('galleryCount');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const clearGalleryBtn = document.getElementById('clearGalleryBtn');
+
+        // ---------- Состояния ----------
+        let mediaStream = null;
+        let isCameraActive = false;
+        let recognition = null;
+        let isVoiceActive = false;
+        let captureCooldown = false;       // защита от частых фото
+        let lastPhotoDataUrl = null;        // последний сделанный снимок (временный)
+        
+        // ГАЛЕРЕЯ — массив объектов { id, dataUrl, timestamp }
+        let galleryItems = [];
+        let nextId = 1;
+
+        // ---------- Вспомогательные функции ----------
+        function animateFlash() {
+            if (!flashOverlay) return;
+            flashOverlay.classList.remove('flash-active');
+            void flashOverlay.offsetWidth;
+            flashOverlay.classList.add('flash-active');
+            setTimeout(() => flashOverlay.classList.remove('flash-active'), 120);
+        }
+
+        // сохранить последний снимок в галерею
+        function addLastPhotoToGallery() {
+            if (!lastPhotoDataUrl) {
+                lastCommandSpan.innerHTML = "⚠️ Нет последнего снимка. Сначала сделайте фото командой «фото» или кнопкой.";
+                setTimeout(() => {
+                    if (lastCommandSpan.innerText.includes("Нет последнего снимка")) 
+                        lastCommandSpan.innerHTML = "📍 Скажите: «фото» → «добавить»";
+                }, 2000);
+                return false;
+            }
+            // добавить новый элемент в галерею
+            const newItem = {
+                id: nextId++,
+                dataUrl: lastPhotoDataUrl,
+                timestamp: Date.now(),
+            };
+            galleryItems.push(newItem);
+            renderGallery();
+            lastCommandSpan.innerHTML = `✅ Фото добавлено в галерею! (всего ${galleryItems.length})`;
+            // виброотклик
+            if (navigator.vibrate) navigator.vibrate(50);
+            return true;
+        }
+
+        // Сделать фото из видеопотока (обновляет lastPhotoDataUrl)
+        function capturePhoto(triggerSource = "voice") {
+            if (!isCameraActive || !video.videoWidth || !video.videoHeight) {
+                lastCommandSpan.innerHTML = "❌ Камера не готова, подождите...";
+                return false;
+            }
+            if (captureCooldown) {
+                lastCommandSpan.innerHTML = "⏳ Слишком быстро, подождите секунду...";
+                return false;
+            }
+            captureCooldown = true;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const photoData = canvas.toDataURL('image/jpeg', 0.9);
+            lastPhotoDataUrl = photoData;
+            
+            animateFlash();
+            if (navigator.vibrate) navigator.vibrate(80);
+            lastCommandSpan.innerHTML = triggerSource === "voice" ? 
+                `📸 Снимок сделан! Скажите «добавить», чтобы сохранить в галерею` : 
+                `📸 Фото готово! Нажмите «добавить» или скажите «добавить»`;
+            
+            setTimeout(() => { captureCooldown = false; }, 700);
+            return true;
+        }
+
+        // отрисовать галерею
+        function renderGallery() {
+            galleryGrid.innerHTML = '';
+            if (galleryItems.length === 0) {
+                galleryGrid.innerHTML = '<div class="empty-gallery">✨ Добавьте фото через команду «добавить» ✨</div>';
+                galleryCountSpan.innerText = '0 фото';
+                return;
+            }
+            galleryCountSpan.innerText = `${galleryItems.length} фото`;
+            galleryItems.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'gallery-item';
+                const img = document.createElement('img');
+                img.src = item.dataUrl;
+                img.alt = `photo_${item.id}`;
+                // долгий тап / клик для скачивания отдельного фото (удобно)
+                img.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadSinglePhoto(item.dataUrl, `gallery_${item.id}.jpg`);
+                    lastCommandSpan.innerHTML = `💾 Фото ${item.id} сохранено отдельно.`;
+                });
+                const delBtn = document.createElement('button');
+                delBtn.innerText = '✕';
+                delBtn.className = 'delete-single';
+                delBtn.title = 'Удалить из галереи';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeGalleryItem(item.id);
+                });
+                div.appendChild(img);
+                div.appendChild(delBtn);
+                galleryGrid.appendChild(div);
+            });
+        }
+
+        function removeGalleryItem(id) {
+            galleryItems = galleryItems.filter(item => item.id !== id);
+            renderGallery();
+            lastCommandSpan.innerHTML = `🗑️ Фото удалено из галереи. Осталось ${galleryItems.length}`;
+        }
+
+        function clearGallery() {
+            if (galleryItems.length === 0) return;
+            if (confirm(`Удалить все ${galleryItems.length} фото из галереи?`)) {
+                galleryItems = [];
+                renderGallery();
+                lastCommandSpan.innerHTML = "🧹 Галерея очищена.";
+            }
+        }
+
+        function downloadSinglePhoto(dataUrl, filename) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = filename;
+            link.click();
+        }
+
+        // Скачать все фото ZIP-архивом (используем JSZip)
+        async function downloadAllAsZip() {
+            if (galleryItems.length === 0) {
+                lastCommandSpan.innerHTML = "⚠️ Нет фото в галерее, нечего архивировать.";
+                return;
+            }
+            lastCommandSpan.innerHTML = "⏳ Создаём архив, подождите...";
+            try {
+                const zip = new JSZip();
+                for (let i = 0; i < galleryItems.length; i++) {
+                    const item = galleryItems[i];
+                    // dataUrl вида "data:image/jpeg;base64,...."
+                    const base64Data = item.dataUrl.split(',')[1];
+                    if (base64Data) {
+                        zip.file(`selfie_${item.id}_${i+1}.jpg`, base64Data, { base64: true });
+                    }
+                }
+                const content = await zip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `voice_gallery_${new Date().toISOString().slice(0,19)}.zip`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                lastCommandSpan.innerHTML = `📦 Архив с ${galleryItems.length} фото сохранён.`;
+            } catch(e) {
+                console.error(e);
+                lastCommandSpan.innerHTML = "❌ Ошибка создания архива.";
+            }
+        }
+
+        // ---------- Голосовые команды (расширенные) ----------
+        function processVoiceCommand(transcript) {
+            if (!transcript) return false;
+            const lower = transcript.toLowerCase().trim();
+            lastCommandSpan.innerHTML = `🎤 Распознано: «${transcript}»`;
+            
+            // 1. Команда фото (сделать новый снимок)
+            const photoKeywords = ["фото", "сделай фото", "селфи", "сфоткай", "сними", "щелкни"];
+            let isPhotoCmd = photoKeywords.some(kw => lower.includes(kw));
+            if (isPhotoCmd) {
+                if (captureCooldown) {
+                    lastCommandSpan.innerHTML = `⏳ Подождите, камера перезаряжается...`;
+                    return true;
+                }
+                capturePhoto("voice");
+                return true;
+            }
+            
+            // 2. Команда добавить последнее фото в галерею
+            const addKeywords = ["добавить", "сохрани", "сохранить", "это добавить", "в галерею", "добавь"];
+            let isAddCmd = addKeywords.some(kw => lower.includes(kw));
+            if (isAddCmd) {
+                addLastPhotoToGallery();
+                return true;
+            }
+            
+            // 3. Доп. команда "очистить галерею" (на случай если лень жать кнопку)
+            if (lower.includes("очистить") && lower.includes("галерею")) {
+                clearGallery();
+                return true;
+            }
+            
+            // 4. команда "сколько фото" - статус
+            if (lower.includes("сколько фото") || lower.includes("сколько в галерее")) {
+                lastCommandSpan.innerHTML = `📸 В галерее ${galleryItems.length} фото. Скажите «добавить», чтобы сохранить последний снимок.`;
+                return true;
+            }
+            return false;
+        }
+
+        // ---------- Инициализация камеры (приоритет селфи) ----------
+        async function initCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                let stream;
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
+                } catch(e) {
+                    console.warn("Фронталка не доступна, используем любую", e);
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    const note = document.querySelector('.small-note');
+                    if(note && !document.getElementById('frontWarn')) {
+                        let warnSpan = document.createElement('div');
+                        warnSpan.id = 'frontWarn';
+                        warnSpan.style.fontSize = '0.7rem';
+                        warnSpan.style.color = '#ffb777';
+                        warnSpan.innerText = '⚠️ Фронтальная камера не найдена, используется основная.';
+                        note.appendChild(warnSpan);
+                    }
+                }
+                mediaStream = stream;
+                video.srcObject = stream;
+                await video.play();
+                isCameraActive = true;
+                return true;
+            } catch(err) {
+                console.error(err);
+                isCameraActive = false;
+                lastCommandSpan.innerHTML = "❌ Ошибка камеры: разрешите доступ.";
+                return false;
+            }
+        }
+
+        // ---------- Speech Recognition (непрерывный) ----------
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                toggleVoiceBtn.disabled = true;
+                lastCommandSpan.innerHTML = "❌ Браузер не поддерживает голосовые команды.";
+                voiceStatusText.innerText = "Не поддерживается";
+                return null;
+            }
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recog = new SpeechRec();
+            recog.continuous = true;
+            recog.interimResults = false;
+            recog.lang = 'ru-RU';
+            recog.maxAlternatives = 1;
+            
+            recog.onstart = () => {
+                isVoiceActive = true;
+                voiceDot.classList.add('active');
+                voiceStatusText.innerText = 'Голос слушает';
+                lastCommandSpan.innerHTML = '🎤 Активен: скажите «фото» или «добавить»';
+            };
+            recog.onerror = (event) => {
+                console.warn(event.error);
+                if (event.error === 'not-allowed') {
+                    lastCommandSpan.innerHTML = "🔇 Микрофон запрещён. Разрешите доступ.";
+                    isVoiceActive = false;
+                    voiceDot.classList.remove('active');
+                    voiceStatusText.innerText = 'Микрофон нет';
+                } else if (event.error === 'network') {
+                    lastCommandSpan.innerHTML = "🌐 Ошибка сети, попробуйте перезапустить голос.";
+                } else if (isVoiceActive) {
+                    // при некоторых ошибках перезапускаем автоматически
+                }
+            };
+            recog.onend = () => {
+                if (isVoiceActive) {
+                    // автоперезапуск если активен флаг
+                    setTimeout(() => {
+                        if (isVoiceActive && recognition === recog) {
+                            try { recog.start(); } catch(e) { console.warn(e); }
+                        }
+                    }, 300);
+                } else {
+                    voiceDot.classList.remove('active');
+                    voiceStatusText.innerText = 'Голос выкл';
+                }
+            };
+            recog.onresult = (event) => {
+                if (!isVoiceActive) return;
+                const result = event.results[event.resultIndex];
+                if (result && result[0]) {
+                    processVoiceCommand(result[0].transcript);
+                }
+            };
+            return recog;
+        }
+
+        async function enableVoice() {
+            if (recognition) {
+                try { recognition.abort(); } catch(e) {}
+            }
+            const newRecog = initSpeechRecognition();
+            if (!newRecog) return false;
+            recognition = newRecog;
+            try {
+                await recognition.start();
+                isVoiceActive = true;
+                voiceDot.classList.add('active');
+                voiceStatusText.innerText = 'Голос активен';
+                toggleVoiceBtn.innerHTML = '🔴 Выкл голос';
+                return true;
+            } catch (err) {
+                console.error(err);
+                isVoiceActive = false;
+                voiceStatusText.innerText = 'Голос выкл';
+                toggleVoiceBtn.innerHTML = '🎙️ Включить голос';
+                lastCommandSpan.innerHTML = `Ошибка микрофона: ${err.message}`;
+                return false;
+            }
+        }
+
+        function disableVoice() {
+            if (recognition) {
+                try { recognition.stop(); } catch(e) {}
+                recognition = null;
+            }
+            isVoiceActive = false;
+            voiceDot.classList.remove('active');
+            voiceStatusText.innerText = 'Голос выкл';
+            toggleVoiceBtn.innerHTML = '🎙️ Включить голос';
+            lastCommandSpan.innerHTML = 'Голос отключён. Нажмите кнопку для включения.';
+        }
+
+        function toggleVoice() {
+            if (isVoiceActive) disableVoice();
+            else enableVoice();
+        }
+
+        // ---------- Event listeners ----------
+        manualBtn.addEventListener('click', () => capturePhoto("manual"));
+        addToGalleryBtn.addEventListener('click', () => addLastPhotoToGallery());
+        toggleVoiceBtn.addEventListener('click', toggleVoice);
+        downloadAllBtn.addEventListener('click', downloadAllAsZip);
+        clearGalleryBtn.addEventListener('click', clearGallery);
+        
+        // Запуск приложения
+        async function bootstrap() {
+            const camOk = await initCamera();
+            if (!camOk) {
+                manualBtn.disabled = true;
+                addToGalleryBtn.disabled = true;
+                toggleVoiceBtn.disabled = true;
+                return;
+            }
+            manualBtn.disabled = false;
+            addToGalleryBtn.disabled = false;
+            toggleVoiceBtn.disabled = false;
+            // Стартовое сообщение
+            lastCommandSpan.innerHTML = '✅ Камера готова! Включите голос и скажите «фото», потом «добавить»';
+        }
+        
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootstrap);
+        else bootstrap();
+    })();
+</script>
+</body>
+</html>
