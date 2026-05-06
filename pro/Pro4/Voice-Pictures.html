@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Голосовая живопись | 2d3t Voice Canvas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #02060c;
+            overflow: hidden;
+            font-family: system-ui, 'Segoe UI', sans-serif;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 25px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            z-index: 20;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(18px);
+            padding: 10px 20px;
+            border-radius: 60px;
+            width: fit-content;
+            margin: 0 auto;
+            border: 1px solid rgba(255,200,100,0.6);
+            pointer-events: auto;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: radial-gradient(circle at 30% 10%, #3a5a8a, #102030);
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 8px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 8px black;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255,210,90,0.7);
+        }
+
+        button:active {
+            transform: scale(0.94);
+            background: #5d8ec9;
+        }
+
+        .status {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fee3b0;
+            z-index: 20;
+            font-family: monospace;
+            border: 0.5px solid #ffcf7a;
+            pointer-events: none;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 100px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255,240,180,0.9);
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 20;
+            background: transparent;
+            pointer-events: none;
+            text-shadow: 0 1px 4px black;
+        }
+
+        @media (max-width: 700px) {
+            button { padding: 6px 14px; font-size: 0.85rem; }
+            .hint { bottom: 95px; font-size: 10px; }
+            .status { font-size: 10px; top: 12px; right: 12px; }
+            .controls { gap: 10px; padding: 8px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="voiceCanvas"></canvas>
+<div class="controls">
+    <button id="startMic">🎤🎨 Включить голос</button>
+    <button id="clearBtn">✨ Очистить холст</button>
+    <button id="saveBtn">💾 Сохранить шедевр</button>
+</div>
+<div class="status" id="statusText">🎙️ Микрофон выкл</div>
+<div class="hint">🗣️ Голос водит кисть по всему экрану — центр плавно путешествует, избегая углов</div>
+
+<script>
+    (function(){
+        const canvas = document.getElementById('voiceCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        
+        // Аудио переменные
+        let mediaStream = null;
+        let audioContext = null;
+        let sourceNode = null;
+        let analyserNode = null;
+        let isMicActive = false;
+        
+        let currentVolume = 0;
+        let currentPitch = 0.5;
+        let bassEnergy = 0;
+        let trebleEnergy = 0;
+        
+        let animationId = null;
+        
+        // === НОВАЯ СИСТЕМА ПУТЕШЕСТВИЯ ЦЕНТРА ===
+        let centerX = 0, centerY = 0;
+        let velocityX = 0, velocityY = 0;   // скорость движения центра
+        
+        function initCenter() {
+            centerX = width / 2;
+            centerY = height / 2;
+            velocityX = 0;
+            velocityY = 0;
+        }
+        
+        function resizeAndReset() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            clearFullCanvas();
+            drawWelcomePattern();
+            initCenter();
+        }
+        
+        function clearFullCanvas() {
+            ctx.fillStyle = "#02060c";
+            ctx.fillRect(0, 0, width, height);
+        }
+        
+        function drawWelcomePattern() {
+            for(let i=0;i<100;i++) {
+                let x = Math.random() * width;
+                let y = Math.random() * height;
+                let radius = 5 + Math.random() * 30;
+                let hue = 180 + Math.random() * 100;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI*2);
+                ctx.fillStyle = `hsla(${hue}, 80%, 55%, 0.2)`;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${hue+30}, 85%, 65%, 0.3)`;
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+            }
+        }
+        
+        // ------ АУДИО ------
+        async function initMicrophone() {
+            if (audioContext && audioContext.state !== 'closed') {
+                closeAudioContext();
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaStream = stream;
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyserNode = audioContext.createAnalyser();
+                analyserNode.fftSize = 512;
+                analyserNode.smoothingTimeConstant = 0.4;
+                sourceNode = audioContext.createMediaStreamSource(stream);
+                sourceNode.connect(analyserNode);
+                if (audioContext.state === 'suspended') await audioContext.resume();
+                
+                isMicActive = true;
+                document.getElementById('statusText').innerHTML = '🎤✨ Голос рисует!';
+                document.getElementById('startMic').innerHTML = '🔴 Выключить';
+            } catch (err) {
+                console.error(err);
+                document.getElementById('statusText').innerHTML = '❌ Нет доступа к микрофону';
+                isMicActive = false;
+            }
+        }
+        
+        function closeAudioContext() {
+            if (sourceNode) { try{ sourceNode.disconnect(); }catch(e){} sourceNode=null; }
+            if (analyserNode) { try{ analyserNode.disconnect(); }catch(e){} analyserNode=null; }
+            if (audioContext) { audioContext.close().catch(e=>console.warn); audioContext=null; }
+            if (mediaStream) { mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; }
+            isMicActive = false;
+            document.getElementById('statusText').innerHTML = '⏸️ Микрофон выкл';
+            document.getElementById('startMic').innerHTML = '🎤 Включить голос';
+        }
+        
+        function updateAudioFeatures() {
+            if (!isMicActive || !analyserNode) {
+                currentVolume *= 0.96;
+                bassEnergy *= 0.97;
+                trebleEnergy *= 0.98;
+                currentPitch = currentPitch*0.98 + 0.5*0.02;
+                return;
+            }
+            const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+            analyserNode.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for(let i=0;i<dataArray.length;i++) sum += dataArray[i]*dataArray[i];
+            let rms = Math.sqrt(sum/dataArray.length)/255;
+            currentVolume = Math.min(1, rms*1.5);
+            
+            let low=0, high=0;
+            for(let i=0; i<20; i++) low += dataArray[i];
+            for(let i=dataArray.length-35; i<dataArray.length; i++) high += dataArray[i];
+            bassEnergy = Math.min(1, low/(20*255)*1.7);
+            trebleEnergy = Math.min(1, high/(35*255)*1.6);
+            
+            let maxIdx=5, maxVal=0;
+            for(let i=5; i<dataArray.length-5; i++){
+                if(dataArray[i]>maxVal){ maxVal=dataArray[i]; maxIdx=i; }
+            }
+            let rawPitch = maxIdx/dataArray.length;
+            currentPitch = currentPitch*0.75 + rawPitch*0.25;
+        }
+        
+        // === НОВОЕ ПУТЕШЕСТВИЕ: сила и отталкивание от стен ===
+        function updateTravelingCenter() {
+            // 1. Сила, толкающая центр, зависит от голоса
+            let forceX = 0, forceY = 0;
+            
+            if (isMicActive && currentVolume > 0.03) {
+                // бас толкает по горизонтали, высота тона по вертикали
+                forceX = (bassEnergy - 0.4) * 1.2;
+                forceY = (currentPitch - 0.5) * 1.5;
+                // плюс небольшой случайный дрейф, чтобы не застывал
+                forceX += (Math.random() - 0.5) * 0.5;
+                forceY += (Math.random() - 0.5) * 0.5;
+            } else {
+                // в тишине — случайное блуждание, но слабое (чтобы медленно исследовать)
+                forceX = (Math.random() - 0.5) * 0.7;
+                forceY = (Math.random() - 0.5) * 0.7;
+            }
+            
+            // обновляем скорость
+            velocityX += forceX;
+            velocityY += forceY;
+            
+            // небольшое трение, чтобы не улетало слишком резво
+            velocityX *= 0.94;
+            velocityY *= 0.94;
+            
+            // применяем скорость
+            centerX += velocityX;
+            centerY += velocityY;
+            
+            // ========== Отталкивание от границ + притяжение к центру ==========
+            const margin = 70;   // зона отступа от края
+            const pushStrength = 0.25;  // сила отталкивания
+            
+            if (centerX < margin) {
+                centerX = margin + (margin - centerX) * 0.5;
+                velocityX = -velocityX * 0.5;
+                velocityX += pushStrength;
+            }
+            if (centerX > width - margin) {
+                centerX = (width - margin) - (centerX - (width - margin)) * 0.5;
+                velocityX = -velocityX * 0.5;
+                velocityX -= pushStrength;
+            }
+            if (centerY < margin) {
+                centerY = margin + (margin - centerY) * 0.5;
+                velocityY = -velocityY * 0.5;
+                velocityY += pushStrength;
+            }
+            if (centerY > height - margin) {
+                centerY = (height - margin) - (centerY - (height - margin)) * 0.5;
+                velocityY = -velocityY * 0.5;
+                velocityY -= pushStrength;
+            }
+            
+            // дополнительная мягкая "центральная пружина", если центр слишком долго у границы
+            let midX = width / 2;
+            let midY = height / 2;
+            let centeringForceX = (midX - centerX) * 0.002;
+            let centeringForceY = (midY - centerY) * 0.002;
+            velocityX += centeringForceX;
+            velocityY += centeringForceY;
+            
+            // ограничим максимальную скорость
+            let maxSpeed = 9;
+            if (Math.abs(velocityX) > maxSpeed) velocityX = Math.sign(velocityX) * maxSpeed;
+            if (Math.abs(velocityY) > maxSpeed) velocityY = Math.sign(velocityY) * maxSpeed;
+            
+            // финальная обрезка (чтоб точно не за границы)
+            centerX = Math.min(width - margin, Math.max(margin, centerX));
+            centerY = Math.min(height - margin, Math.max(margin, centerY));
+        }
+        
+        // ========== РИСОВАНИЕ ==========
+        function drawVoiceShape() {
+            if (!isMicActive && currentVolume < 0.03) {
+                if(Math.random()<0.04) drawCosmicSpark();
+                return;
+            }
+            
+            let intensity = Math.min(1.2, currentVolume * 1.8);
+            let baseX = centerX;
+            let baseY = centerY;
+            
+            let extraClusters = 1;
+            if (currentVolume > 0.55 && bassEnergy > 0.45) extraClusters = 2 + Math.floor(bassEnergy * 3);
+            
+            for (let cluster = 0; cluster < extraClusters; cluster++) {
+                let x = baseX;
+                let y = baseY;
+                if (cluster > 0) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let dist = 50 + Math.random() * 140;
+                    x = baseX + Math.cos(angle) * dist;
+                    y = baseY + Math.sin(angle) * dist;
+                    x = Math.min(width - 25, Math.max(25, x));
+                    y = Math.min(height - 25, Math.max(25, y));
+                }
+                
+                let sizeBase = 22 + intensity * 95 + bassEnergy * 55;
+                let hue = (currentPitch * 360 + bassEnergy * 180 + trebleEnergy * 200 + Date.now() * 0.4) % 360;
+                let sat = 60 + Math.floor(currentVolume * 38) + (trebleEnergy * 28);
+                let light = 55 + Math.floor(currentVolume * 38) + (bassEnergy * 22);
+                let shapeType = Math.floor(currentPitch * 5);
+                if (bassEnergy > 0.65) shapeType = 5;
+                
+                ctx.save();
+                ctx.globalCompositeOperation = "source-over";
+                
+                for (let layer = 0; layer < 1 + Math.floor(intensity * 2.5); layer++) {
+                    let offsetX = (Math.random() - 0.5) * sizeBase * 0.8;
+                    let offsetY = (Math.random() - 0.5) * sizeBase * 0.8;
+                    let px = x + offsetX;
+                    let py = y + offsetY;
+                    let radius = sizeBase * (0.5 + Math.random() * 0.9) * (0.7 + trebleEnergy);
+                    let colorString = `hsla(${hue}, ${sat}%, ${light}%, ${0.7 + currentVolume * 0.3})`;
+                    
+                    ctx.beginPath();
+                    if (shapeType === 0 || shapeType === 2) {
+                        ctx.arc(px, py, radius * 0.8, 0, Math.PI * 2);
+                        ctx.fillStyle = colorString;
+                        ctx.fill();
+                        ctx.strokeStyle = `hsla(${hue + 40}, 85%, 70%, 0.6)`;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    } 
+                    else if (shapeType === 1) {
+                        ctx.ellipse(px, py, radius * 0.7, radius * 1.3, currentPitch * Math.PI, 0, Math.PI * 2);
+                        ctx.fillStyle = colorString;
+                        ctx.fill();
+                        ctx.strokeStyle = `hsl(${hue + 20}, 85%, 70%)`;
+                        ctx.lineWidth = 1.8;
+                        ctx.stroke();
+                    }
+                    else if (shapeType === 3) {
+                        for (let ang = 0; ang < Math.PI * 2; ang += Math.PI / 5) {
+                            let x1 = px + Math.cos(ang) * radius * 0.7;
+                            let y1 = py + Math.sin(ang) * radius * 0.7;
+                            ctx.beginPath();
+                            ctx.moveTo(px, py);
+                            ctx.lineTo(x1, y1);
+                            ctx.lineWidth = 3 + intensity * 8;
+                            ctx.strokeStyle = `hsla(${hue + ang * 30}, ${sat}%, 72%, 0.85)`;
+                            ctx.stroke();
+                        }
+                        ctx.beginPath();
+                        ctx.arc(px, py, radius * 0.35, 0, Math.PI * 2);
+                        ctx.fillStyle = `hsla(${hue + 180}, 90%, 65%, 0.9)`;
+                        ctx.fill();
+                    }
+                    else if (shapeType === 4) {
+                        for (let r = 0; r < radius; r += radius / 6) {
+                            let angleSpiral = r * 0.7 + Date.now() * 0.006;
+                            let xs = px + Math.cos(angleSpiral) * r * 0.8;
+                            let ys = py + Math.sin(angleSpiral * 1.3) * r * 0.7;
+                            ctx.beginPath();
+                            ctx.arc(xs, ys, 2 + r / 11, 0, Math.PI * 2);
+                            ctx.fillStyle = `hsla(${hue + r * 5}, 75%, 68%, 0.8)`;
+                            ctx.fill();
+                        }
+                    }
+                    else {
+                        for (let i = 0; i < 8; i++) {
+                            let angleRand = Math.random() * Math.PI * 2;
+                            let radOff = radius * (0.3 + Math.random() * 0.9);
+                            let x2 = px + Math.cos(angleRand) * radOff;
+                            let y2 = py + Math.sin(angleRand) * radOff;
+                            ctx.beginPath();
+                            ctx.arc(x2, y2, radius * 0.25, 0, Math.PI * 2);
+                            ctx.fillStyle = `hsla(${hue + 70}, 90%, 65%, 0.85)`;
+                            ctx.fill();
+                        }
+                        ctx.beginPath();
+                        ctx.rect(px - radius * 0.5, py - radius * 0.4, radius, radius * 0.8);
+                        ctx.fillStyle = `hsla(${hue}, 95%, 70%, 0.8)`;
+                        ctx.fill();
+                    }
+                    
+                    if (trebleEnergy > 0.45 && intensity > 0.5) {
+                        for (let sp = 0; sp < 4 + Math.floor(trebleEnergy * 8); sp++) {
+                            let angleSpray = Math.random() * Math.PI * 2;
+                            let dist = radius * 0.6 + Math.random() * radius;
+                            let sx = px + Math.cos(angleSpray) * dist;
+                            let sy = py + Math.sin(angleSpray) * dist;
+                            ctx.beginPath();
+                            ctx.arc(sx, sy, 2 + Math.random() * 8, 0, Math.PI * 2);
+                            ctx.fillStyle = `hsla(${hue + 120 + Math.random() * 100}, 85%, 68%, 0.75)`;
+                            ctx.fill();
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+        }
+        
+        function drawCosmicSpark() {
+            let x = Math.random() * width;
+            let y = Math.random() * height;
+            ctx.beginPath();
+            ctx.arc(x, y, 3 + Math.random() * 18, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${Math.random() * 360}, 80%, 65%, 0.35)`;
+            ctx.fill();
+        }
+        
+        function saveArtwork() {
+            try {
+                const link = document.createElement('a');
+                link.download = `voice-art-${new Date().toISOString().slice(0,19)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                document.getElementById('statusText').innerHTML = '💾 Шедевр сохранён!';
+                setTimeout(() => {
+                    if (isMicActive) document.getElementById('statusText').innerHTML = '🎤✨ Голос рисует!';
+                    else document.getElementById('statusText').innerHTML = '⏸️ Микрофон выкл';
+                }, 1500);
+            } catch(e) {
+                alert('Не удалось сохранить изображение');
+            }
+        }
+        
+        function animationLoop() {
+            updateAudioFeatures();
+            updateTravelingCenter();
+            let freq = isMicActive ? (10 + Math.floor(currentVolume * 40)) : 6;
+            if (Math.random() < (freq / 60)) {
+                drawVoiceShape();
+            } else if (!isMicActive && Math.random() < 0.06) {
+                drawCosmicSpark();
+            }
+            requestAnimationFrame(animationLoop);
+        }
+        
+        function startEngine() {
+            resizeAndReset();
+            animationId = requestAnimationFrame(animationLoop);
+        }
+        
+        // ОБРАБОТЧИКИ
+        document.getElementById('startMic').addEventListener('click', () => {
+            if (isMicActive) closeAudioContext();
+            else initMicrophone();
+        });
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            clearFullCanvas();
+            drawWelcomePattern();
+            initCenter();
+        });
+        document.getElementById('saveBtn').addEventListener('click', saveArtwork);
+        window.addEventListener('resize', () => {
+            resizeAndReset();
+        });
+        
+        startEngine();
+        canvas.addEventListener('touchstart', (e) => e.preventDefault());
+    })();
+</script>
+</body>
+</html>
