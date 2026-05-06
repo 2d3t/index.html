@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>📸 Авто-галерея: скажи «Фото» → сразу в альбом</title>
+    <title>📸 Авто-галерея: выбор камеры + HD качество</title>
     <style>
         * {
             box-sizing: border-box;
@@ -131,6 +130,37 @@
             margin: 18px 0 8px;
         }
 
+        .camera-selector {
+            background: rgba(0,0,0,0.5);
+            border-radius: 50px;
+            padding: 6px;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .camera-btn {
+            flex: 1;
+            background: #2c2f4a;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .camera-btn.active {
+            background: linear-gradient(135deg, #6d7ed3, #3e4dae);
+            box-shadow: 0 0 10px rgba(109,126,211,0.5);
+        }
+
         .btn {
             border: none;
             background: #2c2f4a;
@@ -159,7 +189,7 @@
             transform: scale(0.96);
         }
 
-        /* Галерея — здесь всё фото автоматически */
+        /* Галерея */
         .gallery-section {
             background: #0e1120cc;
             backdrop-filter: blur(10px);
@@ -262,22 +292,31 @@
             text-align: center;
             margin-top: 20px;
         }
-
-        hr {
-            border-color: #2a3150;
-            margin: 14px 0;
+        
+        .quality-badge {
+            background: #2ecc7133;
+            border: 1px solid #2ecc71;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            display: inline-block;
+            margin-top: 8px;
         }
     </style>
-    <!-- JSZip для скачивания архива -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
 <div class="app-container">
-    <!-- КАМЕРА + ГОЛОС -->
     <div class="camera-card">
         <div class="preview-container" id="previewContainer">
             <video id="video" autoplay playsinline muted></video>
             <div id="flashOverlay" class="flash-overlay"></div>
+        </div>
+
+        <!-- ВЫБОР КАМЕРЫ -->
+        <div class="camera-selector">
+            <button id="frontCameraBtn" class="camera-btn active">🤳 Селфи (фронтальная)</button>
+            <button id="backCameraBtn" class="camera-btn">📷 Основная (задняя)</button>
         </div>
 
         <div class="voice-panel">
@@ -295,12 +334,12 @@
             <button class="btn" id="toggleVoiceBtn">🎙️ Включить голос</button>
         </div>
         <div class="small-note">
-            ⚡ <strong>Супер-режим:</strong> одна голосовая команда «фото», «сделай фото», «селфи» — камера щёлкает и <strong>сразу добавляет снимок в галерею внизу</strong>. <br>
-            📥 Потом можно скачать все фото сразу (ZIP) или удалить ненужные.
+            ⚡ <strong>Супер-режим:</strong> команда «фото», «селфи» — камера щёлкает и <strong>сразу добавляет снимок в галерею</strong>.<br>
+            📸 <strong>Вы можете переключать камеры</strong> кнопками выше (селфи/основная).<br>
+            <span class="quality-badge">✨ HD качество 100% JPEG ✨</span>
         </div>
     </div>
 
-    <!-- ГАЛЕРЕЯ АВТОМАТИЧЕСКИХ СНИМКОВ -->
     <div class="gallery-section">
         <div class="gallery-header">
             <span class="gallery-title">🖼️ Фотогалерея (авто)</span>
@@ -314,14 +353,14 @@
             <button class="btn btn-warning" id="clearGalleryBtn">🗑️ Очистить галерею</button>
         </div>
         <div class="small-note" style="margin-top: 12px">
-            💡 Клик по фото — скачать отдельный снимок. Крестик — удалить из галереи.
+            💡 Клик по фото — скачать. Крестик — удалить.
         </div>
     </div>
 </div>
 
 <script>
     (function(){
-        // ---------- DOM элементы ----------
+        // DOM элементы
         const video = document.getElementById('video');
         const flashOverlay = document.getElementById('flashOverlay');
         const manualBtn = document.getElementById('manualCaptureBtn');
@@ -333,19 +372,22 @@
         const galleryCountSpan = document.getElementById('galleryCount');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         const clearGalleryBtn = document.getElementById('clearGalleryBtn');
+        const frontCameraBtn = document.getElementById('frontCameraBtn');
+        const backCameraBtn = document.getElementById('backCameraBtn');
 
-        // ---------- Состояния ----------
+        // Состояния
         let mediaStream = null;
         let isCameraActive = false;
         let recognition = null;
         let isVoiceActive = false;
-        let captureCooldown = false;      // защита от спама фото
+        let captureCooldown = false;
+        let currentCamera = 'front'; // 'front' или 'back'
         
-        // ГАЛЕРЕЯ: массив объектов { id, dataUrl, timestamp }
+        // Галерея
         let galleryItems = [];
         let nextId = 1;
 
-        // ---------- Вспышка ----------
+        // Вспышка
         function animateFlash() {
             if (!flashOverlay) return;
             flashOverlay.classList.remove('flash-active');
@@ -354,52 +396,60 @@
             setTimeout(() => flashOverlay.classList.remove('flash-active'), 130);
         }
 
-        // ----- ОСНОВНАЯ ФУНКЦИЯ: ФОТО + АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ В ГАЛЕРЕЮ -----
+        function getBase64SizeKB(base64String) {
+            const padding = (base64String.match(/=+$/) || [''])[0].length;
+            const sizeInBytes = (base64String.length * 0.75) - padding;
+            return Math.round(sizeInBytes / 1024);
+        }
+
+        // Функция фото с автосохранением
         async function takePhotoAndAddToGallery(triggerSource = "voice") {
             if (!isCameraActive || !video.videoWidth || !video.videoHeight) {
                 lastCommandSpan.innerHTML = "❌ Камера не готова. Проверьте разрешения.";
                 return false;
             }
             if (captureCooldown) {
-                lastCommandSpan.innerHTML = "⏳ Подождите, фото делается... (секунда)";
+                lastCommandSpan.innerHTML = "⏳ Подождите, фото делается...";
                 return false;
             }
             
             captureCooldown = true;
             
-            // 1. Захват изображения с видео
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const photoDataUrl = canvas.toDataURL('image/jpeg', 0.9);
             
-            // 2. Визуальный и тактильный эффект
+            // Максимальное качество JPEG
+            const photoDataUrl = canvas.toDataURL('image/jpeg', 1.0);
+            
+            const base64Data = photoDataUrl.split(',')[1];
+            const fileSizeKB = getBase64SizeKB(base64Data);
+            
             animateFlash();
             if (navigator.vibrate) navigator.vibrate(80);
             
-            // 3. Автоматически сохраняем в галерею!
             const newItem = {
                 id: nextId++,
                 dataUrl: photoDataUrl,
                 timestamp: Date.now(),
+                sizeKB: fileSizeKB,
+                camera: currentCamera === 'front' ? 'селфи' : 'основная'
             };
             galleryItems.push(newItem);
             renderGallery();
             
-            // 4. Сообщение пользователю
             const galleryCount = galleryItems.length;
-            lastCommandSpan.innerHTML = `📸 Снимок сохранён в галерею! (всего ${galleryCount} фото)`;
+            lastCommandSpan.innerHTML = `📸 Снимок (${newItem.camera}, ${fileSizeKB} КБ) сохранён! Всего: ${galleryCount} фото`;
             
-            // 5. Небольшая задержка перед следующим кадром
             setTimeout(() => {
                 captureCooldown = false;
             }, 750);
             return true;
         }
 
-        // ----- Отрисовка галереи + счетчик -----
+        // Отрисовка галереи
         function renderGallery() {
             galleryGrid.innerHTML = '';
             if (galleryItems.length === 0) {
@@ -407,28 +457,38 @@
                 galleryCountSpan.innerText = '0 фото';
                 return;
             }
-            galleryCountSpan.innerText = `${galleryItems.length} фото`;
+            
+            const totalSizeKB = galleryItems.reduce((sum, item) => sum + (item.sizeKB || 0), 0);
+            let sizeText = '';
+            if (totalSizeKB < 1024) {
+                sizeText = `, ${totalSizeKB} КБ всего`;
+            } else {
+                sizeText = `, ${(totalSizeKB / 1024).toFixed(1)} МБ всего`;
+            }
+            
+            galleryCountSpan.innerText = `${galleryItems.length} фото${sizeText}`;
+            
             galleryItems.forEach((item) => {
                 const div = document.createElement('div');
                 div.className = 'gallery-item';
                 const img = document.createElement('img');
                 img.src = item.dataUrl;
                 img.alt = `photo_${item.id}`;
-                // Клик по фото — скачать отдельно
+                
                 img.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    downloadSinglePhoto(item.dataUrl, `gallery_${item.id}.jpg`);
-                    lastCommandSpan.innerHTML = `💾 Фото ${item.id} сохранено на устройство.`;
+                    downloadSinglePhoto(item.dataUrl, `gallery_${item.camera}_${item.id}.jpg`);
+                    lastCommandSpan.innerHTML = `💾 Фото ${item.id} (${item.sizeKB} КБ) сохранено.`;
                 });
-                // Кнопка удаления
+                
                 const delBtn = document.createElement('button');
                 delBtn.innerText = '✕';
                 delBtn.className = 'delete-single';
-                delBtn.title = 'Удалить из галереи';
                 delBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     removeGalleryItem(item.id);
                 });
+                
                 div.appendChild(img);
                 div.appendChild(delBtn);
                 galleryGrid.appendChild(div);
@@ -439,9 +499,6 @@
             galleryItems = galleryItems.filter(item => item.id !== id);
             renderGallery();
             lastCommandSpan.innerHTML = `🗑️ Фото удалено. Осталось ${galleryItems.length} снимков.`;
-            if (galleryItems.length === 0) {
-                lastCommandSpan.innerHTML = `🗑️ Галерея пуста. Скажите "фото" для нового снимка.`;
-            }
         }
 
         function clearGallery() {
@@ -460,65 +517,60 @@
             link.click();
         }
 
-        // Скачать всё ZIP-архивом
         async function downloadAllAsZip() {
             if (galleryItems.length === 0) {
-                lastCommandSpan.innerHTML = "⚠️ Нет фото в галерее. Сначала сделайте несколько командой «фото».";
+                lastCommandSpan.innerHTML = "⚠️ Нет фото в галерее.";
                 return;
             }
+            
             lastCommandSpan.innerHTML = `⏳ Упаковываю ${galleryItems.length} фото в архив...`;
+            
             try {
                 const zip = new JSZip();
                 for (let i = 0; i < galleryItems.length; i++) {
                     const item = galleryItems[i];
                     const base64Data = item.dataUrl.split(',')[1];
                     if (base64Data) {
-                        zip.file(`selfie_auto_${item.id}_${i+1}.jpg`, base64Data, { base64: true });
+                        zip.file(`photo_${item.camera}_${item.id}.jpg`, base64Data, { base64: true });
                     }
                 }
                 const blob = await zip.generateAsync({ type: "blob" });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `voice_gallery_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
+                link.download = `gallery_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
                 link.click();
                 URL.revokeObjectURL(link.href);
-                lastCommandSpan.innerHTML = `📦 Архив с ${galleryItems.length} фото успешно сохранён.`;
+                lastCommandSpan.innerHTML = `📦 Архив с ${galleryItems.length} фото сохранён.`;
             } catch(e) {
                 console.error(e);
                 lastCommandSpan.innerHTML = "❌ Ошибка создания ZIP-архива.";
             }
         }
 
-        // ---------- Обработка голосовых команд (только "фото", "селфи" и вариации) ----------
+        // Голосовые команды
         function processVoiceCommand(transcript) {
             if (!transcript) return false;
             const lower = transcript.toLowerCase().trim();
             lastCommandSpan.innerHTML = `🎤 Распознано: «${transcript}»`;
             
-            // КЛЮЧЕВЫЕ СЛОВА ДЛЯ ФОТО + АВТОСОХРАНЕНИЕ
-            const photoKeywords = [
-                "фото", "сделай фото", "селфи", "сфоткай", "сними", "щелкни", 
-                "сделать фото", "фотка", "сделай снимок", "снимок"
-            ];
+            const photoKeywords = ["фото", "сделай фото", "селфи", "сфоткай", "сними", "щелкни", "сделать фото", "фотка", "сделай снимок", "снимок"];
             const isPhotoCmd = photoKeywords.some(kw => lower.includes(kw));
             
             if (isPhotoCmd) {
                 if (captureCooldown) {
-                    lastCommandSpan.innerHTML = "⏳ Фото уже делается, секунду...";
+                    lastCommandSpan.innerHTML = "⏳ Фото уже делается...";
                     return true;
                 }
-                // Мгновенное фото с автоматическим добавлением в галерею
                 takePhotoAndAddToGallery("voice");
                 return true;
             }
             
-            // Доп. команда "сколько фото" для удобства
-            if (lower.includes("сколько фото") || lower.includes("сколько в галерее") || lower.includes("сколько снимков")) {
-                lastCommandSpan.innerHTML = `📸 В галерее ${galleryItems.length} фото. Скажите «фото» — добавится новое.`;
+            if (lower.includes("сколько фото") || lower.includes("сколько в галерее")) {
+                const totalSizeKB = galleryItems.reduce((sum, item) => sum + (item.sizeKB || 0), 0);
+                lastCommandSpan.innerHTML = `📸 В галерее ${galleryItems.length} фото, общий вес ${totalSizeKB} КБ.`;
                 return true;
             }
             
-            // Команда "очистить галерею" на словах (помощь)
             if (lower.includes("очистить галерею") || (lower.includes("удалить всё") && lower.includes("фото"))) {
                 clearGallery();
                 return true;
@@ -527,47 +579,115 @@
             return false;
         }
 
-        // ---------- Инициализация камеры (приоритет фронтальная) ----------
-        async function initCamera() {
+        // ИНИЦИАЛИЗАЦИЯ КАМЕРЫ с выбором (фронтальная или задняя)
+        async function initCamera(cameraType = 'front') {
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
             }
+            
             try {
-                let stream;
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
-                } catch(frontErr) {
-                    console.warn("Фронтальная камера не доступна, используем любую", frontErr);
-                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    const noteSpan = document.querySelector('.small-note');
-                    if (noteSpan && !document.getElementById('frontWarnMsg')) {
-                        const warnDiv = document.createElement('div');
-                        warnDiv.id = 'frontWarnMsg';
-                        warnDiv.style.fontSize = '0.7rem';
-                        warnDiv.style.marginTop = '5px';
-                        warnDiv.style.color = '#ffbb88';
-                        warnDiv.innerText = '⚠️ Фронтальная камера не найдена, используется основная (селфи может быть зеркальным).';
-                        noteSpan.appendChild(warnDiv);
-                    }
+                let constraints;
+                
+                if (cameraType === 'front') {
+                    constraints = {
+                        video: {
+                            facingMode: { exact: "user" },
+                            width: { ideal: 1920, min: 1280 },
+                            height: { ideal: 1080, min: 720 }
+                        }
+                    };
+                } else {
+                    constraints = {
+                        video: {
+                            facingMode: { exact: "environment" },
+                            width: { ideal: 1920, min: 1280 },
+                            height: { ideal: 1080, min: 720 }
+                        }
+                    };
                 }
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 mediaStream = stream;
                 video.srcObject = stream;
                 await video.play();
                 isCameraActive = true;
+                currentCamera = cameraType;
+                
+                // Обновляем активную кнопку
+                if (cameraType === 'front') {
+                    frontCameraBtn.classList.add('active');
+                    backCameraBtn.classList.remove('active');
+                } else {
+                    frontCameraBtn.classList.remove('active');
+                    backCameraBtn.classList.add('active');
+                }
+                
+                setTimeout(() => {
+                    if (video.videoWidth && video.videoHeight) {
+                        lastCommandSpan.innerHTML = `✅ ${cameraType === 'front' ? 'Селфи' : 'Основная'} камера готова! Разрешение: ${video.videoWidth}x${video.videoHeight}`;
+                    }
+                }, 500);
+                
                 return true;
             } catch(err) {
-                console.error(err);
-                isCameraActive = false;
-                lastCommandSpan.innerHTML = "❌ Ошибка доступа к камере. Разрешите доступ в браузере.";
-                return false;
+                console.error("Ошибка доступа к камере:", err);
+                
+                // Если точное совпадение не удалось, пробуем без exact
+                try {
+                    const fallbackConstraints = {
+                        video: {
+                            facingMode: cameraType === 'front' ? "user" : "environment",
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        }
+                    };
+                    const stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+                    mediaStream = stream;
+                    video.srcObject = stream;
+                    await video.play();
+                    isCameraActive = true;
+                    currentCamera = cameraType;
+                    
+                    if (cameraType === 'front') {
+                        frontCameraBtn.classList.add('active');
+                        backCameraBtn.classList.remove('active');
+                    } else {
+                        frontCameraBtn.classList.remove('active');
+                        backCameraBtn.classList.add('active');
+                    }
+                    
+                    setTimeout(() => {
+                        if (video.videoWidth && video.videoHeight) {
+                            lastCommandSpan.innerHTML = `✅ ${cameraType === 'front' ? 'Селфи' : 'Основная'} камера (резервный режим) готова!`;
+                        }
+                    }, 500);
+                    
+                    return true;
+                } catch(fallbackErr) {
+                    console.error("Резервный доступ тоже не удался:", fallbackErr);
+                    isCameraActive = false;
+                    lastCommandSpan.innerHTML = `❌ Нет доступа к ${cameraType === 'front' ? 'селфи' : 'основной'} камере.`;
+                    return false;
+                }
             }
         }
 
-        // ---------- Распознавание речи (непрерывное, русский) ----------
+        // Переключение камеры
+        async function switchToFront() {
+            if (currentCamera === 'front') return;
+            await initCamera('front');
+        }
+        
+        async function switchToBack() {
+            if (currentCamera === 'back') return;
+            await initCamera('back');
+        }
+
+        // Распознавание речи
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 toggleVoiceBtn.disabled = true;
-                lastCommandSpan.innerHTML = "❌ Голосовые команды не поддерживаются этим браузером.";
+                lastCommandSpan.innerHTML = "❌ Голосовые команды не поддерживаются.";
                 voiceStatusText.innerText = "Не поддерживается";
                 return null;
             }
@@ -582,35 +702,25 @@
                 isVoiceActive = true;
                 voiceDot.classList.add('active');
                 voiceStatusText.innerText = 'Голос слушает';
-                lastCommandSpan.innerHTML = '🎙️ Активен: любая фраза с «фото» или «селфи» → авто-снимок в галерею!';
+                lastCommandSpan.innerHTML = '🎙️ Активен: скажите «фото» или «селфи» → авто-снимок!';
             };
+            
             recog.onerror = (event) => {
-                console.warn("Speech error:", event.error);
                 if (event.error === 'not-allowed') {
-                    lastCommandSpan.innerHTML = "🔇 Микрофон запрещён. Включите доступ к микрофону.";
+                    lastCommandSpan.innerHTML = "🔇 Микрофон запрещён. Включите доступ.";
                     isVoiceActive = false;
                     voiceDot.classList.remove('active');
                     voiceStatusText.innerText = 'Микрофон нет';
-                } else if (event.error === 'network') {
-                    lastCommandSpan.innerHTML = "🌐 Ошибка сети распознавания, голос может отключиться.";
-                } else if (isVoiceActive) {
-                    // при других ошибках пытаемся перезапустить позже в onend
                 }
             };
+            
             recog.onend = () => {
                 if (isVoiceActive) {
-                    // автоматический перезапуск, чтобы не выключать голос
                     setTimeout(() => {
                         if (isVoiceActive && recognition === recog) {
                             try {
                                 recog.start();
-                                console.log("Голос перезапущен");
-                            } catch(e) {
-                                console.warn("Не удалось перезапустить распознавание", e);
-                                isVoiceActive = false;
-                                voiceStatusText.innerText = 'Голос выкл';
-                                voiceDot.classList.remove('active');
-                            }
+                            } catch(e) {}
                         }
                     }, 400);
                 } else {
@@ -618,6 +728,7 @@
                     voiceStatusText.innerText = 'Голос выкл';
                 }
             };
+            
             recog.onresult = (event) => {
                 if (!isVoiceActive) return;
                 const result = event.results[event.resultIndex];
@@ -643,9 +754,7 @@
                 toggleVoiceBtn.innerHTML = '🔴 Выключить голос';
                 return true;
             } catch(err) {
-                console.error(err);
                 isVoiceActive = false;
-                voiceStatusText.innerText = 'Голос выкл';
                 toggleVoiceBtn.innerHTML = '🎙️ Включить голос';
                 lastCommandSpan.innerHTML = `Ошибка микрофона: ${err.message}`;
                 return false;
@@ -661,7 +770,6 @@
             voiceDot.classList.remove('active');
             voiceStatusText.innerText = 'Голос выкл';
             toggleVoiceBtn.innerHTML = '🎙️ Включить голос';
-            lastCommandSpan.innerHTML = 'Голос отключён. Нажмите кнопку для включения.';
         }
 
         function toggleVoice() {
@@ -669,18 +777,17 @@
             else enableVoice();
         }
 
-        // ---------- Ручная кнопка (фото + автосохранение) ----------
         function manualCaptureHandler() {
             if (captureCooldown) {
-                lastCommandSpan.innerHTML = "⏳ Подождите, камера занята...";
+                lastCommandSpan.innerHTML = "⏳ Камера занята...";
                 return;
             }
             takePhotoAndAddToGallery("manual");
         }
 
-        // ---------- Bootstrap ----------
         async function bootstrap() {
-            const camOk = await initCamera();
+            // Стартуем с фронтальной камеры
+            const camOk = await initCamera('front');
             if (!camOk) {
                 manualBtn.disabled = true;
                 toggleVoiceBtn.disabled = true;
@@ -688,9 +795,6 @@
             }
             manualBtn.disabled = false;
             toggleVoiceBtn.disabled = false;
-            lastCommandSpan.innerHTML = "✅ Камера готова! Включите голос и просто скажите «фото» или «селфи»";
-            
-            // Добавим стартовую подсказку для галереи
             renderGallery();
         }
 
@@ -699,6 +803,8 @@
         toggleVoiceBtn.addEventListener('click', toggleVoice);
         downloadAllBtn.addEventListener('click', downloadAllAsZip);
         clearGalleryBtn.addEventListener('click', clearGallery);
+        frontCameraBtn.addEventListener('click', switchToFront);
+        backCameraBtn.addEventListener('click', switchToBack);
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', bootstrap);
