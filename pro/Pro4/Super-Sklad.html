@@ -1,33 +1,83 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Мультисклад — с иконками складов и полным названием</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+    <title>Мультисклад — фото вещей, переименование, тёмная тема</title>
+    <style id="theme-style">
+        /* Базовые переменные (светлая тема по умолчанию) */
+        :root {
+            --bg-gradient-start: #d4d9e8;
+            --bg-gradient-end: #eef2f7;
+            --app-bg: rgba(255, 255, 255, 0.92);
+            --card-bg: white;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --border-light: #cbd5e1;
+            --input-bg: #f8fafc;
+            --chip-bg: white;
+            --chip-hover: #fff6e8;
+            --tab-inactive: #e2e8f0;
+            --tab-active: #2c3e50;
+            --tab-active-text: white;
+            --search-bg: white;
+            --results-bg: #fffef7;
+            --items-grid-bg: #fefaf2;
+            --placeholder-text: #94a3b8;
+            --btn-outline-bg: white;
+            --btn-outline-border: #cbd5e1;
+            --btn-outline-text: #2c3e50;
+            --delete-btn-color: #c2410c;
+            --delete-btn-hover: #9a3412;
         }
+
+        body.dark {
+            --bg-gradient-start: #1a1a2e;
+            --bg-gradient-end: #16213e;
+            --app-bg: rgba(30, 30, 46, 0.95);
+            --card-bg: #1e1e2f;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-light: #334155;
+            --input-bg: #2d2d44;
+            --chip-bg: #2d2d44;
+            --chip-hover: #3d3d5c;
+            --tab-inactive: #334155;
+            --tab-active: #0f172a;
+            --tab-active-text: #e2e8f0;
+            --search-bg: #1e1e2f;
+            --results-bg: #1e1e2f;
+            --items-grid-bg: #1a1a2a;
+            --placeholder-text: #64748b;
+            --btn-outline-bg: #2d2d44;
+            --btn-outline-border: #475569;
+            --btn-outline-text: #cbd5e6;
+            --delete-btn-color: #f97316;
+            --delete-btn-hover: #fb923c;
+        }
+
         body {
-            background: linear-gradient(135deg, #d4d9e8 0%, #eef2f7 100%);
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
             margin: 0;
             min-height: 100vh;
             padding: 20px;
+            transition: background 0.2s;
         }
         .app {
             max-width: 1400px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.92);
+            background: var(--app-bg);
             backdrop-filter: blur(2px);
             border-radius: 48px;
             box-shadow: 0 25px 40px -12px rgba(0,0,0,0.3);
             padding: 24px 28px 32px;
+            transition: background 0.2s;
         }
         h1 {
             font-size: 2rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #1e293b, #2c3e50);
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -39,14 +89,27 @@
         }
         .badge {
             font-size: 0.8rem;
-            background: #e9ecef;
+            background: var(--tab-inactive);
             padding: 4px 14px;
             border-radius: 40px;
             font-weight: normal;
-            color: #2c3e50;
+            color: var(--text-primary);
+        }
+        .theme-toggle {
+            background: var(--tab-inactive);
+            border: none;
+            border-radius: 40px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         .search-global {
-            background: white;
+            background: var(--search-bg);
             border-radius: 60px;
             padding: 4px 20px;
             margin: 20px 0 24px 0;
@@ -54,7 +117,7 @@
             align-items: center;
             gap: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid #cfdee9;
+            border: 1px solid var(--border-light);
         }
         .search-global input {
             flex: 1;
@@ -63,6 +126,7 @@
             font-size: 1rem;
             background: transparent;
             outline: none;
+            color: var(--text-primary);
         }
         .search-global button {
             background: #f1c40f;
@@ -71,9 +135,10 @@
             padding: 8px 20px;
             font-weight: bold;
             cursor: pointer;
+            color: #1e293b;
         }
         .search-results {
-            background: #fffef7;
+            background: var(--results-bg);
             border-radius: 28px;
             margin-bottom: 28px;
             padding: 12px 18px;
@@ -85,7 +150,7 @@
         }
         .result-item {
             padding: 8px 12px;
-            border-bottom: 1px solid #ffe0b5;
+            border-bottom: 1px solid var(--border-light);
             display: flex;
             gap: 16px;
             flex-wrap: wrap;
@@ -99,7 +164,7 @@
             color: #b45309;
         }
         .result-items {
-            color: #1e293b;
+            color: var(--text-primary);
             word-break: break-word;
         }
         .warehouse-tabs {
@@ -107,18 +172,18 @@
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #cbd5e1;
+            border-bottom: 2px solid var(--border-light);
             padding-bottom: 8px;
             align-items: center;
         }
         .tab-btn {
-            background: #e2e8f0;
+            background: var(--tab-inactive);
             border: none;
             padding: 8px 20px;
             border-radius: 40px;
             font-weight: 600;
             cursor: pointer;
-            color: #1e293b;
+            color: var(--text-primary);
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -129,23 +194,15 @@
             height: 28px;
             object-fit: cover;
             border-radius: 50%;
-            background: #f1f5f9;
+            background: var(--input-bg);
         }
         .tab-btn.active {
-            background: #2c3e50;
-            color: white;
+            background: var(--tab-active);
+            color: var(--tab-active-text);
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
-        .tab-content {
-            display: none;
-            animation: fade 0.2s;
-        }
-        .tab-content.active-tab {
-            display: block;
-        }
-        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
         .ware-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 32px;
             padding: 18px 22px;
             margin-bottom: 20px;
@@ -170,13 +227,13 @@
         .ware-icon {
             width: 56px;
             height: 56px;
-            background: #f1f5f9;
+            background: var(--input-bg);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            border: 2px solid #e2e8f0;
+            border: 2px solid var(--border-light);
             cursor: pointer;
             transition: 0.1s;
         }
@@ -192,18 +249,14 @@
         .ware-name-input {
             font-size: 1.5rem;
             font-weight: 700;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
             padding: 8px 16px;
             border-radius: 60px;
             min-width: 240px;
             width: auto;
             flex: 1;
-        }
-        .btn-icon {
-            background: #e9ecef;
-            color: #1e293b;
-            margin-left: 8px;
+            color: var(--text-primary);
         }
         .flex-row {
             display: flex;
@@ -220,12 +273,15 @@
             font-size: 0.7rem;
             font-weight: 600;
             text-transform: uppercase;
+            color: var(--text-secondary);
         }
         textarea, input {
             width: 100%;
             padding: 10px 14px;
             border-radius: 28px;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--border-light);
+            background: var(--input-bg);
+            color: var(--text-primary);
             font-family: monospace;
         }
         button {
@@ -240,40 +296,102 @@
         }
         button:hover { transform: scale(0.97); background: #1e2b38; }
         .btn-outline {
-            background: white;
-            border: 1px solid #cbd5e1;
-            color: #2c3e50;
+            background: var(--btn-outline-bg);
+            border: 1px solid var(--btn-outline-border);
+            color: var(--btn-outline-text);
         }
         .items-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 16px;
             margin-top: 16px;
-            background: #fefaf2;
+            background: var(--items-grid-bg);
             border-radius: 28px;
             padding: 18px;
         }
-        .item-chip {
-            background: white;
-            border-radius: 60px;
-            padding: 6px 16px;
-            display: inline-flex;
+        .item-card {
+            background: var(--chip-bg);
+            border-radius: 24px;
+            padding: 10px 12px;
+            display: flex;
             align-items: center;
-            gap: 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            gap: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            transition: 0.1s;
+            min-width: 180px;
+            flex: 1 0 auto;
+            max-width: 280px;
+            border: 1px solid var(--border-light);
+        }
+        .item-photo {
+            width: 48px;
+            height: 48px;
+            background: var(--input-bg);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            flex-shrink: 0;
+            border: 1px solid var(--border-light);
+        }
+        .item-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .item-photo-placeholder {
+            font-size: 24px;
+            opacity: 0.5;
+        }
+        .item-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .item-name {
+            font-weight: 600;
+            cursor: pointer;
+            word-break: break-word;
+            padding: 4px 6px;
+            border-radius: 12px;
+            transition: 0.1s;
+            display: inline-block;
+            color: var(--text-primary);
+        }
+        .item-name:hover {
+            background: var(--tab-inactive);
+        }
+        .item-name-input {
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid #f1c40f;
+            border-radius: 12px;
+            padding: 2px 6px;
+            width: 100%;
+            background: var(--input-bg);
+            color: var(--text-primary);
         }
         .delete-item {
             background: none;
             border: none;
-            color: #c2410c;
+            color: var(--delete-btn-color);
             font-weight: bold;
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            padding: 4px 8px;
+            flex-shrink: 0;
+        }
+        .delete-item:hover {
+            color: var(--delete-btn-hover);
+            background: none;
+            transform: none;
         }
         .empty-list {
-            color: #94a3b8;
+            color: var(--placeholder-text);
             text-align: center;
             width: 100%;
+            padding: 20px;
         }
         .action-panel {
             display: flex;
@@ -287,91 +405,170 @@
             font-size: 0.7rem;
             text-align: center;
             margin-top: 30px;
-            color: #475569;
+            color: var(--text-secondary);
         }
         @media (max-width: 700px) {
             .app { padding: 16px; }
             .ware-name-input { font-size: 1.1rem; min-width: 150px; }
+            .item-card { max-width: 100%; }
         }
     </style>
 </head>
 <body>
 <div class="app">
-    <h1>📚 Мультисклад · С иконками <span class="badge">кликните на иконку чтобы загрузить фото</span></h1>
+    <h1>
+        📚 Мультисклад · Фото вещей
+        <span style="display: flex; gap: 12px; align-items: center;">
+            <button id="themeToggleBtn" class="theme-toggle">🌙 Тёмная тема</button>
+            <span class="badge">клик на фото — добавить картинку</span>
+        </span>
+    </h1>
 
-    <!-- Глобальный поиск -->
     <div class="search-global">
-        <input type="text" id="globalSearchInput" placeholder="🔍Поиск">
+        <input type="text" id="globalSearchInput" placeholder="🔍 Искать вещь во всех складах...">
         <button id="globalSearchBtn">Найти</button>
-        <button id="clearSearchBtn" class="btn-outline" style="background:#fff;">✖ Сброс</button>
+        <button id="clearSearchBtn" class="btn-outline" style="background:var(--btn-outline-bg);">✖ Сброс</button>
     </div>
     <div id="searchResultsPanel" class="search-results">
         <div style="font-weight:bold; margin-bottom: 8px;">📌 Результаты поиска:</div>
         <div id="searchResultsList"></div>
     </div>
 
-    <!-- Панель складов (табы + управление) -->
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <div class="warehouse-tabs" id="tabsContainer"></div>
         <button id="createNewWarehouseBtn" style="background:#16a34a;">➕ Новый склад</button>
     </div>
 
-    <!-- Динамические таб-контенты -->
     <div id="tabContentsContainer"></div>
 
     <div class="action-panel">
         <div>
             <button id="saveAllWarehousesBtn">💾 Сохранить ВСЕ склады (JSON)</button>
-            <label style="background:#eef2ff; padding: 8px 18px; border-radius: 40px; cursor: pointer; border:1px solid #ccc;">
+            <label style="background:var(--btn-outline-bg); padding: 8px 18px; border-radius: 40px; cursor: pointer; border:1px solid var(--border-light); color: var(--text-primary);">
                 📂 Загрузить мультисклад.json
                 <input type="file" id="loadMultiJsonInput" accept=".json" style="display:none">
             </label>
         </div>
-        <button id="resetExampleBtn" class="btn-outline">📋 Сбросить демо-склады</button>
+        <button id="resetEmptyBtn" class="btn-outline">🗑 Начать с чистого листа</button>
     </div>
     <footer>
-        ✔ Каждый склад может иметь свою иконку-фото (кликните на кружок). Картинка автоматически сжимается до 48x48.<br>
-        ✔ Название склада теперь отображается полностью, без обрезания.
+        ✔ Каждый склад — своя иконка (клик на кружок).<br>
+        ✔ У каждой вещи — своё фото (клик на квадрат) и переименование (клик на название).<br>
+        ✔ Тёмная/светлая тема сохраняется в браузере.
     </footer>
 </div>
 
 <script>
-    // ----- Структура данных -----
-    let warehouses = []; // каждый: { id, name, items, iconBase64 (опционально) }
+    // ----- Глобальные переменные -----
+    let warehouses = [];
     let nextId = 100;
-    function genId() { return nextId++; }
+    function genId() { 
+        let newId = nextId++;
+        // гарантируем, что ID не существует
+        while (warehouses.some(w => w.id === newId)) newId = nextId++;
+        return newId;
+    }
     let activeWarehouseId = null;
 
-    // Вспомогательные функции для предметов
-    function normalizeItemsList(rawItemsArray) {
-        return rawItemsArray.map(i => i.trim()).filter(i => i !== "");
-    }
-    function uniqueAndSort(itemsArray) {
-        const map = new Map();
-        for (let item of itemsArray) {
-            const low = item.toLowerCase();
-            if (!map.has(low)) map.set(low, item);
+    // ----- Тема -----
+    function initTheme() {
+        const savedTheme = localStorage.getItem('multisklad_theme');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+            document.getElementById('themeToggleBtn').innerHTML = '☀️ Светлая тема';
+        } else {
+            document.body.classList.remove('dark');
+            document.getElementById('themeToggleBtn').innerHTML = '🌙 Тёмная тема';
         }
-        return Array.from(map.values()).sort((a,b) => a.localeCompare(b, 'ru', { sensitivity: 'base' }));
+    }
+    function toggleTheme() {
+        if (document.body.classList.contains('dark')) {
+            document.body.classList.remove('dark');
+            localStorage.setItem('multisklad_theme', 'light');
+            document.getElementById('themeToggleBtn').innerHTML = '🌙 Тёмная тема';
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem('multisklad_theme', 'dark');
+            document.getElementById('themeToggleBtn').innerHTML = '☀️ Светлая тема';
+        }
     }
 
-    function addItemsToWarehouse(wareId, rawStrings) {
+    // ----- Функции работы с изображениями -----
+    function resizeImage(file, callback, maxSize = 48) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                let width = img.width, height = img.height;
+                if (width > height) {
+                    if (width > maxSize) { height = (height * maxSize) / width; width = maxSize; }
+                } else {
+                    if (height > maxSize) { width = (width * maxSize) / height; height = maxSize; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ----- Работа с предметами -----
+    function sortItemsByName(itemsArray) {
+        return [...itemsArray].sort((a,b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }));
+    }
+
+    function addItemsToWarehouse(wareId, rawNames) {
         const warehouse = warehouses.find(w => w.id === wareId);
         if (!warehouse) return false;
-        let newItems = normalizeItemsList(rawStrings);
-        if (newItems.length === 0) return false;
-        const currentSet = new Set(warehouse.items.map(i => i.toLowerCase()));
-        const toAdd = newItems.filter(item => !currentSet.has(item.toLowerCase()));
-        if (toAdd.length === 0) { alert("Все эти вещи уже есть!"); return false; }
+        const newNames = rawNames.map(n => n.trim()).filter(n => n !== "");
+        if (newNames.length === 0) return false;
+        const existingNamesLower = new Set(warehouse.items.map(i => i.name.toLowerCase()));
+        const toAdd = [];
+        for (let name of newNames) {
+            if (!existingNamesLower.has(name.toLowerCase())) {
+                toAdd.push({ name: name, photoBase64: null });
+                existingNamesLower.add(name.toLowerCase());
+            }
+        }
+        if (toAdd.length === 0) { alert("Все эти вещи уже есть на складе!"); return false; }
         warehouse.items.push(...toAdd);
-        warehouse.items = uniqueAndSort(warehouse.items);
+        warehouse.items = sortItemsByName(warehouse.items);
         return true;
+    }
+
+    function renameItem(wareId, index, newName) {
+        const warehouse = warehouses.find(w => w.id === wareId);
+        if (!warehouse) return false;
+        if (!newName.trim()) return false;
+        const lowerNew = newName.trim().toLowerCase();
+        const isDuplicate = warehouse.items.some((item, idx) => idx !== index && item.name.toLowerCase() === lowerNew);
+        if (isDuplicate) { alert("Вещь с таким именем уже есть в этом складе!"); return false; }
+        warehouse.items[index].name = newName.trim();
+        warehouse.items = sortItemsByName(warehouse.items);
+        return true;
+    }
+
+    function setItemPhoto(wareId, index, file) {
+        if (!file || !file.type.match('image.*')) { alert("Выберите изображение"); return; }
+        resizeImage(file, (base64) => {
+            const warehouse = warehouses.find(w => w.id === wareId);
+            if (warehouse && warehouse.items[index]) {
+                warehouse.items[index].photoBase64 = base64;
+                renderAll();
+            }
+        }, 48);
     }
 
     function deleteItemFromWarehouse(wareId, index) {
         const warehouse = warehouses.find(w => w.id === wareId);
         if (warehouse && index >= 0 && index < warehouse.items.length) {
             warehouse.items.splice(index, 1);
+            renderAll();
             return true;
         }
         return false;
@@ -379,57 +576,19 @@
 
     function clearWarehouseItems(wareId) {
         const warehouse = warehouses.find(w => w.id === wareId);
-        if (warehouse) { warehouse.items = []; return true; }
+        if (warehouse) { warehouse.items = []; renderAll(); return true; }
         return false;
     }
 
-    // Функция сжатия изображения (до 48x48, base64)
-    function resizeImageToIcon(file, callback) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-                const MAX_SIZE = 48;
-                let width = img.width;
-                let height = img.height;
-                if (width > height) {
-                    if (width > MAX_SIZE) {
-                        height = (height * MAX_SIZE) / width;
-                        width = MAX_SIZE;
-                    }
-                } else {
-                    if (height > MAX_SIZE) {
-                        width = (width * MAX_SIZE) / height;
-                        height = MAX_SIZE;
-                    }
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-                callback(resizedBase64);
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-
-    // Установка иконки для склада
     function setWarehouseIcon(wareId, file) {
-        if (!file) return;
-        if (!file.type.match('image.*')) { alert("Пожалуйста, выберите изображение"); return; }
-        resizeImageToIcon(file, (base64) => {
+        if (!file || !file.type.match('image.*')) { alert("Выберите изображение"); return; }
+        resizeImage(file, (base64) => {
             const warehouse = warehouses.find(w => w.id === wareId);
-            if (warehouse) {
-                warehouse.iconBase64 = base64;
-                renderAll(); // обновить UI
-            }
-        });
+            if (warehouse) { warehouse.iconBase64 = base64; renderAll(); }
+        }, 48);
     }
 
-    // --- Рендер всей UI ---
+    // ----- Рендер -----
     function renderAll() {
         renderTabs();
         renderActiveTabContent();
@@ -438,26 +597,18 @@
     function renderTabs() {
         const container = document.getElementById('tabsContainer');
         container.innerHTML = '';
+        if (warehouses.length === 0) {
+            container.innerHTML = '<div style="padding: 8px; color: var(--placeholder-text);">✨ Нет складов. Нажмите «Новый склад»</div>';
+            return;
+        }
         warehouses.forEach(wh => {
             const btn = document.createElement('button');
             btn.className = `tab-btn ${activeWarehouseId === wh.id ? 'active' : ''}`;
-            // Иконка в табе (маленькая)
-            const iconHtml = wh.iconBase64 
-                ? `<img src="${wh.iconBase64}" alt="icon" style="width:24px;height:24px;border-radius:50%;">` 
-                : `<span style="font-size:1.2rem;">📦</span>`;
+            const iconHtml = wh.iconBase64 ? `<img src="${wh.iconBase64}" alt="icon">` : `<span style="font-size:1.2rem;">📦</span>`;
             btn.innerHTML = `${iconHtml} <span>${escapeHtml(wh.name)} (${wh.items.length})</span>`;
-            btn.addEventListener('click', () => {
-                activeWarehouseId = wh.id;
-                renderAll();
-            });
+            btn.addEventListener('click', () => { activeWarehouseId = wh.id; renderAll(); });
             container.appendChild(btn);
         });
-        if (warehouses.length === 0) {
-            const emptyMsg = document.createElement('div');
-            emptyMsg.textContent = 'Нет складов, создайте новый';
-            emptyMsg.style.padding = '8px';
-            container.appendChild(emptyMsg);
-        }
     }
 
     function renderActiveTabContent() {
@@ -465,42 +616,52 @@
         if (!activeWarehouseId && warehouses.length > 0) activeWarehouseId = warehouses[0].id;
         const warehouse = warehouses.find(w => w.id === activeWarehouseId);
         if (!warehouse) {
-            container.innerHTML = '<div style="padding: 40px; text-align:center;">✨ Выберите или создайте склад</div>';
+            container.innerHTML = '<div style="padding: 40px; text-align:center; color: var(--placeholder-text);">✨ Выберите или создайте склад</div>';
             return;
         }
 
         const itemsHtml = warehouse.items.length === 0 
             ? '<div class="empty-list">📭 Нет вещей. Добавьте через запятую или одну вещь.</div>'
-            : warehouse.items.map((item, idx) => `
-                <div class="item-chip">
-                    <span>🔹 ${escapeHtml(item)}</span>
-                    <button class="delete-item" data-wareid="${warehouse.id}" data-index="${idx}">✖</button>
-                </div>
-            `).join('');
+            : warehouse.items.map((item, idx) => {
+                const photoHtml = item.photoBase64 
+                    ? `<img src="${item.photoBase64}" alt="item">` 
+                    : '<span class="item-photo-placeholder">📷</span>';
+                return `
+                    <div class="item-card" data-item-index="${idx}">
+                        <div class="item-photo" data-photo-idx="${idx}">
+                            ${photoHtml}
+                        </div>
+                        <div class="item-info">
+                            <span class="item-name" data-name-idx="${idx}">${escapeHtml(item.name)}</span>
+                        </div>
+                        <button class="delete-item" data-delete-idx="${idx}">✖</button>
+                    </div>
+                `;
+            }).join('');
 
         const iconPreview = warehouse.iconBase64 
-            ? `<img src="${warehouse.iconBase64}" alt="icon" style="width:100%; height:100%; object-fit:cover;">` 
+            ? `<img src="${warehouse.iconBase64}" alt="icon">` 
             : '<span class="ware-icon-placeholder">📦</span>';
 
         const html = `
             <div class="ware-card">
                 <div class="ware-name-header">
                     <div class="ware-name-group">
-                        <div class="ware-icon" id="iconClick_${warehouse.id}" title="Кликните, чтобы загрузить фото для склада">
+                        <div class="ware-icon" id="warehouseIcon_${warehouse.id}" title="Кликните для загрузки фото склада">
                             ${iconPreview}
                         </div>
                         <input type="text" class="ware-name-input" id="wareName_${warehouse.id}" value="${escapeHtml(warehouse.name)}" placeholder="Название склада">
                     </div>
                     <div>
-                        <button class="btn-outline" id="clearWareBtn_${warehouse.id}" style="background:#fee2e2;">🗑 Очистить всё</button>
-                        <button class="btn-outline" id="deleteWareBtn_${warehouse.id}" style="background:#ffddd3; color:#b91c1c;">❌ Удалить склад</button>
+                        <button class="btn-outline" id="clearWareBtn_${warehouse.id}" style="background:var(--btn-outline-bg);">🗑 Очистить всё</button>
+                        <button class="btn-outline" id="deleteWareBtn_${warehouse.id}" style="background:var(--btn-outline-bg); color:var(--delete-btn-color);">❌ Удалить склад</button>
                     </div>
                 </div>
 
                 <div class="flex-row">
                     <div class="input-group">
                         <label>📋 Добавить список через запятую</label>
-                        <textarea id="bulkInput_${warehouse.id}" rows="2" placeholder="резисторы, конденсаторы, датчик"></textarea>
+                        <textarea id="bulkInput_${warehouse.id}" rows="2" placeholder="резисторы, конденсаторы, датчик, паяльник"></textarea>
                     </div>
                     <button id="addBulkBtn_${warehouse.id}">➕ Добавить список</button>
                 </div>
@@ -520,32 +681,26 @@
         container.innerHTML = html;
 
         const wareId = warehouse.id;
-        // Изменение имени
+
+        // Переименование склада
         const nameInput = document.getElementById(`wareName_${wareId}`);
         nameInput?.addEventListener('change', (e) => {
             const newName = e.target.value.trim();
             if (newName) warehouse.name = newName;
-            else warehouse.name = "Безымянный";
+            else warehouse.name = "Склад";
             renderTabs();
-            renderActiveTabContent(); // обновить название в текущем виде
+            renderActiveTabContent();
         });
 
-        // Загрузка иконки
-        const iconDiv = document.getElementById(`iconClick_${wareId}`);
-        if (iconDiv) {
-            iconDiv.style.cursor = 'pointer';
-            iconDiv.addEventListener('click', () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.onchange = (e) => {
-                    if (e.target.files && e.target.files[0]) {
-                        setWarehouseIcon(wareId, e.target.files[0]);
-                    }
-                };
-                input.click();
-            });
-        }
+        // Иконка склада
+        const iconDiv = document.getElementById(`warehouseIcon_${wareId}`);
+        iconDiv?.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => { if(e.target.files[0]) setWarehouseIcon(wareId, e.target.files[0]); };
+            input.click();
+        });
 
         // Добавление списком
         const bulkBtn = document.getElementById(`addBulkBtn_${wareId}`);
@@ -554,8 +709,7 @@
             const raw = bulkTextarea.value;
             if (!raw.trim()) { alert("Введите список через запятую"); return; }
             const parts = raw.split(',').map(p=>p.trim()).filter(p=>p);
-            if (parts.length === 0) return;
-            if (addItemsToWarehouse(wareId, parts)) {
+            if (parts.length && addItemsToWarehouse(wareId, parts)) {
                 bulkTextarea.value = '';
                 renderAll();
             }
@@ -576,41 +730,70 @@
         // Очистить всё
         const clearBtn = document.getElementById(`clearWareBtn_${wareId}`);
         clearBtn?.addEventListener('click', () => {
-            if (confirm(`Очистить все вещи со склада "${warehouse.name}"?`)) {
-                clearWarehouseItems(wareId);
-                renderAll();
-            }
+            if (confirm(`Очистить все вещи со склада "${warehouse.name}"?`)) clearWarehouseItems(wareId);
         });
 
         // Удалить склад
-        const deleteBtn = document.getElementById(`deleteWareBtn_${wareId}`);
-        deleteBtn?.addEventListener('click', () => {
-            if (warehouses.length === 1) {
-                alert("Нельзя удалить последний склад. Сначала создайте новый.");
-                return;
-            }
-            if (confirm(`Удалить склад "${warehouse.name}" со всеми вещами?`)) {
+        const deleteWareBtn = document.getElementById(`deleteWareBtn_${wareId}`);
+        deleteWareBtn?.addEventListener('click', () => {
+            if (warehouses.length === 1) { alert("Нельзя удалить последний склад. Создайте новый."); return; }
+            if (confirm(`Удалить склад "${warehouse.name}"?`)) {
                 const idx = warehouses.findIndex(w => w.id === wareId);
                 if (idx !== -1) warehouses.splice(idx, 1);
-                if (activeWarehouseId === wareId) {
-                    activeWarehouseId = warehouses.length ? warehouses[0].id : null;
-                }
+                if (activeWarehouseId === wareId) activeWarehouseId = warehouses[0]?.id || null;
                 renderAll();
             }
         });
 
-        // Удаление отдельных предметов
-        const itemsContainerDiv = document.getElementById(`itemsGrid_${wareId}`);
-        itemsContainerDiv?.querySelectorAll('.delete-item').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(btn.getAttribute('data-index'), 10);
-                const wid = parseInt(btn.getAttribute('data-wareid'), 10);
-                if (!isNaN(idx) && wid === wareId) {
-                    deleteItemFromWarehouse(wareId, idx);
-                    renderAll();
-                }
+        // Обработка кликов по элементам
+        const grid = document.getElementById(`itemsGrid_${wareId}`);
+        if (grid) {
+            grid.querySelectorAll('.item-photo').forEach(el => {
+                const idx = parseInt(el.dataset.photoIdx);
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = 'image/*';
+                    fileInput.onchange = (ev) => {
+                        if (ev.target.files[0]) setItemPhoto(wareId, idx, ev.target.files[0]);
+                    };
+                    fileInput.click();
+                });
             });
-        });
+            grid.querySelectorAll('.item-name').forEach(el => {
+                const idx = parseInt(el.dataset.nameIdx);
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentName = warehouse.items[idx].name;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = currentName;
+                    input.className = 'item-name-input';
+                    const span = el;
+                    const parent = span.parentElement;
+                    span.style.display = 'none';
+                    parent.insertBefore(input, span);
+                    input.focus();
+                    input.addEventListener('blur', () => {
+                        const newVal = input.value.trim();
+                        if (newVal && newVal !== currentName) {
+                            renameItem(wareId, idx, newVal);
+                        }
+                        input.remove();
+                        span.style.display = 'inline-block';
+                        renderAll();
+                    });
+                    input.addEventListener('keypress', (e2) => {
+                        if (e2.key === 'Enter') input.blur();
+                    });
+                });
+            });
+            grid.querySelectorAll('.delete-item').forEach(btn => {
+                const idx = parseInt(btn.dataset.deleteIdx);
+                btn.addEventListener('click', () => deleteItemFromWarehouse(wareId, idx));
+            });
+        }
     }
 
     function escapeHtml(str) { 
@@ -618,31 +801,28 @@
         return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); 
     }
 
-    // Глобальный поиск
+    // ----- Поиск -----
     function performGlobalSearch() {
         const query = document.getElementById('globalSearchInput').value.trim().toLowerCase();
-        const resultsPanel = document.getElementById('searchResultsPanel');
-        const resultsListDiv = document.getElementById('searchResultsList');
-        if (!query) { resultsPanel.classList.remove('show'); return; }
+        const panel = document.getElementById('searchResultsPanel');
+        const listDiv = document.getElementById('searchResultsList');
+        if (!query) { panel.classList.remove('show'); return; }
         const found = [];
         for (let wh of warehouses) {
-            const matched = wh.items.filter(item => item.toLowerCase().includes(query));
-            if (matched.length) found.push({ warehouseName: wh.name, items: matched });
+            const matched = wh.items.filter(item => item.name.toLowerCase().includes(query));
+            if (matched.length) found.push({ warehouseName: wh.name, items: matched.map(i => i.name) });
         }
         if (found.length === 0) {
-            resultsListDiv.innerHTML = `<div>😕 Ничего не найдено для «${escapeHtml(query)}»</div>`;
-            resultsPanel.classList.add('show');
+            listDiv.innerHTML = `<div>😕 Ничего не найдено для «${escapeHtml(query)}»</div>`;
+            panel.classList.add('show');
             return;
         }
         let html = '';
         found.forEach(f => {
-            html += `<div class="result-item">
-                        <span class="result-ware">📌 ${escapeHtml(f.warehouseName)}</span>
-                        <span class="result-items">${f.items.map(i => `🔹 ${escapeHtml(i)}`).join(', ')}</span>
-                     </div>`;
+            html += `<div class="result-item"><span class="result-ware">📌 ${escapeHtml(f.warehouseName)}</span><span class="result-items">${f.items.map(i => `🔹 ${escapeHtml(i)}`).join(', ')}</span></div>`;
         });
-        resultsListDiv.innerHTML = html;
-        resultsPanel.classList.add('show');
+        listDiv.innerHTML = html;
+        panel.classList.add('show');
     }
 
     function clearSearch() {
@@ -650,19 +830,18 @@
         document.getElementById('searchResultsPanel').classList.remove('show');
     }
 
-    // Сохранение / Загрузка (с поддержкой иконок)
+    // ----- JSON Save/Load -----
     function saveAllToJson() {
-        const exportData = {
-            version: "multiwarehouse_icons",
-            warehouses: warehouses.map(w => ({
-                id: w.id,
-                name: w.name,
-                items: w.items.slice(),
-                iconBase64: w.iconBase64 || null
-            }))
+        const data = { 
+            version: "full_multi_with_item_photos", 
+            warehouses: warehouses.map(w => ({ 
+                id: w.id, 
+                name: w.name, 
+                iconBase64: w.iconBase64 || null, 
+                items: w.items.map(i => ({ name: i.name, photoBase64: i.photoBase64 || null })) 
+            })) 
         };
-        const jsonStr = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([jsonStr], {type: "application/json"});
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = `multisklad_${new Date().toISOString().slice(0,19)}.json`;
@@ -678,77 +857,60 @@
                 let loaded = [];
                 if (data.warehouses && Array.isArray(data.warehouses)) {
                     loaded = data.warehouses.map(w => ({
-                        id: (w.id && !isNaN(w.id)) ? w.id : genId(),
-                        name: w.name || "Загруженный склад",
-                        items: Array.isArray(w.items) ? w.items.filter(i => typeof i === 'string').map(i=>i.trim()).filter(i=>i) : [],
-                        iconBase64: w.iconBase64 && typeof w.iconBase64 === 'string' ? w.iconBase64 : null
-                    }));
-                } else if (Array.isArray(data)) {
-                    loaded = data.map((w, idx) => ({
-                        id: genId(),
-                        name: w.name || `Склад ${idx+1}`,
-                        items: Array.isArray(w.items) ? w.items.filter(i=>typeof i==='string') : [],
-                        iconBase64: null
+                        id: (w.id && typeof w.id === 'number') ? w.id : genId(),
+                        name: w.name || "Склад",
+                        iconBase64: w.iconBase64 || null,
+                        items: Array.isArray(w.items) ? w.items.map(i => ({ name: i.name || "?", photoBase64: i.photoBase64 || null })) : []
                     }));
                 }
-                if (loaded.length === 0) throw new Error("Нет складов");
-                const newWh = [];
-                const usedIds = new Set();
-                for (let w of loaded) {
-                    let finalId = w.id;
-                    if (usedIds.has(finalId) || !finalId || typeof finalId !== 'number') finalId = genId();
-                    usedIds.add(finalId);
-                    newWh.push({
-                        id: finalId,
-                        name: w.name,
-                        items: uniqueAndSort(w.items),
-                        iconBase64: w.iconBase64 || null
-                    });
-                }
-                warehouses = newWh;
+                if (loaded.length === 0) throw new Error("Нет данных");
+                warehouses = loaded;
+                for(let w of warehouses) w.items = sortItemsByName(w.items);
+                // Обновляем nextId, чтобы не было конфликтов
+                const maxId = Math.max(...warehouses.map(w => w.id), 99);
+                nextId = maxId + 1;
                 activeWarehouseId = warehouses[0]?.id || null;
                 renderAll();
-                alert(`Загружено ${warehouses.length} складов с иконками.`);
-            } catch(e) { alert("Ошибка JSON: " + e.message); }
+                alert(`Загружено ${warehouses.length} складов с фото.`);
+            } catch(e) { alert("Ошибка: " + e.message); }
         };
-        reader.readAsText(file, "UTF-8");
+        reader.readAsText(file);
     }
 
+    // ----- Управление складами -----
     function createNewWarehouse() {
         let newName = prompt("Название нового склада:", "Новый склад");
         if (!newName) newName = "Склад";
-        warehouses.push({ id: genId(), name: newName.trim(), items: [], iconBase64: null });
-        activeWarehouseId = warehouses[warehouses.length-1].id;
+        const newId = genId();
+        warehouses.push({ id: newId, name: newName.trim(), items: [], iconBase64: null });
+        activeWarehouseId = newId;
         renderAll();
     }
 
-    function createDefaultWarehouses() {
-        warehouses = [
-            { id: genId(), name: "Радиоэлектроника", items: uniqueAndSort(["Резистор 1кОм", "Конденсатор 100nF", "Транзистор BC547", "Паяльник 25W"]), iconBase64: null },
-            { id: genId(), name: "Инструменты", items: uniqueAndSort(["Отвёртка крестовая", "Плоскогубцы", "Мультиметр", "Пинцет"]), iconBase64: null },
-            { id: genId(), name: "Расходники для пайки", items: uniqueAndSort(["Припой 0.8мм", "Флюс гель", "Канифоль", "Термоусадка"]), iconBase64: null }
-        ];
-        activeWarehouseId = warehouses[0].id;
-        renderAll();
+    function resetToEmpty() {
+        if (confirm("Начать с чистого листа? Все текущие склады и вещи будут удалены.")) {
+            warehouses = [];
+            nextId = 100;
+            activeWarehouseId = null;
+            renderAll();
+        }
     }
 
-    function resetDemo() {
-        if (confirm("Сбросить до демо-складов? Все текущие данные будут потеряны.")) createDefaultWarehouses();
-    }
-
-    // Инициализация
+    // ----- Инициализация -----
     function init() {
-        createDefaultWarehouses();
+        warehouses = [];
+        nextId = 100;
+        activeWarehouseId = null;
+        renderAll();
+        initTheme();
+        document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
         document.getElementById('globalSearchBtn').addEventListener('click', performGlobalSearch);
         document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
         document.getElementById('globalSearchInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') performGlobalSearch(); });
         document.getElementById('saveAllWarehousesBtn').addEventListener('click', saveAllToJson);
-        document.getElementById('loadMultiJsonInput').addEventListener('change', (e) => {
-            if(e.target.files && e.target.files[0]) loadFromJsonFile(e.target.files[0]);
-            e.target.value = '';
-        });
+        document.getElementById('loadMultiJsonInput').addEventListener('change', (e) => { if(e.target.files[0]) loadFromJsonFile(e.target.files[0]); e.target.value = ''; });
         document.getElementById('createNewWarehouseBtn').addEventListener('click', createNewWarehouse);
-        document.getElementById('resetExampleBtn').addEventListener('click', resetDemo);
+        document.getElementById('resetEmptyBtn').addEventListener('click', resetToEmpty);
     }
     init();
 </script>
