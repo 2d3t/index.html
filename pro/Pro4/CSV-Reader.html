@@ -1,0 +1,728 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Удобный CSV Reader - Просмотр таблиц</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, 'Segoe UI', 'Roboto', 'Noto Sans', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            padding: 24px 28px 32px 28px;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            background: linear-gradient(135deg, #0f2b3d, #1e4a6e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .sub {
+            color: #475569;
+            border-left: 4px solid #3b82f6;
+            padding-left: 14px;
+            margin: 10px 0 24px 0;
+            font-size: 0.95rem;
+        }
+
+        /* загрузчик */
+        .upload-area {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 24px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: 0.2s;
+            cursor: pointer;
+            margin-bottom: 28px;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #f1f5f9;
+        }
+
+        .upload-icon {
+            font-size: 2.8rem;
+            margin-bottom: 12px;
+        }
+
+        .file-input-label {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: inline-block;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .file-input-label:hover {
+            background: #2563eb;
+            transform: scale(0.97);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .info-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin: 18px 0 20px 0;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .stats {
+            background: #eef2ff;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e40af;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .sep-option {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 32px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        select, .delim-input {
+            border: 1px solid #cbd5e1;
+            background: white;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .delim-input {
+            width: 70px;
+            text-align: center;
+        }
+
+        button {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 32px;
+            padding: 6px 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.15s;
+            font-size: 0.85rem;
+        }
+
+        button:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 500px;
+        }
+
+        th {
+            background: #f1f5f9;
+            padding: 14px 12px;
+            border-bottom: 2px solid #cbd5e1;
+            font-weight: 600;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            background-color: #f8fafc;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9edf2;
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background-color: #fefce8;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 48px 20px;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        footer {
+            margin-top: 28px;
+            font-size: 0.75rem;
+            text-align: center;
+            color: #94a3b8;
+            border-top: 1px solid #ecf3f9;
+            padding-top: 20px;
+        }
+
+        .error-toast {
+            background: #fee2e2;
+            border-left: 6px solid #ef4444;
+            padding: 12px 18px;
+            border-radius: 16px;
+            margin: 16px 0;
+            color: #991b1b;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 680px) {
+            .container {
+                padding: 18px;
+            }
+            th, td {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+            .info-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📁 CSV Reader — удобный просмотр таблиц</h1>
+    <div class="sub">Загрузите CSV файл, настройте разделитель и просматривайте данные в виде красивой таблицы</div>
+
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📂🧾</div>
+        <div>Перетащите файл сюда или</div>
+        <label class="file-input-label">
+            выберите CSV файл
+            <input type="file" id="fileInput" accept=".csv, .text/csv, .tsv, .txt">
+        </label>
+        <div style="font-size: 0.75rem; margin-top: 12px; color: #5b6e8c;">Поддерживается UTF-8, автоопределение разделителя ( , ; \t | )</div>
+    </div>
+
+    <div id="errorBox" style="display: none;" class="error-toast"></div>
+
+    <div id="dataPanel" style="display: none;">
+        <div class="info-bar">
+            <div class="stats" id="statsInfo">— строк × — столбцов</div>
+            <div class="controls">
+                <div class="sep-option">
+                    🔧 Разделитель:
+                    <select id="delimiterSelect">
+                        <option value="auto">Авто (определить)</option>
+                        <option value=",">Запятая ,</option>
+                        <option value=";">Точка с запятой ;</option>
+                        <option value="\t">Табуляция (\\t)</option>
+                        <option value="|">Вертикальная черта |</option>
+                        <option value=" ">Пробел</option>
+                    </select>
+                </div>
+                <div class="sep-option">
+                    ✏️ Свой разделитель:
+                    <input type="text" id="customDelimiter" placeholder=" , ; |" maxlength="2" class="delim-input">
+                </div>
+                <button id="applyDelimiterBtn">⟳ Применить</button>
+                <button id="resetViewBtn">🔄 Сброс</button>
+            </div>
+        </div>
+        <div class="table-wrapper" id="tableContainer">
+            <!-- Таблица генерируется динамически -->
+            <div class="empty-message">Загрузите CSV для отображения</div>
+        </div>
+    </div>
+    <footer>
+        ⚡ Удобный ридер: автоматическое распознавание первой строки как заголовков, поддержка кавычек, обработка BOM.
+        Показывает до 5000 строк для производительности (полный анализ в фоне)
+    </footer>
+</div>
+
+<script>
+    (function() {
+        // DOM элементы
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const errorBox = document.getElementById('errorBox');
+        const dataPanel = document.getElementById('dataPanel');
+        const statsInfo = document.getElementById('statsInfo');
+        const tableContainer = document.getElementById('tableContainer');
+        const delimiterSelect = document.getElementById('delimiterSelect');
+        const customDelimiterInput = document.getElementById('customDelimiter');
+        const applyBtn = document.getElementById('applyDelimiterBtn');
+        const resetBtn = document.getElementById('resetViewBtn');
+        
+        // состояние
+        let rawCSVText = '';          // сырой текст csv
+        let currentRows = [];          // массив строк (массив массивов)
+        let headers = [];
+        let lastUsedDelimiter = ',';    // реальный разделитель, который использовался при парсинге
+        let currentParseConfig = { delimiter: 'auto', customDelim: '' };
+        
+        // вспомогательные функции
+        function hideError() {
+            errorBox.style.display = 'none';
+            errorBox.innerHTML = '';
+        }
+        
+        function showError(message) {
+            errorBox.innerHTML = `<span>⚠️ ${escapeHtml(message)}</span>`;
+            errorBox.style.display = 'block';
+            dataPanel.style.display = 'none';
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+        
+        // универсальный парсер CSV с поддержкой кавычек и различных разделителей
+        function parseCSV(text, delimiter) {
+            // удалить BOM если есть
+            if (text.charCodeAt(0) === 0xFEFF) {
+                text = text.slice(1);
+            }
+            const rows = [];
+            const regexDelimiter = delimiter === '\t' ? '\t' : delimiter;
+            // экранирование для регулярки (запятая, точка с запятой, пайп)
+            let delimiterRegex = regexDelimiter;
+            if (delimiter === '|') delimiterRegex = '\\|';
+            if (delimiter === ';') delimiterRegex = ';';
+            if (delimiter === ',') delimiterRegex = ',';
+            if (delimiter === ' ') delimiterRegex = ' ';
+            
+            // сложный парсер (учет кавычек)
+            const parsed = [];
+            let currentRow = [];
+            let currentField = '';
+            let insideQuotes = false;
+            let i = 0;
+            const n = text.length;
+            let rowCount = 0;
+            
+            while (i < n) {
+                const ch = text[i];
+                if (!insideQuotes && ch === delimiterRegex) {
+                    // завершить поле
+                    currentRow.push(currentField);
+                    currentField = '';
+                    i++;
+                    continue;
+                }
+                if (ch === '\r' && i+1 < n && text[i+1] === '\n') {
+                    // CRLF окончание строки
+                    if (!insideQuotes) {
+                        currentRow.push(currentField);
+                        parsed.push(currentRow);
+                        currentRow = [];
+                        currentField = '';
+                        rowCount++;
+                        i += 2;
+                        continue;
+                    } else {
+                        currentField += ch;
+                        i++;
+                        continue;
+                    }
+                }
+                if (ch === '\n') {
+                    if (!insideQuotes) {
+                        currentRow.push(currentField);
+                        parsed.push(currentRow);
+                        currentRow = [];
+                        currentField = '';
+                        rowCount++;
+                        i++;
+                        continue;
+                    } else {
+                        currentField += ch;
+                        i++;
+                        continue;
+                    }
+                }
+                if (ch === '"') {
+                    // обработка кавычек: экранирование ""
+                    if (insideQuotes && i+1 < n && text[i+1] === '"') {
+                        currentField += '"';
+                        i += 2;
+                        continue;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                        i++;
+                        continue;
+                    }
+                }
+                currentField += ch;
+                i++;
+            }
+            // последнее поле и строка
+            if (currentField !== undefined || currentRow.length > 0) {
+                currentRow.push(currentField);
+                parsed.push(currentRow);
+            }
+            // удаляем возможные пустые строки в конце, если последняя строка пустая
+            while (parsed.length > 0 && parsed[parsed.length-1].length === 1 && parsed[parsed.length-1][0] === '') {
+                parsed.pop();
+            }
+            return parsed;
+        }
+        
+        // автоопределение разделителя по первой непустой строке
+        function detectDelimiter(text) {
+            // удаляем BOM
+            let cleanText = text;
+            if (cleanText.charCodeAt(0) === 0xFEFF) cleanText = cleanText.slice(1);
+            const lines = cleanText.split(/\r?\n/);
+            let firstDataLine = '';
+            for (let line of lines) {
+                line = line.trim();
+                if (line.length > 0) {
+                    firstDataLine = line;
+                    break;
+                }
+            }
+            if (!firstDataLine) return ',';
+            const candidates = [',', ';', '\t', '|', ' '];
+            let bestDelim = ',';
+            let maxCount = 0;
+            for (const delim of candidates) {
+                let count = 0;
+                let inQuote = false;
+                for (let i = 0; i < firstDataLine.length; i++) {
+                    const c = firstDataLine[i];
+                    if (c === '"') inQuote = !inQuote;
+                    if (!inQuote && c === delim) count++;
+                }
+                if (count > maxCount) {
+                    maxCount = count;
+                    bestDelim = delim;
+                }
+            }
+            return bestDelim;
+        }
+        
+        // основной рендер таблицы на основе currentRows и headers
+        function renderTable() {
+            if (!currentRows.length) {
+                tableContainer.innerHTML = '<div class="empty-message">Нет данных для отображения</div>';
+                statsInfo.innerText = `0 строк × 0 столбцов`;
+                return;
+            }
+            
+            // заголовки: используем массив headers (первая строка) или генерируем
+            let finalHeaders = [];
+            if (headers && headers.length) {
+                finalHeaders = [...headers];
+            } else {
+                // если нет сохранённых заголовков, пробуем взять первую строку как заголовки
+                if (currentRows.length > 0) {
+                    finalHeaders = currentRows[0].map((_, idx) => `Колонка ${idx+1}`);
+                } else {
+                    finalHeaders = [];
+                }
+            }
+            
+            let dataRows = [];
+            // если headers был сформирован из первой строки исходных данных, сдвигаем данные
+            if (headers.length > 0 && currentRows.length > 0 && headersAreFromFirstRow()) {
+                dataRows = currentRows.slice(1);
+            } else if (headers.length === 0 && currentRows.length > 0) {
+                // заголовки отсутствуют → все строки данные, но для отображения показываем с индексами
+                dataRows = currentRows;
+            } else {
+                // кастомная ситуация: headers есть, но возможно это отдельный кейс (обычно корректно)
+                dataRows = currentRows.slice(headers.length > 0 && currentRows[0] && headersEqualArrays(currentRows[0]) ? 1 : 0);
+            }
+            
+            // Обрезаем количество отображаемых строк для производительности (оставляем до 5000 строк)
+            const MAX_DISPLAY = 5000;
+            let displayRows = dataRows;
+            let truncated = false;
+            if (dataRows.length > MAX_DISPLAY) {
+                displayRows = dataRows.slice(0, MAX_DISPLAY);
+                truncated = true;
+            }
+            
+            const colCount = finalHeaders.length;
+            // Обновляем статистику
+            statsInfo.innerText = `${dataRows.length.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
+            
+            // строим таблицу
+            let html = '<table><thead><tr>';
+            for (let h of finalHeaders) {
+                html += `<th>${escapeHtml(String(h))}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let row of displayRows) {
+                html += '<tr>';
+                for (let i = 0; i < colCount; i++) {
+                    let cell = (i < row.length) ? row[i] : '';
+                    html += `<td title="${escapeHtml(String(cell).substring(0, 150))}">${escapeHtml(String(cell))}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            if (truncated) {
+                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center; border-top:1px solid #fde68a;">⚠️ Отображено только ${MAX_DISPLAY} строк из ${dataRows.length}. Для полного просмотра используйте поиск в исходном файле.</div>`;
+            }
+            tableContainer.innerHTML = html;
+        }
+        
+        function headersAreFromFirstRow() {
+            if (!headers.length || !currentRows.length) return false;
+            if (currentRows.length === 0) return false;
+            // просто проверяем что текущая сохраненная headers подобна первой строке currentRows
+            const firstRow = currentRows[0];
+            if (firstRow.length !== headers.length) return false;
+            for (let i=0; i<headers.length; i++) {
+                if (firstRow[i] !== headers[i]) return false;
+            }
+            return true;
+        }
+        
+        function headersEqualArrays(row) {
+            if (!headers.length || !row) return false;
+            if (headers.length !== row.length) return false;
+            for (let i=0; i<headers.length; i++) if (headers[i] !== row[i]) return false;
+            return true;
+        }
+        
+        // главная функция парсинга с заданным разделителем (auto или конкретный)
+        function parseAndDisplay(text, delimiterOption, customDelim) {
+            let usedDelim = '';
+            if (delimiterOption === 'auto') {
+                usedDelim = detectDelimiter(text);
+            } else if (delimiterOption === 'custom' && customDelim && customDelim.length > 0) {
+                usedDelim = customDelim;
+            } else if (delimiterOption !== 'auto') {
+                if (delimiterOption === '\\t') usedDelim = '\t';
+                else usedDelim = delimiterOption;
+            } else {
+                usedDelim = ',';
+            }
+            lastUsedDelimiter = usedDelim;
+            try {
+                let parsedRows = parseCSV(text, usedDelim);
+                if (!parsedRows || parsedRows.length === 0) {
+                    showError('Файл не содержит данных или разделитель не подходит.');
+                    return false;
+                }
+                // Удаляем возможные строки, где все поля пустые
+                parsedRows = parsedRows.filter(row => !(row.length === 1 && row[0] === ''));
+                if (parsedRows.length === 0) {
+                    showError('После фильтрации пустых строк нет данных.');
+                    return false;
+                }
+                // Авто-заголовки: используем первую строку как заголовки, если есть хотя бы 2 строки
+                let newHeaders = [];
+                let dataRows = [];
+                if (parsedRows.length >= 1) {
+                    // всегда определяем заголовки из первой строки, но если файл состоит из одной строки — покажем как данные
+                    if (parsedRows.length === 1) {
+                        newHeaders = parsedRows[0].map((_, idx) => `Колонка ${idx+1}`);
+                        dataRows = parsedRows; // все строки данные
+                    } else {
+                        newHeaders = [...parsedRows[0]];
+                        dataRows = parsedRows.slice(1);
+                    }
+                } else {
+                    newHeaders = [];
+                    dataRows = [];
+                }
+                // Фильтруем заголовки, заменяем пустые на "Column N"
+                newHeaders = newHeaders.map((h, idx) => (h === undefined || h === null || h === '') ? `Колонка ${idx+1}` : String(h));
+                headers = newHeaders;
+                // Сохраняем объединённые данные (структура: первая строка - заголовки, потом остальное для возможного сброса)
+                // Для корректного рендера currentRows содержит: если есть первая строка (заголовок) плюс данные.
+                currentRows = [headers, ...dataRows];
+                rawCSVText = text;
+                hideError();
+                dataPanel.style.display = 'block';
+                renderTable();
+                return true;
+            } catch (e) {
+                console.error(e);
+                showError(`Ошибка парсинга: ${e.message}`);
+                return false;
+            }
+        }
+        
+        // Применить текущие настройки из select / custom
+        function applyDelimiterSettings() {
+            if (!rawCSVText) {
+                if (fileInput.files.length === 0) {
+                    showError('Сначала загрузите CSV файл.');
+                } else {
+                    // если есть raw текст но не отображается? возможно повторная загрузка
+                    if (rawCSVText) parseAndDisplay(rawCSVText, getEffectiveDelimiterMode(), getEffectiveCustomDelim());
+                    else showError('Нет загруженных данных. Пожалуйста, выберите файл заново.');
+                }
+                return;
+            }
+            const mode = getEffectiveDelimiterMode();
+            const custom = getEffectiveCustomDelim();
+            parseAndDisplay(rawCSVText, mode, custom);
+        }
+        
+        function getEffectiveDelimiterMode() {
+            const selectVal = delimiterSelect.value;
+            if (selectVal === 'auto') return 'auto';
+            if (selectVal === 'custom') return 'custom';
+            return selectVal;
+        }
+        
+        function getEffectiveCustomDelim() {
+            const customRaw = customDelimiterInput.value.trim();
+            if (customRaw === '\\t') return '\t';
+            if (customRaw === '') return '';
+            return customRaw;
+        }
+        
+        // сброс к исходному auto-парсингу
+        function resetToAuto() {
+            delimiterSelect.value = 'auto';
+            customDelimiterInput.value = '';
+            if (rawCSVText) {
+                parseAndDisplay(rawCSVText, 'auto', '');
+            } else {
+                if (fileInput.files.length) {
+                    const file = fileInput.files[0];
+                    readFileAndProcess(file);
+                } else {
+                    showError('Нет активного файла для сброса');
+                }
+            }
+        }
+        
+        // чтение файла
+        function readFileAndProcess(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const content = evt.target.result;
+                rawCSVText = content;
+                // определяем режим из текущего селекта
+                const mode = getEffectiveDelimiterMode();
+                const custom = getEffectiveCustomDelim();
+                parseAndDisplay(content, mode, custom);
+            };
+            reader.onerror = function() {
+                showError('Ошибка чтения файла');
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        // обработчик загрузки через input
+        function handleFileSelect(file) {
+            if (file) {
+                readFileAndProcess(file);
+            }
+        }
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+        
+        // drag & drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#e6f0ff';
+            uploadArea.style.borderColor = '#3b82f6';
+        });
+        uploadArea.addEventListener('dragleave', (e) => {
+            uploadArea.style.background = '#f8fafc';
+            uploadArea.style.borderColor = '#cbd5e1';
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#f8fafc';
+            uploadArea.style.borderColor = '#cbd5e1';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            } else {
+                showError('Ошибка перетаскивания');
+            }
+        });
+        
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target === uploadArea || e.target.closest('.upload-area') && !e.target.closest('.file-input-label')) {
+                fileInput.click();
+            }
+        });
+        
+        applyBtn.addEventListener('click', applyDelimiterSettings);
+        resetBtn.addEventListener('click', resetToAuto);
+        
+        // инициализация
+        hideError();
+        dataPanel.style.display = 'none';
+    })();
+</script>
+</body>
+</html>
