@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CSV Reader — Копирование колонок через запятую</title>
+    <title>CSV Reader — Блок с выбором столбцов + очистка чисел</title>
     <style>
         * {
             box-sizing: border-box;
@@ -131,7 +130,7 @@
             gap: 8px;
         }
 
-        select, .delim-input {
+        select, .delim-input, .range-input {
             border: 1px solid #cbd5e1;
             background: white;
             border-radius: 20px;
@@ -142,8 +141,8 @@
             cursor: pointer;
         }
 
-        .delim-input {
-            width: 70px;
+        .delim-input, .range-input {
+            width: 80px;
             text-align: center;
         }
 
@@ -161,6 +160,45 @@
         button:hover {
             background: #e2e8f0;
             border-color: #94a3b8;
+        }
+
+        .special-btn {
+            background: #8b5cf6;
+            border-color: #7c3aed;
+            color: white;
+        }
+        .special-btn:hover {
+            background: #7c3aed;
+        }
+
+        .range-panel {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .range-panel label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e293b;
+        }
+
+        .range-panel input {
+            width: 70px;
+            text-align: center;
+        }
+
+        .column-hint {
+            font-size: 0.7rem;
+            margin-left: 8px;
+            font-weight: normal;
+            color: #4b5563;
         }
 
         .table-wrapper {
@@ -196,10 +234,6 @@
 
         th:hover {
             background: #e2e8f0;
-        }
-
-        th:active {
-            background: #cbd5e1;
         }
 
         td {
@@ -263,17 +297,13 @@
             100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
         }
 
-        @media (max-width: 680px) {
+        @media (max-width: 780px) {
             .container {
                 padding: 18px;
             }
-            th, td {
-                padding: 8px 10px;
-                font-size: 0.8rem;
-            }
-            .info-bar {
+            .range-panel {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
             }
             .copy-toast {
                 font-size: 0.75rem;
@@ -282,20 +312,13 @@
                 max-width: 80vw;
             }
         }
-
-        .column-hint {
-            font-size: 0.7rem;
-            margin-left: 8px;
-            font-weight: normal;
-            color: #4b5563;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📁 CSV Reader — клик по колонке для копирования</h1>
-    <div class="sub">🔽 Загрузите CSV → нажмите на любой заголовок колонки, чтобы скопировать все значения из неё (через запятую)</div>
+    <h1>📁 CSV Reader — копирование блока с выбором столбцов</h1>
+    <div class="sub">🔽 Загрузите CSV → выберите диапазон столбцов и количество строк для копирования | ⚡ Очистка чисел: удаляет точки и всё после запятой</div>
 
     <div class="upload-area" id="uploadArea">
         <div class="upload-icon">📂🧾</div>
@@ -332,19 +355,35 @@
                 <button id="resetViewBtn">🔄 Сброс</button>
             </div>
         </div>
+
+        <!-- Панель выбора диапазона -->
+        <div class="range-panel">
+            <div>
+                <label>📊 Столбцы (1-индексация):</label>
+                <input type="number" id="colStart" min="1" value="2" style="width: 70px;"> 
+                <span> — </span>
+                <input type="number" id="colEnd" min="1" value="5" style="width: 70px;">
+            </div>
+            <div>
+                <label>📏 Строк (сверху):</label>
+                <input type="number" id="rowCount" min="1" value="6" style="width: 80px;">
+            </div>
+            <button id="copyRangeBtn" class="special-btn">📋 Копировать выбранный блок (очистка чисел)</button>
+        </div>
+
         <div class="table-wrapper" id="tableContainer">
             <div class="empty-message">Загрузите CSV для отображения</div>
         </div>
     </div>
     <footer>
-        ⚡ Удобный ридер: кликните по заголовку любой колонки → все данные скопируются в буфер обмена через запятую.<br>
-        Поддержка кавычек, BOM, до 5000 строк для производительности.
+        ⚡ <strong>Очистка чисел:</strong> удаляет все точки и всё после запятой (включая запятую). Пример: "567.76,5" → "56776".<br>
+        📌 Копирование идёт <strong>по столбцам</strong> (сверху вниз): сначала все строки 1-го столбца, затем 2-го и т.д.<br>
+        🖱️ Клик по заголовку колонки — копирует все значения колонки (без очистки).
     </footer>
 </div>
 
 <script>
     (function() {
-        // DOM элементы
         const fileInput = document.getElementById('fileInput');
         const uploadArea = document.getElementById('uploadArea');
         const errorBox = document.getElementById('errorBox');
@@ -355,13 +394,14 @@
         const customDelimiterInput = document.getElementById('customDelimiter');
         const applyBtn = document.getElementById('applyDelimiterBtn');
         const resetBtn = document.getElementById('resetViewBtn');
+        const copyRangeBtn = document.getElementById('copyRangeBtn');
+        const colStartInput = document.getElementById('colStart');
+        const colEndInput = document.getElementById('colEnd');
+        const rowCountInput = document.getElementById('rowCount');
         
-        // состояние
         let rawCSVText = '';
-        let currentRows = [];          // массив строк (массив массивов) — первая строка заголовки, остальные данные
         let headers = [];
-        let dataRowsPure = [];          // строки данных без заголовка (для удобства копирования)
-        let lastUsedDelimiter = ',';
+        let dataRowsPure = [];
         
         function showCopyToast(message) {
             const existingToast = document.querySelector('.copy-toast');
@@ -375,28 +415,169 @@
             }, 2000);
         }
         
-        function hideError() {
-            errorBox.style.display = 'none';
-            errorBox.innerHTML = '';
+        function cleanNumberValue(rawValue) {
+            if (rawValue === undefined || rawValue === null) return '';
+            let str = String(rawValue).trim();
+            if (str === '') return '';
+            let withoutDots = str.replace(/\./g, '');
+            const commaIndex = withoutDots.indexOf(',');
+            if (commaIndex !== -1) {
+                withoutDots = withoutDots.substring(0, commaIndex);
+            }
+            withoutDots = withoutDots.trim();
+            return withoutDots;
         }
         
-        function showError(message) {
-            errorBox.innerHTML = `<span>⚠️ ${escapeHtml(message)}</span>`;
-            errorBox.style.display = 'block';
-            dataPanel.style.display = 'none';
-        }
-        
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
+        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА (по столбцам, сверху вниз)
+        function copySelectedRange() {
+            if (!dataRowsPure.length || dataRowsPure.length === 0) {
+                showCopyToast('❌ Нет данных. Загрузите CSV файл.');
+                return;
+            }
+            
+            let colStart = parseInt(colStartInput.value, 10);
+            let colEnd = parseInt(colEndInput.value, 10);
+            let rowsToTake = parseInt(rowCountInput.value, 10);
+            
+            // Валидация
+            if (isNaN(colStart) || colStart < 1) colStart = 1;
+            if (isNaN(colEnd) || colEnd < colStart) colEnd = colStart;
+            if (isNaN(rowsToTake) || rowsToTake < 1) rowsToTake = 1;
+            
+            // Преобразуем в 0-индексацию
+            const startIdx = colStart - 1;
+            const endIdx = colEnd - 1;
+            const totalCols = headers.length;
+            
+            if (startIdx >= totalCols) {
+                showCopyToast(`⚠️ Начальный столбец ${colStart} превышает общее количество столбцов (${totalCols}).`);
+                return;
+            }
+            
+            const actualEndIdx = Math.min(endIdx, totalCols - 1);
+            const colCount = actualEndIdx - startIdx + 1;
+            const rowsAvailable = dataRowsPure.length;
+            const actualRowsToTake = Math.min(rowsToTake, rowsAvailable);
+            
+            if (actualRowsToTake === 0) {
+                showCopyToast('⚠️ Нет строк с данными для копирования.');
+                return;
+            }
+            
+            const resultValues = [];
+            // Идём по выбранным столбцам по порядку
+            for (let col = startIdx; col <= actualEndIdx; col++) {
+                // Внутри столбца идём по строкам сверху вниз
+                for (let i = 0; i < actualRowsToTake; i++) {
+                    const row = dataRowsPure[i];
+                    let rawCell = (col < row.length) ? row[col] : '';
+                    let cleaned = cleanNumberValue(rawCell);
+                    resultValues.push(cleaned === '' ? '' : cleaned);
+                }
+            }
+            
+            if (resultValues.length === 0) {
+                showCopyToast('После очистки не осталось значений для копирования.');
+                return;
+            }
+            
+            const outputString = resultValues.join(',');
+            
+            // Показываем информацию о том, что было скопировано
+            const colRangeStr = (colCount === 1) ? `${colStart}` : `${colStart}-${colStart + colCount - 1}`;
+            
+            navigator.clipboard.writeText(outputString).then(() => {
+                let preview = outputString.length > 80 ? outputString.substring(0, 80) + '…' : outputString;
+                showCopyToast(`✅ Скопировано: ${actualRowsToTake} строк × ${colCount} столбцов (${resultValues.length} значений). Диапазон: столбцы ${colRangeStr}. Очистка чисел: удалены точки и запятые. Пример: ${preview}`);
+            }).catch(err => {
+                showCopyToast(`❌ Ошибка копирования: ${err.message || 'неизвестная ошибка'}`);
             });
         }
         
-        // улучшенный парсер CSV с учётом кавычек
+        function copyColumnData(columnIndex, columnName) {
+            if (!dataRowsPure.length) {
+                showCopyToast('⚠️ Нет данных для копирования');
+                return;
+            }
+            const values = [];
+            for (let row of dataRowsPure) {
+                let val = (columnIndex < row.length) ? row[columnIndex] : '';
+                if (val === undefined || val === null) val = '';
+                values.push(String(val));
+            }
+            if (values.length === 0) {
+                showCopyToast('Колонка не содержит значений');
+                return;
+            }
+            const resultString = values.join(',');
+            navigator.clipboard.writeText(resultString).then(() => {
+                let preview = resultString.length > 60 ? resultString.substring(0, 60) + '…' : resultString;
+                showCopyToast(`✅ Скопировано: "${columnName}" (${values.length} значений) → ${preview}`);
+            }).catch(err => {
+                showCopyToast(`❌ Не удалось скопировать колонку. Ошибка: ${err.message || 'неизвестная ошибка'}`);
+            });
+        }
+        
+        function renderTable() {
+            if (!dataRowsPure.length && (!headers.length)) {
+                tableContainer.innerHTML = '<div class="empty-message">Нет данных для отображения</div>';
+                statsInfo.innerText = `0 строк × 0 столбцов`;
+                return;
+            }
+            
+            const colCount = headers.length;
+            const totalRows = dataRowsPure.length;
+            const MAX_DISPLAY = 5000;
+            let displayRows = dataRowsPure;
+            let truncated = false;
+            if (totalRows > MAX_DISPLAY) {
+                displayRows = dataRowsPure.slice(0, MAX_DISPLAY);
+                truncated = true;
+            }
+            
+            statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
+            
+            // Обновляем максимальные значения для input'ов
+            colStartInput.max = colCount;
+            colEndInput.max = colCount;
+            if (parseInt(colStartInput.value) > colCount) colStartInput.value = colCount;
+            if (parseInt(colEndInput.value) > colCount) colEndInput.value = colCount;
+            rowCountInput.max = totalRows;
+            
+            let html = '<table id="csvDataTable"><thead><tr>';
+            for (let idx = 0; idx < headers.length; idx++) {
+                const headerText = escapeHtml(String(headers[idx]));
+                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки «${headerText}» через запятую">${headerText}<span class="column-hint">📋</span></th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let row of displayRows) {
+                html += '<tr>';
+                for (let i = 0; i < colCount; i++) {
+                    let cell = (i < row.length) ? row[i] : '';
+                    html += `<td title="${escapeHtml(String(cell).substring(0, 150))}">${escapeHtml(String(cell))}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            if (truncated) {
+                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center; border-top:1px solid #fde68a;">⚠️ Отображено только ${MAX_DISPLAY} строк из ${totalRows}. Копирование работает со всеми данными.</div>`;
+            }
+            tableContainer.innerHTML = html;
+            
+            const headersEl = document.querySelectorAll('#csvDataTable th');
+            headersEl.forEach(th => {
+                const colIdx = th.getAttribute('data-col-index');
+                if (colIdx !== null) {
+                    th.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const idx = parseInt(colIdx, 10);
+                        const colName = headers[idx] || `Колонка ${idx+1}`;
+                        copyColumnData(idx, colName);
+                    });
+                }
+            });
+        }
+        
         function parseCSV(text, delimiter) {
             if (text.charCodeAt(0) === 0xFEFF) {
                 text = text.slice(1);
@@ -501,90 +682,6 @@
             return bestDelim;
         }
         
-        // копирование колонки по индексу
-        function copyColumnData(columnIndex, columnName) {
-            if (!dataRowsPure.length) {
-                showCopyToast('⚠️ Нет данных для копирования');
-                return;
-            }
-            // собираем значения из колонки по всем строкам
-            const values = [];
-            for (let row of dataRowsPure) {
-                let val = (columnIndex < row.length) ? row[columnIndex] : '';
-                if (val === undefined || val === null) val = '';
-                values.push(String(val));
-            }
-            if (values.length === 0) {
-                showCopyToast('Колонка не содержит значений');
-                return;
-            }
-            const resultString = values.join(',');
-            // копирование в буфер
-            navigator.clipboard.writeText(resultString).then(() => {
-                let preview = resultString.length > 60 ? resultString.substring(0, 60) + '…' : resultString;
-                showCopyToast(`✅ Скопировано: "${columnName}" (${values.length} значений) → ${preview}`);
-            }).catch(err => {
-                console.error('Ошибка копирования:', err);
-                showCopyToast(`❌ Не удалось скопировать колонку. Ошибка: ${err.message || 'неизвестная ошибка'}`);
-            });
-        }
-        
-        // рендер таблицы с привязкой обработчиков к заголовкам
-        function renderTable() {
-            if (!dataRowsPure.length && (!headers.length || !currentRows.length)) {
-                tableContainer.innerHTML = '<div class="empty-message">Нет данных для отображения</div>';
-                statsInfo.innerText = `0 строк × 0 столбцов`;
-                return;
-            }
-            
-            const colCount = headers.length;
-            const totalRows = dataRowsPure.length;
-            const MAX_DISPLAY = 5000;
-            let displayRows = dataRowsPure;
-            let truncated = false;
-            if (totalRows > MAX_DISPLAY) {
-                displayRows = dataRowsPure.slice(0, MAX_DISPLAY);
-                truncated = true;
-            }
-            
-            statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
-            
-            let html = '<table id="csvDataTable"><thead><tr>';
-            for (let idx = 0; idx < headers.length; idx++) {
-                const headerText = escapeHtml(String(headers[idx]));
-                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки «${headerText}» через запятую">${headerText}<span class="column-hint">📋</span></th>`;
-            }
-            html += '</tr></thead><tbody>';
-            for (let row of displayRows) {
-                html += '<tr>';
-                for (let i = 0; i < colCount; i++) {
-                    let cell = (i < row.length) ? row[i] : '';
-                    html += `<td title="${escapeHtml(String(cell).substring(0, 150))}">${escapeHtml(String(cell))}</td>`;
-                }
-                html += '</tr>';
-            }
-            html += '</tbody></table>';
-            if (truncated) {
-                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center; border-top:1px solid #fde68a;">⚠️ Отображено только ${MAX_DISPLAY} строк из ${totalRows}. Полный набор значений при копировании колонки обрабатывается полностью (все ${totalRows} строк).</div>`;
-            }
-            tableContainer.innerHTML = html;
-            
-            // навесить обработчики на заголовки (динамически)
-            const headersEl = document.querySelectorAll('#csvDataTable th');
-            headersEl.forEach(th => {
-                const colIdx = th.getAttribute('data-col-index');
-                if (colIdx !== null) {
-                    th.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const idx = parseInt(colIdx, 10);
-                        const colName = headers[idx] || `Колонка ${idx+1}`;
-                        copyColumnData(idx, colName);
-                    });
-                }
-            });
-        }
-        
-        // основной парсинг с выбранным разделителем
         function parseAndDisplay(text, delimiterOption, customDelim) {
             let usedDelim = '';
             if (delimiterOption === 'auto') {
@@ -597,7 +694,6 @@
             } else {
                 usedDelim = ',';
             }
-            lastUsedDelimiter = usedDelim;
             try {
                 let parsedRows = parseCSV(text, usedDelim);
                 if (!parsedRows || parsedRows.length === 0) {
@@ -614,11 +710,9 @@
                 let pureData = [];
                 if (parsedRows.length >= 1) {
                     if (parsedRows.length === 1) {
-                        // только одна строка: считаем её данными, заголовки генерируем
                         newHeaders = parsedRows[0].map((_, idx) => `Колонка ${idx+1}`);
-                        pureData = parsedRows;  // эта же строка — данные
+                        pureData = parsedRows;
                     } else {
-                        // первая строка — заголовки
                         newHeaders = [...parsedRows[0]];
                         pureData = parsedRows.slice(1);
                     }
@@ -626,12 +720,9 @@
                     newHeaders = [];
                     pureData = [];
                 }
-                // очистка пустых заголовков
                 newHeaders = newHeaders.map((h, idx) => (h === undefined || h === null || h === '') ? `Колонка ${idx+1}` : String(h));
                 headers = newHeaders;
                 dataRowsPure = pureData;
-                // для совместимости сохраняем currentRows
-                currentRows = [headers, ...pureData];
                 rawCSVText = text;
                 hideError();
                 dataPanel.style.display = 'block';
@@ -665,7 +756,7 @@
                 } else if (rawCSVText) {
                     parseAndDisplay(rawCSVText, getEffectiveDelimiterMode(), getEffectiveCustomDelim());
                 } else {
-                    showError('Нет загруженных данных. Пожалуйста, выберите файл заново.');
+                    showError('Нет загруженных данных.');
                 }
                 return;
             }
@@ -705,6 +796,27 @@
             if (file) readFileAndProcess(file);
         }
         
+        function showError(message) {
+            errorBox.innerHTML = `<span>⚠️ ${escapeHtml(message)}</span>`;
+            errorBox.style.display = 'block';
+            dataPanel.style.display = 'none';
+        }
+        
+        function hideError() {
+            errorBox.style.display = 'none';
+            errorBox.innerHTML = '';
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
         fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files.length > 0) {
                 handleFileSelect(e.target.files[0]);
@@ -740,6 +852,7 @@
         
         applyBtn.addEventListener('click', applyDelimiterSettings);
         resetBtn.addEventListener('click', resetToAuto);
+        copyRangeBtn.addEventListener('click', copySelectedRange);
         
         hideError();
         dataPanel.style.display = 'none';
