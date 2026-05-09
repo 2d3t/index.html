@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -318,7 +319,7 @@
 
 <div class="container">
     <h1>📁 CSV Reader — копирование блока с выбором столбцов</h1>
-    <div class="sub">🔽 Загрузите CSV → выберите диапазон столбцов и количество строк для копирования | ⚡ Очистка чисел: удаляет точки и всё после запятой</div>
+    <div class="sub">🔽 Загрузите CSV → выберите диапазон столбцов и количество строк для копирования | ⚡ Очистка чисел: удаляет точки и запятые, но цифры после запятой остаются (склеиваются)</div>
 
     <div class="upload-area" id="uploadArea">
         <div class="upload-icon">📂🧾</div>
@@ -376,7 +377,8 @@
         </div>
     </div>
     <footer>
-        ⚡ <strong>Очистка чисел:</strong> удаляет все точки и всё после запятой (включая запятую). Пример: "567.76,5" → "56776".<br>
+        ⚡ <strong>Очистка чисел (новая логика):</strong> удаляет десятичные точки и запятые-разделители, но <strong>все цифры после запятой остаются</strong> (склеиваются).<br>
+        📌 Пример: "5.123,45" → "512345" | "1,234.56" → "123456" | "100.50" → "10050"<br>
         📌 Копирование идёт <strong>по столбцам</strong> (сверху вниз): сначала все строки 1-го столбца, затем 2-го и т.д.<br>
         🖱️ Клик по заголовку колонки — копирует все значения колонки (без очистки).
     </footer>
@@ -415,17 +417,17 @@
             }, 2000);
         }
         
+        // НОВАЯ ЛОГИКА ОЧИСТКИ ЧИСЕЛ:
+        // Удаляем ВСЕ точки (десятичные разделители) и ВСЕ запятые (разделители разрядов/дробной части)
+        // В результате цифры после запятой склеиваются с основной частью, получается целое число без разделителей
         function cleanNumberValue(rawValue) {
             if (rawValue === undefined || rawValue === null) return '';
             let str = String(rawValue).trim();
             if (str === '') return '';
-            let withoutDots = str.replace(/\./g, '');
-            const commaIndex = withoutDots.indexOf(',');
-            if (commaIndex !== -1) {
-                withoutDots = withoutDots.substring(0, commaIndex);
-            }
-            withoutDots = withoutDots.trim();
-            return withoutDots;
+            // Удаляем все точки и все запятые — остаются только цифры, минус и возможно другие символы, но мы оставляем как есть
+            // Если нужно сохранить минус для отрицательных чисел — он не удаляется (не точка и не запятая)
+            let cleaned = str.replace(/[.,]/g, '');
+            return cleaned;
         }
         
         // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА (по столбцам, сверху вниз)
@@ -439,12 +441,10 @@
             let colEnd = parseInt(colEndInput.value, 10);
             let rowsToTake = parseInt(rowCountInput.value, 10);
             
-            // Валидация
             if (isNaN(colStart) || colStart < 1) colStart = 1;
             if (isNaN(colEnd) || colEnd < colStart) colEnd = colStart;
             if (isNaN(rowsToTake) || rowsToTake < 1) rowsToTake = 1;
             
-            // Преобразуем в 0-индексацию
             const startIdx = colStart - 1;
             const endIdx = colEnd - 1;
             const totalCols = headers.length;
@@ -465,9 +465,7 @@
             }
             
             const resultValues = [];
-            // Идём по выбранным столбцам по порядку
             for (let col = startIdx; col <= actualEndIdx; col++) {
-                // Внутри столбца идём по строкам сверху вниз
                 for (let i = 0; i < actualRowsToTake; i++) {
                     const row = dataRowsPure[i];
                     let rawCell = (col < row.length) ? row[col] : '';
@@ -482,13 +480,11 @@
             }
             
             const outputString = resultValues.join(',');
-            
-            // Показываем информацию о том, что было скопировано
             const colRangeStr = (colCount === 1) ? `${colStart}` : `${colStart}-${colStart + colCount - 1}`;
             
             navigator.clipboard.writeText(outputString).then(() => {
                 let preview = outputString.length > 80 ? outputString.substring(0, 80) + '…' : outputString;
-                showCopyToast(`✅ Скопировано: ${actualRowsToTake} строк × ${colCount} столбцов (${resultValues.length} значений). Диапазон: столбцы ${colRangeStr}. Очистка чисел: удалены точки и запятые. Пример: ${preview}`);
+                showCopyToast(`✅ Скопировано: ${actualRowsToTake} строк × ${colCount} столбцов (${resultValues.length} значений). Диапазон: столбцы ${colRangeStr}. Очистка: удалены . и , → цифры слиты в целое число. Пример: ${preview}`);
             }).catch(err => {
                 showCopyToast(`❌ Ошибка копирования: ${err.message || 'неизвестная ошибка'}`);
             });
@@ -537,7 +533,6 @@
             
             statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
             
-            // Обновляем максимальные значения для input'ов
             colStartInput.max = colCount;
             colEndInput.max = colCount;
             if (parseInt(colStartInput.value) > colCount) colStartInput.value = colCount;
@@ -549,7 +544,7 @@
                 const headerText = escapeHtml(String(headers[idx]));
                 html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки «${headerText}» через запятую">${headerText}<span class="column-hint">📋</span></th>`;
             }
-            html += '</tr></thead><tbody>';
+            html += '</td></thead><tbody>';
             for (let row of displayRows) {
                 html += '<tr>';
                 for (let i = 0; i < colCount; i++) {
