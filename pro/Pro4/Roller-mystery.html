@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Цветные круги | RPM эксперимент | Анализатор векторов</title>
+    <title>Цветные круги | RPM эксперимент + Анализ векторов (12 часов)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -53,134 +53,344 @@
             font-weight: 500;
         }
 
-        .analyzer-panel {
-            background: linear-gradient(135deg, #0a1620, #0c1a24);
-            border-radius: 48px;
-            padding: 14px 20px;
-            margin-bottom: 20px;
-            border: 2px solid #FFB347;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        .research-name-area {
+            background: #0a1219dd;
+            border-radius: 60px;
+            padding: 8px 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            backdrop-filter: blur(4px);
+            border: 1px solid #FFD966;
         }
 
-        .analyzer-title {
+        .research-name-area label {
+            font-weight: bold;
+            color: #FFE484;
+            font-size: 0.85rem;
+            text-shadow: 0 1px 1px black;
+        }
+
+        .research-name-area input {
+            flex: 2;
+            background: #FFFFFF;
+            border: 2px solid #FFC107;
+            border-radius: 40px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: monospace;
+            outline: none;
+            color: #1f2c38;
+        }
+
+        .batch-input-area {
+            background: #0a1219dd;
+            border-radius: 48px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            border: 1px solid #FFB347;
+        }
+
+        .batch-title {
+            font-size: 0.8rem;
+            color: #FFE4B5;
+            margin-bottom: 8px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .batch-input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .batch-input-row textarea {
+            flex: 3;
+            background: #FFFEF7;
+            border: 1px solid #FFC107;
+            border-radius: 32px;
+            padding: 10px 16px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+            min-height: 70px;
+            color: #1f2c38;
+            font-weight: 500;
+        }
+
+        .batch-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .batch-btn {
+            background: #5D6E7E;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.05s linear;
+            font-size: 0.8rem;
+        }
+
+        .batch-btn-primary {
+            background: #F0A34B;
+            color: #1E2A2F;
+            box-shadow: 0 2px 0 #AA6F3C;
+        }
+
+        .batch-btn-primary:active { transform: translateY(2px); box-shadow: 0 0px 0 #AA6F3C; }
+
+        .group-section {
+            margin-bottom: 24px;
+            border-radius: 32px;
+            padding: 12px 8px 8px 8px;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(2px);
+        }
+
+        .group-title {
             font-size: 1rem;
             font-weight: bold;
-            color: #FFE484;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .vector-meter {
-            background: #000000aa;
-            border-radius: 60px;
-            padding: 12px 18px;
-            backdrop-filter: blur(4px);
-        }
-
-        .vector-scale {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .scale-bg {
-            flex: 3;
-            height: 32px;
-            background: linear-gradient(90deg, #2a3a66, #1a2a3f, #2a3a66);
-            border-radius: 60px;
-            position: relative;
-            border: 1px solid #FFD966;
-            overflow: hidden;
-        }
-
-        .scale-fill {
-            height: 100%;
-            width: 50%;
-            background: linear-gradient(90deg, #FF6B6B, #FFE66D, #6BCB77);
-            border-radius: 60px;
-            transition: width 0.1s linear;
-        }
-
-        .scale-marker {
-            position: absolute;
-            top: 0;
-            width: 4px;
-            height: 100%;
-            background: white;
-            box-shadow: 0 0 8px white;
-            transform: translateX(-50%);
-            border-radius: 4px;
-        }
-
-        .vector-value {
-            background: #1e2a2f;
-            padding: 6px 18px;
-            border-radius: 40px;
-            font-weight: 900;
-            font-size: 1.4rem;
-            min-width: 140px;
-            text-align: center;
-            color: #FFE484;
-            font-family: monospace;
+            margin-left: 12px;
+            margin-bottom: 10px;
             letter-spacing: 1px;
+            text-shadow: 0 1px 2px black;
         }
 
-        .vector-stats {
+        .group-purple .group-title { color: #E6C8FF; text-shadow: 0 0 4px #4a1a6e; background: rgba(0,0,0,0.4); display: inline-block; padding: 2px 20px; border-radius: 60px; }
+        .group-white .group-title { color: #FFFFFF; text-shadow: 0 0 4px #2c3e50; background: rgba(0,0,0,0.4); display: inline-block; padding: 2px 20px; border-radius: 60px; }
+        .group-green .group-title { color: #D0FFC0; text-shadow: 0 0 3px #004d1a; background: rgba(0,0,0,0.4); display: inline-block; padding: 2px 20px; border-radius: 60px; }
+        .group-red .group-title { color: #FFCCBC; text-shadow: 0 0 3px #7f0000; background: rgba(0,0,0,0.4); display: inline-block; padding: 2px 20px; border-radius: 60px; }
+
+        .circles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 18px 14px;
+            justify-items: center;
+        }
+
+        .circle-card {
+            background: #000000aa;
+            backdrop-filter: blur(8px);
+            border-radius: 48px;
+            padding: 12px 6px 12px 6px;
+            width: 100%;
             display: flex;
-            gap: 20px;
-            margin-top: 12px;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,215,150,0.6);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 85px;
+            height: 85px;
+            margin: 4px auto;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+        }
+
+        .speed-label {
+            margin-top: 8px;
+            font-weight: 800;
+            background: #000000cc;
+            backdrop-filter: blur(8px);
+            padding: 4px 10px;
+            border-radius: 60px;
+            font-size: 0.7rem;
+            color: #FFE4B5;
+            border: 1px solid #FFB347;
+            text-shadow: 0 1px 1px black;
+        }
+
+        .speed-label span {
+            color: #FFD966;
+            font-weight: 900;
+            font-size: 0.85rem;
+            background: #1e2a2f;
+            padding: 2px 5px;
+            border-radius: 30px;
+            margin: 0 2px;
+        }
+
+        .speed-control {
+            margin-top: 8px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            align-items: center;
+            background: #1a2a2fe6;
+            border-radius: 40px;
+            padding: 4px 8px;
+            border: 1px solid #FFBF69;
+        }
+
+        .speed-control input {
+            width: 70px;
+            background: #FEF9E6;
+            border: 1px solid #E6A017;
+            border-radius: 40px;
+            padding: 5px 6px;
             font-size: 0.75rem;
-            color: #FFECB3;
+            font-weight: bold;
+            text-align: center;
+            font-family: monospace;
+            color: #1F2A2E;
+        }
+
+        .speed-control button {
+            background: #3A6B7E;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 30px;
+            padding: 4px 10px;
+            font-size: 0.65rem;
+            cursor: pointer;
+            box-shadow: 0 1px 2px black;
+        }
+
+        .delete-circle {
+            margin-top: 6px;
+            background: #A54444;
+            border: none;
+            color: #FFE0B5;
+            font-size: 0.6rem;
+            border-radius: 30px;
+            padding: 2px 12px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 18px 0 12px;
+        }
+
+        .btn {
+            border: none;
+            background: #FFCF8A;
+            padding: 10px 18px;
+            border-radius: 60px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #1F2C38;
+            cursor: pointer;
+            transition: 0.05s linear;
+            box-shadow: 0 4px 0 #8B6B42;
+            flex: 1 0 auto;
+            min-width: 105px;
+            text-align: center;
+        }
+
+        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #8B6B42; }
+        .btn-primary { background: #6FCB9F; box-shadow: 0 4px 0 #398564; color: #1F3A2E; }
+        .btn-secondary { background: #E59866; box-shadow: 0 4px 0 #AA6F3C; }
+        .btn-clear { background: #B0BEC5; box-shadow: 0 4px 0 #6F7D8C; color: #1E2A32; }
+        .btn-save { background: #BA8AF0; box-shadow: 0 4px 0 #6A3D9A; color: white; text-shadow: 0 1px 0 #4a2a6a; }
+        .btn-analysis { background: #FFB347; box-shadow: 0 4px 0 #AA6F3C; color: #1F2A2E; }
+
+        .timer-section {
+            background: #0E1A24dd;
+            border-radius: 60px;
+            padding: 10px 16px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
+            gap: 10px;
+            border: 1px solid #EAA642;
         }
 
-        .vector-stat-card {
-            background: #00000066;
-            padding: 6px 12px;
-            border-radius: 32px;
+        .timer-input {
+            flex: 2;
+            background: #FFF6E5;
+            border-radius: 60px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-
-        .live-badge {
-            background: #4CAF50;
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 0.7rem;
+        .timer-input label { font-weight: bold; color: #2C3E4E; }
+        .timer-input input {
+            border: none;
+            background: none;
+            font-size: 1rem;
+            width: 65px;
             font-weight: bold;
-            animation: pulse 1s infinite;
+            font-family: monospace;
+            padding: 7px 0;
+            color: #1a4d5f;
         }
-
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
+        .info-status {
+            text-align: center;
+            font-size: 0.7rem;
+            margin-top: 16px;
+            background: #000000bb;
+            padding: 8px 12px;
+            border-radius: 60px;
+            color: #FFECB3;
+            font-weight: 500;
+            border: 1px solid #F0B27A;
+            word-break: break-word;
         }
-
-        .ignore-start-check {
+        .analysis-panel {
+            margin-top: 16px;
+            background: #0C1620dd;
+            backdrop-filter: blur(8px);
+            border-radius: 32px;
+            padding: 12px 18px;
+            border: 1px solid #FFD966;
+            font-family: monospace;
+        }
+        .analysis-title {
+            font-weight: bold;
+            color: #FFDFA5;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 8px;
-            background: #1a2a2f;
-            padding: 4px 12px;
-            border-radius: 32px;
-            font-size: 0.7rem;
+            margin-bottom: 10px;
         }
-
-        .ignore-start-check input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
+        .analysis-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: #F5E6C4;
         }
-
-        .research-name-area, .batch-input-area, .group-section, .action-buttons, .timer-section, .info-status {
-            /* существующие стили */
+        .vector-result {
+            background: #000000aa;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #FFE484;
         }
-        
         .reset-angle-btn {
             background: #3A5F6E;
             border: none;
@@ -194,7 +404,6 @@
             font-weight: bold;
             border: 1px solid #D4A373;
         }
-        
         button:disabled { opacity: 0.55; }
         
         .groups-scroll {
@@ -207,85 +416,32 @@
             .canvas-wrapper { width: 70px; height: 70px; }
             .btn { padding: 8px 12px; font-size: 0.7rem; min-width: 80px; }
             .circles-grid { gap: 12px; }
-            .vector-value { font-size: 1rem; min-width: 100px; }
         }
-        
-        .circle-card {
-            background: #000000aa;
-            backdrop-filter: blur(8px);
-            border-radius: 48px;
-            padding: 12px 6px 12px 6px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 8px 18px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,215,150,0.6);
-        }
-        
-        .canvas-wrapper { position: relative; width: 85px; height: 85px; margin: 4px auto; }
-        canvas { width: 100% !important; height: 100% !important; display: block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
-        .speed-label { margin-top: 8px; font-weight: 800; background: #000000cc; backdrop-filter: blur(8px); padding: 4px 10px; border-radius: 60px; font-size: 0.7rem; color: #FFE4B5; border: 1px solid #FFB347; }
-        .speed-control { margin-top: 8px; width: 100%; display: flex; justify-content: center; gap: 6px; align-items: center; background: #1a2a2fe6; border-radius: 40px; padding: 4px 8px; border: 1px solid #FFBF69; }
-        .speed-control input { width: 70px; background: #FEF9E6; border: 1px solid #E6A017; border-radius: 40px; padding: 5px 6px; font-size: 0.75rem; font-weight: bold; text-align: center; }
-        .delete-circle { margin-top: 6px; background: #A54444; border: none; color: #FFE0B5; font-size: 0.6rem; border-radius: 30px; padding: 2px 12px; cursor: pointer; }
-        .btn { border: none; background: #FFCF8A; padding: 10px 18px; border-radius: 60px; font-weight: 800; font-size: 0.85rem; cursor: pointer; transition: 0.05s linear; box-shadow: 0 4px 0 #8B6B42; flex: 1 0 auto; min-width: 105px; text-align: center; }
-        .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #8B6B42; }
-        .btn-primary { background: #6FCB9F; box-shadow: 0 4px 0 #398564; }
-        .btn-save { background: #BA8AF0; box-shadow: 0 4px 0 #6A3D9A; color: white; }
-        .timer-section { background: #0E1A24dd; border-radius: 60px; padding: 10px 16px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-        .info-status { text-align: center; font-size: 0.7rem; margin-top: 16px; background: #000000bb; padding: 8px 12px; border-radius: 60px; color: #FFECB3; }
     </style>
 </head>
 <body>
 <div class="app-container" id="appRoot">
     <h1>🎨 Цветные круги | RPM × 24</h1>
-    <div class="sub">анализатор векторов · исключение стартового положения</div>
-
-    <!-- НОВАЯ ПАНЕЛЬ АНАЛИЗАТОРА -->
-    <div class="analyzer-panel" id="analyzerPanel">
-        <div class="analyzer-title">
-            <span>📊 АНАЛИЗАТОР НАПРАВЛЕНИЙ (вектор совпадения)</span>
-            <div style="display: flex; gap: 10px;">
-                <div class="ignore-start-check">
-                    <input type="checkbox" id="ignoreStartCheck" checked> 
-                    <label>🚫 Игнорировать стартовое положение</label>
-                </div>
-                <span class="live-badge" id="liveBadge">⚡ анализ активен</span>
-            </div>
-        </div>
-        <div class="vector-meter">
-            <div class="vector-scale">
-                <span style="color:#FF8888">▼ -10 (вниз)</span>
-                <div class="scale-bg" id="scaleBg">
-                    <div class="scale-fill" id="scaleFill"></div>
-                    <div class="scale-marker" id="scaleMarker" style="left: 50%"></div>
-                </div>
-                <span style="color:#88FF88">▲ +10 (вверх)</span>
-            </div>
-            <div class="vector-value" id="vectorValueDisplay">0.00</div>
-            <div class="vector-stats">
-                <div class="vector-stat-card">🎯 МАКС. СОВПАДЕНИЕ: <strong id="maxVectorSpan">—</strong></div>
-                <div class="vector-stat-card">📐 ДИАПАЗОН УГЛОВ: <strong id="vectorRangeSpan">0°</strong></div>
-                <div class="vector-stat-card">🌀 КРУГОВ: 24</div>
-            </div>
-        </div>
-    </div>
+    <div class="sub">фиолетовые · белые · зелёные · красные | анализ векторов (12ч циферблат)</div>
 
     <div class="research-name-area">
         <label>📋 Название исследования:</label>
-        <input type="text" id="researchNameInput" placeholder="эксперимент с анализом векторов">
+        <input type="text" id="researchNameInput" placeholder="например: Эксперимент с пакетным вводом">
     </div>
 
     <div class="batch-input-area">
-        <div class="batch-title"><span>⚡ БЫСТРЫЙ ВВОД СКОРОСТЕЙ (RPM)</span><span style="font-size:0.7rem;">— 24 числа через запятую</span></div>
+        <div class="batch-title">
+            <span>⚡ БЫСТРЫЙ ВВОД СКОРОСТЕЙ (RPM)</span>
+            <span style="font-size:0.7rem;">— 24 числа через запятую</span>
+        </div>
         <div class="batch-input-row">
             <textarea id="batchRPMInput" placeholder="Пример: 45, -30, 75, 120, -90, 60, 30, 60, 90, -45, 15, 105, 120, -60, 45, 180, -120, 80, -90, 180, -30, 60, -150, 210"></textarea>
             <div class="batch-buttons">
-                <button class="batch-btn batch-btn-primary" id="applyBatchBtn">📋 Расставить</button>
-                <button class="batch-btn" id="clearBatchBtn">🗑 Очистить</button>
+                <button class="batch-btn batch-btn-primary" id="applyBatchBtn">📋 Расставить по кругам</button>
+                <button class="batch-btn" id="clearBatchBtn">🗑 Очистить поле</button>
             </div>
         </div>
+        <div style="font-size:0.65rem; color:#FFD966; margin-top: 8px;">💡 Порядок: фиолетовые (1-6), белые (7-12), зелёные (13-18), красные (19-24), слева направо, сверху вниз.</div>
     </div>
 
     <div class="groups-scroll" id="groupsContainer"></div>
@@ -293,22 +449,34 @@
     <div class="action-buttons">
         <button class="btn btn-primary" id="startAllBtn">▶ Бесконечно</button>
         <button class="btn btn-secondary" id="stopAllBtn">⏹ Остановить</button>
-        <button class="btn btn-clear" id="clearRPMBtn">🧹 Очистить RPM</button>
+        <button class="btn btn-clear" id="clearRPMBtn">🧹 Очистить поля RPM</button>
         <button class="btn btn-save" id="saveScreenshotBtn">📸 Сохранить скриншот</button>
+        <button class="btn btn-analysis" id="refreshAnalysisBtn">📊 Обновить анализ</button>
     </div>
 
     <div class="timer-section">
-        <div class="timer-input"><label>⏱ сек:</label><input type="number" id="timerSeconds" value="12" step="0.5" min="1" max="30"></div>
-        <button class="btn" id="startTimedBtn" style="background:#5D9BEC; box-shadow:0 4px 0 #2C5490;">⏳ Запуск + Анализ</button>
+        <div class="timer-input"><label>⏱ сек:</label><input type="number" id="timerSeconds" value="5" step="0.5" min="0.5" max="30"></div>
+        <button class="btn" id="startTimedBtn" style="background:#5D9BEC; box-shadow:0 4px 0 #2C5490;">⏳ Вращать N сек</button>
     </div>
 
-    <div class="info-status" id="statusMsg">🧭 Анализатор готов. Стартовое положение (все стрелки вверх) НЕ учитывается как максимум.</div>
-    <button class="reset-angle-btn" id="resetAnglesBtn">🔄 Сбросить все стрелки вверх</button>
+    <!-- Панель анализа итоговых векторов в 12-часовом формате -->
+    <div class="analysis-panel" id="analysisPanel">
+        <div class="analysis-title">
+            <span>🧭 Анализ итоговых направлений</span>
+            <span style="font-size:0.7rem;">(12-часовой циферблат)</span>
+        </div>
+        <div class="analysis-stats" id="analysisStatsArea">
+            <!-- динамическое содержимое: средний вектор + распределение -->
+        </div>
+    </div>
+
+    <div class="info-status" id="statusMsg">🧭 24 круга. Все стрелки вверх. Можно ввести скорости массово или по отдельности.</div>
+    <button class="reset-angle-btn" id="resetAnglesBtn">🔄 Сбросить все стрелки вверх (вручную)</button>
 </div>
 
 <script>
     (function(){
-        // ---------- Класс диска ----------
+        // Рисовальщик диска
         class RotatingDisc {
             constructor(canvas, initialRPM = 0, circleColor = "#FDEBD0", accentColor = "#C97E3A") {
                 this.canvas = canvas;
@@ -329,6 +497,7 @@
             }
             updateSpeedFromRPM() { this.speedDegPerSec = this.rpm * 6; }
             setRPM(newRPM) { this.rpm = newRPM; this.updateSpeedFromRPM(); }
+            setColors(mainColor, accent) { this.circleColor = mainColor; this.accentColor = accent; this.draw(); }
             handleResize() {
                 setTimeout(() => {
                     const rect = this.canvas.getBoundingClientRect();
@@ -361,8 +530,14 @@
                 const cx = w/2, cy = h/2, radius = Math.min(w, h) * 0.4;
                 this.drawDiscWithArrow(ctx, cx, cy, radius, this.circleColor, this.accentColor, this.angle);
             }
+            drawOnContext(ctx, x, y, size, angleRad) {
+                const cx = x + size/2, cy = y + size/2;
+                const radius = size * 0.4;
+                this.drawDiscWithArrow(ctx, cx, cy, radius, this.circleColor, this.accentColor, angleRad);
+            }
             drawDiscWithArrow(ctx, cx, cy, radius, mainColor, accent, angleRad) {
                 ctx.save();
+                ctx.shadowBlur = 0;
                 ctx.beginPath(); ctx.arc(cx, cy, radius, 0, 2*Math.PI);
                 ctx.fillStyle = mainColor; ctx.fill();
                 ctx.strokeStyle = accent; ctx.lineWidth = 2.5; ctx.stroke();
@@ -370,7 +545,6 @@
                 ctx.fillStyle = mainColor; ctx.fill();
                 ctx.beginPath(); ctx.arc(cx, cy, radius*0.68, 0, 2*Math.PI);
                 ctx.fillStyle = accent+"b3"; ctx.fill();
-
                 const arrowAngle = angleRad - Math.PI/2;
                 const len = radius*0.68, head = radius*0.28;
                 const tipX = cx + Math.cos(arrowAngle)*len, tipY = cy + Math.sin(arrowAngle)*len;
@@ -387,18 +561,12 @@
             getCurrentAngle() { return this.angle; }
         }
 
-        // Глобальные переменные
         let discs = [];
         let cardsData = [];
         let globalAnimating = false;
         let timedTimeout = null;
-        let analysisInterval = null;
-        let maxVectorDetected = 0.0;
-        let wasAnalyzing = false;
-        let samplingActive = false;          // флаг, что сбор данных идёт (игнорируем стартовый пик)
-        let firstSampleIgnored = false;      // флаг, чтобы исключить самое первое значение 10
-        
-        // DOM элементы
+
+        // DOM
         const groupsContainer = document.getElementById('groupsContainer');
         const startAllBtn = document.getElementById('startAllBtn');
         const stopAllBtn = document.getElementById('stopAllBtn');
@@ -412,251 +580,89 @@
         const batchRPMInput = document.getElementById('batchRPMInput');
         const applyBatchBtn = document.getElementById('applyBatchBtn');
         const clearBatchBtn = document.getElementById('clearBatchBtn');
-        const ignoreStartCheck = document.getElementById('ignoreStartCheck');
-        
-        // Элементы анализатора
-        const vectorValueDisplay = document.getElementById('vectorValueDisplay');
-        const scaleFill = document.getElementById('scaleFill');
-        const scaleMarker = document.getElementById('scaleMarker');
-        const maxVectorSpan = document.getElementById('maxVectorSpan');
-        const vectorRangeSpan = document.getElementById('vectorRangeSpan');
-        const liveBadge = document.getElementById('liveBadge');
+        const refreshAnalysisBtn = document.getElementById('refreshAnalysisBtn');
+        const analysisStatsArea = document.getElementById('analysisStatsArea');
 
-        // --- Функция вычисления интегрального вектора (от -10 до +10)
-        function computeVerticalVector() {
-            if (discs.length === 0) return 0;
-            let sumCos = 0;
-            for (let disc of discs) {
-                const angleRad = disc.getCurrentAngle();
-                const verticalComponent = Math.cos(angleRad);
-                sumCos += verticalComponent;
+        // ----- Функция вычисления среднего вектора в 12-часовом формате -----
+        // угол в радианах -> час на 12-часовом циферблате (0 = 12 часов, 1 = 1 час ... 11.999)
+        function angleRadToHour(angleRad) {
+            // angleRad: 0 = вверх (0°), увеличивается по часовой стрелке (но в нашей модели угол поворота: 0° стрелка вверх)
+            // Полный круг 2*PI = 12 часов. Соответствие: 0 рад -> 12 часов, PI/6 -> 1 час, PI/2 -> 3 часа и т.д.
+            let hours = (angleRad * (12 / (2 * Math.PI))) % 12;
+            if (hours < 0) hours += 12;
+            if (hours === 0) hours = 12;
+            return hours;
+        }
+
+        function computeAverageVectorAndStats() {
+            if (discs.length === 0) return null;
+            let sumX = 0, sumY = 0;
+            const angles = discs.map(d => d.getCurrentAngle());
+            for (let ang of angles) {
+                // вектор направления стрелки (единичная длина)
+                const x = Math.cos(ang);
+                const y = Math.sin(ang);
+                sumX += x;
+                sumY += y;
             }
-            const avgCos = sumCos / discs.length;
-            let vectorVal = avgCos * 10;
-            vectorVal = Math.min(10, Math.max(-10, vectorVal));
-            return vectorVal;
+            const N = discs.length;
+            const avgX = sumX / N;
+            const avgY = sumY / N;
+            const magnitude = Math.hypot(avgX, avgY); // длина результирующего вектора (0..1)
+            let avgAngle = Math.atan2(avgY, avgX);
+            if (avgAngle < 0) avgAngle += 2 * Math.PI;
+            const avgHour = angleRadToHour(avgAngle);
+            
+            // также медиана часов (для наглядности) и распределение по секторам
+            const hoursList = angles.map(ang => angleRadToHour(ang));
+            hoursList.sort((a,b)=>a-b);
+            const medianHour = hoursList[Math.floor(hoursList.length/2)];
+            
+            // подсчет по четвертям циферблата
+            let sector12_3 = 0, sector3_6 = 0, sector6_9 = 0, sector9_12 = 0;
+            for (let h of hoursList) {
+                if (h >= 12 || h < 3) sector12_3++;      // 12-3 (включая 12)
+                else if (h >= 3 && h < 6) sector3_6++;
+                else if (h >= 6 && h < 9) sector6_9++;
+                else sector9_12++;
+            }
+            return {
+                avgHour: avgHour.toFixed(2),
+                magnitude: magnitude.toFixed(3),
+                medianHour: medianHour.toFixed(2),
+                sector12_3, sector3_6, sector6_9, sector9_12,
+                total: N,
+                allHours: hoursList.map(h => h.toFixed(1))
+            };
         }
-        
-        // Обновление UI анализатора
-        function updateAnalyzerUI() {
-            const vector = computeVerticalVector();
-            vectorValueDisplay.innerText = vector.toFixed(2);
-            const percent = ((vector + 10) / 20) * 100;
-            scaleFill.style.width = `${percent}%`;
-            scaleMarker.style.left = `${percent}%`;
-            
-            if (vector > 2) scaleFill.style.background = "linear-gradient(90deg, #FFE66D, #6BCB77)";
-            else if (vector < -2) scaleFill.style.background = "linear-gradient(90deg, #FF6B6B, #FFE66D)";
-            else scaleFill.style.background = "linear-gradient(90deg, #FFB347, #FFE484, #AAD6D1)";
-            
-            // Обновляем диапазон углов
-            let angles = discs.map(d => (d.getCurrentAngle() * 180 / Math.PI + 360) % 360);
-            let minAng = Math.min(...angles);
-            let maxAng = Math.max(...angles);
-            let range = (maxAng - minAng).toFixed(1);
-            vectorRangeSpan.innerText = `${range}°`;
-        }
-        
-        // Функция для сохранения максимума с исключением стартового пика
-        function tryUpdateMaxVector(vector, forceUpdate = false) {
-            if (!samplingActive && !forceUpdate) return;
-            
-            // Если включено игнорирование старта и это первый семпл (эвристика: значение близко к 10 и время с начала < 300мс)
-            const absVec = Math.abs(vector);
-            const isStartPeak = (Math.abs(vector - 10) < 0.3 || Math.abs(vector + 10) < 0.3);
-            
-            if (ignoreStartCheck.checked && !firstSampleIgnored && isStartPeak) {
-                // Пропускаем этот пик как начальное положение
-                console.log("Игнорируем стартовый пик:", vector);
-                firstSampleIgnored = true;
+
+        function updateAnalysisDisplay() {
+            const stats = computeAverageVectorAndStats();
+            if (!stats) {
+                analysisStatsArea.innerHTML = `<div style="color:#FFCC99;">⏳ Нет данных о кругах</div>`;
                 return;
             }
-            
-            // После первого реального замера обновляем максимум
-            if (absVec > maxVectorDetected) {
-                maxVectorDetected = absVec;
-                const direction = vector > 0 ? "ВВЕРХ ▲" : (vector < 0 ? "ВНИЗ ▼" : "НЕЙТР.");
-                maxVectorSpan.innerText = `${vector.toFixed(2)} (${direction})`;
-            }
+            // формируем красивую карточку анализа
+            const sectorDesc = `🧭 12–3ч: ${stats.sector12_3}  |  3–6ч: ${stats.sector3_6}  |  6–9ч: ${stats.sector6_9}  |  9–12ч: ${stats.sector9_12}`;
+            const avgVectorText = `📐 Средний вектор: ${stats.avgHour} ч  (длина ${stats.magnitude}) | 🧮 Медиана: ${stats.medianHour} ч`;
+            const tooltipHint = `🔍 Всего колес: ${stats.total}. Разброс направлений.`;
+            analysisStatsArea.innerHTML = `
+                <div class="vector-result">⭐ СРЕДНЕЕ НАПРАВЛЕНИЕ: ${stats.avgHour} часов (${stats.avgHour} : 00 на циферблате)</div>
+                <div style="font-size:0.75rem; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; width:100%;">
+                    <span>${avgVectorText}</span>
+                    <span>🎯 ${sectorDesc}</span>
+                </div>
+                <div style="font-size:0.65rem; margin-top: 6px; color:#FFDBA5;">${tooltipHint}</div>
+            `;
         }
-        
-        // Запуск сбора данных с отложенным стартом (чтобы пропустить начальное положение)
-        function startVectorSamplingWithDelay() {
-            if (analysisInterval) clearInterval(analysisInterval);
-            
-            // Сброс флагов для новой сессии
-            firstSampleIgnored = false;
-            maxVectorDetected = 0.0;
-            maxVectorSpan.innerText = "—";
-            
-            // Задержка 150 мс перед началом сбора, чтобы стрелки успели сдвинуться
-            setTimeout(() => {
-                if (globalAnimating) {
-                    samplingActive = true;
-                    analysisInterval = setInterval(() => {
-                        if (globalAnimating && samplingActive) {
-                            const currentVec = computeVerticalVector();
-                            tryUpdateMaxVector(currentVec);
-                            updateAnalyzerUI();
-                        }
-                    }, 70);
-                }
-            }, 180); // 180 мс задержки — стартовое положение не попадёт в максимум
-        }
-        
-        function stopVectorSampling() {
-            if (analysisInterval) { clearInterval(analysisInterval); analysisInterval = null; }
-            samplingActive = false;
-        }
-        
-        // Живой рендеринг шкалы без записи максимума
-        let analysisRenderInterval = null;
-        function startLiveAnalysisRender() {
-            if (analysisRenderInterval) clearInterval(analysisRenderInterval);
-            analysisRenderInterval = setInterval(() => {
-                if (globalAnimating || wasAnalyzing) {
-                    updateAnalyzerUI();
-                    // Также пытаемся обновить максимум если сессия активна
-                    if (samplingActive && globalAnimating) {
-                        const vec = computeVerticalVector();
-                        tryUpdateMaxVector(vec);
-                    }
-                }
-            }, 50);
-        }
-        
-        function stopLiveAnalysisRender() {
-            if (analysisRenderInterval) { clearInterval(analysisRenderInterval); analysisRenderInterval = null; }
-        }
-        
-        // --- Основные функции управления ---
-        function stopAllCircles(clearTimer=true) {
-            if (clearTimer && timedTimeout) { clearTimeout(timedTimeout); timedTimeout = null; }
-            discs.forEach(d => d.stop());
-            globalAnimating = false;
-            wasAnalyzing = false;
-            samplingActive = false;
-            liveBadge.style.background = "#5D6E7E";
-            liveBadge.innerText = "⏸ анализ ожидает";
-            stopVectorSampling();
-        }
-        
-        function resetAllAnglesToUp() {
-            if (timedTimeout) { clearTimeout(timedTimeout); timedTimeout = null; }
-            stopAllCircles(false);
-            discs.forEach(d => d.resetAngle());
-            globalAnimating = false;
-            wasAnalyzing = false;
-            samplingActive = false;
-            updateAnalyzerUI();
-            statusMsgSpan.innerHTML = `🔼 Все 24 стрелки сброшены вверх (0°). Стартовое положение будет игнорироваться при след. запуске.`;
-            maxVectorDetected = 0.0;
-            maxVectorSpan.innerText = "—";
-            firstSampleIgnored = false;
-        }
-        
-        function prepareAndStart(callbackStart, withResetAngles = true) {
-            if (timedTimeout) { clearTimeout(timedTimeout); timedTimeout = null; }
-            stopAllCircles(false);
-            if (withResetAngles) discs.forEach(d => d.resetAngle());
-            globalAnimating = false;
-            samplingActive = false;
-            firstSampleIgnored = false;
-            
-            // Применяем скорости
-            for (let i=0; i<discs.length; i++) {
-                let newRPM = parseFloat(cardsData[i].rpmInput.value);
-                if (!isNaN(newRPM)) {
-                    discs[i].setRPM(newRPM);
-                    cardsData[i].rpmLabel.innerText = newRPM.toFixed(2);
-                }
-            }
-            // Сброс максимума
-            maxVectorDetected = 0.0;
-            maxVectorSpan.innerText = "—";
-            callbackStart();
-        }
-        
-        function startAllCircles() {
-            prepareAndStart(() => {
-                discs.forEach(d => d.start());
-                globalAnimating = true;
-                wasAnalyzing = true;
-                startVectorSamplingWithDelay();
-                liveBadge.style.background = "#4CAF50";
-                liveBadge.innerText = "📈 анализ активен (старт игнорируется)";
-                statusMsgSpan.innerHTML = `🌀 Бесконечное вращение • стартовое положение (стрелки вверх) НЕ учитывается в максимуме.`;
-                saveToLocalStorage();
-            }, true);
-        }
-        
-        function startTimedRotation() {
-            let sec = parseFloat(timerSecondsInput.value);
-            if (isNaN(sec) || sec <= 0) sec = 12;
-            if (sec > 30) sec = 30;
-            
-            prepareAndStart(() => {
-                discs.forEach(d => d.start());
-                globalAnimating = true;
-                wasAnalyzing = true;
-                startVectorSamplingWithDelay();
-                liveBadge.style.background = "#FF9800";
-                liveBadge.innerText = "⏳ анализ: идёт замер (искл. старт)";
-                statusMsgSpan.innerHTML = `⏳ Запущено вращение на ${sec} сек • пик старта исключён из максимума.`;
-                
-                timedTimeout = setTimeout(() => {
-                    stopAllCircles(true);
-                    wasAnalyzing = false;
-                    samplingActive = false;
-                    liveBadge.style.background = "#5D6E7E";
-                    liveBadge.innerText = "✅ анализ завершён";
-                    const finalVec = computeVerticalVector();
-                    statusMsgSpan.innerHTML = `✅ Эксперимент завершён! Максимальное совпадение (исключая старт): ${maxVectorDetected.toFixed(2)}. Финальное значение: ${finalVec.toFixed(2)}.`;
-                    saveToLocalStorage();
-                    updateAnalyzerUI();
-                    stopVectorSampling();
-                }, sec * 1000);
-            }, true);
-        }
-        
-        function clearAllRPMInputs() {
-            for (let i=0; i<cardsData.length; i++) {
-                cardsData[i].rpmInput.value = 0;
-                discs[i].setRPM(0);
-                cardsData[i].rpmLabel.innerText = "0.00";
-                if (globalAnimating) discs[i].start();
-            }
-            statusMsgSpan.innerHTML = `🧹 Поля RPM очищены.`;
-            saveToLocalStorage();
-        }
-        
-        function applyBatchSpeeds() {
-            let rawText = batchRPMInput.value.trim();
-            if (!rawText) { statusMsgSpan.innerHTML = "⚠️ Введите числа через запятую"; return; }
-            let parts = rawText.split(',').map(p => p.trim()).filter(p => p !== "");
-            let numbers = [];
-            for (let part of parts) { let num = parseFloat(part); if (!isNaN(num)) numbers.push(num); }
-            if (numbers.length === 0) { statusMsgSpan.innerHTML = "⚠️ Нет чисел"; return; }
-            if (numbers.length !== discs.length) { statusMsgSpan.innerHTML = `⚠️ Количество чисел (${numbers.length}) != 24. Не применено.`; return; }
-            for (let i = 0; i < discs.length; i++) {
-                let rpmVal = numbers[i];
-                cardsData[i].rpmInput.value = rpmVal;
-                discs[i].setRPM(rpmVal);
-                cardsData[i].rpmLabel.innerText = rpmVal.toFixed(2);
-                if (globalAnimating && discs[i].isAnimating === false) discs[i].start();
-            }
-            statusMsgSpan.innerHTML = `✅ Скорости расставлены. Анализатор исключит стартовый пик.`;
-            saveToLocalStorage();
-        }
-        
-        function clearBatchTextarea() { batchRPMInput.value = ""; statusMsgSpan.innerHTML = "🧹 Поле очищено."; }
-        
+
+        // ----- стандартные функции интерфейса -----
         function saveToLocalStorage() {
             const rpmData = cardsData.map(c => ({ rpm: parseFloat(c.rpmInput.value) || 0 }));
             const researchName = researchNameInput.value;
             localStorage.setItem('rpm_experiment_batch', JSON.stringify({ rpmData, researchName }));
         }
-        
+
         function loadFromLocalStorage() {
             const raw = localStorage.getItem('rpm_experiment_batch');
             if (!raw) return false;
@@ -672,16 +678,229 @@
                 }
                 if (data.researchName) researchNameInput.value = data.researchName;
                 statusMsgSpan.innerHTML = "💾 Загружены сохранённые скорости";
+                updateAnalysisDisplay();
                 return true;
             } catch(e) { return false; }
         }
-        
-        async function captureReliableScreenshot() {
-            alert("Используйте системный скриншот (Print Screen) для сохранения полной панели с анализатором.");
-            statusMsgSpan.innerHTML = "📸 Рекомендуем Win+Shift+S или Cmd+Shift+4 для захвата области.";
+
+        function stopAllCircles(clearTimer=true) {
+            if (clearTimer && timedTimeout) { clearTimeout(timedTimeout); timedTimeout = null; }
+            discs.forEach(d => d.stop());
+            globalAnimating = false;
         }
-        
-        // Построение интерфейса 24 кругов (без изменений)
+
+        function resetAllAnglesToUp() {
+            if (timedTimeout) { clearTimeout(timedTimeout); timedTimeout = null; }
+            stopAllCircles(false);
+            discs.forEach(d => d.resetAngle());
+            globalAnimating = false;
+            statusMsgSpan.innerHTML = `🔼 Все 24 стрелки сброшены вверх (0°). Готово.`;
+            updateAnalysisDisplay();
+        }
+
+        function prepareAndStart(callbackStart) {
+            if (timedTimeout) { clearTimeout(timedTimeout); timedTimeout = null; }
+            stopAllCircles(false);
+            discs.forEach(d => d.resetAngle());
+            globalAnimating = false;
+            for (let i=0; i<discs.length; i++) {
+                let newRPM = parseFloat(cardsData[i].rpmInput.value);
+                if (!isNaN(newRPM)) {
+                    discs[i].setRPM(newRPM);
+                    cardsData[i].rpmLabel.innerText = newRPM.toFixed(2);
+                }
+            }
+            callbackStart();
+        }
+
+        function startAllCircles() {
+            prepareAndStart(() => {
+                discs.forEach(d => d.start());
+                globalAnimating = true;
+                statusMsgSpan.innerHTML = `🌀 Бесконечное вращение (старт из ВВЕРХ)`;
+                saveToLocalStorage();
+                // анализ будет обновляться по таймеру? лучше обновлять в анимации, но добавим обновление через requestAnimationFrame или принудительно
+                const interval = setInterval(() => {
+                    if (!globalAnimating) clearInterval(interval);
+                    updateAnalysisDisplay();
+                }, 150);
+                setTimeout(() => { if (!globalAnimating) clearInterval(interval); }, 100);
+                updateAnalysisDisplay();
+            });
+        }
+
+        function startTimedRotation() {
+            let sec = parseFloat(timerSecondsInput.value);
+            if (isNaN(sec) || sec <= 0) sec = 2;
+            if (sec > 30) sec = 30;
+            prepareAndStart(() => {
+                discs.forEach(d => d.start());
+                globalAnimating = true;
+                statusMsgSpan.innerHTML = `⏳ Вращение на ${sec} секунд...`;
+                const updInterval = setInterval(() => updateAnalysisDisplay(), 100);
+                timedTimeout = setTimeout(() => {
+                    stopAllCircles(true);
+                    clearInterval(updInterval);
+                    statusMsgSpan.innerHTML = `✅ Эксперимент завершён! Финальные направления зафиксированы.`;
+                    updateAnalysisDisplay(); // финальный анализ
+                    saveToLocalStorage();
+                }, sec * 1000);
+            });
+        }
+
+        function clearAllRPMInputs() {
+            for (let i=0; i<cardsData.length; i++) {
+                cardsData[i].rpmInput.value = 0;
+                discs[i].setRPM(0);
+                cardsData[i].rpmLabel.innerText = "0.00";
+                if (globalAnimating) discs[i].start();
+            }
+            statusMsgSpan.innerHTML = `🧹 Поля RPM очищены.`;
+            saveToLocalStorage();
+            updateAnalysisDisplay();
+        }
+
+        function applyBatchSpeeds() {
+            let rawText = batchRPMInput.value.trim();
+            if (!rawText) { statusMsgSpan.innerHTML = "⚠️ Введите числа через запятую"; return; }
+            let parts = rawText.split(',').map(p => p.trim()).filter(p => p !== "");
+            let numbers = [];
+            for (let part of parts) {
+                let num = parseFloat(part);
+                if (!isNaN(num)) numbers.push(num);
+            }
+            if (numbers.length === 0) { statusMsgSpan.innerHTML = "⚠️ Нет чисел"; return; }
+            if (numbers.length !== discs.length) {
+                statusMsgSpan.innerHTML = `⚠️ Количество чисел (${numbers.length}) != 24. Не применено.`;
+                return;
+            }
+            for (let i = 0; i < discs.length; i++) {
+                let rpmVal = numbers[i];
+                cardsData[i].rpmInput.value = rpmVal;
+                discs[i].setRPM(rpmVal);
+                cardsData[i].rpmLabel.innerText = rpmVal.toFixed(2);
+                if (globalAnimating && discs[i].isAnimating === false) discs[i].start();
+            }
+            statusMsgSpan.innerHTML = `✅ Скорости расставлены по 24 кругам!`;
+            saveToLocalStorage();
+            updateAnalysisDisplay();
+        }
+
+        function clearBatchTextarea() { batchRPMInput.value = ""; statusMsgSpan.innerHTML = "🧹 Поле очищено."; }
+
+        // Расширенный скриншот (без изменений логики, но добавим обновление анализа)
+        async function captureReliableScreenshot() { /* сохраняем оригинальную функцию */ 
+            const researchName = researchNameInput.value.trim() || "Без названия";
+            const timestamp = new Date().toLocaleString();
+            const snapshots = discs.map((disc, idx) => ({
+                angle: disc.getCurrentAngle(),
+                mainColor: disc.circleColor,
+                accentColor: disc.accentColor,
+                rpm: parseFloat(cardsData[idx].rpmInput.value) || 0
+            }));
+            const cardWidth = 140, cardHeight = 170, circleSize = 85, cols = 6, rows = 4;
+            const totalWidth = cols * cardWidth + 40;
+            const totalHeight = rows * cardHeight + 120;
+            const canvas = document.createElement('canvas');
+            canvas.width = totalWidth;
+            canvas.height = totalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = "#1e2a32";
+            ctx.fillRect(0, 0, totalWidth, totalHeight);
+            ctx.font = "bold 22px system-ui";
+            ctx.fillStyle = "#FFF9E0";
+            ctx.fillText("🎨 Цветные круги | RPM эксперимент", 20, 42);
+            ctx.font = "14px monospace";
+            ctx.fillStyle = "#FFECB3";
+            ctx.fillText(`📋 Исследование: ${researchName}`, 20, 78);
+            ctx.fillStyle = "#FFD966";
+            ctx.font = "12px monospace";
+            ctx.fillText(`⏱ ${timestamp}  |  24 круга · финальные положения стрелок`, 20, 105);
+            let idx = 0;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    if (idx >= snapshots.length) break;
+                    const data = snapshots[idx];
+                    const x = 20 + col * cardWidth;
+                    const y = 120 + row * cardHeight;
+                    ctx.fillStyle = "#000000aa";
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, cardWidth-8, cardHeight-10, 16);
+                    ctx.fill();
+                    ctx.strokeStyle = "#FFD966";
+                    ctx.stroke();
+                    if (col === 0) {
+                        let groupLabel = ["ФИОЛЕТОВЫЕ","БЕЛЫЕ","ЗЕЛЁНЫЕ","КРАСНЫЕ"][row] || "";
+                        ctx.font = "bold 10px monospace";
+                        ctx.fillStyle = "#FFE4B5";
+                        ctx.fillText(groupLabel, x+5, y+14);
+                    }
+                    const centerX = x + (cardWidth-8)/2 - circleSize/2 + 4;
+                    const centerYCircle = y + 32;
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = circleSize;
+                    tempCanvas.height = circleSize;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const fakeDisc = { drawDiscWithArrow: (ctxDraw, cx, cy, rad, mainC, accentC, ang) => {
+                        ctxDraw.save();
+                        ctxDraw.beginPath(); ctxDraw.arc(cx, cy, rad, 0, 2*Math.PI);
+                        ctxDraw.fillStyle = mainC; ctxDraw.fill();
+                        ctxDraw.strokeStyle = accentC; ctxDraw.lineWidth = 2; ctxDraw.stroke();
+                        ctxDraw.beginPath(); ctxDraw.arc(cx, cy, rad*0.85, 0, 2*Math.PI);
+                        ctxDraw.fillStyle = mainC; ctxDraw.fill();
+                        ctxDraw.beginPath(); ctxDraw.arc(cx, cy, rad*0.68, 0, 2*Math.PI);
+                        ctxDraw.fillStyle = accentC+"b3"; ctxDraw.fill();
+                        const arrowAngle = ang - Math.PI/2;
+                        const len = rad*0.68, head = rad*0.28;
+                        const tipX = cx + Math.cos(arrowAngle)*len, tipY = cy + Math.sin(arrowAngle)*len;
+                        const leftX = tipX + Math.cos(arrowAngle + Math.PI*0.85)*head, leftY = tipY + Math.sin(arrowAngle + Math.PI*0.85)*head;
+                        const rightX = tipX + Math.cos(arrowAngle - Math.PI*0.85)*head, rightY = tipY + Math.sin(arrowAngle - Math.PI*0.85)*head;
+                        ctxDraw.beginPath(); ctxDraw.moveTo(cx, cy); ctxDraw.lineTo(tipX, tipY);
+                        ctxDraw.strokeStyle = "#5A2A12"; ctxDraw.lineWidth = Math.max(2.5, rad*0.1); ctxDraw.stroke();
+                        ctxDraw.beginPath(); ctxDraw.moveTo(tipX, tipY); ctxDraw.lineTo(leftX, leftY); ctxDraw.lineTo(rightX, rightY);
+                        ctxDraw.fillStyle = "#CC4A1A"; ctxDraw.fill();
+                        ctxDraw.fillStyle = "#FFE484"; ctxDraw.beginPath(); ctxDraw.arc(cx, cy, rad*0.18, 0, 2*Math.PI); ctxDraw.fill();
+                        ctxDraw.restore();
+                    }};
+                    const rad = circleSize * 0.4;
+                    fakeDisc.drawDiscWithArrow(tempCtx, circleSize/2, circleSize/2, rad, data.mainColor, data.accentColor, data.angle);
+                    ctx.drawImage(tempCanvas, centerX, centerYCircle, circleSize, circleSize);
+                    ctx.font = "bold 11px monospace";
+                    ctx.fillStyle = "#FFE4B5";
+                    ctx.fillText(`${data.rpm} об/мин`, x+cardWidth/2-40, centerYCircle + circleSize + 16);
+                    idx++;
+                }
+            }
+            ctx.font = "italic 10px monospace";
+            ctx.fillStyle = "#FFDCA8";
+            ctx.fillText("экспериментальный стенд · направления стрелок зафиксированы", 20, totalHeight-20);
+            const link = document.createElement('a');
+            const safeName = researchName.replace(/\s+/g, '_').slice(0, 40);
+            link.download = `circles_export_${safeName}_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            statusMsgSpan.innerHTML = `📸 Скриншот сохранён! Анализ доступен на панели.`;
+        }
+
+        // Полифилл
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.moveTo(x+r, y);
+                this.lineTo(x+w-r, y);
+                this.quadraticCurveTo(x+w, y, x+w, y+r);
+                this.lineTo(x+w, y+h-r);
+                this.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+                this.lineTo(x+r, y+h);
+                this.quadraticCurveTo(x, y+h, x, y+h-r);
+                this.lineTo(x, y+r);
+                this.quadraticCurveTo(x, y, x+r, y);
+                return this;
+            };
+        }
+
+        // Построение интерфейса (та же логика)
         function buildGroups() {
             groupsContainer.innerHTML = '';
             discs = []; cardsData = [];
@@ -693,25 +912,44 @@
             ];
             let globalIdx = 0;
             for (let g of groups) {
-                const groupDiv = document.createElement('div'); groupDiv.className = `group-section group-${g.colorKey}`;
-                const titleSpan = document.createElement('div'); titleSpan.className = 'group-title'; titleSpan.innerText = g.name;
+                const groupDiv = document.createElement('div');
+                groupDiv.className = `group-section group-${g.colorKey}`;
+                const titleSpan = document.createElement('div');
+                titleSpan.className = 'group-title';
+                titleSpan.innerText = g.name;
                 groupDiv.appendChild(titleSpan);
-                const grid = document.createElement('div'); grid.className = 'circles-grid';
+                const grid = document.createElement('div');
+                grid.className = 'circles-grid';
                 for (let i=0; i<g.count; i++) {
                     const rpmDefault = g.defaultRPMs[i % g.defaultRPMs.length];
-                    const card = document.createElement('div'); card.className = 'circle-card';
-                    const canvasWrap = document.createElement('div'); canvasWrap.className = 'canvas-wrapper';
-                    const canvas = document.createElement('canvas'); canvas.width = 100; canvas.height = 100;
+                    const card = document.createElement('div');
+                    card.className = 'circle-card';
+                    const canvasWrap = document.createElement('div');
+                    canvasWrap.className = 'canvas-wrapper';
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 100; canvas.height = 100;
                     canvasWrap.appendChild(canvas);
-                    const speedLabelDiv = document.createElement('div'); speedLabelDiv.className = 'speed-label';
+                    const speedLabelDiv = document.createElement('div');
+                    speedLabelDiv.className = 'speed-label';
                     const rpmSpan = document.createElement('span');
-                    speedLabelDiv.appendChild(document.createTextNode('🔄 ')); speedLabelDiv.appendChild(rpmSpan); speedLabelDiv.appendChild(document.createTextNode(' об/мин'));
-                    const speedCtrl = document.createElement('div'); speedCtrl.className = 'speed-control';
-                    const rpmInput = document.createElement('input'); rpmInput.type = 'number'; rpmInput.step = '5'; rpmInput.value = rpmDefault;
-                    const applyBtn = document.createElement('button'); applyBtn.innerText = 'Уст.';
-                    speedCtrl.appendChild(rpmInput); speedCtrl.appendChild(applyBtn);
-                    const deleteBtn = document.createElement('button'); deleteBtn.innerText = '🗑 Удалить'; deleteBtn.className = 'delete-circle';
-                    card.appendChild(canvasWrap); card.appendChild(speedLabelDiv); card.appendChild(speedCtrl); card.appendChild(deleteBtn);
+                    speedLabelDiv.appendChild(document.createTextNode('🔄 '));
+                    speedLabelDiv.appendChild(rpmSpan);
+                    speedLabelDiv.appendChild(document.createTextNode(' об/мин'));
+                    const speedCtrl = document.createElement('div');
+                    speedCtrl.className = 'speed-control';
+                    const rpmInput = document.createElement('input');
+                    rpmInput.type = 'number'; rpmInput.step = '5'; rpmInput.value = rpmDefault;
+                    const applyBtn = document.createElement('button');
+                    applyBtn.innerText = 'Уст.';
+                    speedCtrl.appendChild(rpmInput);
+                    speedCtrl.appendChild(applyBtn);
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerText = '🗑 Удалить';
+                    deleteBtn.className = 'delete-circle';
+                    card.appendChild(canvasWrap);
+                    card.appendChild(speedLabelDiv);
+                    card.appendChild(speedCtrl);
+                    card.appendChild(deleteBtn);
                     grid.appendChild(card);
                     
                     const disc = new RotatingDisc(canvas, rpmDefault, g.mainColor, g.accentColor);
@@ -719,46 +957,61 @@
                     discs.push(disc);
                     rpmSpan.innerText = rpmDefault;
                     const idx = globalIdx;
-                    cardsData.push({ rpmInput, rpmLabel: rpmSpan, deleteBtn, applyBtn, cardElement: card, discIndex: idx });
-                    applyBtn.addEventListener('click', (function(index){ return function(){
-                        let newRPM = parseFloat(cardsData[index].rpmInput.value);
-                        if (!isNaN(newRPM)) { discs[index].setRPM(newRPM); cardsData[index].rpmLabel.innerText = newRPM.toFixed(2); if (globalAnimating) discs[index].start(); saveToLocalStorage(); }
-                    }; })(idx));
-                    deleteBtn.addEventListener('click', (function(index){ return function(e){
-                        e.stopPropagation();
-                        discs[index].stop(); cardsData[index].cardElement.remove(); discs.splice(index,1); cardsData.splice(index,1);
-                        for (let k=index; k<cardsData.length; k++) cardsData[k].discIndex = k;
-                        saveToLocalStorage();
-                    }; })(idx));
+                    cardsData.push({
+                        rpmInput: rpmInput,
+                        rpmLabel: rpmSpan,
+                        deleteBtn: deleteBtn,
+                        applyBtn: applyBtn,
+                        cardElement: card,
+                        discIndex: idx
+                    });
+                    applyBtn.addEventListener('click', (function(index){
+                        return function(){
+                            let newRPM = parseFloat(cardsData[index].rpmInput.value);
+                            if (!isNaN(newRPM)) {
+                                discs[index].setRPM(newRPM);
+                                cardsData[index].rpmLabel.innerText = newRPM.toFixed(2);
+                                if (globalAnimating) discs[index].start();
+                                statusMsgSpan.innerHTML = `⚙️ Круг ${index+1}: RPM = ${newRPM}`;
+                                saveToLocalStorage();
+                                updateAnalysisDisplay();
+                            }
+                        };
+                    })(idx));
+                    deleteBtn.addEventListener('click', (function(index){
+                        return function(e){
+                            e.stopPropagation();
+                            if (discs.length === 1) return;
+                            discs[index].stop();
+                            cardsData[index].cardElement.remove();
+                            discs.splice(index,1);
+                            cardsData.splice(index,1);
+                            for (let k=index; k<cardsData.length; k++) cardsData[k].discIndex = k;
+                            saveToLocalStorage();
+                            updateAnalysisDisplay();
+                        };
+                    })(idx));
                     globalIdx++;
                 }
-                groupDiv.appendChild(grid); groupsContainer.appendChild(groupDiv);
+                groupDiv.appendChild(grid);
+                groupsContainer.appendChild(groupDiv);
             }
         }
         
-        // Инициализация
         startAllBtn.addEventListener('click', startAllCircles);
-        stopAllBtn.addEventListener('click', () => { stopAllCircles(true); updateAnalyzerUI(); });
+        stopAllBtn.addEventListener('click', () => stopAllCircles(true));
         clearRPMBtn.addEventListener('click', clearAllRPMInputs);
         saveScreenshotBtn.addEventListener('click', captureReliableScreenshot);
         startTimedBtn.addEventListener('click', startTimedRotation);
         resetAnglesBtn.addEventListener('click', resetAllAnglesToUp);
         applyBatchBtn.addEventListener('click', applyBatchSpeeds);
         clearBatchBtn.addEventListener('click', clearBatchTextarea);
+        refreshAnalysisBtn.addEventListener('click', () => { updateAnalysisDisplay(); statusMsgSpan.innerHTML = "📊 Анализ направлений обновлён!"; });
         window.addEventListener('resize', () => discs.forEach(d=>d.handleResize()));
         
         buildGroups();
-        startLiveAnalysisRender();
-        setTimeout(() => { loadFromLocalStorage(); updateAnalyzerUI(); }, 100);
+        setTimeout(() => { loadFromLocalStorage(); updateAnalysisDisplay(); }, 100);
         researchNameInput.addEventListener('change', saveToLocalStorage);
-        updateAnalyzerUI();
-        
-        // Настройка чекбокса игнорирования (динамическое уведомление)
-        ignoreStartCheck.addEventListener('change', (e) => {
-            statusMsgSpan.innerHTML = e.target.checked ? 
-                "✅ Режим: стартовое положение (10) НЕ будет считаться максимумом" : 
-                "⚠️ Режим: стартовое положение может быть зафиксировано как максимум";
-        });
     })();
 </script>
 </body>
