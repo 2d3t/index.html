@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -213,11 +212,10 @@
             color: #64748b;
         }
 
-        .column-hint {
-            font-size: 0.7rem;
-            margin-left: 8px;
-            font-weight: normal;
-            color: #4b5563;
+        .main-row-highlight {
+            background: #fef3c7 !important;
+            border-left: 4px solid #f59e0b !important;
+            font-weight: 600 !important;
         }
 
         .table-wrapper {
@@ -259,6 +257,12 @@
             padding: 10px 12px;
             border-bottom: 1px solid #e9edf2;
             white-space: nowrap;
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
+
+        td:hover {
+            background: #fef3c7 !important;
         }
 
         tr:hover td {
@@ -340,7 +344,8 @@
 
 <div class="container">
     <h1>📁 CSV Reader — копирование блока (столбцы + диапазон строк)</h1>
-    <div class="sub">🔽 Загрузите CSV → выберите столбцы и строки для копирования | ⚡ Очистка чисел: удаляет точки и запятые, цифры сливаются (например, "5.123,45" → "512345")</div>
+    <div class="sub">🔽 Загрузите CSV → выберите столбцы и строки для копирования | ⚡ Очистка чисел: удаляет точки и запятые, цифры сливаются (например, "5.123,45" → "512345")<br>
+    🖱️ <strong>Нажмите на любую строку в таблице, чтобы сделать её "главной"</strong> (началом отсчёта)</div>
 
     <div class="upload-area" id="uploadArea">
         <div class="upload-icon">📂🧾</div>
@@ -378,7 +383,7 @@
             </div>
         </div>
 
-        <!-- Панель выбора диапазона: теперь столбцы + диапазон строк (от / до) -->
+        <!-- Панель выбора диапазона -->
         <div class="range-panel">
             <div class="range-group">
                 <label>📊 Столбцы (1-индексация):</label>
@@ -387,7 +392,12 @@
                 <input type="number" id="colEnd" min="1" value="5" style="width: 70px;">
             </div>
             <div class="range-group">
-                <label>📏 Строки (1 = первая строка данных):</label>
+                <label>⭐ Главная строка (начало отсчёта):</label>
+                <input type="number" id="mainRow" min="1" value="1" style="width: 80px;">
+                <span style="font-size:0.7rem;">(нажмите на строку в таблице, чтобы изменить)</span>
+            </div>
+            <div class="range-group">
+                <label>📏 Строки (виртуальные):</label>
                 <input type="number" id="rowStart" min="1" value="1" style="width: 70px;"> 
                 <span> — </span>
                 <input type="number" id="rowEnd" min="1" value="6" style="width: 70px;">
@@ -400,11 +410,12 @@
         </div>
     </div>
     <footer>
-        ⚡ <strong>Очистка чисел (новая логика):</strong> удаляет десятичные точки и запятые-разделители, но <strong>все цифры после запятой остаются</strong> (склеиваются).<br>
-        📌 Пример: "5.123,45" → "512345" | "1,234.56" → "123456" | "100.50" → "10050"<br>
-        📌 <strong>Копирование блока:</strong> сверху вниз по столбцам (сначала все строки 1-го столбца, потом 2-го и т.д.).<br>
-        📌 <strong>Диапазон строк:</strong> теперь можно выбрать НАЧАЛЬНУЮ и КОНЕЧНУЮ строку (относительно данных, без учета заголовков).<br>
-        🖱️ Клик по заголовку колонки — копирует все значения колонки (без очистки).
+        ⚡ <strong>Очистка чисел:</strong> удаляет десятичные точки и запятые-разделители, но все цифры склеиваются.<br>
+        📌 Пример: "5.123,45" → "512345" | "1,234.56" → "123456"<br>
+        📌 <strong>Главная строка:</strong> нажмите на любую строку в таблице — она станет "началом отсчёта" (виртуальная строка 1).<br>
+        📌 <strong>Виртуальные строки:</strong> указываете диапазон относительно главной строки (например, строки 1-6 = главная + следующие 5 строк).<br>
+        🖱️ Клик по заголовку колонки — копирует все значения колонки (без очистки).<br>
+        📌 <strong>Порядок копирования:</strong> сначала все строки выбранных столбцов (по столбцам).
     </footer>
 </div>
 
@@ -425,6 +436,7 @@
         const colEndInput = document.getElementById('colEnd');
         const rowStartInput = document.getElementById('rowStart');
         const rowEndInput = document.getElementById('rowEnd');
+        const mainRowInput = document.getElementById('mainRow');
         
         let rawCSVText = '';
         let headers = [];
@@ -442,17 +454,26 @@
             }, 2500);
         }
         
-        // НОВАЯ ЛОГИКА ОЧИСТКИ ЧИСЕЛ: удаляем ВСЕ точки и запятые -> склеиваем цифры
+        // Очистка чисел: удаляем ВСЕ точки и запятые -> склеиваем цифры
         function cleanNumberValue(rawValue) {
             if (rawValue === undefined || rawValue === null) return '';
             let str = String(rawValue).trim();
             if (str === '') return '';
-            // удаляем все точки и запятые, оставляем минус и цифры
             let cleaned = str.replace(/[.,]/g, '');
             return cleaned;
         }
         
-        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА (столбцы + диапазон строк) с очисткой чисел
+        // Установка главной строки
+        function setMainRow(rowNumber) {
+            if (!dataRowsPure.length) return;
+            if (rowNumber < 1) rowNumber = 1;
+            if (rowNumber > dataRowsPure.length) rowNumber = dataRowsPure.length;
+            mainRowInput.value = rowNumber;
+            showCopyToast(`⭐ Главная строка установлена на ${rowNumber} (виртуальная строка 1)`);
+            renderTable(); // перерисовываем для подсветки
+        }
+        
+        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА с учётом главной строки
         function copySelectedRange() {
             if (!dataRowsPure.length || dataRowsPure.length === 0) {
                 showCopyToast('❌ Нет данных. Загрузите CSV файл.');
@@ -463,57 +484,70 @@
             let colEnd = parseInt(colEndInput.value, 10);
             let rowStart = parseInt(rowStartInput.value, 10);
             let rowEnd = parseInt(rowEndInput.value, 10);
+            let mainRow = parseInt(mainRowInput.value, 10);
             
-            // валидация столбцов
+            // Валидация
             if (isNaN(colStart) || colStart < 1) colStart = 1;
             if (isNaN(colEnd) || colEnd < colStart) colEnd = colStart;
-            
-            // валидация строк
             if (isNaN(rowStart) || rowStart < 1) rowStart = 1;
             if (isNaN(rowEnd) || rowEnd < rowStart) rowEnd = rowStart;
+            if (isNaN(mainRow) || mainRow < 1) mainRow = 1;
+            
+            if (mainRow > dataRowsPure.length) {
+                showCopyToast(`⚠️ Главная строка ${mainRow} превышает количество строк (${dataRowsPure.length}). Используем 1.`);
+                mainRow = 1;
+                mainRowInput.value = 1;
+            }
+            
+            // Преобразуем виртуальные строки в реальные
+            const realRowStart = mainRow + (rowStart - 1);
+            const realRowEnd = mainRow + (rowEnd - 1);
             
             const totalCols = headers.length;
+            const totalDataRows = dataRowsPure.length;
+            
             if (totalCols === 0) {
                 showCopyToast('⚠️ В таблице нет столбцов.');
                 return;
             }
             
             const startColIdx = colStart - 1;
-            const endColIdx = Math.min(colEnd - 1, totalCols - 1);
+            let endColIdx = Math.min(colEnd - 1, totalCols - 1);
             if (startColIdx >= totalCols) {
                 showCopyToast(`⚠️ Начальный столбец ${colStart} превышает общее количество столбцов (${totalCols}).`);
                 return;
             }
             
+            // Корректируем реальные границы строк
+            let realStartRowIdx = realRowStart - 1;
+            let realEndRowIdx = realRowEnd - 1;
+            
+            let correctedStartRowVirtual = rowStart;
+            let correctedEndRowVirtual = rowEnd;
+            
+            if (realStartRowIdx >= totalDataRows) {
+                showCopyToast(`⚠️ Виртуальная строка ${rowStart} (реальная ${realRowStart}) выходит за пределы данных. Доступно реальных строк: ${totalDataRows}. Главная = ${mainRow}.`);
+                return;
+            }
+            
+            if (realEndRowIdx >= totalDataRows) {
+                realEndRowIdx = totalDataRows - 1;
+                correctedEndRowVirtual = (realEndRowIdx - mainRow) + 1;
+                showCopyToast(`⚠️ Виртуальная строка ${rowEnd} выходит за пределы. Скопируем до виртуальной ${correctedEndRowVirtual} (реальная ${realEndRowIdx+1}).`);
+            }
+            
+            if (realStartRowIdx > realEndRowIdx) {
+                showCopyToast(`⚠️ Некорректный диапазон виртуальных строк: ${rowStart} > ${rowEnd}.`);
+                return;
+            }
+            
+            const actualRowsCount = realEndRowIdx - realStartRowIdx + 1;
             const colCount = endColIdx - startColIdx + 1;
-            const totalDataRows = dataRowsPure.length;
             
-            // Определяем реальные индексы строк (0-базированные индексы в dataRowsPure)
-            let startRowIdx = rowStart - 1;
-            let endRowIdx = rowEnd - 1;
-            if (startRowIdx >= totalDataRows) {
-                showCopyToast(`⚠️ Начальная строка ${rowStart} превышает количество строк данных (${totalDataRows}).`);
-                return;
-            }
-            if (endRowIdx >= totalDataRows) {
-                endRowIdx = totalDataRows - 1;
-                rowEnd = endRowIdx + 1;
-            }
-            if (startRowIdx > endRowIdx) {
-                showCopyToast(`⚠️ Некорректный диапазон строк: начало > конец.`);
-                return;
-            }
-            
-            const actualRowsCount = endRowIdx - startRowIdx + 1;
-            if (actualRowsCount <= 0) {
-                showCopyToast('⚠️ Нет строк в выбранном диапазоне.');
-                return;
-            }
-            
-            // Собираем значения: сначала все строки для первого столбца, потом для второго и т.д.
+            // Собираем значения ПО СТОЛБЦАМ
             const resultValues = [];
             for (let col = startColIdx; col <= endColIdx; col++) {
-                for (let i = startRowIdx; i <= endRowIdx; i++) {
+                for (let i = realStartRowIdx; i <= realEndRowIdx; i++) {
                     const row = dataRowsPure[i];
                     let rawCell = (col < row.length) ? row[col] : '';
                     let cleaned = cleanNumberValue(rawCell);
@@ -526,19 +560,21 @@
                 return;
             }
             
+            const colRangeStr = (colCount === 1) ? `${colStart}` : `${colStart}-${endColIdx+1}`;
+            const virtRowRangeStr = (actualRowsCount === 1) ? `${rowStart}` : `${rowStart}-${correctedEndRowVirtual}`;
+            const realRowRangeStr = (actualRowsCount === 1) ? `${realStartRowIdx+1}` : `${realStartRowIdx+1}-${realEndRowIdx+1}`;
+            
             const outputString = resultValues.join(',');
-            const colRangeStr = (colCount === 1) ? `${colStart}` : `${colStart}-${colStart + colCount - 1}`;
-            const rowRangeStr = (actualRowsCount === 1) ? `${rowStart}` : `${rowStart}-${rowEnd}`;
             
             navigator.clipboard.writeText(outputString).then(() => {
                 let preview = outputString.length > 90 ? outputString.substring(0, 90) + '…' : outputString;
-                showCopyToast(`✅ Скопировано: ${actualRowsCount} строк (${rowRangeStr}) × ${colCount} столбцов (${colRangeStr}) → ${resultValues.length} значений. Очистка чисел: удалены . и , → цифры слиты. Пример: ${preview}`);
+                showCopyToast(`✅ Скопировано: ${colCount} столбцов × ${actualRowsCount} строк = ${resultValues.length} значений. Главная строка = ${mainRow}. Виртуальные строки ${virtRowRangeStr} → реальные ${realRowRangeStr}.`);
             }).catch(err => {
                 showCopyToast(`❌ Ошибка копирования: ${err.message || 'неизвестная ошибка'}`);
             });
         }
         
-        // Копирование целой колонки (без очистки, как по требованию)
+        // Копирование колонки
         function copyColumnData(columnIndex, columnName) {
             if (!dataRowsPure.length) {
                 showCopyToast('⚠️ Нет данных для копирования');
@@ -563,6 +599,22 @@
             });
         }
         
+        // Подсветка главной строки
+        function highlightMainRow() {
+            const mainRow = parseInt(mainRowInput.value, 10);
+            if (!mainRow || mainRow < 1) return;
+            const rows = document.querySelectorAll('#csvDataTable tbody tr');
+            rows.forEach((row, idx) => {
+                const realRowNumber = idx + 1;
+                if (realRowNumber === mainRow) {
+                    row.classList.add('main-row-highlight');
+                } else {
+                    row.classList.remove('main-row-highlight');
+                }
+            });
+        }
+        
+        // Отрисовка таблицы
         function renderTable() {
             if (!dataRowsPure.length && (!headers.length)) {
                 tableContainer.innerHTML = '<div class="empty-message">Нет данных для отображения</div>';
@@ -582,11 +634,16 @@
             
             statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
             
-            // Обновляем max атрибуты для полей столбцов и строк
+            // Обновляем max атрибуты
             colStartInput.max = colCount;
             colEndInput.max = colCount;
             if (parseInt(colStartInput.value) > colCount) colStartInput.value = colCount;
             if (parseInt(colEndInput.value) > colCount) colEndInput.value = colCount;
+            
+            const mainRowVal = parseInt(mainRowInput.value, 10);
+            if (mainRowVal > totalRows) mainRowInput.value = totalRows;
+            if (mainRowVal < 1) mainRowInput.value = 1;
+            mainRowInput.max = totalRows;
             
             rowStartInput.max = totalRows;
             rowEndInput.max = totalRows;
@@ -598,14 +655,16 @@
             let html = '<table id="csvDataTable"><thead><tr>';
             for (let idx = 0; idx < headers.length; idx++) {
                 const headerText = escapeHtml(String(headers[idx]));
-                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки «${headerText}» через запятую">${headerText}<span class="column-hint">📋</span></th>`;
+                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки «${headerText}»">${headerText}<span class="column-hint">📋</span></th>`;
             }
             html += '</tr></thead><tbody>';
-            for (let row of displayRows) {
-                html += '<tr>';
+            for (let rowIdx = 0; rowIdx < displayRows.length; rowIdx++) {
+                const row = displayRows[rowIdx];
+                const realRowNumber = rowIdx + 1;
+                html += `<tr data-real-row="${realRowNumber}" class="${realRowNumber === mainRowVal ? 'main-row-highlight' : ''}">`;
                 for (let i = 0; i < colCount; i++) {
                     let cell = (i < row.length) ? row[i] : '';
-                    html += `<td title="${escapeHtml(String(cell).substring(0, 150))}">${escapeHtml(String(cell))}</td>`;
+                    html += `<td title="Нажмите, чтобы сделать эту строку главной (строка ${realRowNumber})">${escapeHtml(String(cell))}</td>`;
                 }
                 html += '</tr>';
             }
@@ -615,9 +674,9 @@
             }
             tableContainer.innerHTML = html;
             
-            // Вешаем обработчики на заголовки для копирования колонок
-            const headersEl = document.querySelectorAll('#csvDataTable th');
-            headersEl.forEach(th => {
+            // Вешаем обработчики на заголовки (копирование колонки)
+            const headerEls = document.querySelectorAll('#csvDataTable th');
+            headerEls.forEach(th => {
                 const colIdx = th.getAttribute('data-col-index');
                 if (colIdx !== null) {
                     th.addEventListener('click', (e) => {
@@ -628,9 +687,21 @@
                     });
                 }
             });
+            
+            // Вешаем обработчики на строки (установка главной строки)
+            const rowEls = document.querySelectorAll('#csvDataTable tbody tr');
+            rowEls.forEach(row => {
+                row.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const realRow = parseInt(row.getAttribute('data-real-row'), 10);
+                    if (!isNaN(realRow)) {
+                        setMainRow(realRow);
+                    }
+                });
+            });
         }
         
-        // парсер с поддержкой кавычек (RFC 4180)
+        // Парсер CSV с поддержкой кавычек
         function parseCSV(text, delimiter) {
             if (text.charCodeAt(0) === 0xFEFF) {
                 text = text.slice(1);
@@ -870,6 +941,7 @@
             });
         }
         
+        // Event listeners
         fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files.length > 0) {
                 handleFileSelect(e.target.files[0]);
