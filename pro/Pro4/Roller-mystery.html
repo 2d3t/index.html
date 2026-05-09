@@ -339,7 +339,7 @@
             border: none;
             background: none;
             font-size: 1rem;
-            width: 65px;
+            width: 75px;
             font-weight: bold;
             font-family: monospace;
             padding: 7px 0;
@@ -455,7 +455,7 @@
     </div>
 
     <div class="timer-section">
-        <div class="timer-input"><label>⏱ сек:</label><input type="number" id="timerSeconds" value="5" step="0.5" min="0.5" max="30"></div>
+        <div class="timer-input"><label>⏱ сек:</label><input type="number" id="timerSeconds" value="31.4" step="0.5" min="0.5" max="60"></div>
         <button class="btn" id="startTimedBtn" style="background:#5D9BEC; box-shadow:0 4px 0 #2C5490;">⏳ Вращать N сек</button>
     </div>
 
@@ -566,7 +566,6 @@
         let globalAnimating = false;
         let timedTimeout = null;
 
-        // DOM
         const groupsContainer = document.getElementById('groupsContainer');
         const startAllBtn = document.getElementById('startAllBtn');
         const stopAllBtn = document.getElementById('stopAllBtn');
@@ -583,11 +582,8 @@
         const refreshAnalysisBtn = document.getElementById('refreshAnalysisBtn');
         const analysisStatsArea = document.getElementById('analysisStatsArea');
 
-        // ----- Функция вычисления среднего вектора в 12-часовом формате -----
-        // угол в радианах -> час на 12-часовом циферблате (0 = 12 часов, 1 = 1 час ... 11.999)
+        // Угол -> час на 12-часовом циферблате (12 часов = 0 рад / вверх)
         function angleRadToHour(angleRad) {
-            // angleRad: 0 = вверх (0°), увеличивается по часовой стрелке (но в нашей модели угол поворота: 0° стрелка вверх)
-            // Полный круг 2*PI = 12 часов. Соответствие: 0 рад -> 12 часов, PI/6 -> 1 час, PI/2 -> 3 часа и т.д.
             let hours = (angleRad * (12 / (2 * Math.PI))) % 12;
             if (hours < 0) hours += 12;
             if (hours === 0) hours = 12;
@@ -599,29 +595,24 @@
             let sumX = 0, sumY = 0;
             const angles = discs.map(d => d.getCurrentAngle());
             for (let ang of angles) {
-                // вектор направления стрелки (единичная длина)
-                const x = Math.cos(ang);
-                const y = Math.sin(ang);
-                sumX += x;
-                sumY += y;
+                sumX += Math.cos(ang);
+                sumY += Math.sin(ang);
             }
             const N = discs.length;
             const avgX = sumX / N;
             const avgY = sumY / N;
-            const magnitude = Math.hypot(avgX, avgY); // длина результирующего вектора (0..1)
+            const magnitude = Math.hypot(avgX, avgY);
             let avgAngle = Math.atan2(avgY, avgX);
             if (avgAngle < 0) avgAngle += 2 * Math.PI;
             const avgHour = angleRadToHour(avgAngle);
             
-            // также медиана часов (для наглядности) и распределение по секторам
             const hoursList = angles.map(ang => angleRadToHour(ang));
             hoursList.sort((a,b)=>a-b);
             const medianHour = hoursList[Math.floor(hoursList.length/2)];
             
-            // подсчет по четвертям циферблата
             let sector12_3 = 0, sector3_6 = 0, sector6_9 = 0, sector9_12 = 0;
             for (let h of hoursList) {
-                if (h >= 12 || h < 3) sector12_3++;      // 12-3 (включая 12)
+                if (h >= 12 || h < 3) sector12_3++;
                 else if (h >= 3 && h < 6) sector3_6++;
                 else if (h >= 6 && h < 9) sector6_9++;
                 else sector9_12++;
@@ -642,21 +633,17 @@
                 analysisStatsArea.innerHTML = `<div style="color:#FFCC99;">⏳ Нет данных о кругах</div>`;
                 return;
             }
-            // формируем красивую карточку анализа
             const sectorDesc = `🧭 12–3ч: ${stats.sector12_3}  |  3–6ч: ${stats.sector3_6}  |  6–9ч: ${stats.sector6_9}  |  9–12ч: ${stats.sector9_12}`;
-            const avgVectorText = `📐 Средний вектор: ${stats.avgHour} ч  (длина ${stats.magnitude}) | 🧮 Медиана: ${stats.medianHour} ч`;
-            const tooltipHint = `🔍 Всего колес: ${stats.total}. Разброс направлений.`;
             analysisStatsArea.innerHTML = `
-                <div class="vector-result">⭐ СРЕДНЕЕ НАПРАВЛЕНИЕ: ${stats.avgHour} часов (${stats.avgHour} : 00 на циферблате)</div>
+                <div class="vector-result">⭐ СРЕДНЕЕ НАПРАВЛЕНИЕ: ${stats.avgHour} часов  |  📊 МЕДИАНА: ${stats.medianHour} ч</div>
                 <div style="font-size:0.75rem; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; width:100%;">
-                    <span>${avgVectorText}</span>
+                    <span>📐 Длина среднего вектора: ${stats.magnitude}</span>
                     <span>🎯 ${sectorDesc}</span>
                 </div>
-                <div style="font-size:0.65rem; margin-top: 6px; color:#FFDBA5;">${tooltipHint}</div>
+                <div style="font-size:0.65rem; margin-top: 6px; color:#FFDBA5;">✅ Всего кругов: ${stats.total}</div>
             `;
         }
 
-        // ----- стандартные функции интерфейса -----
         function saveToLocalStorage() {
             const rpmData = cardsData.map(c => ({ rpm: parseFloat(c.rpmInput.value) || 0 }));
             const researchName = researchNameInput.value;
@@ -719,7 +706,6 @@
                 globalAnimating = true;
                 statusMsgSpan.innerHTML = `🌀 Бесконечное вращение (старт из ВВЕРХ)`;
                 saveToLocalStorage();
-                // анализ будет обновляться по таймеру? лучше обновлять в анимации, но добавим обновление через requestAnimationFrame или принудительно
                 const interval = setInterval(() => {
                     if (!globalAnimating) clearInterval(interval);
                     updateAnalysisDisplay();
@@ -731,18 +717,18 @@
 
         function startTimedRotation() {
             let sec = parseFloat(timerSecondsInput.value);
-            if (isNaN(sec) || sec <= 0) sec = 2;
-            if (sec > 30) sec = 30;
+            if (isNaN(sec) || sec <= 0) sec = 31.4;
+            if (sec > 60) sec = 60;
             prepareAndStart(() => {
                 discs.forEach(d => d.start());
                 globalAnimating = true;
-                statusMsgSpan.innerHTML = `⏳ Вращение на ${sec} секунд...`;
+                statusMsgSpan.innerHTML = `⏳ Вращение на ${sec.toFixed(1)} секунд...`;
                 const updInterval = setInterval(() => updateAnalysisDisplay(), 100);
                 timedTimeout = setTimeout(() => {
                     stopAllCircles(true);
                     clearInterval(updInterval);
                     statusMsgSpan.innerHTML = `✅ Эксперимент завершён! Финальные направления зафиксированы.`;
-                    updateAnalysisDisplay(); // финальный анализ
+                    updateAnalysisDisplay();
                     saveToLocalStorage();
                 }, sec * 1000);
             });
@@ -788,10 +774,14 @@
 
         function clearBatchTextarea() { batchRPMInput.value = ""; statusMsgSpan.innerHTML = "🧹 Поле очищено."; }
 
-        // Расширенный скриншот (без изменений логики, но добавим обновление анализа)
-        async function captureReliableScreenshot() { /* сохраняем оригинальную функцию */ 
+        // Расширенный скриншот с полными данными анализа
+        async function captureReliableScreenshot() {
             const researchName = researchNameInput.value.trim() || "Без названия";
             const timestamp = new Date().toLocaleString();
+            const stats = computeAverageVectorAndStats();
+            const avgHourText = stats ? `Средн.направление: ${stats.avgHour} ч  |  Медиана: ${stats.medianHour} ч  |  Длина вектора: ${stats.magnitude}` : "Анализ временно недоступен";
+            const sectorText = stats ? `Распределение: 12-3ч:${stats.sector12_3}  3-6ч:${stats.sector3_6}  6-9ч:${stats.sector6_9}  9-12ч:${stats.sector9_12}` : "";
+            
             const snapshots = discs.map((disc, idx) => ({
                 angle: disc.getCurrentAngle(),
                 mainColor: disc.circleColor,
@@ -800,7 +790,7 @@
             }));
             const cardWidth = 140, cardHeight = 170, circleSize = 85, cols = 6, rows = 4;
             const totalWidth = cols * cardWidth + 40;
-            const totalHeight = rows * cardHeight + 120;
+            const totalHeight = rows * cardHeight + 200;
             const canvas = document.createElement('canvas');
             canvas.width = totalWidth;
             canvas.height = totalHeight;
@@ -816,13 +806,23 @@
             ctx.fillStyle = "#FFD966";
             ctx.font = "12px monospace";
             ctx.fillText(`⏱ ${timestamp}  |  24 круга · финальные положения стрелок`, 20, 105);
+            
+            // ДОБАВЛЯЕМ БЛОК АНАЛИЗА ПРЯМО НА СКРИНШОТ
+            ctx.font = "bold 13px monospace";
+            ctx.fillStyle = "#FFEAA0";
+            ctx.fillText(`🧭 РЕЗУЛЬТАТЫ АНАЛИЗА ВЕКТОРОВ (12-часовой циферблат):`, 20, 138);
+            ctx.font = "12px monospace";
+            ctx.fillStyle = "#FFD966";
+            ctx.fillText(`${avgHourText}`, 20, 162);
+            if(stats) ctx.fillText(`${sectorText}`, 20, 182);
+            
             let idx = 0;
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     if (idx >= snapshots.length) break;
                     const data = snapshots[idx];
                     const x = 20 + col * cardWidth;
-                    const y = 120 + row * cardHeight;
+                    const y = 200 + row * cardHeight;
                     ctx.fillStyle = "#000000aa";
                     ctx.beginPath();
                     ctx.roundRect(x, y, cardWidth-8, cardHeight-10, 16);
@@ -873,16 +873,15 @@
             }
             ctx.font = "italic 10px monospace";
             ctx.fillStyle = "#FFDCA8";
-            ctx.fillText("экспериментальный стенд · направления стрелок зафиксированы", 20, totalHeight-20);
+            ctx.fillText("экспериментальный стенд · направления стрелок и векторный анализ зафиксированы", 20, totalHeight-18);
             const link = document.createElement('a');
             const safeName = researchName.replace(/\s+/g, '_').slice(0, 40);
             link.download = `circles_export_${safeName}_${Date.now()}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-            statusMsgSpan.innerHTML = `📸 Скриншот сохранён! Анализ доступен на панели.`;
+            statusMsgSpan.innerHTML = `📸 Скриншот сохранён с анализом вектора и медианы!`;
         }
 
-        // Полифилл
         if (!CanvasRenderingContext2D.prototype.roundRect) {
             CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
                 if (w < 2 * r) r = w / 2;
@@ -900,7 +899,6 @@
             };
         }
 
-        // Построение интерфейса (та же логика)
         function buildGroups() {
             groupsContainer.innerHTML = '';
             discs = []; cardsData = [];
@@ -965,32 +963,28 @@
                         cardElement: card,
                         discIndex: idx
                     });
-                    applyBtn.addEventListener('click', (function(index){
-                        return function(){
-                            let newRPM = parseFloat(cardsData[index].rpmInput.value);
-                            if (!isNaN(newRPM)) {
-                                discs[index].setRPM(newRPM);
-                                cardsData[index].rpmLabel.innerText = newRPM.toFixed(2);
-                                if (globalAnimating) discs[index].start();
-                                statusMsgSpan.innerHTML = `⚙️ Круг ${index+1}: RPM = ${newRPM}`;
-                                saveToLocalStorage();
-                                updateAnalysisDisplay();
-                            }
-                        };
-                    })(idx));
-                    deleteBtn.addEventListener('click', (function(index){
-                        return function(e){
-                            e.stopPropagation();
-                            if (discs.length === 1) return;
-                            discs[index].stop();
-                            cardsData[index].cardElement.remove();
-                            discs.splice(index,1);
-                            cardsData.splice(index,1);
-                            for (let k=index; k<cardsData.length; k++) cardsData[k].discIndex = k;
+                    applyBtn.addEventListener('click', (function(index){ return function(){
+                        let newRPM = parseFloat(cardsData[index].rpmInput.value);
+                        if (!isNaN(newRPM)) {
+                            discs[index].setRPM(newRPM);
+                            cardsData[index].rpmLabel.innerText = newRPM.toFixed(2);
+                            if (globalAnimating) discs[index].start();
+                            statusMsgSpan.innerHTML = `⚙️ Круг ${index+1}: RPM = ${newRPM}`;
                             saveToLocalStorage();
                             updateAnalysisDisplay();
-                        };
-                    })(idx));
+                        }
+                    }; })(idx));
+                    deleteBtn.addEventListener('click', (function(index){ return function(e){
+                        e.stopPropagation();
+                        if (discs.length === 1) return;
+                        discs[index].stop();
+                        cardsData[index].cardElement.remove();
+                        discs.splice(index,1);
+                        cardsData.splice(index,1);
+                        for (let k=index; k<cardsData.length; k++) cardsData[k].discIndex = k;
+                        saveToLocalStorage();
+                        updateAnalysisDisplay();
+                    }; })(idx));
                     globalIdx++;
                 }
                 groupDiv.appendChild(grid);
@@ -1012,6 +1006,8 @@
         buildGroups();
         setTimeout(() => { loadFromLocalStorage(); updateAnalysisDisplay(); }, 100);
         researchNameInput.addEventListener('change', saveToLocalStorage);
+        // Устанавливаем значение по умолчанию 31.4
+        if(timerSecondsInput) timerSecondsInput.value = "31.4";
     })();
 </script>
 </body>
