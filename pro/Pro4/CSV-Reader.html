@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CSV Reader — Блок с выбором столбцов + диапазон строк + очистка чисел</title>
+    <title>CSV Reader — Блок + Колонки с очисткой чисел</title>
     <style>
         * {
             box-sizing: border-box;
@@ -345,7 +346,8 @@
 <div class="container">
     <h1>📁 CSV Reader — копирование блока (столбцы + диапазон строк)</h1>
     <div class="sub">🔽 Загрузите CSV → выберите столбцы и строки для копирования | ⚡ Очистка чисел: удаляет точки и запятые, цифры сливаются (например, "5.123,45" → "512345")<br>
-    🖱️ <strong>Нажмите на любую строку в таблице, чтобы сделать её "главной"</strong> (началом отсчёта)</div>
+    🖱️ <strong>Нажмите на любую строку в таблице, чтобы сделать её "главной"</strong> (началом отсчёта)<br>
+    🖱️ <strong>Клик по заголовку колонки</strong> → копирует ВСЮ колонку с ОЧИСТКОЙ чисел</div>
 
     <div class="upload-area" id="uploadArea">
         <div class="upload-icon">📂🧾</div>
@@ -414,8 +416,8 @@
         📌 Пример: "5.123,45" → "512345" | "1,234.56" → "123456"<br>
         📌 <strong>Главная строка:</strong> нажмите на любую строку в таблице — она станет "началом отсчёта" (виртуальная строка 1).<br>
         📌 <strong>Виртуальные строки:</strong> указываете диапазон относительно главной строки (например, строки 1-6 = главная + следующие 5 строк).<br>
-        🖱️ Клик по заголовку колонки — копирует все значения колонки (без очистки).<br>
-        📌 <strong>Порядок копирования:</strong> сначала все строки выбранных столбцов (по столбцам).
+        🖱️ <strong>Клик по заголовку колонки</strong> → копирует ВСЕ значения колонки с очисткой чисел (удаляет . и ,).<br>
+        📌 <strong>Порядок копирования блока:</strong> сначала все строки выбранных столбцов (по столбцам).
     </footer>
 </div>
 
@@ -459,6 +461,9 @@
             if (rawValue === undefined || rawValue === null) return '';
             let str = String(rawValue).trim();
             if (str === '') return '';
+            // Удаляем все точки и запятые (оставляем только цифры, знак минус? но по ТЗ просто склейка цифр)
+            // Однако для полноты: оставляем только цифры и минус? Но пример: "5.123,45" -> "512345"
+            // Дополнительно: если значение содержит буквы, то очистка удалит точки и запятые, но буквы останутся.
             let cleaned = str.replace(/[.,]/g, '');
             return cleaned;
         }
@@ -473,7 +478,7 @@
             renderTable(); // перерисовываем для подсветки
         }
         
-        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА с учётом главной строки
+        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА с учётом главной строки (очистка чисел)
         function copySelectedRange() {
             if (!dataRowsPure.length || dataRowsPure.length === 0) {
                 showCopyToast('❌ Нет данных. Загрузите CSV файл.');
@@ -522,7 +527,6 @@
             let realStartRowIdx = realRowStart - 1;
             let realEndRowIdx = realRowEnd - 1;
             
-            let correctedStartRowVirtual = rowStart;
             let correctedEndRowVirtual = rowEnd;
             
             if (realStartRowIdx >= totalDataRows) {
@@ -544,7 +548,7 @@
             const actualRowsCount = realEndRowIdx - realStartRowIdx + 1;
             const colCount = endColIdx - startColIdx + 1;
             
-            // Собираем значения ПО СТОЛБЦАМ
+            // Собираем значения ПО СТОЛБЦАМ (как и было, но с очисткой)
             const resultValues = [];
             for (let col = startColIdx; col <= endColIdx; col++) {
                 for (let i = realStartRowIdx; i <= realEndRowIdx; i++) {
@@ -562,38 +566,38 @@
             
             const colRangeStr = (colCount === 1) ? `${colStart}` : `${colStart}-${endColIdx+1}`;
             const virtRowRangeStr = (actualRowsCount === 1) ? `${rowStart}` : `${rowStart}-${correctedEndRowVirtual}`;
-            const realRowRangeStr = (actualRowsCount === 1) ? `${realStartRowIdx+1}` : `${realStartRowIdx+1}-${realEndRowIdx+1}`;
             
             const outputString = resultValues.join(',');
             
             navigator.clipboard.writeText(outputString).then(() => {
                 let preview = outputString.length > 90 ? outputString.substring(0, 90) + '…' : outputString;
-                showCopyToast(`✅ Скопировано: ${colCount} столбцов × ${actualRowsCount} строк = ${resultValues.length} значений. Главная строка = ${mainRow}. Виртуальные строки ${virtRowRangeStr} → реальные ${realRowRangeStr}.`);
+                showCopyToast(`✅ Скопировано (очистка чисел): ${colCount} столбцов × ${actualRowsCount} строк = ${resultValues.length} значений. Главная строка = ${mainRow}. Виртуальные строки ${virtRowRangeStr}`);
             }).catch(err => {
                 showCopyToast(`❌ Ошибка копирования: ${err.message || 'неизвестная ошибка'}`);
             });
         }
         
-        // Копирование колонки
-        function copyColumnData(columnIndex, columnName) {
+        // КОПИРОВАНИЕ КОЛОНКИ С ОЧИСТКОЙ ЧИСЕЛ (теперь как и для блока)
+        function copyColumnDataWithCleaning(columnIndex, columnName) {
             if (!dataRowsPure.length) {
                 showCopyToast('⚠️ Нет данных для копирования');
                 return;
             }
-            const values = [];
+            const cleanedValues = [];
             for (let row of dataRowsPure) {
-                let val = (columnIndex < row.length) ? row[columnIndex] : '';
-                if (val === undefined || val === null) val = '';
-                values.push(String(val));
+                let rawVal = (columnIndex < row.length) ? row[columnIndex] : '';
+                if (rawVal === undefined || rawVal === null) rawVal = '';
+                let cleaned = cleanNumberValue(rawVal);
+                cleanedValues.push(cleaned === '' ? '' : cleaned);
             }
-            if (values.length === 0) {
+            if (cleanedValues.length === 0) {
                 showCopyToast('Колонка не содержит значений');
                 return;
             }
-            const resultString = values.join(',');
+            const resultString = cleanedValues.join(',');
             navigator.clipboard.writeText(resultString).then(() => {
-                let preview = resultString.length > 60 ? resultString.substring(0, 60) + '…' : resultString;
-                showCopyToast(`✅ Скопировано: "${columnName}" (${values.length} значений) → ${preview}`);
+                let preview = resultString.length > 70 ? resultString.substring(0, 70) + '…' : resultString;
+                showCopyToast(`✅ Скопировано колонка «${columnName}» (очистка чисел): ${cleanedValues.length} значений → ${preview}`);
             }).catch(err => {
                 showCopyToast(`❌ Не удалось скопировать колонку. Ошибка: ${err.message || 'неизвестная ошибка'}`);
             });
@@ -655,9 +659,9 @@
             let html = '<table id="csvDataTable"><thead><tr>';
             for (let idx = 0; idx < headers.length; idx++) {
                 const headerText = escapeHtml(String(headers[idx]));
-                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки «${headerText}»">${headerText}<span class="column-hint">📋</span></th>`;
+                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки с ОЧИСТКОЙ чисел «${headerText}»">${headerText}<span style="margin-left: 6px; font-size:0.7rem;">📋🧹</span></th>`;
             }
-            html += '</tr></thead><tbody>';
+            html += '</thead><tbody>';
             for (let rowIdx = 0; rowIdx < displayRows.length; rowIdx++) {
                 const row = displayRows[rowIdx];
                 const realRowNumber = rowIdx + 1;
@@ -674,7 +678,7 @@
             }
             tableContainer.innerHTML = html;
             
-            // Вешаем обработчики на заголовки (копирование колонки)
+            // Вешаем обработчики на заголовки (копирование колонки с очисткой чисел)
             const headerEls = document.querySelectorAll('#csvDataTable th');
             headerEls.forEach(th => {
                 const colIdx = th.getAttribute('data-col-index');
@@ -683,7 +687,7 @@
                         e.stopPropagation();
                         const idx = parseInt(colIdx, 10);
                         const colName = headers[idx] || `Колонка ${idx+1}`;
-                        copyColumnData(idx, colName);
+                        copyColumnDataWithCleaning(idx, colName);
                     });
                 }
             });
@@ -701,7 +705,7 @@
             });
         }
         
-        // Парсер CSV с поддержкой кавычек
+        // ----- Парсинг CSV (с поддержкой кавычек) -----
         function parseCSV(text, delimiter) {
             if (text.charCodeAt(0) === 0xFEFF) {
                 text = text.slice(1);
@@ -941,7 +945,7 @@
             });
         }
         
-        // Event listeners
+        // Инициализация событий
         fileInput.addEventListener('change', (e) => {
             if (e.target.files && e.target.files.length > 0) {
                 handleFileSelect(e.target.files[0]);
