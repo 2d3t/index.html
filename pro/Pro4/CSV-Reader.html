@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CSV Reader — Блок + Колонки с очисткой чисел</title>
+    <title>CSV Reader — Копирование колонок: сверху вниз / снизу вверх</title>
     <style>
         * {
             box-sizing: border-box;
@@ -314,6 +314,42 @@
             white-space: nowrap;
         }
 
+        /* Контекстное меню для выбора направления колонки */
+        .column-context-menu {
+            position: fixed;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.05);
+            z-index: 2000;
+            min-width: 180px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            animation: menuFadeIn 0.12s ease;
+        }
+        .column-context-menu .menu-item {
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .column-context-menu .menu-item:last-child {
+            border-bottom: none;
+        }
+        .column-context-menu .menu-item:hover {
+            background: #f1f5f9;
+        }
+        .column-context-menu .menu-item:active {
+            background: #e2e8f0;
+        }
+        @keyframes menuFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
             15% { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -344,10 +380,11 @@
 <body>
 
 <div class="container">
-    <h1>📁 CSV Reader — копирование блока (столбцы + диапазон строк)</h1>
-    <div class="sub">🔽 Загрузите CSV → выберите столбцы и строки для копирования | ⚡ Очистка чисел: удаляет точки и запятые, цифры сливаются (например, "5.123,45" → "512345")<br>
-    🖱️ <strong>Нажмите на любую строку в таблице, чтобы сделать её "главной"</strong> (началом отсчёта)<br>
-    🖱️ <strong>Клик по заголовку колонки</strong> → копирует ВСЮ колонку с ОЧИСТКОЙ чисел</div>
+    <h1>📁 CSV Reader — копирование колонок: ↑ сверху вниз / ↓ снизу вверх</h1>
+    <div class="sub">🔽 Загрузите CSV → Копирование БЛОКА (столбцы+диапазон) ИЛИ клик по заголовку колонки с выбором направления<br>
+    🖱️ <strong>Клик ПКМ или долгое нажатие на заголовке</strong> — выберите порядок значений (сверху вниз или снизу вверх) + очистка чисел.<br>
+    🖱️ <strong>Обычный клик по заголовку</strong> — копирует в выбранном ранее направлении (по умолчанию сверху вниз).<br>
+    ⚡ Очистка чисел: удаляет точки и запятые (пример: "5.123,45" → "512345")</div>
 
     <div class="upload-area" id="uploadArea">
         <div class="upload-icon">📂🧾</div>
@@ -356,7 +393,7 @@
             выберите CSV файл
             <input type="file" id="fileInput" accept=".csv, .text/csv, .tsv, .txt">
         </label>
-        <div style="font-size: 0.75rem; margin-top: 12px; color: #5b6e8c;">Поддерживается UTF-8, автоопределение разделителя ( , ; \t | )</div>
+        <div style="font-size: 0.75rem; margin-top: 12px; color: #5b6e8c;">Поддерживается UTF-8, автоопределение разделителя</div>
     </div>
 
     <div id="errorBox" style="display: none;" class="error-toast"></div>
@@ -396,7 +433,7 @@
             <div class="range-group">
                 <label>⭐ Главная строка (начало отсчёта):</label>
                 <input type="number" id="mainRow" min="1" value="1" style="width: 80px;">
-                <span style="font-size:0.7rem;">(нажмите на строку в таблице, чтобы изменить)</span>
+                <span style="font-size:0.7rem;">(нажмите на строку)</span>
             </div>
             <div class="range-group">
                 <label>📏 Строки (виртуальные):</label>
@@ -404,7 +441,7 @@
                 <span> — </span>
                 <input type="number" id="rowEnd" min="1" value="6" style="width: 70px;">
             </div>
-            <button id="copyRangeBtn" class="special-btn">📋 Копировать выбранный блок (очистка чисел)</button>
+            <button id="copyRangeBtn" class="special-btn">📋 Копировать блок (очистка чисел)</button>
         </div>
 
         <div class="table-wrapper" id="tableContainer">
@@ -412,12 +449,11 @@
         </div>
     </div>
     <footer>
-        ⚡ <strong>Очистка чисел:</strong> удаляет десятичные точки и запятые-разделители, но все цифры склеиваются.<br>
-        📌 Пример: "5.123,45" → "512345" | "1,234.56" → "123456"<br>
-        📌 <strong>Главная строка:</strong> нажмите на любую строку в таблице — она станет "началом отсчёта" (виртуальная строка 1).<br>
-        📌 <strong>Виртуальные строки:</strong> указываете диапазон относительно главной строки (например, строки 1-6 = главная + следующие 5 строк).<br>
-        🖱️ <strong>Клик по заголовку колонки</strong> → копирует ВСЕ значения колонки с очисткой чисел (удаляет . и ,).<br>
-        📌 <strong>Порядок копирования блока:</strong> сначала все строки выбранных столбцов (по столбцам).
+        ⚡ <strong>Очистка чисел:</strong> удаляет точки и запятые → "5.123,45" → "512345"<br>
+        🖱️ <strong>Клик по заголовку колонки</strong> → копирует ВСЮ колонку с текущим направлением.<br>
+        🖱️ <strong>ПКМ / долгое нажатие на заголовке</strong> → выбор направления: сверху вниз (1→N) или снизу вверх (N→1).<br>
+        📌 Выбранное направление запоминается для каждой колонки отдельно!<br>
+        📌 <strong>Копирование блока:</strong> идёт в порядке "по столбцам" (все строки столбца1, потом столбца2...), всегда сверху вниз.
     </footer>
 </div>
 
@@ -444,6 +480,9 @@
         let headers = [];
         let dataRowsPure = [];      // строки данных (без заголовков)
         
+        // Храним направление для каждой колонки: 'top-down' или 'bottom-up'
+        let columnDirections = new Map(); // key = columnIndex, value = 'top-down' / 'bottom-up'
+        
         function showCopyToast(message) {
             const existingToast = document.querySelector('.copy-toast');
             if (existingToast) existingToast.remove();
@@ -456,16 +495,12 @@
             }, 2500);
         }
         
-        // Очистка чисел: удаляем ВСЕ точки и запятые -> склеиваем цифры
+        // Очистка чисел: удаляем ВСЕ точки и запятые
         function cleanNumberValue(rawValue) {
             if (rawValue === undefined || rawValue === null) return '';
             let str = String(rawValue).trim();
             if (str === '') return '';
-            // Удаляем все точки и запятые (оставляем только цифры, знак минус? но по ТЗ просто склейка цифр)
-            // Однако для полноты: оставляем только цифры и минус? Но пример: "5.123,45" -> "512345"
-            // Дополнительно: если значение содержит буквы, то очистка удалит точки и запятые, но буквы останутся.
-            let cleaned = str.replace(/[.,]/g, '');
-            return cleaned;
+            return str.replace(/[.,]/g, '');
         }
         
         // Установка главной строки
@@ -475,132 +510,145 @@
             if (rowNumber > dataRowsPure.length) rowNumber = dataRowsPure.length;
             mainRowInput.value = rowNumber;
             showCopyToast(`⭐ Главная строка установлена на ${rowNumber} (виртуальная строка 1)`);
-            renderTable(); // перерисовываем для подсветки
+            renderTable();
         }
         
-        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА с учётом главной строки (очистка чисел)
+        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА (по столбцам, всегда сверху вниз, очистка)
         function copySelectedRange() {
-            if (!dataRowsPure.length || dataRowsPure.length === 0) {
-                showCopyToast('❌ Нет данных. Загрузите CSV файл.');
+            if (!dataRowsPure.length) {
+                showCopyToast('❌ Нет данных.');
                 return;
             }
-            
             let colStart = parseInt(colStartInput.value, 10);
             let colEnd = parseInt(colEndInput.value, 10);
             let rowStart = parseInt(rowStartInput.value, 10);
             let rowEnd = parseInt(rowEndInput.value, 10);
             let mainRow = parseInt(mainRowInput.value, 10);
-            
-            // Валидация
             if (isNaN(colStart) || colStart < 1) colStart = 1;
             if (isNaN(colEnd) || colEnd < colStart) colEnd = colStart;
             if (isNaN(rowStart) || rowStart < 1) rowStart = 1;
             if (isNaN(rowEnd) || rowEnd < rowStart) rowEnd = rowStart;
             if (isNaN(mainRow) || mainRow < 1) mainRow = 1;
+            if (mainRow > dataRowsPure.length) { mainRow = 1; mainRowInput.value = 1; }
             
-            if (mainRow > dataRowsPure.length) {
-                showCopyToast(`⚠️ Главная строка ${mainRow} превышает количество строк (${dataRowsPure.length}). Используем 1.`);
-                mainRow = 1;
-                mainRowInput.value = 1;
-            }
-            
-            // Преобразуем виртуальные строки в реальные
             const realRowStart = mainRow + (rowStart - 1);
             const realRowEnd = mainRow + (rowEnd - 1);
-            
             const totalCols = headers.length;
             const totalDataRows = dataRowsPure.length;
-            
-            if (totalCols === 0) {
-                showCopyToast('⚠️ В таблице нет столбцов.');
-                return;
-            }
-            
+            if (totalCols === 0) return;
             const startColIdx = colStart - 1;
             let endColIdx = Math.min(colEnd - 1, totalCols - 1);
-            if (startColIdx >= totalCols) {
-                showCopyToast(`⚠️ Начальный столбец ${colStart} превышает общее количество столбцов (${totalCols}).`);
-                return;
-            }
-            
-            // Корректируем реальные границы строк
+            if (startColIdx >= totalCols) { showCopyToast(`⚠️ Столбец ${colStart} вне диапазона`); return; }
             let realStartRowIdx = realRowStart - 1;
             let realEndRowIdx = realRowEnd - 1;
+            if (realStartRowIdx >= totalDataRows) { showCopyToast('⚠️ Начальная строка за пределами'); return; }
+            if (realEndRowIdx >= totalDataRows) realEndRowIdx = totalDataRows - 1;
+            if (realStartRowIdx > realEndRowIdx) return;
             
-            let correctedEndRowVirtual = rowEnd;
-            
-            if (realStartRowIdx >= totalDataRows) {
-                showCopyToast(`⚠️ Виртуальная строка ${rowStart} (реальная ${realRowStart}) выходит за пределы данных. Доступно реальных строк: ${totalDataRows}. Главная = ${mainRow}.`);
-                return;
-            }
-            
-            if (realEndRowIdx >= totalDataRows) {
-                realEndRowIdx = totalDataRows - 1;
-                correctedEndRowVirtual = (realEndRowIdx - mainRow) + 1;
-                showCopyToast(`⚠️ Виртуальная строка ${rowEnd} выходит за пределы. Скопируем до виртуальной ${correctedEndRowVirtual} (реальная ${realEndRowIdx+1}).`);
-            }
-            
-            if (realStartRowIdx > realEndRowIdx) {
-                showCopyToast(`⚠️ Некорректный диапазон виртуальных строк: ${rowStart} > ${rowEnd}.`);
-                return;
-            }
-            
-            const actualRowsCount = realEndRowIdx - realStartRowIdx + 1;
-            const colCount = endColIdx - startColIdx + 1;
-            
-            // Собираем значения ПО СТОЛБЦАМ (как и было, но с очисткой)
             const resultValues = [];
             for (let col = startColIdx; col <= endColIdx; col++) {
                 for (let i = realStartRowIdx; i <= realEndRowIdx; i++) {
                     const row = dataRowsPure[i];
-                    let rawCell = (col < row.length) ? row[col] : '';
-                    let cleaned = cleanNumberValue(rawCell);
-                    resultValues.push(cleaned === '' ? '' : cleaned);
+                    let raw = (col < row.length) ? row[col] : '';
+                    resultValues.push(cleanNumberValue(raw));
                 }
             }
-            
-            if (resultValues.length === 0) {
-                showCopyToast('После очистки не осталось значений для копирования.');
-                return;
-            }
-            
-            const colRangeStr = (colCount === 1) ? `${colStart}` : `${colStart}-${endColIdx+1}`;
-            const virtRowRangeStr = (actualRowsCount === 1) ? `${rowStart}` : `${rowStart}-${correctedEndRowVirtual}`;
-            
+            if (resultValues.length === 0) { showCopyToast('Нет значений'); return; }
             const outputString = resultValues.join(',');
-            
             navigator.clipboard.writeText(outputString).then(() => {
-                let preview = outputString.length > 90 ? outputString.substring(0, 90) + '…' : outputString;
-                showCopyToast(`✅ Скопировано (очистка чисел): ${colCount} столбцов × ${actualRowsCount} строк = ${resultValues.length} значений. Главная строка = ${mainRow}. Виртуальные строки ${virtRowRangeStr}`);
-            }).catch(err => {
-                showCopyToast(`❌ Ошибка копирования: ${err.message || 'неизвестная ошибка'}`);
-            });
+                showCopyToast(`✅ Блок скопирован (очистка чисел): ${resultValues.length} значений`);
+            }).catch(err => showCopyToast(`❌ Ошибка: ${err.message}`));
         }
         
-        // КОПИРОВАНИЕ КОЛОНКИ С ОЧИСТКОЙ ЧИСЕЛ (теперь как и для блока)
-        function copyColumnDataWithCleaning(columnIndex, columnName) {
+        // КОПИРОВАНИЕ КОЛОНКИ с учётом направления (очистка чисел)
+        function copyColumnWithDirection(columnIndex, columnName, direction) {
             if (!dataRowsPure.length) {
-                showCopyToast('⚠️ Нет данных для копирования');
+                showCopyToast('⚠️ Нет данных');
                 return;
             }
-            const cleanedValues = [];
+            // Собираем все значения колонки (очищенные)
+            const rawValues = [];
             for (let row of dataRowsPure) {
-                let rawVal = (columnIndex < row.length) ? row[columnIndex] : '';
-                if (rawVal === undefined || rawVal === null) rawVal = '';
-                let cleaned = cleanNumberValue(rawVal);
-                cleanedValues.push(cleaned === '' ? '' : cleaned);
+                let val = (columnIndex < row.length) ? row[columnIndex] : '';
+                rawValues.push(cleanNumberValue(val));
             }
-            if (cleanedValues.length === 0) {
-                showCopyToast('Колонка не содержит значений');
-                return;
+            if (rawValues.length === 0) { showCopyToast('Колонка пуста'); return; }
+            let finalValues;
+            if (direction === 'bottom-up') {
+                finalValues = [...rawValues].reverse();
+            } else {
+                finalValues = rawValues; // top-down
             }
-            const resultString = cleanedValues.join(',');
+            const resultString = finalValues.join(',');
+            const dirText = direction === 'bottom-up' ? 'снизу вверх (↓↑)' : 'сверху вниз (↑↓)';
             navigator.clipboard.writeText(resultString).then(() => {
                 let preview = resultString.length > 70 ? resultString.substring(0, 70) + '…' : resultString;
-                showCopyToast(`✅ Скопировано колонка «${columnName}» (очистка чисел): ${cleanedValues.length} значений → ${preview}`);
-            }).catch(err => {
-                showCopyToast(`❌ Не удалось скопировать колонку. Ошибка: ${err.message || 'неизвестная ошибка'}`);
-            });
+                showCopyToast(`✅ Колонка «${columnName}» [${dirText}]: ${finalValues.length} значений → ${preview}`);
+            }).catch(err => showCopyToast(`❌ Ошибка: ${err.message}`));
+        }
+        
+        // Показать контекстное меню для выбора направления
+        function showColumnContextMenu(event, columnIndex, columnName) {
+            event.preventDefault();
+            event.stopPropagation();
+            // Удаляем предыдущее меню, если есть
+            const existing = document.querySelector('.column-context-menu');
+            if (existing) existing.remove();
+            
+            const menu = document.createElement('div');
+            menu.className = 'column-context-menu';
+            menu.style.left = `${event.clientX}px`;
+            menu.style.top = `${event.clientY}px`;
+            
+            const currentDir = columnDirections.get(columnIndex) || 'top-down';
+            
+            const optionTop = document.createElement('div');
+            optionTop.className = 'menu-item';
+            optionTop.innerHTML = `⬆️ Сверху вниз (1 → N) ${currentDir === 'top-down' ? '✓' : ''}`;
+            optionTop.onclick = () => {
+                columnDirections.set(columnIndex, 'top-down');
+                showCopyToast(`📌 Колонка «${columnName}»: направление → сверху вниз`);
+                // дополнительно копируем сразу? нет, просто запоминаем, можно сразу скопировать? лучше не навязывать
+                menu.remove();
+            };
+            
+            const optionBottom = document.createElement('div');
+            optionBottom.className = 'menu-item';
+            optionBottom.innerHTML = `⬇️ Снизу вверх (N → 1) ${currentDir === 'bottom-up' ? '✓' : ''}`;
+            optionBottom.onclick = () => {
+                columnDirections.set(columnIndex, 'bottom-up');
+                showCopyToast(`📌 Колонка «${columnName}»: направление → снизу вверх`);
+                menu.remove();
+            };
+            
+            menu.appendChild(optionTop);
+            menu.appendChild(optionBottom);
+            
+            // Закрыть при клике вне меню
+            const closeHandler = (e) => {
+                if (!menu.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeHandler);
+                    document.removeEventListener('contextmenu', closeHandler);
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener('click', closeHandler);
+                document.addEventListener('contextmenu', closeHandler);
+            }, 10);
+            
+            document.body.appendChild(menu);
+        }
+        
+        // Обработчик клика по заголовку (обычный левый клик)
+        function onHeaderClick(columnIndex, columnName, event) {
+            const direction = columnDirections.get(columnIndex) || 'top-down';
+            copyColumnWithDirection(columnIndex, columnName, direction);
+        }
+        
+        // Обработчик контекстного меню (ПКМ) для заголовка
+        function onHeaderContextMenu(columnIndex, columnName, event) {
+            showColumnContextMenu(event, columnIndex, columnName);
         }
         
         // Подсветка главной строки
@@ -610,22 +658,18 @@
             const rows = document.querySelectorAll('#csvDataTable tbody tr');
             rows.forEach((row, idx) => {
                 const realRowNumber = idx + 1;
-                if (realRowNumber === mainRow) {
-                    row.classList.add('main-row-highlight');
-                } else {
-                    row.classList.remove('main-row-highlight');
-                }
+                if (realRowNumber === mainRow) row.classList.add('main-row-highlight');
+                else row.classList.remove('main-row-highlight');
             });
         }
         
-        // Отрисовка таблицы
+        // Отрисовка таблицы с привязкой событий
         function renderTable() {
             if (!dataRowsPure.length && (!headers.length)) {
-                tableContainer.innerHTML = '<div class="empty-message">Нет данных для отображения</div>';
+                tableContainer.innerHTML = '<div class="empty-message">Нет данных</div>';
                 statsInfo.innerText = `0 строк × 0 столбцов`;
                 return;
             }
-            
             const colCount = headers.length;
             const totalRows = dataRowsPure.length;
             const MAX_DISPLAY = 5000;
@@ -635,31 +679,26 @@
                 displayRows = dataRowsPure.slice(0, MAX_DISPLAY);
                 truncated = true;
             }
-            
             statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
             
-            // Обновляем max атрибуты
             colStartInput.max = colCount;
             colEndInput.max = colCount;
             if (parseInt(colStartInput.value) > colCount) colStartInput.value = colCount;
             if (parseInt(colEndInput.value) > colCount) colEndInput.value = colCount;
-            
             const mainRowVal = parseInt(mainRowInput.value, 10);
             if (mainRowVal > totalRows) mainRowInput.value = totalRows;
             if (mainRowVal < 1) mainRowInput.value = 1;
             mainRowInput.max = totalRows;
-            
             rowStartInput.max = totalRows;
             rowEndInput.max = totalRows;
             if (parseInt(rowStartInput.value) > totalRows) rowStartInput.value = totalRows;
             if (parseInt(rowEndInput.value) > totalRows) rowEndInput.value = totalRows;
-            if (parseInt(rowStartInput.value) < 1) rowStartInput.value = 1;
-            if (parseInt(rowEndInput.value) < 1) rowEndInput.value = 1;
             
             let html = '<table id="csvDataTable"><thead><tr>';
             for (let idx = 0; idx < headers.length; idx++) {
                 const headerText = escapeHtml(String(headers[idx]));
-                html += `<th data-col-index="${idx}" title="Кликните, чтобы скопировать все значения колонки с ОЧИСТКОЙ чисел «${headerText}»">${headerText}<span style="margin-left: 6px; font-size:0.7rem;">📋🧹</span></th>`;
+                const dirIcon = (columnDirections.get(idx) === 'bottom-up') ? '↓↑' : '↑↓';
+                html += `<th data-col-index="${idx}" title="ЛКМ: копировать (${dirIcon}) | ПКМ: выбрать направление">${headerText}<span style="margin-left: 6px; font-size:0.7rem;">📋${dirIcon}</span></th>`;
             }
             html += '</thead><tbody>';
             for (let rowIdx = 0; rowIdx < displayRows.length; rowIdx++) {
@@ -668,77 +707,71 @@
                 html += `<tr data-real-row="${realRowNumber}" class="${realRowNumber === mainRowVal ? 'main-row-highlight' : ''}">`;
                 for (let i = 0; i < colCount; i++) {
                     let cell = (i < row.length) ? row[i] : '';
-                    html += `<td title="Нажмите, чтобы сделать эту строку главной (строка ${realRowNumber})">${escapeHtml(String(cell))}</td>`;
+                    html += `<td title="Нажмите, чтобы сделать главной (строка ${realRowNumber})">${escapeHtml(String(cell))}</td>`;
                 }
                 html += '</tr>';
             }
             html += '</tbody></table>';
             if (truncated) {
-                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center; border-top:1px solid #fde68a;">⚠️ Отображено только ${MAX_DISPLAY} строк из ${totalRows}. Копирование работает со всеми данными.</div>`;
+                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center;">⚠️ Показано ${MAX_DISPLAY} из ${totalRows} строк. Копирование колонок работает со всеми данными.</div>`;
             }
             tableContainer.innerHTML = html;
             
-            // Вешаем обработчики на заголовки (копирование колонки с очисткой чисел)
+            // Привязываем события к заголовкам
             const headerEls = document.querySelectorAll('#csvDataTable th');
             headerEls.forEach(th => {
-                const colIdx = th.getAttribute('data-col-index');
-                if (colIdx !== null) {
+                const colIdxAttr = th.getAttribute('data-col-index');
+                if (colIdxAttr !== null) {
+                    const idx = parseInt(colIdxAttr, 10);
+                    const colName = headers[idx] || `Колонка ${idx+1}`;
+                    // Удаляем старые слушатели, чтобы не дублировать, но проще новые
+                    th.removeEventListener('click', (e) => {});
+                    th.removeEventListener('contextmenu', (e) => {});
                     th.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const idx = parseInt(colIdx, 10);
-                        const colName = headers[idx] || `Колонка ${idx+1}`;
-                        copyColumnDataWithCleaning(idx, colName);
+                        onHeaderClick(idx, colName, e);
+                    });
+                    th.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onHeaderContextMenu(idx, colName, e);
                     });
                 }
             });
             
-            // Вешаем обработчики на строки (установка главной строки)
+            // Строки: установка главной строки
             const rowEls = document.querySelectorAll('#csvDataTable tbody tr');
             rowEls.forEach(row => {
                 row.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const realRow = parseInt(row.getAttribute('data-real-row'), 10);
-                    if (!isNaN(realRow)) {
-                        setMainRow(realRow);
-                    }
+                    if (!isNaN(realRow)) setMainRow(realRow);
                 });
             });
         }
         
-        // ----- Парсинг CSV (с поддержкой кавычек) -----
+        // ----- Парсинг CSV -----
         function parseCSV(text, delimiter) {
-            if (text.charCodeAt(0) === 0xFEFF) {
-                text = text.slice(1);
-            }
+            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
             const rows = [];
-            let currentRow = [];
-            let currentField = '';
-            let insideQuotes = false;
-            let i = 0;
-            const n = text.length;
-            
-            while (i < n) {
+            let currentRow = [], currentField = '', insideQuotes = false;
+            for (let i = 0; i < text.length; i++) {
                 const ch = text[i];
-                const isDelimiter = (ch === delimiter);
-                if (!insideQuotes && isDelimiter) {
+                const isDelim = (ch === delimiter);
+                if (!insideQuotes && isDelim) {
                     currentRow.push(currentField);
                     currentField = '';
-                    i++;
                     continue;
                 }
-                if (ch === '\r' && i+1 < n && text[i+1] === '\n') {
+                if (ch === '\r' && i+1 < text.length && text[i+1] === '\n') {
                     if (!insideQuotes) {
                         currentRow.push(currentField);
                         rows.push(currentRow);
                         currentRow = [];
                         currentField = '';
-                        i += 2;
-                        continue;
-                    } else {
-                        currentField += ch;
                         i++;
                         continue;
-                    }
+                    } else { currentField += ch; continue; }
                 }
                 if (ch === '\n') {
                     if (!insideQuotes) {
@@ -746,243 +779,104 @@
                         rows.push(currentRow);
                         currentRow = [];
                         currentField = '';
-                        i++;
                         continue;
-                    } else {
-                        currentField += ch;
-                        i++;
-                        continue;
-                    }
+                    } else { currentField += ch; continue; }
                 }
                 if (ch === '"') {
-                    if (insideQuotes && i+1 < n && text[i+1] === '"') {
+                    if (insideQuotes && i+1 < text.length && text[i+1] === '"') {
                         currentField += '"';
-                        i += 2;
-                        continue;
-                    } else {
-                        insideQuotes = !insideQuotes;
                         i++;
                         continue;
-                    }
+                    } else { insideQuotes = !insideQuotes; continue; }
                 }
                 currentField += ch;
-                i++;
             }
-            if (currentField !== undefined || currentRow.length > 0) {
-                currentRow.push(currentField);
-                rows.push(currentRow);
-            }
-            while (rows.length > 0 && rows[rows.length-1].length === 1 && rows[rows.length-1][0] === '') {
-                rows.pop();
-            }
+            if (currentField !== undefined || currentRow.length) currentRow.push(currentField);
+            if (currentRow.length) rows.push(currentRow);
+            while (rows.length && rows[rows.length-1].length === 1 && rows[rows.length-1][0] === '') rows.pop();
             return rows;
         }
         
         function detectDelimiter(text) {
-            let cleanText = text;
-            if (cleanText.charCodeAt(0) === 0xFEFF) cleanText = cleanText.slice(1);
-            const lines = cleanText.split(/\r?\n/);
-            let firstDataLine = '';
-            for (let line of lines) {
-                line = line.trim();
-                if (line.length > 0) {
-                    firstDataLine = line;
-                    break;
-                }
-            }
-            if (!firstDataLine) return ',';
+            let clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+            const lines = clean.split(/\r?\n/);
+            let firstLine = '';
+            for (let l of lines) if (l.trim()) { firstLine = l; break; }
+            if (!firstLine) return ',';
             const candidates = [',', ';', '\t', '|', ' '];
-            let bestDelim = ',';
-            let maxCount = 0;
-            for (const delim of candidates) {
-                let count = 0;
-                let inQuote = false;
-                for (let i = 0; i < firstDataLine.length; i++) {
-                    const c = firstDataLine[i];
+            let best = ',', maxCount = 0;
+            for (let d of candidates) {
+                let count = 0, inQuote = false;
+                for (let i = 0; i < firstLine.length; i++) {
+                    const c = firstLine[i];
                     if (c === '"') inQuote = !inQuote;
-                    if (!inQuote && c === delim) count++;
+                    if (!inQuote && c === d) count++;
                 }
-                if (count > maxCount) {
-                    maxCount = count;
-                    bestDelim = delim;
-                }
+                if (count > maxCount) { maxCount = count; best = d; }
             }
-            return bestDelim;
+            return best;
         }
         
         function parseAndDisplay(text, delimiterOption, customDelim) {
             let usedDelim = '';
-            if (delimiterOption === 'auto') {
-                usedDelim = detectDelimiter(text);
-            } else if (delimiterOption === 'custom' && customDelim && customDelim.length > 0) {
-                usedDelim = customDelim;
-            } else if (delimiterOption !== 'auto') {
-                if (delimiterOption === '\\t') usedDelim = '\t';
-                else usedDelim = delimiterOption;
-            } else {
-                usedDelim = ',';
-            }
+            if (delimiterOption === 'auto') usedDelim = detectDelimiter(text);
+            else if (delimiterOption === 'custom' && customDelim) usedDelim = customDelim;
+            else if (delimiterOption === '\\t') usedDelim = '\t';
+            else usedDelim = delimiterOption;
             try {
-                let parsedRows = parseCSV(text, usedDelim);
-                if (!parsedRows || parsedRows.length === 0) {
-                    showError('Файл не содержит данных или разделитель не подходит.');
-                    return false;
-                }
-                parsedRows = parsedRows.filter(row => !(row.length === 1 && row[0] === ''));
-                if (parsedRows.length === 0) {
-                    showError('После фильтрации пустых строк нет данных.');
-                    return false;
-                }
-                
-                let newHeaders = [];
-                let pureData = [];
-                if (parsedRows.length >= 1) {
-                    if (parsedRows.length === 1) {
-                        newHeaders = parsedRows[0].map((_, idx) => `Колонка ${idx+1}`);
-                        pureData = parsedRows;
-                    } else {
-                        newHeaders = [...parsedRows[0]];
-                        pureData = parsedRows.slice(1);
-                    }
+                let parsed = parseCSV(text, usedDelim);
+                if (!parsed.length) throw new Error('Нет данных');
+                parsed = parsed.filter(r => !(r.length === 1 && r[0] === ''));
+                let newHeaders, pureData;
+                if (parsed.length === 1) {
+                    newHeaders = parsed[0].map((_, idx) => `Колонка ${idx+1}`);
+                    pureData = parsed;
                 } else {
-                    newHeaders = [];
-                    pureData = [];
+                    newHeaders = [...parsed[0]];
+                    pureData = parsed.slice(1);
                 }
-                newHeaders = newHeaders.map((h, idx) => (h === undefined || h === null || h === '') ? `Колонка ${idx+1}` : String(h));
+                newHeaders = newHeaders.map((h, idx) => (!h && h!==0) ? `Колонка ${idx+1}` : String(h));
                 headers = newHeaders;
                 dataRowsPure = pureData;
                 rawCSVText = text;
+                // Сбрасываем направления колонок при новой загрузке
+                columnDirections.clear();
                 hideError();
                 dataPanel.style.display = 'block';
                 renderTable();
-                return true;
-            } catch (e) {
-                console.error(e);
-                showError(`Ошибка парсинга: ${e.message}`);
-                return false;
-            }
+            } catch(e) { showError(`Ошибка: ${e.message}`); }
         }
         
         function getEffectiveDelimiterMode() {
-            const selectVal = delimiterSelect.value;
-            if (selectVal === 'auto') return 'auto';
-            if (selectVal === 'custom') return 'custom';
-            return selectVal;
+            const v = delimiterSelect.value;
+            if (v === 'auto') return 'auto';
+            if (v === 'custom') return 'custom';
+            return v;
         }
-        
-        function getEffectiveCustomDelim() {
-            const customRaw = customDelimiterInput.value.trim();
-            if (customRaw === '\\t') return '\t';
-            if (customRaw === '') return '';
-            return customRaw;
+        function getEffectiveCustomDelim() { 
+            let raw = customDelimiterInput.value.trim();
+            return raw === '\\t' ? '\t' : raw;
         }
-        
-        function applyDelimiterSettings() {
-            if (!rawCSVText) {
-                if (fileInput.files.length === 0) {
-                    showError('Сначала загрузите CSV файл.');
-                } else if (rawCSVText) {
-                    parseAndDisplay(rawCSVText, getEffectiveDelimiterMode(), getEffectiveCustomDelim());
-                } else {
-                    showError('Нет загруженных данных.');
-                }
-                return;
-            }
-            parseAndDisplay(rawCSVText, getEffectiveDelimiterMode(), getEffectiveCustomDelim());
-        }
-        
-        function resetToAuto() {
-            delimiterSelect.value = 'auto';
-            customDelimiterInput.value = '';
-            if (rawCSVText) {
-                parseAndDisplay(rawCSVText, 'auto', '');
-            } else if (fileInput.files.length) {
-                const file = fileInput.files[0];
-                readFileAndProcess(file);
-            } else {
-                showError('Нет активного файла для сброса');
-            }
-        }
-        
+        function applyDelimiterSettings() { if (rawCSVText) parseAndDisplay(rawCSVText, getEffectiveDelimiterMode(), getEffectiveCustomDelim()); else showError('Нет данных'); }
+        function resetToAuto() { delimiterSelect.value = 'auto'; customDelimiterInput.value = ''; if (rawCSVText) parseAndDisplay(rawCSVText, 'auto', ''); else if (fileInput.files[0]) readFileAndProcess(fileInput.files[0]); else showError('Нет файла'); }
         function readFileAndProcess(file) {
-            if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(evt) {
-                const content = evt.target.result;
-                rawCSVText = content;
-                const mode = getEffectiveDelimiterMode();
-                const custom = getEffectiveCustomDelim();
-                parseAndDisplay(content, mode, custom);
-            };
-            reader.onerror = function() {
-                showError('Ошибка чтения файла');
-            };
+            reader.onload = e => parseAndDisplay(e.target.result, getEffectiveDelimiterMode(), getEffectiveCustomDelim());
+            reader.onerror = () => showError('Ошибка чтения');
             reader.readAsText(file, 'UTF-8');
         }
+        function handleFileSelect(file) { if (file) readFileAndProcess(file); }
+        function showError(msg) { errorBox.innerHTML = `<span>⚠️ ${escapeHtml(msg)}</span>`; errorBox.style.display = 'block'; dataPanel.style.display = 'none'; }
+        function hideError() { errorBox.style.display = 'none'; errorBox.innerHTML = ''; }
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
         
-        function handleFileSelect(file) {
-            if (file) readFileAndProcess(file);
-        }
-        
-        function showError(message) {
-            errorBox.innerHTML = `<span>⚠️ ${escapeHtml(message)}</span>`;
-            errorBox.style.display = 'block';
-            dataPanel.style.display = 'none';
-        }
-        
-        function hideError() {
-            errorBox.style.display = 'none';
-            errorBox.innerHTML = '';
-        }
-        
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-        
-        // Инициализация событий
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
-            }
-        });
-        
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.style.background = '#e6f0ff';
-            uploadArea.style.borderColor = '#3b82f6';
-        });
-        uploadArea.addEventListener('dragleave', (e) => {
-            uploadArea.style.background = '#f8fafc';
-            uploadArea.style.borderColor = '#cbd5e1';
-        });
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.style.background = '#f8fafc';
-            uploadArea.style.borderColor = '#cbd5e1';
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFileSelect(files[0]);
-            } else {
-                showError('Ошибка перетаскивания');
-            }
-        });
-        
-        uploadArea.addEventListener('click', (e) => {
-            if (e.target === uploadArea || (e.target.closest('.upload-area') && !e.target.closest('.file-input-label'))) {
-                fileInput.click();
-            }
-        });
-        
+        fileInput.addEventListener('change', e => e.target.files[0] && handleFileSelect(e.target.files[0]));
+        uploadArea.addEventListener('dragover', e => e.preventDefault());
+        uploadArea.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFileSelect(f); });
+        uploadArea.addEventListener('click', e => { if (e.target === uploadArea || e.target.closest('.upload-area') && !e.target.closest('.file-input-label')) fileInput.click(); });
         applyBtn.addEventListener('click', applyDelimiterSettings);
         resetBtn.addEventListener('click', resetToAuto);
         copyRangeBtn.addEventListener('click', copySelectedRange);
-        
         hideError();
         dataPanel.style.display = 'none';
     })();
