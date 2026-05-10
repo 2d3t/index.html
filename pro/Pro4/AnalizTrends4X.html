@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Аналитик цен: прогноз на шаг вперёд</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 20px 16px 40px;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #1e293b, #2d3a4f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .sub {
+            color: #475569;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 28px;
+            padding: 1.2rem 1rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.1s ease;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: #f8fafc;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            display: inline-block;
+            letter-spacing: -0.2px;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            background: #eef2ff;
+            color: #1e40af;
+            padding: 0.2rem 0.6rem;
+            border-radius: 30px;
+            font-weight: 500;
+        }
+
+        .label-input {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #334155;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        textarea {
+            width: 100%;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 12px 14px;
+            font-size: 0.9rem;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: #fefefe;
+            resize: vertical;
+            transition: 0.2s;
+            line-height: 1.4;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+
+        .helper {
+            font-size: 0.7rem;
+            color: #5b6e8c;
+            margin-top: 6px;
+            margin-left: 6px;
+        }
+
+        .btn {
+            background: #0f172a;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 44px;
+            margin: 16px 0 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            letter-spacing: 0.3px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+            background: #1e293b;
+        }
+
+        .results {
+            background: #0f172a;
+            border-radius: 32px;
+            padding: 1.2rem 1rem;
+            color: #f1f5f9;
+            margin: 20px 0 12px;
+        }
+
+        .results h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            opacity: 0.75;
+            margin-bottom: 12px;
+            border-left: 3px solid #38bdf8;
+            padding-left: 10px;
+        }
+
+        .forecast-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .forecast-item {
+            background: #1e293b;
+            border-radius: 24px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .forecast-name {
+            font-weight: 500;
+            font-size: 0.85rem;
+            background: #334155;
+            padding: 4px 12px;
+            border-radius: 60px;
+            display: inline-block;
+        }
+
+        .forecast-value {
+            font-size: 1.45rem;
+            font-weight: 800;
+            font-family: monospace;
+            letter-spacing: 1px;
+            color: #facc15;
+        }
+
+        .integrated {
+            margin-top: 12px;
+            background: #2d3a4f;
+            border-radius: 28px;
+            padding: 12px 16px;
+            text-align: center;
+            border: 1px solid #4b5563;
+        }
+
+        .integrated-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 500;
+            opacity: 0.7;
+        }
+
+        .integrated-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            font-family: monospace;
+            word-break: break-word;
+            color: #facc15;
+            line-height: 1.2;
+        }
+
+        hr {
+            margin: 12px 0;
+            border-color: #334155;
+        }
+
+        .footer-note {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #62748c;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 16px 12px 32px;
+            }
+            .forecast-value {
+                font-size: 1.2rem;
+            }
+            .integrated-number {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📈 Смарт-прогноз цен</h1>
+    <div class="sub">4 анализа → единый реалистичный шаг вперёд</div>
+
+    <!-- карточка средней цены -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">📊 Средняя цена за период</span>
+            <span class="badge">тренд + волатильность</span>
+        </div>
+        <div class="label-input">Введите значения через запятую (числа)</div>
+        <textarea id="avgInput" rows="2" placeholder="Пример: 125.4, 128.1, 130.2, 127.9, 131.5"></textarea>
+        <div class="helper">Например: 100, 102.5, 104, 103.2, 105.1</div>
+    </div>
+
+    <!-- начальная цена за день -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">🌅 Начальная цена (open)</span>
+            <span class="badge">инерция открытия</span>
+        </div>
+        <div class="label-input">Введите значения через запятую</div>
+        <textarea id="openInput" rows="2" placeholder="Пример: 122.0, 124.5, 126.0, 125.1, 128.3"></textarea>
+        <div class="helper">отражает стартовый спрос</div>
+    </div>
+
+    <!-- минимальная цена -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">📉 Минимальная цена (low)</span>
+            <span class="badge">уровни поддержки</span>
+        </div>
+        <div class="label-input">Введите значения через запятую</div>
+        <textarea id="lowInput" rows="2" placeholder="Пример: 119.2, 121.0, 124.1, 123.4, 126.5"></textarea>
+        <div class="helper">минимумы за период</div>
+    </div>
+
+    <!-- максимальная цена -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">📈 Максимальная цена (high)</span>
+            <span class="badge">сопротивление</span>
+        </div>
+        <div class="label-input">Введите значения через запятую</div>
+        <textarea id="highInput" rows="2" placeholder="Пример: 128.5, 130.2, 132.0, 129.8, 134.0"></textarea>
+        <div class="helper">максимумы за период</div>
+    </div>
+
+    <button class="btn" id="predictBtn">🔮 Рассчитать следующий шаг →</button>
+
+    <div class="results" id="resultsContainer" style="display: none;">
+        <h3>📌 ПРОГНОЗ НА СЛЕДУЮЩИЙ ПЕРИОД</h3>
+        <div class="forecast-grid" id="forecastList"></div>
+        <hr>
+        <div class="integrated">
+            <div class="integrated-label">⚡ МАКСИМАЛЬНО РЕАЛИСТИЧНЫЙ РЕЗУЛЬТАТ (АГРЕГИРОВАННЫЙ)</div>
+            <div class="integrated-number" id="integratedForecast">—</div>
+            <div style="font-size: 0.7rem; margin-top: 6px;">синтез 4-х моделей + логическая когерентность</div>
+        </div>
+    </div>
+    <div class="footer-note">
+        ⚙️ Анализ: экспоненциальное сглаживание + взвешенный тренд + коррекция по достоверности последовательности. Прогноз на 1 шаг.
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---- вспомогательные функции для обработки последовательностей ----
+        
+        // очистка и парсинг строки с числами через запятую
+        function parseNumberList(raw) {
+            if (!raw.trim()) return [];
+            const parts = raw.split(',').map(part => part.trim()).filter(p => p !== '');
+            const numbers = [];
+            for (let p of parts) {
+                let num = parseFloat(p.replace(/[^\d.-]/g, '')); // удаляем лишние символы, оставляем точки/минус
+                if (isNaN(num)) continue;
+                numbers.push(num);
+            }
+            return numbers;
+        }
+
+        // базовый прогноз на 1 шаг вперед с использованием комбинации:
+        // 1. Экспоненциальное сглаживание (адаптивный alpha)
+        // 2. Линейный тренд (метод наименьших квадратов)
+        // 3. Взвешенное среднее с приоритетом последних элементов
+        // Возвращает объект { value, confidence } (confidence 0..1, для внутренней интеграции)
+        function advancedForecast(series) {
+            if (!series.length) return { value: null, confidence: 0 };
+            const n = series.length;
+            if (n === 1) return { value: series[0], confidence: 0.4 };
+            if (n === 2) {
+                let simpleTrend = series[1] - series[0];
+                let next = series[1] + simpleTrend;
+                return { value: next, confidence: 0.55 };
+            }
+            
+            // 1. Экспоненциальное сглаживание Хольта-Уинтерса? выберем простое адаптивное SES с оптимальным alpha
+            // лучший alpha находим минимизацией MSE (на истории)
+            let alphaOpt = 0.3;
+            if (n >= 4) {
+                let bestAlpha = 0.3;
+                let minMSE = Infinity;
+                for (let a of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]) {
+                    let smooth = series[0];
+                    let mse = 0;
+                    for (let i = 1; i < n; i++) {
+                        let pred = smooth;
+                        let err = series[i] - pred;
+                        mse += err * err;
+                        smooth = a * series[i] + (1 - a) * smooth;
+                    }
+                    mse /= (n-1);
+                    if (mse < minMSE) {
+                        minMSE = mse;
+                        bestAlpha = a;
+                    }
+                }
+                alphaOpt = bestAlpha;
+            }
+            let ses = series[0];
+            for (let i = 1; i < n; i++) {
+                ses = alphaOpt * series[i] + (1 - alphaOpt) * ses;
+            }
+            let forecastSES = ses;
+            
+            // 2. Линейная регрессия (метод наименьших квадратов) 
+            let indices = Array.from({length: n}, (_, i) => i + 1);
+            let sumX = indices.reduce((a,b) => a+b, 0);
+            let sumY = series.reduce((a,b) => a+b, 0);
+            let sumXY = 0, sumX2 = 0;
+            for (let i = 0; i < n; i++) {
+                sumXY += indices[i] * series[i];
+                sumX2 += indices[i] * indices[i];
+            }
+            let denom = (n * sumX2 - sumX * sumX);
+            let slope = (n * sumXY - sumX * sumY) / denom;
+            let intercept = (sumY - slope * sumX) / n;
+            let nextIndex = n + 1;
+            let forecastLin = intercept + slope * nextIndex;
+            
+            // 3. Взвешенное среднее последних 3-х значений (если хватает длины)  с весами [0.5, 0.3, 0.2]
+            let weightedRecent = null;
+            if (n >= 3) {
+                let w1 = series[n-1] * 0.5;
+                let w2 = series[n-2] * 0.3;
+                let w3 = series[n-3] * 0.2;
+                weightedRecent = w1 + w2 + w3;
+            } else if (n === 2) {
+                weightedRecent = series[1] * 0.7 + series[0] * 0.3;
+            } else {
+                weightedRecent = series[0];
+            }
+            
+            // оценка трендовой устойчивости: чем стабильнее прирост, тем выше вес линейной регрессии
+            let diffs = [];
+            for (let i = 1; i < n; i++) diffs.push(series[i] - series[i-1]);
+            let avgDiff = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+            let varianceDiff = 0;
+            if(diffs.length>0){
+                for(let d of diffs) varianceDiff += (d-avgDiff)**2;
+                varianceDiff /= diffs.length;
+            }
+            let trendStability = Math.min(1, 1.2/(1+varianceDiff*2)); // чем меньше вариация, тем выше
+            let weightLin = 0.4 + trendStability * 0.3;  // от 0.4 до 0.7
+            let weightSes = 0.3;
+            let weightRecent = 0.3;
+            // если не хватает данных корректируем
+            if (n < 4) { weightLin = 0.3; weightSes = 0.3; weightRecent = 0.4; }
+            let finalForecast = forecastLin * weightLin + forecastSES * weightSes + weightedRecent * weightRecent;
+            
+            // проверка на выбросы: если прогноз слишком далёк от последнего значения + средний дельты, ограничим разумно
+            let lastVal = series[n-1];
+            let meanChange = avgDiff || 0;
+            let maxPlausibleChange = Math.abs(meanChange) * 2.5 + (Math.abs(lastVal)*0.15);
+            if (Math.abs(finalForecast - lastVal) > maxPlausibleChange && maxPlausibleChange > 0) {
+                let sign = finalForecast > lastVal ? 1 : -1;
+                finalForecast = lastVal + sign * maxPlausibleChange;
+            }
+            
+            // доверие: основано на длине ряда + стабильности дисперсии
+            let confidenceBase = Math.min(0.95, 0.4 + n * 0.07);
+            let volatilityFactor = varianceDiff === 0 ? 1 : Math.max(0.5, 1 / (1 + Math.sqrt(varianceDiff)/(Math.abs(avgDiff)+0.01)));
+            let confidence = confidenceBase * (0.7 + 0.3*volatilityFactor);
+            confidence = Math.min(0.96, Math.max(0.3, confidence));
+            
+            return { value: finalForecast, confidence: confidence };
+        }
+        
+        // дополнительная логика: вычисляем "когерентность" между прогнозами
+        // чтобы итоговый агрегированный прогноз был максимально реалистичным с учётом взаимосвязей:
+        // обычно High >= Avg >= Low, Open где-то между, но не противоречит.
+        // применим мягкую коррекцию
+        
+        function coherentEnsemble(forecastAvg, forecastOpen, forecastLow, forecastHigh, lastKnownValues) {
+            // lastKnownValues: объект с последними фактическими значениями каждого типа (если есть)
+            let rawAvg = forecastAvg.value;
+            let rawOpen = forecastOpen.value;
+            let rawLow = forecastLow.value;
+            let rawHigh = forecastHigh.value;
+            
+            // если какой-то прогноз отсутствует, пытаемся восстановить логически
+            if (rawAvg === null) rawAvg = (rawLow + rawHigh) / 2;
+            if (rawOpen === null) rawOpen = rawAvg;
+            if (rawLow === null) rawLow = Math.min(rawAvg, rawHigh, rawOpen);
+            if (rawHigh === null) rawHigh = Math.max(rawAvg, rawLow, rawOpen);
+            
+            // необходимые ограничения: High >= max(Open, Avg, Low); Low <= min(Open, Avg, High)
+            let finalHigh = Math.max(rawHigh, rawAvg, rawOpen, rawLow);
+            let finalLow = Math.min(rawLow, rawAvg, rawOpen, finalHigh);
+            // корректируем Open и Avg, чтобы они лежали в [Low, High]
+            let finalAvg = Math.min(finalHigh, Math.max(finalLow, rawAvg));
+            let finalOpen = Math.min(finalHigh, Math.max(finalLow, rawOpen));
+            
+            // дополнительный реализм: если предыдущие данные говорят о значимом разрыве, сохраним структуру
+            if (lastKnownValues && lastKnownValues.lastAvg !== undefined && lastKnownValues.lastHigh !== undefined) {
+                let prevSpread = (lastKnownValues.lastHigh - lastKnownValues.lastLow) || 0.5;
+                let newSpread = finalHigh - finalLow;
+                if (newSpread < prevSpread * 0.3 && prevSpread > 0) {
+                    // слишком узкий диапазон — расширим немного в соответствии с динамикой
+                    let expand = prevSpread * 0.2;
+                    finalHigh = Math.min(finalHigh + expand/2, finalHigh*1.05);
+                    finalLow = Math.max(finalLow - expand/2, finalLow*0.95);
+                    finalAvg = Math.min(finalHigh, Math.max(finalLow, finalAvg));
+                    finalOpen = Math.min(finalHigh, Math.max(finalLow, finalOpen));
+                }
+            }
+            
+            return {
+                avg: finalAvg,
+                open: finalOpen,
+                low: finalLow,
+                high: finalHigh,
+                integrated: (finalAvg + finalOpen + finalLow + finalHigh) / 4   // базовое среднее
+            };
+        }
+        
+        // Сбор последних известных значений для контекста (чтоб корректировать согласованность)
+        function getLastKnownValues(avgSeries, openSeries, lowSeries, highSeries) {
+            return {
+                lastAvg: avgSeries.length ? avgSeries[avgSeries.length-1] : null,
+                lastOpen: openSeries.length ? openSeries[openSeries.length-1] : null,
+                lastLow: lowSeries.length ? lowSeries[lowSeries.length-1] : null,
+                lastHigh: highSeries.length ? highSeries[highSeries.length-1] : null
+            };
+        }
+        
+        // отрисовка интерфейса
+        function renderResults(forecastAvg, forecastOpen, forecastLow, forecastHigh, integratedObj) {
+            const container = document.getElementById('resultsContainer');
+            const forecastListDiv = document.getElementById('forecastList');
+            const integratedSpan = document.getElementById('integratedForecast');
+            
+            // формируем 4 прогноза с доверительной полосой (отображаем значение)
+            let items = [
+                { name: '📊 Средняя цена', value: forecastAvg.value !== null ? forecastAvg.value.toFixed(4) : '—', conf: forecastAvg.confidence },
+                { name: '🌅 Начальная цена (open)', value: forecastOpen.value !== null ? forecastOpen.value.toFixed(4) : '—', conf: forecastOpen.confidence },
+                { name: '📉 Минимальная цена (low)', value: forecastLow.value !== null ? forecastLow.value.toFixed(4) : '—', conf: forecastLow.confidence },
+                { name: '📈 Максимальная цена (high)', value: forecastHigh.value !== null ? forecastHigh.value.toFixed(4) : '—', conf: forecastHigh.confidence }
+            ];
+            
+            let html = '';
+            for (let it of items) {
+                let confidencePercent = Math.round((it.conf || 0) * 100);
+                html += `
+                    <div class="forecast-item">
+                        <span class="forecast-name">${it.name}</span>
+                        <span class="forecast-value">${it.value}</span>
+                        <span style="font-size:0.7rem; background:#334155; padding:2px 8px; border-radius: 20px;">достоверн. ${confidencePercent}%</span>
+                    </div>
+                `;
+            }
+            forecastListDiv.innerHTML = html;
+            
+            // Интегрированный максимально реалистичный показатель (связка всех)
+            let integratedVal = integratedObj.integrated;
+            integratedSpan.innerText = integratedVal.toFixed(4);
+            
+            // дополнительно покажем окно диапазона: high/low откорректированные
+            let extraHtml = `
+                <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size:0.75rem; gap:10px; flex-wrap:wrap;">
+                    <span>📐 скоррект. диапазон: ${integratedObj.low.toFixed(4)} — ${integratedObj.high.toFixed(4)}</span>
+                    <span>⚖️ открытие ~ ${integratedObj.open.toFixed(4)}</span>
+                </div>
+            `;
+            const existingExtra = document.querySelector('.extra-range');
+            if(existingExtra) existingExtra.remove();
+            const integratedDiv = document.querySelector('.integrated');
+            const newDiv = document.createElement('div');
+            newDiv.className = 'extra-range';
+            newDiv.style.marginTop = '8px';
+            newDiv.style.fontSize = '0.7rem';
+            newDiv.style.opacity = '0.9';
+            newDiv.innerHTML = extraHtml;
+            integratedDiv.appendChild(newDiv);
+            
+            container.style.display = 'block';
+        }
+        
+        // главная функция обработки
+        function runPrediction() {
+            // получить сырые строки
+            const avgRaw = document.getElementById('avgInput').value;
+            const openRaw = document.getElementById('openInput').value;
+            const lowRaw = document.getElementById('lowInput').value;
+            const highRaw = document.getElementById('highInput').value;
+            
+            let avgSeries = parseNumberList(avgRaw);
+            let openSeries = parseNumberList(openRaw);
+            let lowSeries = parseNumberList(lowRaw);
+            let highSeries = parseNumberList(highRaw);
+            
+            // проверки минимальной длины
+            if (avgSeries.length < 2 && openSeries.length < 2 && lowSeries.length < 2 && highSeries.length < 2) {
+                alert("⚠️ Пожалуйста, введите как минимум 2 значения хотя бы для одного из анализов. Для точности введите последовательности чисел через запятую.");
+                return;
+            }
+            
+            // делаем прогнозы, если последовательность пустая — строим логическую аппроксимацию на основе других рядов (fallback)
+            const fallbackFromOthers = (targetSeries, fallbackSeriesList) => {
+                if (targetSeries.length >= 2) return advancedForecast(targetSeries);
+                // если недостаточно данных, попробуем взять среднее от существующих прогнозов (но тут лучше искусственный)
+                let anyValid = fallbackSeriesList.filter(s => s.length >= 2);
+                if (anyValid.length > 0) {
+                    let avgForecast = 0;
+                    let cnt = 0;
+                    for (let s of anyValid) {
+                        let fc = advancedForecast(s);
+                        if (fc.value !== null) { avgForecast += fc.value; cnt++; }
+                    }
+                    if (cnt > 0) {
+                        let val = avgForecast / cnt;
+                        // подстройка под тип: например, low чуть ниже среднего, high выше
+                        return { value: val, confidence: 0.35 };
+                    }
+                }
+                return { value: null, confidence: 0 };
+            };
+            
+            let forecastAvg = avgSeries.length >= 2 ? advancedForecast(avgSeries) : fallbackFromOthers(avgSeries, [openSeries, highSeries, lowSeries]);
+            let forecastOpen = openSeries.length >= 2 ? advancedForecast(openSeries) : fallbackFromOthers(openSeries, [avgSeries, highSeries]);
+            let forecastLow = lowSeries.length >= 2 ? advancedForecast(lowSeries) : fallbackFromOthers(lowSeries, [avgSeries, openSeries]);
+            let forecastHigh = highSeries.length >= 2 ? advancedForecast(highSeries) : fallbackFromOthers(highSeries, [avgSeries, openSeries]);
+            
+            // если какой-то фундаментально null, запасные варианты через соседей
+            if (forecastAvg.value === null && avgSeries.length===0) forecastAvg.value = (forecastLow.value + forecastHigh.value)/2 || 100;
+            if (forecastOpen.value === null) forecastOpen.value = forecastAvg.value;
+            if (forecastLow.value === null) forecastLow.value = forecastAvg.value * 0.97;
+            if (forecastHigh.value === null) forecastHigh.value = forecastAvg.value * 1.03;
+            
+            // получить последние известные значения для когерентности
+            const lastKnown = getLastKnownValues(avgSeries, openSeries, lowSeries, highSeries);
+            const coherent = coherentEnsemble(forecastAvg, forecastOpen, forecastLow, forecastHigh, lastKnown);
+            
+            // обновляем объекты прогнозов для отображения скорректированными значениями (но сами прогнозы не меняем, только итоговый агрегат)
+            // однако отображаем пользователю исходные прогнозы с их доверием, но через coherent мы получили более реалистичный синтез.
+            // добавим улучшение: для финального вывода также покажем синтезированные high/low/open из coherent блока.
+            // переопределим forecastHigh.value = coherent.high для визуализации? Нет, сохраним оригинальные прогнозы, но в дополнительной строке дадим новые.
+            // Обновим integrated объект, в котором high/low/open/avg уже сбалансированы.
+            renderResults(forecastAvg, forecastOpen, forecastLow, forecastHigh, coherent);
+            
+            // дополнительно выведем заметку что синтезированный результат основан на всех рядах
+        }
+        
+        const btn = document.getElementById('predictBtn');
+        btn.addEventListener('click', runPrediction);
+        
+        // небольшая инициализация примерами (демо-данные, чтобы интерфейс был не пустым)
+        const demoAvg = "125.4, 128.1, 130.2, 127.9, 131.5";
+        const demoOpen = "123.8, 126.6, 128.0, 129.1, 130.4";
+        const demoLow = "121.1, 124.5, 126.2, 125.8, 129.0";
+        const demoHigh = "128.2, 130.0, 132.4, 131.0, 134.2";
+        if(!localStorage.getItem('demo_loaded')) {
+            document.getElementById('avgInput').value = demoAvg;
+            document.getElementById('openInput').value = demoOpen;
+            document.getElementById('lowInput').value = demoLow;
+            document.getElementById('highInput').value = demoHigh;
+            localStorage.setItem('demo_loaded', 'true');
+        }
+    })();
+</script>
+</body>
+</html>
