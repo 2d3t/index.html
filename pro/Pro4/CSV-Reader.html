@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CSV Reader — Глобальный режим копирования: все столбцы сразу</title>
+    <title>CSV Reader — Игнорирование последней строки + глобальный режим</title>
     <style>
         * {
             box-sizing: border-box;
@@ -46,6 +45,20 @@
             padding-left: 14px;
             margin: 10px 0 24px 0;
             font-size: 0.95rem;
+        }
+
+        .warning-banner {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 10px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .upload-area {
@@ -266,6 +279,18 @@
             border-left: 4px solid #f59e0b !important;
             font-weight: 600 !important;
         }
+        
+        .ignored-row {
+            background: #f1f5f9 !important;
+            color: #94a3b8 !important;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        
+        .ignored-row td {
+            background: #f1f5f9 !important;
+            color: #94a3b8 !important;
+        }
 
         .table-wrapper {
             overflow-x: auto;
@@ -396,11 +421,13 @@
 <body>
 
 <div class="container">
-    <h1>📁 CSV Reader — Глобальный режим копирования столбцов</h1>
-    <div class="sub">🎯 <strong>Один раз выбираете направление (сверху вниз / снизу вверх) → применяется ко ВСЕМ колонкам и блоку!</strong><br>
-    🖱️ <strong>Обычный клик по заголовку</strong> → копирует всю колонку с текущим глобальным порядком (со сбросом чисел).<br>
-    📦 <strong>Копирование блока (кнопка)</strong> → тоже используется выбранное направление (сверху вниз или снизу вверх).<br>
-    💡 <strong>Настройка направления глобальная</strong> — больше не нужно кликать ПКМ по каждому столбцу, всё сразу!</div>
+    <h1>📁 CSV Reader — игнорирование последней строки</h1>
+    <div class="sub">🚫 <strong>Последняя строка таблицы автоматически игнорируется</strong> (не участвует в данных, не копируется, не отображается как рабочая)<br>
+    🧭 Глобальный режим копирования: сверху вниз / снизу вверх — работает для всех колонок сразу</div>
+    
+    <div class="warning-banner">
+        ⚠️ <strong>Важно:</strong> Последняя строка исходного CSV-файла полностью исключается из обработки (не показывается, не копируется, не участвует в диапазонах).
+    </div>
 
     <div class="upload-area" id="uploadArea">
         <div class="upload-icon">📂🧾</div>
@@ -438,7 +465,7 @@
             </div>
         </div>
 
-        <!-- ГЛОБАЛЬНАЯ ПАНЕЛЬ ВЫБОРА НАПРАВЛЕНИЯ ДЛЯ ВСЕХ СТОЛБЦОВ -->
+        <!-- ГЛОБАЛЬНАЯ ПАНЕЛЬ ВЫБОРА НАПРАВЛЕНИЯ -->
         <div class="global-mode-panel">
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <span style="font-weight: 600;">🌍 Глобальный режим копирования:</span>
@@ -481,9 +508,9 @@
     </div>
     <footer>
         ⚡ <strong>Очистка чисел:</strong> удаляет точки и запятые → "5.123,45" → "512345"<br>
+        🚫 <strong>Последняя строка CSV полностью игнорируется</strong> — не отображается, не копируется, не участвует в расчётах.<br>
         🧭 <strong>Глобальное направление</strong> — влияет на все колонки и блок «Копировать блок».<br>
-        📌 <strong>Никакого ПКМ больше не нужно</strong> — переключите режим в панели один раз!<br>
-        📌 <strong>Копирование блока:</strong> идёт в порядке "по столбцам" (все строки столбца1, потом столбца2...), с учётом выбранного глобального направления (сверху вниз/снизу вверх).
+        📌 <strong>Копирование блока:</strong> идёт в порядке "по столбцам" с учётом глобального направления.
     </footer>
 </div>
 
@@ -506,12 +533,12 @@
         const rowEndInput = document.getElementById('rowEnd');
         const mainRowInput = document.getElementById('mainRow');
         
-        // Глобальный режим направления для ВСЕХ колонок
-        let globalDirection = 'top-down'; // 'top-down' или 'bottom-up'
+        // Глобальный режим направления
+        let globalDirection = 'top-down';
         
         let rawCSVText = '';
         let headers = [];
-        let dataRowsPure = [];      // строки данных (без заголовков)
+        let dataRowsPure = [];      // строки данных БЕЗ последней строки
         
         function showCopyToast(message) {
             const existingToast = document.querySelector('.copy-toast');
@@ -525,7 +552,6 @@
             }, 2500);
         }
         
-        // Очистка чисел: удаляем ВСЕ точки и запятые
         function cleanNumberValue(rawValue) {
             if (rawValue === undefined || rawValue === null) return '';
             let str = String(rawValue).trim();
@@ -533,17 +559,16 @@
             return str.replace(/[.,]/g, '');
         }
         
-        // Установка главной строки
         function setMainRow(rowNumber) {
             if (!dataRowsPure.length) return;
             if (rowNumber < 1) rowNumber = 1;
             if (rowNumber > dataRowsPure.length) rowNumber = dataRowsPure.length;
             mainRowInput.value = rowNumber;
-            showCopyToast(`⭐ Главная строка установлена на ${rowNumber} (виртуальная строка 1)`);
+            showCopyToast(`⭐ Главная строка установлена на ${rowNumber}`);
             renderTable();
         }
         
-        // КОПИРОВАНИЕ ВЫБРАННОГО ДИАПАЗОНА (по столбцам, с учётом ГЛОБАЛЬНОГО направления, очистка чисел)
+        // КОПИРОВАНИЕ ДИАПАЗОНА (без последней строки)
         function copySelectedRange() {
             if (!dataRowsPure.length) {
                 showCopyToast('❌ Нет данных.');
@@ -575,16 +600,10 @@
             if (realEndRowIdx >= totalDataRows) realEndRowIdx = totalDataRows - 1;
             if (realStartRowIdx > realEndRowIdx) return;
             
-            // Функция получения среза строк для диапазона
             const rowsIndices = [];
-            for (let i = realStartRowIdx; i <= realEndRowIdx; i++) {
-                rowsIndices.push(i);
-            }
-            // В зависимости от глобального направления: если bottom-up то переворачиваем порядок строк внутри блока
+            for (let i = realStartRowIdx; i <= realEndRowIdx; i++) rowsIndices.push(i);
             let finalRowIndices = [...rowsIndices];
-            if (globalDirection === 'bottom-up') {
-                finalRowIndices = finalRowIndices.reverse();
-            }
+            if (globalDirection === 'bottom-up') finalRowIndices = finalRowIndices.reverse();
             
             const resultValues = [];
             for (let col = startColIdx; col <= endColIdx; col++) {
@@ -598,17 +617,16 @@
             const outputString = resultValues.join(',');
             const dirStr = globalDirection === 'bottom-up' ? 'снизу вверх (N→1)' : 'сверху вниз (1→N)';
             navigator.clipboard.writeText(outputString).then(() => {
-                showCopyToast(`✅ Блок скопирован [${dirStr}]: ${resultValues.length} значений (очистка чисел)`);
+                showCopyToast(`✅ Блок скопирован [${dirStr}]: ${resultValues.length} значений`);
             }).catch(err => showCopyToast(`❌ Ошибка: ${err.message}`));
         }
         
-        // КОПИРОВАНИЕ КОЛОНКИ с использованием ГЛОБАЛЬНОГО направления
+        // КОПИРОВАНИЕ КОЛОНКИ (без последней строки)
         function copyColumnGlobal(columnIndex, columnName) {
             if (!dataRowsPure.length) {
                 showCopyToast('⚠️ Нет данных');
                 return;
             }
-            // Собираем очищенные значения по порядку строк (сверху вниз, исходные)
             const rawValues = [];
             for (let row of dataRowsPure) {
                 let val = (columnIndex < row.length) ? row[columnIndex] : '';
@@ -619,7 +637,7 @@
             if (globalDirection === 'bottom-up') {
                 finalValues = [...rawValues].reverse();
             } else {
-                finalValues = rawValues; // top-down
+                finalValues = rawValues;
             }
             const resultString = finalValues.join(',');
             const dirText = globalDirection === 'bottom-up' ? 'снизу вверх (↓↑)' : 'сверху вниз (↑↓)';
@@ -629,31 +647,10 @@
             }).catch(err => showCopyToast(`❌ Ошибка: ${err.message}`));
         }
         
-        // Обновить иконки в заголовках в соответствии с глобальным режимом
-        function updateHeaderIcons() {
-            const thElements = document.querySelectorAll('#csvDataTable th');
-            thElements.forEach(th => {
-                const existingSpan = th.querySelector('.mode-icon-span');
-                const dirIcon = globalDirection === 'bottom-up' ? '↓↑' : '↑↓';
-                if (existingSpan) {
-                    existingSpan.innerHTML = `📋${dirIcon}`;
-                } else {
-                    const span = document.createElement('span');
-                    span.className = 'mode-icon-span';
-                    span.style.marginLeft = '6px';
-                    span.style.fontSize = '0.7rem';
-                    span.innerHTML = `📋${dirIcon}`;
-                    th.appendChild(span);
-                }
-            });
-        }
-        
-        // Обработчик клика по заголовку (обычный левый клик) — используем глобальный режим
         function onHeaderClick(columnIndex, columnName, event) {
             copyColumnGlobal(columnIndex, columnName);
         }
         
-        // Подсветка главной строки
         function highlightMainRow() {
             const mainRow = parseInt(mainRowInput.value, 10);
             if (!mainRow || mainRow < 1) return;
@@ -665,7 +662,6 @@
             });
         }
         
-        // Отрисовка таблицы с привязкой событий
         function renderTable() {
             if (!dataRowsPure.length && (!headers.length)) {
                 tableContainer.innerHTML = '<div class="empty-message">Нет данных</div>';
@@ -681,7 +677,7 @@
                 displayRows = dataRowsPure.slice(0, MAX_DISPLAY);
                 truncated = true;
             }
-            statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''}`;
+            statsInfo.innerText = `${totalRows.toLocaleString()} строк × ${colCount} столбцов${truncated ? ` (показано ${MAX_DISPLAY})` : ''} (последняя строка CSV игнорируется)`;
             
             colStartInput.max = colCount;
             colEndInput.max = colCount;
@@ -711,15 +707,14 @@
                     let cell = (i < row.length) ? row[i] : '';
                     html += `<td title="Нажмите, чтобы сделать главной (строка ${realRowNumber})">${escapeHtml(String(cell))}</td>`;
                 }
-                html += '</tr>';
+                html += '</td>';
             }
-            html += '</tbody></table>';
+            html += '</tbody><table>';
             if (truncated) {
-                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center;">⚠️ Показано ${MAX_DISPLAY} из ${totalRows} строк. Копирование колонок работает со всеми данными.</div>`;
+                html += `<div style="font-size:0.75rem; padding: 12px; background:#fef9e3; text-align:center;">⚠️ Показано ${MAX_DISPLAY} из ${totalRows} строк. Копирование работает со всеми данными.</div>`;
             }
             tableContainer.innerHTML = html;
             
-            // Привязываем события к заголовкам
             const headerEls = document.querySelectorAll('#csvDataTable th');
             headerEls.forEach(th => {
                 const colIdxAttr = th.getAttribute('data-col-index');
@@ -734,7 +729,6 @@
                 }
             });
             
-            // Строки: установка главной строки
             const rowEls = document.querySelectorAll('#csvDataTable tbody tr');
             rowEls.forEach(row => {
                 row.addEventListener('click', (e) => {
@@ -745,11 +739,9 @@
             });
         }
         
-        // Функция смены глобального режима
         function setGlobalDirection(direction) {
             if (direction !== 'top-down' && direction !== 'bottom-up') return;
             globalDirection = direction;
-            // Обновить UI переключателя
             const topBtn = document.querySelector('[data-mode="top-down"]');
             const bottomBtn = document.querySelector('[data-mode="bottom-up"]');
             if (topBtn && bottomBtn) {
@@ -765,14 +757,11 @@
             if (modeDescSpan) {
                 modeDescSpan.textContent = direction === 'top-down' ? 'текущий порядок: сверху вниз (1→N)' : 'текущий порядок: снизу вверх (N→1)';
             }
-            // Перерисовать таблицу для обновления иконок в заголовках
-            if (headers.length && dataRowsPure.length) {
-                renderTable();
-            }
-            showCopyToast(`🌍 Глобальный режим изменён: ${direction === 'top-down' ? 'сверху вниз ⬆️' : 'снизу вверх ⬇️'}`);
+            if (headers.length && dataRowsPure.length) renderTable();
+            showCopyToast(`🌍 Глобальный режим: ${direction === 'top-down' ? 'сверху вниз ⬆️' : 'снизу вверх ⬇️'}`);
         }
         
-        // ----- Парсинг CSV (без изменений) -----
+        // ПАРСИНГ CSV С ИГНОРИРОВАНИЕМ ПОСЛЕДНЕЙ СТРОКИ
         function parseCSV(text, delimiter) {
             if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
             const rows = [];
@@ -849,13 +838,18 @@
                 let parsed = parseCSV(text, usedDelim);
                 if (!parsed.length) throw new Error('Нет данных');
                 parsed = parsed.filter(r => !(r.length === 1 && r[0] === ''));
+                
+                // ИГНОРИРУЕМ ПОСЛЕДНЮЮ СТРОКУ
+                let withoutLastRow = parsed.slice(0, -1);
+                if (withoutLastRow.length === 0) throw new Error('После удаления последней строки данных не осталось');
+                
                 let newHeaders, pureData;
-                if (parsed.length === 1) {
-                    newHeaders = parsed[0].map((_, idx) => `Колонка ${idx+1}`);
-                    pureData = parsed;
+                if (withoutLastRow.length === 1) {
+                    newHeaders = withoutLastRow[0].map((_, idx) => `Колонка ${idx+1}`);
+                    pureData = withoutLastRow;
                 } else {
-                    newHeaders = [...parsed[0]];
-                    pureData = parsed.slice(1);
+                    newHeaders = [...withoutLastRow[0]];
+                    pureData = withoutLastRow.slice(1);
                 }
                 newHeaders = newHeaders.map((h, idx) => (!h && h!==0) ? `Колонка ${idx+1}` : String(h));
                 headers = newHeaders;
@@ -864,6 +858,7 @@
                 hideError();
                 dataPanel.style.display = 'block';
                 renderTable();
+                showCopyToast(`📁 Загружено: ${dataRowsPure.length} строк (последняя строка CSV исключена)`);
             } catch(e) { showError(`Ошибка: ${e.message}`); }
         }
         
@@ -890,7 +885,6 @@
         function hideError() { errorBox.style.display = 'none'; errorBox.innerHTML = ''; }
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
         
-        // Инициализация переключателей глобального режима
         const globalModeSwitch = document.getElementById('globalModeSwitch');
         if (globalModeSwitch) {
             globalModeSwitch.addEventListener('click', (e) => {
