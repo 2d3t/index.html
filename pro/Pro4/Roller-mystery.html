@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Цветные круги | RPM эксперимент + Анализ векторов (12 часов)</title>
+    <title>Цветные круги | RPM эксперимент + Анализ векторов (12 часов) | Аптечная точность</title>
     <style>
         * {
             box-sizing: border-box;
@@ -422,7 +421,7 @@
 <body>
 <div class="app-container" id="appRoot">
     <h1>🎨 Цветные круги | RPM × 24</h1>
-    <div class="sub">фиолетовые · белые · зелёные · красные | анализ векторов (12ч циферблат)</div>
+    <div class="sub">фиолетовые · белые · зелёные · красные | анализ векторов (12ч циферблат) | Аптечная точность ⚡</div>
 
     <div class="research-name-area">
         <label>📋 Название исследования:</label>
@@ -456,7 +455,7 @@
 
     <div class="timer-section">
         <div class="timer-input"><label>⏱ сек:</label><input type="number" id="timerSeconds" value="31.4" step="0.5" min="0.5" max="60"></div>
-        <button class="btn" id="startTimedBtn" style="background:#5D9BEC; box-shadow:0 4px 0 #2C5490;">⏳ Вращать N сек</button>
+        <button class="btn" id="startTimedBtn" style="background:#5D9BEC; box-shadow:0 4px 0 #2C5490;">⏳ Вращать N сек (аптечная точность)</button>
     </div>
 
     <!-- Панель анализа итоговых векторов в 12-часовом формате -->
@@ -470,7 +469,7 @@
         </div>
     </div>
 
-    <div class="info-status" id="statusMsg">🧭 24 круга. Все стрелки вверх. Можно ввести скорости массово или по отдельности.</div>
+    <div class="info-status" id="statusMsg">🧭 24 круга. Все стрелки вверх. Скорости можно вводить массово или по отдельности. Теперь точные результаты!</div>
     <button class="reset-angle-btn" id="resetAnglesBtn">🔄 Сбросить все стрелки вверх (вручную)</button>
 </div>
 
@@ -559,6 +558,8 @@
             }
             resetAngle() { this.angle = 0; this.draw(); }
             getCurrentAngle() { return this.angle; }
+            // Прямая установка угла (для точных экспериментов)
+            setExactAngle(radians) { this.angle = radians % (2*Math.PI); this.draw(); }
         }
 
         let discs = [];
@@ -715,23 +716,46 @@
             });
         }
 
+        // *** АПТЕЧНАЯ ТОЧНОСТЬ *** 
+        // Вычисляет конечные углы строго по формуле, без джиттера анимации
+        function exactTimedRotation(seconds) {
+            // Останавливаем любую текущую анимацию
+            if (timedTimeout) clearTimeout(timedTimeout);
+            stopAllCircles(true);
+            
+            // Сбрасываем все углы в 0 (стрелки вверх)
+            discs.forEach(d => d.resetAngle());
+            
+            // Получаем актуальные RPM из полей ввода
+            const rpmList = discs.map((_, i) => parseFloat(cardsData[i].rpmInput.value) || 0);
+            
+            // МАТЕМАТИЧЕСКИЙ РАСЧЁТ конечного угла:
+            // 1 RPM = 6 градусов в секунду
+            // totalDeg = RPM * 6 * seconds
+            // finalAngleRad = (totalDeg % 360) * (PI/180)
+            const finalAnglesRad = rpmList.map(rpm => {
+                const degPerSec = rpm * 6;
+                const totalDeg = degPerSec * seconds;
+                let finalDeg = totalDeg % 360;
+                if (finalDeg < 0) finalDeg += 360; // для отрицательных RPM
+                return finalDeg * (Math.PI / 180);
+            });
+            
+            // Мгновенно устанавливаем вычисленные углы (без анимации)
+            discs.forEach((disc, idx) => {
+                disc.setExactAngle(finalAnglesRad[idx]);
+            });
+            
+            statusMsgSpan.innerHTML = `✅ Аптечная точность! Расчёт за ${seconds.toFixed(2)} сек по формуле RPM×6×сек. Результат воспроизводим.`;
+            updateAnalysisDisplay();
+            saveToLocalStorage();
+        }
+
         function startTimedRotation() {
             let sec = parseFloat(timerSecondsInput.value);
             if (isNaN(sec) || sec <= 0) sec = 31.4;
             if (sec > 60) sec = 60;
-            prepareAndStart(() => {
-                discs.forEach(d => d.start());
-                globalAnimating = true;
-                statusMsgSpan.innerHTML = `⏳ Вращение на ${sec.toFixed(1)} секунд...`;
-                const updInterval = setInterval(() => updateAnalysisDisplay(), 100);
-                timedTimeout = setTimeout(() => {
-                    stopAllCircles(true);
-                    clearInterval(updInterval);
-                    statusMsgSpan.innerHTML = `✅ Эксперимент завершён! Финальные направления зафиксированы.`;
-                    updateAnalysisDisplay();
-                    saveToLocalStorage();
-                }, sec * 1000);
-            });
+            exactTimedRotation(sec);
         }
 
         function clearAllRPMInputs() {
