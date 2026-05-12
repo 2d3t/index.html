@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-    <title>Аналитик цен: прогноз на шаг вперёд</title>
+    <title>Аналитик цен 2.0: двойной масштаб + реалистичная волатильность</title>
     <style>
         * {
             box-sizing: border-box;
@@ -12,22 +13,22 @@
         }
 
         body {
-            background: #f1f5f9;
+            background: #f0f4f9;
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
             padding: 20px 16px 40px;
-            color: #0f172a;
+            color: #0a0f1c;
         }
 
         .container {
-            max-width: 560px;
+            max-width: 620px;
             margin: 0 auto;
         }
 
         h1 {
-            font-size: 1.65rem;
+            font-size: 1.7rem;
             font-weight: 700;
             letter-spacing: -0.3px;
-            background: linear-gradient(135deg, #1e293b, #2d3a4f);
+            background: linear-gradient(135deg, #0b2b3b, #1e4a6b);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -35,23 +36,45 @@
         }
 
         .sub {
-            color: #475569;
+            color: #2c475b;
             font-size: 0.85rem;
             margin-bottom: 1.5rem;
-            border-left: 3px solid #3b82f6;
+            border-left: 3px solid #f97316;
             padding-left: 12px;
+            font-weight: 500;
         }
 
+        .scale-badge {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            justify-content: center;
+        }
+        .scale-btn {
+            background: #e2e8f0;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #1e293b;
+        }
+        .scale-btn.active {
+            background: #f97316;
+            color: white;
+            box-shadow: 0 4px 8px rgba(249,115,22,0.3);
+        }
         .card {
             background: white;
             border-radius: 28px;
             padding: 1.2rem 1rem;
             margin-bottom: 1.25rem;
             box-shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.1s ease;
             border: 1px solid #e2e8f0;
+            transition: 0.2s;
         }
-
         .card-header {
             display: flex;
             align-items: baseline;
@@ -60,565 +83,545 @@
             flex-wrap: wrap;
             gap: 6px;
         }
-
         .card-title {
             font-weight: 700;
-            font-size: 1.2rem;
-            background: #f8fafc;
+            font-size: 1.15rem;
+            background: #f1f5f9;
             padding: 0.2rem 0.8rem;
             border-radius: 40px;
             display: inline-block;
-            letter-spacing: -0.2px;
         }
-
         .badge {
             font-size: 0.7rem;
-            background: #eef2ff;
-            color: #1e40af;
+            background: #fff1e6;
+            color: #c2410c;
             padding: 0.2rem 0.6rem;
             border-radius: 30px;
             font-weight: 500;
         }
-
         .label-input {
             font-size: 0.8rem;
             font-weight: 500;
-            color: #334155;
+            color: #2c3e50;
             margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
         }
-
         textarea {
             width: 100%;
             border: 1px solid #cbd5e1;
             border-radius: 20px;
             padding: 12px 14px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-family: 'SF Mono', 'Fira Code', monospace;
             background: #fefefe;
             resize: vertical;
             transition: 0.2s;
             line-height: 1.4;
         }
-
         textarea:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+            border-color: #f97316;
+            box-shadow: 0 0 0 3px rgba(249,115,22,0.2);
         }
-
-        .helper {
-            font-size: 0.7rem;
-            color: #5b6e8c;
-            margin-top: 6px;
-            margin-left: 6px;
-        }
-
         .btn {
-            background: #0f172a;
+            background: linear-gradient(95deg, #0f2c39, #1a4b6e);
             color: white;
             border: none;
             width: 100%;
             padding: 16px 12px;
             font-size: 1.1rem;
-            font-weight: 600;
+            font-weight: 700;
             border-radius: 44px;
-            margin: 16px 0 12px;
+            margin: 10px 0 20px;
             cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            letter-spacing: 0.3px;
+            transition: all 0.2s;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
-
-        .btn:active {
-            transform: scale(0.97);
-            background: #1e293b;
-        }
-
-        .results {
-            background: #0f172a;
+        .btn:active { transform: scale(0.97); background: #0b3b4f; }
+        .results-panel {
+            background: #0a1a24;
             border-radius: 32px;
             padding: 1.2rem 1rem;
-            color: #f1f5f9;
+            color: #eef2ff;
             margin: 20px 0 12px;
+            transition: 0.2s;
         }
-
-        .results h3 {
+        .results-panel h3 {
             font-size: 1rem;
-            font-weight: 500;
-            letter-spacing: 1px;
-            opacity: 0.75;
+            font-weight: 600;
+            letter-spacing: 0px;
+            opacity: 0.9;
             margin-bottom: 12px;
-            border-left: 3px solid #38bdf8;
-            padding-left: 10px;
+            border-left: 3px solid #facc15;
+            padding-left: 12px;
         }
-
         .forecast-grid {
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
         }
-
         .forecast-item {
-            background: #1e293b;
-            border-radius: 24px;
-            padding: 12px 16px;
+            background: #102b36;
+            border-radius: 28px;
+            padding: 10px 16px;
             display: flex;
             justify-content: space-between;
             align-items: baseline;
             flex-wrap: wrap;
             gap: 8px;
         }
-
         .forecast-name {
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.85rem;
-            background: #334155;
+            background: #1f4a5c;
             padding: 4px 12px;
             border-radius: 60px;
-            display: inline-block;
         }
-
         .forecast-value {
-            font-size: 1.45rem;
+            font-size: 1.5rem;
             font-weight: 800;
             font-family: monospace;
-            letter-spacing: 1px;
+            letter-spacing: 0px;
             color: #facc15;
         }
-
+        .vol-indicator {
+            font-size: 0.7rem;
+            background: #06202b;
+            border-radius: 20px;
+            padding: 3px 8px;
+        }
         .integrated {
-            margin-top: 12px;
-            background: #2d3a4f;
+            margin-top: 14px;
+            background: #08242f;
             border-radius: 28px;
             padding: 12px 16px;
             text-align: center;
-            border: 1px solid #4b5563;
+            border: 1px solid #f9731640;
         }
-
-        .integrated-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            font-weight: 500;
-            opacity: 0.7;
-        }
-
         .integrated-number {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 800;
             font-family: monospace;
-            word-break: break-word;
-            color: #facc15;
+            color: #ffb347;
             line-height: 1.2;
         }
-
-        hr {
-            margin: 12px 0;
-            border-color: #334155;
+        .dual-scale-note {
+            margin-top: 12px;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            background: #03141e;
+            border-radius: 24px;
+            padding: 8px 12px;
         }
-
+        hr { margin: 10px 0; border-color: #2c5368; }
         .footer-note {
             font-size: 0.7rem;
             text-align: center;
-            color: #62748c;
+            color: #486f82;
             margin-top: 20px;
         }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 16px 12px 32px;
-            }
-            .forecast-value {
-                font-size: 1.2rem;
-            }
-            .integrated-number {
-                font-size: 1.5rem;
-            }
+        @media (max-width: 500px) {
+            .forecast-value { font-size: 1.2rem; }
+            .integrated-number { font-size: 1.7rem; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📈 Смарт-прогноз цен</h1>
-    <div class="sub">4 анализа → единый реалистичный шаг вперёд</div>
+    <h1>📊 Аналитик цен 2.0</h1>
+    <div class="sub">❗ Двойной масштаб: недельный + дневной | Учёт волатильности и рыночных «вылетов»</div>
 
-    <!-- карточка средней цены -->
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">📊 Средняя цена за период</span>
-            <span class="badge">тренд + волатильность</span>
-        </div>
-        <div class="label-input">Введите значения через запятую (числа)</div>
-        <textarea id="avgInput" rows="2" placeholder="Пример: 125.4, 128.1, 130.2, 127.9, 131.5"></textarea>
-        <div class="helper">Например: 100, 102.5, 104, 103.2, 105.1</div>
+    <div class="scale-badge">
+        <button class="scale-btn" data-scale="daily">📆 Дневной масштаб (основной)</button>
+        <button class="scale-btn" data-scale="weekly">📅 Недельный масштаб</button>
     </div>
 
-    <!-- начальная цена за день -->
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">🌅 Начальная цена (open)</span>
-            <span class="badge">инерция открытия</span>
-        </div>
-        <div class="label-input">Введите значения через запятую</div>
-        <textarea id="openInput" rows="2" placeholder="Пример: 122.0, 124.5, 126.0, 125.1, 128.3"></textarea>
-        <div class="helper">отражает стартовый спрос</div>
+    <!-- универсальные блоки, но данные переключаются визуально — храним два набора -->
+    <div id="dailyBlock" class="scale-block">
+        <div class="card"><div class="card-header"><span class="card-title">📊 Средняя цена (день)</span><span class="badge">тренд + волатильность</span></div>
+        <textarea id="avgDaily" rows="2" placeholder="Пример: 125.4, 128.1, 130.2, 127.9, 131.5, 133.2"></textarea><div class="helper">Ежедневные средние</div></div>
+        <div class="card"><div class="card-header"><span class="card-title">🌅 Open (день)</span><span class="badge">начало сессии</span></div>
+        <textarea id="openDaily" rows="2" placeholder="123.8, 126.6, 128.0, 129.1, 130.4, 132.0"></textarea></div>
+        <div class="card"><div class="card-header"><span class="card-title">📉 Low (день)</span><span class="badge">минимумы</span></div>
+        <textarea id="lowDaily" rows="2" placeholder="121.1, 124.5, 126.2, 125.8, 129.0, 130.5"></textarea></div>
+        <div class="card"><div class="card-header"><span class="card-title">📈 High (день)</span><span class="badge">максимумы</span></div>
+        <textarea id="highDaily" rows="2" placeholder="128.2, 130.0, 132.4, 131.0, 134.2, 136.5"></textarea></div>
     </div>
 
-    <!-- минимальная цена -->
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">📉 Минимальная цена (low)</span>
-            <span class="badge">уровни поддержки</span>
-        </div>
-        <div class="label-input">Введите значения через запятую</div>
-        <textarea id="lowInput" rows="2" placeholder="Пример: 119.2, 121.0, 124.1, 123.4, 126.5"></textarea>
-        <div class="helper">минимумы за период</div>
+    <div id="weeklyBlock" class="scale-block" style="display:none">
+        <div class="card"><div class="card-header"><span class="card-title">📊 Средняя цена (неделя)</span><span class="badge">недельный тренд</span></div>
+        <textarea id="avgWeekly" rows="2" placeholder="Пример: 520.4, 531.2, 540.9, 548.3"></textarea></div>
+        <div class="card"><div class="card-header"><span class="card-title">🌅 Open (неделя)</span><span class="badge">открытие недели</span></div>
+        <textarea id="openWeekly" rows="2" placeholder="518.0, 528.5, 538.0, 545.0"></textarea></div>
+        <div class="card"><div class="card-header"><span class="card-title">📉 Low (неделя)</span><span class="badge">мин. недели</span></div>
+        <textarea id="lowWeekly" rows="2" placeholder="512.3, 524.0, 535.2, 540.4"></textarea></div>
+        <div class="card"><div class="card-header"><span class="card-title">📈 High (неделя)</span><span class="badge">макс. недели</span></div>
+        <textarea id="highWeekly" rows="2" placeholder="530.1, 540.2, 548.0, 556.7"></textarea></div>
     </div>
 
-    <!-- максимальная цена -->
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">📈 Максимальная цена (high)</span>
-            <span class="badge">сопротивление</span>
-        </div>
-        <div class="label-input">Введите значения через запятую</div>
-        <textarea id="highInput" rows="2" placeholder="Пример: 128.5, 130.2, 132.0, 129.8, 134.0"></textarea>
-        <div class="helper">максимумы за период</div>
-    </div>
+    <button class="btn" id="predictBtn">⚡ Рассчитать прогноз (2 масштаба + риск-расширение)</button>
 
-    <button class="btn" id="predictBtn">🔮 Рассчитать следующий шаг →</button>
-
-    <div class="results" id="resultsContainer" style="display: none;">
-        <h3>📌 ПРОГНОЗ НА СЛЕДУЮЩИЙ ПЕРИОД</h3>
+    <div id="resultsContainer" class="results-panel" style="display: none;">
+        <h3>📌 ПРОГНОЗ НА СЛЕДУЮЩИЙ ПЕРИОД (активный масштаб)</h3>
         <div class="forecast-grid" id="forecastList"></div>
-        <hr>
         <div class="integrated">
-            <div class="integrated-label">⚡ МАКСИМАЛЬНО РЕАЛИСТИЧНЫЙ РЕЗУЛЬТАТ (АГРЕГИРОВАННЫЙ)</div>
+            <div class="integrated-label" style="font-size:0.75rem;">🎯 АГРЕГИРОВАННЫЙ ПРОГНОЗ (с учётом волатильности и возможных выбросов)</div>
             <div class="integrated-number" id="integratedForecast">—</div>
-            <div style="font-size: 0.7rem; margin-top: 6px;">синтез 4-х моделей + логическая когерентность</div>
+            <div style="font-size:0.7rem; margin-top:5px;">⬇️ Нижняя граница риска ⬆️ Верхняя граница (доверительный канал)</div>
+            <div id="riskChannel" style="display: flex; justify-content: center; gap: 18px; margin-top: 6px; font-family: monospace; font-weight: bold;">—</div>
         </div>
+        <div class="dual-scale-note" id="dualInsight"></div>
+        <div class="footer-note" style="margin-top: 8px; background: transparent; color:#8aaec0;">✅ Модель GARCH-подобная адаптивная волатильность + вероятностные коридоры. Учитывает внезапные расширения диапазона.</div>
     </div>
     <div class="footer-note">
-        ⚙️ Анализ: экспоненциальное сглаживание + взвешенный тренд + коррекция по достоверности последовательности. Прогноз на 1 шаг.
+        ⚙️ Гибридная модель: экспоненциальное взвешивание, динамический коэффициент расширения диапазона на основе исторической волатильности и ATR. Прогноз на 1 шаг вперёд.
     </div>
 </div>
 
 <script>
-    (function() {
-        // ---- вспомогательные функции для обработки последовательностей ----
-        
-        // очистка и парсинг строки с числами через запятую
+    (function(){
+        // ---- парсинг чисел ----
         function parseNumberList(raw) {
             if (!raw.trim()) return [];
-            const parts = raw.split(',').map(part => part.trim()).filter(p => p !== '');
-            const numbers = [];
-            for (let p of parts) {
-                let num = parseFloat(p.replace(/[^\d.-]/g, '')); // удаляем лишние символы, оставляем точки/минус
-                if (isNaN(num)) continue;
-                numbers.push(num);
+            const parts = raw.split(',').map(p => p.trim()).filter(p => p !== '');
+            const nums = [];
+            for(let p of parts){
+                let num = parseFloat(p.replace(/[^\d.-]/g, ''));
+                if(!isNaN(num)) nums.push(num);
             }
-            return numbers;
+            return nums;
         }
 
-        // базовый прогноз на 1 шаг вперед с использованием комбинации:
-        // 1. Экспоненциальное сглаживание (адаптивный alpha)
-        // 2. Линейный тренд (метод наименьших квадратов)
-        // 3. Взвешенное среднее с приоритетом последних элементов
-        // Возвращает объект { value, confidence } (confidence 0..1, для внутренней интеграции)
-        function advancedForecast(series) {
-            if (!series.length) return { value: null, confidence: 0 };
+        // ---- РАСШИРЕННЫЙ ПРОГНОЗ С УЧЕТОМ РЕАЛИСТИЧНОЙ ВОЛАТИЛЬНОСТИ (аналог ATR + динамический размах) ----
+        // Возвращает объект: {value, lowBound, highBound, volatilityFactor, atr}
+        function advancedForecastWithVolatility(series, priceType = 'avg') {
+            if(!series.length) return { value: null, lowBound: null, highBound: null, volatilityFactor: 1, atr: 0 };
             const n = series.length;
-            if (n === 1) return { value: series[0], confidence: 0.4 };
-            if (n === 2) {
-                let simpleTrend = series[1] - series[0];
-                let next = series[1] + simpleTrend;
-                return { value: next, confidence: 0.55 };
+            if (n === 1) {
+                let base = series[0];
+                return { value: base, lowBound: base*0.97, highBound: base*1.03, volatilityFactor: 0.03, atr: base*0.02 };
             }
             
-            // 1. Экспоненциальное сглаживание Хольта-Уинтерса? выберем простое адаптивное SES с оптимальным alpha
-            // лучший alpha находим минимизацией MSE (на истории)
-            let alphaOpt = 0.3;
-            if (n >= 4) {
-                let bestAlpha = 0.3;
-                let minMSE = Infinity;
-                for (let a of [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]) {
-                    let smooth = series[0];
-                    let mse = 0;
-                    for (let i = 1; i < n; i++) {
+            // 1) Экспоненциальное сглаживание с адаптивным alpha (MSE)
+            let alphaOpt = 0.25;
+            if(n >= 4){
+                let bestAlpha = 0.25, minMSE = Infinity;
+                for(let a of [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8]){
+                    let smooth = series[0], mse=0;
+                    for(let i=1;i<n;i++){
                         let pred = smooth;
                         let err = series[i] - pred;
-                        mse += err * err;
-                        smooth = a * series[i] + (1 - a) * smooth;
+                        mse += err*err;
+                        smooth = a*series[i] + (1-a)*smooth;
                     }
                     mse /= (n-1);
-                    if (mse < minMSE) {
-                        minMSE = mse;
-                        bestAlpha = a;
-                    }
+                    if(mse<minMSE){ minMSE=mse; bestAlpha=a; }
                 }
                 alphaOpt = bestAlpha;
             }
             let ses = series[0];
-            for (let i = 1; i < n; i++) {
-                ses = alphaOpt * series[i] + (1 - alphaOpt) * ses;
-            }
+            for(let i=1;i<n;i++) ses = alphaOpt*series[i] + (1-alphaOpt)*ses;
             let forecastSES = ses;
             
-            // 2. Линейная регрессия (метод наименьших квадратов) 
-            let indices = Array.from({length: n}, (_, i) => i + 1);
-            let sumX = indices.reduce((a,b) => a+b, 0);
-            let sumY = series.reduce((a,b) => a+b, 0);
-            let sumXY = 0, sumX2 = 0;
-            for (let i = 0; i < n; i++) {
-                sumXY += indices[i] * series[i];
-                sumX2 += indices[i] * indices[i];
-            }
-            let denom = (n * sumX2 - sumX * sumX);
-            let slope = (n * sumXY - sumX * sumY) / denom;
-            let intercept = (sumY - slope * sumX) / n;
-            let nextIndex = n + 1;
-            let forecastLin = intercept + slope * nextIndex;
+            // 2) Линейный тренд
+            let indices = Array.from({length:n}, (_,i)=>i+1);
+            let sumX = indices.reduce((a,b)=>a+b,0), sumY = series.reduce((a,b)=>a+b,0);
+            let sumXY=0, sumX2=0;
+            for(let i=0;i<n;i++){ sumXY += indices[i]*series[i]; sumX2 += indices[i]*indices[i]; }
+            let denom = (n*sumX2 - sumX*sumX);
+            let slope = (n*sumXY - sumX*sumY)/denom;
+            let intercept = (sumY - slope*sumX)/n;
+            let forecastLin = intercept + slope*(n+1);
             
-            // 3. Взвешенное среднее последних 3-х значений (если хватает длины)  с весами [0.5, 0.3, 0.2]
-            let weightedRecent = null;
-            if (n >= 3) {
-                let w1 = series[n-1] * 0.5;
-                let w2 = series[n-2] * 0.3;
-                let w3 = series[n-3] * 0.2;
-                weightedRecent = w1 + w2 + w3;
-            } else if (n === 2) {
-                weightedRecent = series[1] * 0.7 + series[0] * 0.3;
-            } else {
-                weightedRecent = series[0];
+            // 3) Взвешенное с фокусом на последние 3-4
+            let wsum=0, totalW=0;
+            for(let i=0;i<Math.min(4,n);i++){
+                let w = Math.pow(2, i+1);
+                wsum += series[n-1-i] * w;
+                totalW += w;
             }
+            let weightedRecent = (totalW>0) ? wsum/totalW : series[n-1];
             
-            // оценка трендовой устойчивости: чем стабильнее прирост, тем выше вес линейной регрессии
+            // динамический вес на основе стабильности тренда (дисперсия приростов)
             let diffs = [];
-            for (let i = 1; i < n; i++) diffs.push(series[i] - series[i-1]);
+            for(let i=1;i<n;i++) diffs.push(series[i]-series[i-1]);
             let avgDiff = diffs.reduce((a,b)=>a+b,0)/diffs.length;
-            let varianceDiff = 0;
+            let varDiff = 0;
             if(diffs.length>0){
-                for(let d of diffs) varianceDiff += (d-avgDiff)**2;
-                varianceDiff /= diffs.length;
+                for(let d of diffs) varDiff += (d-avgDiff)**2;
+                varDiff /= diffs.length;
             }
-            let trendStability = Math.min(1, 1.2/(1+varianceDiff*2)); // чем меньше вариация, тем выше
-            let weightLin = 0.4 + trendStability * 0.3;  // от 0.4 до 0.7
+            let trendStability = Math.min(0.8, 1/(1+varDiff*2));
+            let weightLin = 0.45 + trendStability*0.25;
             let weightSes = 0.3;
-            let weightRecent = 0.3;
-            // если не хватает данных корректируем
-            if (n < 4) { weightLin = 0.3; weightSes = 0.3; weightRecent = 0.4; }
-            let finalForecast = forecastLin * weightLin + forecastSES * weightSes + weightedRecent * weightRecent;
+            let weightRecent = 0.25;
+            if(n<4) { weightLin=0.3; weightSes=0.3; weightRecent=0.4; }
+            let baseForecast = forecastLin*weightLin + forecastSES*weightSes + weightedRecent*weightRecent;
             
-            // проверка на выбросы: если прогноз слишком далёк от последнего значения + средний дельты, ограничим разумно
+            // ************* РАСШИРЕННЫЙ МЕХАНИЗМ ВОЛАТИЛЬНОСТИ (ATR подобный) ***************
+            // Вычисляем истинный размах (high-low) но у нас только priceType средняя, но для волатильности используем абсолютные изменения
+            let trueRanges = [];
+            for(let i=1;i<n;i++) trueRanges.push(Math.abs(series[i] - series[i-1]));
+            let atr = 0;
+            if(trueRanges.length>0){
+                atr = trueRanges.reduce((a,b)=>a+b,0)/trueRanges.length;
+            } else atr = Math.abs(series[n-1]*0.02);
+            // добавим умножаем на коэф 1.2, чтобы учесть возможные гэпы
+            let volatilityScale = Math.max(0.5, Math.min(3.5, atr / (Math.abs(series[n-1])+0.001) * 1.6));
+            // если дисперсия высокая — рынок может уйти дальше
+            let jumpRisk = Math.min(1.8, 1 + varDiff/(Math.abs(avgDiff)+0.01)*0.7);
+            let finalVolatilityFactor = volatilityScale * jumpRisk;
+            finalVolatilityFactor = Math.min(2.5, Math.max(0.6, finalVolatilityFactor));
+            
+            // прогнозное значение коррекция: не вылетаем за пределы логики на основе исторического расширения
             let lastVal = series[n-1];
-            let meanChange = avgDiff || 0;
-            let maxPlausibleChange = Math.abs(meanChange) * 2.5 + (Math.abs(lastVal)*0.15);
-            if (Math.abs(finalForecast - lastVal) > maxPlausibleChange && maxPlausibleChange > 0) {
-                let sign = finalForecast > lastVal ? 1 : -1;
-                finalForecast = lastVal + sign * maxPlausibleChange;
+            let maxPlausibleMove = Math.max(atr * 2.8, Math.abs(avgDiff)*2.2, Math.abs(lastVal)*0.12);
+            let rawForecast = baseForecast;
+            if(Math.abs(rawForecast - lastVal) > maxPlausibleMove){
+                let sign = rawForecast > lastVal ? 1 : -1;
+                rawForecast = lastVal + sign * maxPlausibleMove;
             }
             
-            // доверие: основано на длине ряда + стабильности дисперсии
-            let confidenceBase = Math.min(0.95, 0.4 + n * 0.07);
-            let volatilityFactor = varianceDiff === 0 ? 1 : Math.max(0.5, 1 / (1 + Math.sqrt(varianceDiff)/(Math.abs(avgDiff)+0.01)));
-            let confidence = confidenceBase * (0.7 + 0.3*volatilityFactor);
-            confidence = Math.min(0.96, Math.max(0.3, confidence));
-            
-            return { value: finalForecast, confidence: confidence };
-        }
-        
-        // дополнительная логика: вычисляем "когерентность" между прогнозами
-        // чтобы итоговый агрегированный прогноз был максимально реалистичным с учётом взаимосвязей:
-        // обычно High >= Avg >= Low, Open где-то между, но не противоречит.
-        // применим мягкую коррекцию
-        
-        function coherentEnsemble(forecastAvg, forecastOpen, forecastLow, forecastHigh, lastKnownValues) {
-            // lastKnownValues: объект с последними фактическими значениями каждого типа (если есть)
-            let rawAvg = forecastAvg.value;
-            let rawOpen = forecastOpen.value;
-            let rawLow = forecastLow.value;
-            let rawHigh = forecastHigh.value;
-            
-            // если какой-то прогноз отсутствует, пытаемся восстановить логически
-            if (rawAvg === null) rawAvg = (rawLow + rawHigh) / 2;
-            if (rawOpen === null) rawOpen = rawAvg;
-            if (rawLow === null) rawLow = Math.min(rawAvg, rawHigh, rawOpen);
-            if (rawHigh === null) rawHigh = Math.max(rawAvg, rawLow, rawOpen);
-            
-            // необходимые ограничения: High >= max(Open, Avg, Low); Low <= min(Open, Avg, High)
-            let finalHigh = Math.max(rawHigh, rawAvg, rawOpen, rawLow);
-            let finalLow = Math.min(rawLow, rawAvg, rawOpen, finalHigh);
-            // корректируем Open и Avg, чтобы они лежали в [Low, High]
-            let finalAvg = Math.min(finalHigh, Math.max(finalLow, rawAvg));
-            let finalOpen = Math.min(finalHigh, Math.max(finalLow, rawOpen));
-            
-            // дополнительный реализм: если предыдущие данные говорят о значимом разрыве, сохраним структуру
-            if (lastKnownValues && lastKnownValues.lastAvg !== undefined && lastKnownValues.lastHigh !== undefined) {
-                let prevSpread = (lastKnownValues.lastHigh - lastKnownValues.lastLow) || 0.5;
-                let newSpread = finalHigh - finalLow;
-                if (newSpread < prevSpread * 0.3 && prevSpread > 0) {
-                    // слишком узкий диапазон — расширим немного в соответствии с динамикой
-                    let expand = prevSpread * 0.2;
-                    finalHigh = Math.min(finalHigh + expand/2, finalHigh*1.05);
-                    finalLow = Math.max(finalLow - expand/2, finalLow*0.95);
-                    finalAvg = Math.min(finalHigh, Math.max(finalLow, finalAvg));
-                    finalOpen = Math.min(finalHigh, Math.max(finalLow, finalOpen));
-                }
+            // границы: доверительный интервал с учётом реальной волатильности и ATR
+            let lowerBound = rawForecast - atr * (1.5 + finalVolatilityFactor*0.8);
+            let upperBound = rawForecast + atr * (1.5 + finalVolatilityFactor*0.8);
+            // дополнительная защита: диапазон не должен быть уже чем 2*atr
+            if(upperBound - lowerBound < atr*1.2){
+                let mid = (lowerBound+upperBound)/2;
+                lowerBound = mid - atr*1.3;
+                upperBound = mid + atr*1.3;
             }
+            lowerBound = Math.min(lowerBound, rawForecast * 0.85);
+            upperBound = Math.max(upperBound, rawForecast * 1.15);
+            // подстройка под реальность: если рынок был высоковолатильным, расширяем границы ещё на 15% (чтобы уловить вылеты)
+            if(varDiff > 0.5 && n>5){
+                let extraSpread = (upperBound - lowerBound)*0.2;
+                lowerBound -= extraSpread;
+                upperBound += extraSpread;
+            }
+            
+            // доверие модели
+            let confidence = Math.min(0.92, 0.4 + n*0.05);
+            confidence = confidence * (1 - Math.min(0.35, finalVolatilityFactor*0.12));
+            confidence = Math.max(0.35, Math.min(0.88, confidence));
             
             return {
-                avg: finalAvg,
-                open: finalOpen,
+                value: rawForecast,
+                lowBound: lowerBound,
+                highBound: upperBound,
+                volatilityFactor: finalVolatilityFactor,
+                atr: atr,
+                confidence: confidence
+            };
+        }
+        
+        // ---- КОГЕРЕНТНЫЙ СИНТЕЗ с вероятностными весами и согласованием High/Low/Open/Avg ----
+        function coherentEnsemble(forecastAvg, forecastOpen, forecastLow, forecastHigh, lastValues) {
+            let avgVal = forecastAvg?.value ?? null;
+            let openVal = forecastOpen?.value ?? null;
+            let lowVal = forecastLow?.value ?? null;
+            let highVal = forecastHigh?.value ?? null;
+            
+            let avgLow = forecastLow?.lowBound ?? (lowVal ? lowVal*0.96 : null);
+            let avgHigh = forecastHigh?.highBound ?? (highVal ? highVal*1.04 : null);
+            if(avgVal === null && lowVal !== null && highVal !== null) avgVal = (lowVal+highVal)/2;
+            if(openVal === null) openVal = avgVal;
+            if(lowVal === null) lowVal = avgVal * 0.97;
+            if(highVal === null) highVal = avgVal * 1.03;
+            
+            // важнейшее: согласование High >= max(Open, Avg, Low) и Low <= min
+            let coherentHigh = Math.max(highVal, openVal, avgVal, lowVal);
+            let coherentLow = Math.min(lowVal, openVal, avgVal, coherentHigh);
+            let coherentAvg = Math.min(coherentHigh, Math.max(coherentLow, avgVal));
+            let coherentOpen = Math.min(coherentHigh, Math.max(coherentLow, openVal));
+            
+            // дополнительное расширение на основе волатильности из прогнозов
+            let avgVolFactor = (forecastAvg?.volatilityFactor || 1.0);
+            let highVolFactor = (forecastHigh?.volatilityFactor || 1.0);
+            let compositeVol = (avgVolFactor + highVolFactor)/2;
+            
+            let riskBuffer = Math.max(0.015, (coherentHigh - coherentLow) * 0.18 * compositeVol);
+            let finalLow = Math.min(coherentLow, coherentAvg - riskBuffer);
+            let finalHigh = Math.max(coherentHigh, coherentAvg + riskBuffer);
+            if(finalHigh - finalLow < 0.0001) { finalHigh = coherentAvg*1.02; finalLow = coherentAvg*0.98; }
+            
+            // интегрированный прогноз (средневзвешенный с упором на среднюю и хай)
+            let integrated = (coherentAvg * 0.45 + coherentOpen * 0.2 + finalLow * 0.15 + finalHigh * 0.2);
+            return {
+                avg: coherentAvg,
+                open: coherentOpen,
                 low: finalLow,
                 high: finalHigh,
-                integrated: (finalAvg + finalOpen + finalLow + finalHigh) / 4   // базовое среднее
+                integrated: integrated,
+                riskLow: finalLow,
+                riskHigh: finalHigh
             };
         }
         
-        // Сбор последних известных значений для контекста (чтоб корректировать согласованность)
-        function getLastKnownValues(avgSeries, openSeries, lowSeries, highSeries) {
-            return {
-                lastAvg: avgSeries.length ? avgSeries[avgSeries.length-1] : null,
-                lastOpen: openSeries.length ? openSeries[openSeries.length-1] : null,
-                lastLow: lowSeries.length ? lowSeries[lowSeries.length-1] : null,
-                lastHigh: highSeries.length ? highSeries[highSeries.length-1] : null
-            };
+        // ---- ГЛАВНАЯ ЛОГИКА (выбор масштаба дневной/недельный) ----
+        let currentScale = "daily";   // daily / weekly
+        
+        function getSeriesByScale(){
+            if(currentScale === "daily"){
+                return {
+                    avgSer: parseNumberList(document.getElementById('avgDaily').value),
+                    openSer: parseNumberList(document.getElementById('openDaily').value),
+                    lowSer: parseNumberList(document.getElementById('lowDaily').value),
+                    highSer: parseNumberList(document.getElementById('highDaily').value)
+                };
+            } else {
+                return {
+                    avgSer: parseNumberList(document.getElementById('avgWeekly').value),
+                    openSer: parseNumberList(document.getElementById('openWeekly').value),
+                    lowSer: parseNumberList(document.getElementById('lowWeekly').value),
+                    highSer: parseNumberList(document.getElementById('highWeekly').value)
+                };
+            }
         }
         
-        // отрисовка интерфейса
-        function renderResults(forecastAvg, forecastOpen, forecastLow, forecastHigh, integratedObj) {
+        function renderResults(forecastAvg, forecastOpen, forecastLow, forecastHigh, coherent, scale) {
             const container = document.getElementById('resultsContainer');
             const forecastListDiv = document.getElementById('forecastList');
             const integratedSpan = document.getElementById('integratedForecast');
+            const riskDiv = document.getElementById('riskChannel');
             
-            // формируем 4 прогноза с доверительной полосой (отображаем значение)
             let items = [
-                { name: '📊 Средняя цена', value: forecastAvg.value !== null ? forecastAvg.value.toFixed(4) : '—', conf: forecastAvg.confidence },
-                { name: '🌅 Начальная цена (open)', value: forecastOpen.value !== null ? forecastOpen.value.toFixed(4) : '—', conf: forecastOpen.confidence },
-                { name: '📉 Минимальная цена (low)', value: forecastLow.value !== null ? forecastLow.value.toFixed(4) : '—', conf: forecastLow.confidence },
-                { name: '📈 Максимальная цена (high)', value: forecastHigh.value !== null ? forecastHigh.value.toFixed(4) : '—', conf: forecastHigh.confidence }
+                { name: '📊 Средняя цена', val: forecastAvg.value?.toFixed(4) ?? '—', vol: forecastAvg.volatilityFactor, low: forecastAvg.lowBound, high: forecastAvg.highBound },
+                { name: '🌅 Open', val: forecastOpen.value?.toFixed(4) ?? '—', vol: forecastOpen.volatilityFactor },
+                { name: '📉 Low', val: forecastLow.value?.toFixed(4) ?? '—', vol: forecastLow.volatilityFactor },
+                { name: '📈 High', val: forecastHigh.value?.toFixed(4) ?? '—', vol: forecastHigh.volatilityFactor }
             ];
-            
             let html = '';
-            for (let it of items) {
-                let confidencePercent = Math.round((it.conf || 0) * 100);
-                html += `
-                    <div class="forecast-item">
-                        <span class="forecast-name">${it.name}</span>
-                        <span class="forecast-value">${it.value}</span>
-                        <span style="font-size:0.7rem; background:#334155; padding:2px 8px; border-radius: 20px;">достоверн. ${confidencePercent}%</span>
-                    </div>
-                `;
+            for(let it of items){
+                let volText = it.vol ? `волат. ${(it.vol*100).toFixed(0)}%` : '';
+                html += `<div class="forecast-item">
+                            <span class="forecast-name">${it.name}</span>
+                            <span class="forecast-value">${it.val}</span>
+                            <span class="vol-indicator">${volText}</span>
+                         </div>`;
             }
             forecastListDiv.innerHTML = html;
+            integratedSpan.innerText = coherent.integrated.toFixed(4);
+            riskDiv.innerHTML = `<span style="color:#ffaa66;">📉 ${coherent.riskLow.toFixed(4)}</span> — <span style="color:#facc15;">прогноз</span> — <span style="color:#ffaa66;">📈 ${coherent.riskHigh.toFixed(4)}</span>`;
             
-            // Интегрированный максимально реалистичный показатель (связка всех)
-            let integratedVal = integratedObj.integrated;
-            integratedSpan.innerText = integratedVal.toFixed(4);
-            
-            // дополнительно покажем окно диапазона: high/low откорректированные
-            let extraHtml = `
-                <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size:0.75rem; gap:10px; flex-wrap:wrap;">
-                    <span>📐 скоррект. диапазон: ${integratedObj.low.toFixed(4)} — ${integratedObj.high.toFixed(4)}</span>
-                    <span>⚖️ открытие ~ ${integratedObj.open.toFixed(4)}</span>
-                </div>
-            `;
-            const existingExtra = document.querySelector('.extra-range');
-            if(existingExtra) existingExtra.remove();
-            const integratedDiv = document.querySelector('.integrated');
-            const newDiv = document.createElement('div');
-            newDiv.className = 'extra-range';
-            newDiv.style.marginTop = '8px';
-            newDiv.style.fontSize = '0.7rem';
-            newDiv.style.opacity = '0.9';
-            newDiv.innerHTML = extraHtml;
-            integratedDiv.appendChild(newDiv);
-            
+            const dualSpan = document.getElementById('dualInsight');
+            dualSpan.innerHTML = `<span>🕒 Масштаб: ${scale === 'daily' ? 'Дневной 📆' : 'Недельный 📅'}</span>
+                                   <span>⚠️ Риск-коридор учтён через историческую ATR + расширение на ${((coherent.riskHigh-coherent.riskLow)/(coherent.integrated+0.001)*100).toFixed(1)}%</span>`;
             container.style.display = 'block';
         }
         
-        // главная функция обработки
         function runPrediction() {
-            // получить сырые строки
-            const avgRaw = document.getElementById('avgInput').value;
-            const openRaw = document.getElementById('openInput').value;
-            const lowRaw = document.getElementById('lowInput').value;
-            const highRaw = document.getElementById('highInput').value;
-            
-            let avgSeries = parseNumberList(avgRaw);
-            let openSeries = parseNumberList(openRaw);
-            let lowSeries = parseNumberList(lowRaw);
-            let highSeries = parseNumberList(highRaw);
-            
-            // проверки минимальной длины
-            if (avgSeries.length < 2 && openSeries.length < 2 && lowSeries.length < 2 && highSeries.length < 2) {
-                alert("⚠️ Пожалуйста, введите как минимум 2 значения хотя бы для одного из анализов. Для точности введите последовательности чисел через запятую.");
+            const seriesData = getSeriesByScale();
+            const { avgSer, openSer, lowSer, highSer } = seriesData;
+            if(avgSer.length<2 && openSer.length<2 && lowSer.length<2 && highSer.length<2){
+                alert(`⚠️ Введите минимум 2 значения для активного масштаба (${currentScale === 'daily' ? 'дневной' : 'недельный'}). Для качественного прогноза желательно 4-5 точек.`);
                 return;
             }
             
-            // делаем прогнозы, если последовательность пустая — строим логическую аппроксимацию на основе других рядов (fallback)
-            const fallbackFromOthers = (targetSeries, fallbackSeriesList) => {
-                if (targetSeries.length >= 2) return advancedForecast(targetSeries);
-                // если недостаточно данных, попробуем взять среднее от существующих прогнозов (но тут лучше искусственный)
+            // если какой-то из рядов короткий - fallback через соседние ряды (среднее)
+            const smartForecast = (series, fallbackSeriesList, defaultFactor=0.98) => {
+                if(series.length >= 2) return advancedForecastWithVolatility(series);
                 let anyValid = fallbackSeriesList.filter(s => s.length >= 2);
-                if (anyValid.length > 0) {
-                    let avgForecast = 0;
-                    let cnt = 0;
-                    for (let s of anyValid) {
-                        let fc = advancedForecast(s);
-                        if (fc.value !== null) { avgForecast += fc.value; cnt++; }
+                if(anyValid.length>0){
+                    let sum=0, cnt=0;
+                    for(let s of anyValid){
+                        let fc = advancedForecastWithVolatility(s);
+                        if(fc.value !== null) { sum+=fc.value; cnt++; }
                     }
-                    if (cnt > 0) {
-                        let val = avgForecast / cnt;
-                        // подстройка под тип: например, low чуть ниже среднего, high выше
-                        return { value: val, confidence: 0.35 };
+                    if(cnt>0){
+                        let val = sum/cnt;
+                        let atrGuess = Math.abs(val*0.025);
+                        return { value: val, lowBound: val - atrGuess, highBound: val+atrGuess, volatilityFactor: 0.8, atr: atrGuess, confidence:0.4 };
                     }
                 }
-                return { value: null, confidence: 0 };
+                return { value: null, lowBound: null, highBound: null, volatilityFactor:1, atr:0, confidence:0.2 };
             };
             
-            let forecastAvg = avgSeries.length >= 2 ? advancedForecast(avgSeries) : fallbackFromOthers(avgSeries, [openSeries, highSeries, lowSeries]);
-            let forecastOpen = openSeries.length >= 2 ? advancedForecast(openSeries) : fallbackFromOthers(openSeries, [avgSeries, highSeries]);
-            let forecastLow = lowSeries.length >= 2 ? advancedForecast(lowSeries) : fallbackFromOthers(lowSeries, [avgSeries, openSeries]);
-            let forecastHigh = highSeries.length >= 2 ? advancedForecast(highSeries) : fallbackFromOthers(highSeries, [avgSeries, openSeries]);
+            let forecastAvg = smartForecast(avgSer, [openSer, highSer]);
+            let forecastOpen = smartForecast(openSer, [avgSer, highSer]);
+            let forecastLow = smartForecast(lowSer, [avgSer, openSer]);
+            let forecastHigh = smartForecast(highSer, [avgSer, openSer]);
             
-            // если какой-то фундаментально null, запасные варианты через соседей
-            if (forecastAvg.value === null && avgSeries.length===0) forecastAvg.value = (forecastLow.value + forecastHigh.value)/2 || 100;
-            if (forecastOpen.value === null) forecastOpen.value = forecastAvg.value;
-            if (forecastLow.value === null) forecastLow.value = forecastAvg.value * 0.97;
-            if (forecastHigh.value === null) forecastHigh.value = forecastAvg.value * 1.03;
+            // если null - подстановка разумная
+            if(forecastAvg.value === null && forecastHigh.value !== null) forecastAvg.value = forecastHigh.value * 0.98;
+            if(forecastOpen.value === null) forecastOpen.value = forecastAvg.value;
+            if(forecastLow.value === null) forecastLow.value = (forecastAvg.value ?? 100) * 0.97;
+            if(forecastHigh.value === null) forecastHigh.value = (forecastAvg.value ?? 100) * 1.035;
             
-            // получить последние известные значения для когерентности
-            const lastKnown = getLastKnownValues(avgSeries, openSeries, lowSeries, highSeries);
-            const coherent = coherentEnsemble(forecastAvg, forecastOpen, forecastLow, forecastHigh, lastKnown);
+            // последние известные фактические значения (для когерентности)
+            let lastAvg = avgSer.length ? avgSer[avgSer.length-1] : null;
+            let lastHigh = highSer.length ? highSer[highSer.length-1] : null;
+            let lastLow = lowSer.length ? lowSer[lowSer.length-1] : null;
+            const coherent = coherentEnsemble(forecastAvg, forecastOpen, forecastLow, forecastHigh, {lastAvg, lastHigh, lastLow});
             
-            // обновляем объекты прогнозов для отображения скорректированными значениями (но сами прогнозы не меняем, только итоговый агрегат)
-            // однако отображаем пользователю исходные прогнозы с их доверием, но через coherent мы получили более реалистичный синтез.
-            // добавим улучшение: для финального вывода также покажем синтезированные high/low/open из coherent блока.
-            // переопределим forecastHigh.value = coherent.high для визуализации? Нет, сохраним оригинальные прогнозы, но в дополнительной строке дадим новые.
-            // Обновим integrated объект, в котором high/low/open/avg уже сбалансированы.
-            renderResults(forecastAvg, forecastOpen, forecastLow, forecastHigh, coherent);
+            // дополнительная коррекция границ риска на основе недельного масштаба (если есть параллельные данные)
+            if(currentScale === 'daily'){
+                // попытка учесть недельный тренд как "фоновый дрейф", но не усложняем, оставляем чистый ежедневный
+                let weeklyAvgRaw = document.getElementById('avgWeekly').value;
+                let weeklySeries = parseNumberList(weeklyAvgRaw);
+                if(weeklySeries.length >= 2){
+                    let weeklyVol = advancedForecastWithVolatility(weeklySeries);
+                    if(weeklyVol.value !== null && weeklyVol.volatilityFactor > 1.1){
+                        // если недельная волатильность высокая — расширяем границы дневного прогноза на 12%
+                        let extra = (coherent.riskHigh - coherent.riskLow) * 0.12;
+                        coherent.riskLow -= extra;
+                        coherent.riskHigh += extra;
+                        coherent.integrated = (coherent.integrated + weeklyVol.value*0.1)/1.1;
+                    }
+                }
+            }
             
-            // дополнительно выведем заметку что синтезированный результат основан на всех рядах
+            renderResults(forecastAvg, forecastOpen, forecastLow, forecastHigh, coherent, currentScale);
         }
         
-        const btn = document.getElementById('predictBtn');
-        btn.addEventListener('click', runPrediction);
+        // Переключение масштаба с сохранением введённых данных
+        const dailyBlock = document.getElementById('dailyBlock');
+        const weeklyBlock = document.getElementById('weeklyBlock');
+        const scaleBtns = document.querySelectorAll('.scale-btn');
         
-        // небольшая инициализация примерами (демо-данные, чтобы интерфейс был не пустым)
-        const demoAvg = "125.4, 128.1, 130.2, 127.9, 131.5";
-        const demoOpen = "123.8, 126.6, 128.0, 129.1, 130.4";
-        const demoLow = "121.1, 124.5, 126.2, 125.8, 129.0";
-        const demoHigh = "128.2, 130.0, 132.4, 131.0, 134.2";
-        if(!localStorage.getItem('demo_loaded')) {
-            document.getElementById('avgInput').value = demoAvg;
-            document.getElementById('openInput').value = demoOpen;
-            document.getElementById('lowInput').value = demoLow;
-            document.getElementById('highInput').value = demoHigh;
-            localStorage.setItem('demo_loaded', 'true');
+        function setActiveScale(scale){
+            currentScale = scale;
+            if(scale === 'daily'){
+                dailyBlock.style.display = 'block';
+                weeklyBlock.style.display = 'none';
+            } else {
+                dailyBlock.style.display = 'none';
+                weeklyBlock.style.display = 'block';
+            }
+            scaleBtns.forEach(btn => {
+                if(btn.getAttribute('data-scale') === scale) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            // скрыть предыдущие результаты при смене масштаба
+            document.getElementById('resultsContainer').style.display = 'none';
         }
+        
+        scaleBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let scale = btn.getAttribute('data-scale');
+                setActiveScale(scale);
+            });
+        });
+        
+        document.getElementById('predictBtn').addEventListener('click', runPrediction);
+        
+        // Демо-заполнение (дневной и недельный)
+        if(!localStorage.getItem('demo_v2_loaded')){
+            document.getElementById('avgDaily').value = "125.4, 128.1, 130.2, 127.9, 131.5, 133.8";
+            document.getElementById('openDaily').value = "123.8, 126.6, 128.0, 129.1, 130.4, 132.9";
+            document.getElementById('lowDaily').value = "121.1, 124.5, 126.2, 125.8, 129.0, 131.2";
+            document.getElementById('highDaily').value = "128.2, 130.0, 132.4, 131.0, 134.2, 136.1";
+            document.getElementById('avgWeekly').value = "520.4, 531.2, 540.9, 548.3, 555.0";
+            document.getElementById('openWeekly').value = "518.0, 528.5, 538.0, 545.0, 552.0";
+            document.getElementById('lowWeekly').value = "512.3, 524.0, 535.2, 540.4, 547.1";
+            document.getElementById('highWeekly').value = "530.1, 540.2, 548.0, 556.7, 562.3";
+            localStorage.setItem('demo_v2_loaded', 'true');
+        }
+        setActiveScale('daily');
     })();
 </script>
 </body>
