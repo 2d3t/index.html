@@ -2,30 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Pro-трейдер: CSV загрузчик + Про-прогноз</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro-трейдер: Месяц (дни) vs Год (недели)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0a0f1c; font-family: 'Segoe UI', system-ui; padding: 20px 16px; color: #e2e8f0; }
-        .container { max-width: 1400px; margin: 0 auto; }
+        .container { max-width: 760px; margin: 0 auto; }
         h1 { font-size: 1.7rem; font-weight: 700; background: linear-gradient(135deg, #f7931a, #ffd966); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 0.25rem; }
         .sub { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; border-left: 3px solid #f7931a; padding-left: 12px; }
-        
-        .csv-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-        .csv-card { flex: 1; background: #111827; border-radius: 24px; padding: 16px; border: 1px solid #2d3a4f; min-width: 300px; }
-        .csv-card h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
-        .upload-area { background: #1e293b; border: 2px dashed #3b82f6; border-radius: 20px; padding: 16px; text-align: center; cursor: pointer; transition: 0.2s; margin-bottom: 12px; }
-        .upload-area:hover { background: #334155; border-color: #f7931a; }
-        .file-label { background: linear-gradient(95deg, #f7931a, #e06c00); padding: 8px 20px; border-radius: 40px; display: inline-block; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin: 8px 0; }
-        input[type="file"] { display: none; }
-        .file-status { font-size: 0.75rem; color: #8ba0bc; margin-top: 8px; word-break: break-all; }
-        .table-wrapper { overflow-x: auto; max-height: 250px; overflow-y: auto; background: #0f172a; border-radius: 16px; margin-top: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
-        th { background: #1e293b; padding: 8px 6px; position: sticky; top: 0; color: #f7931a; font-weight: 600; }
-        td { padding: 6px; border-bottom: 1px solid #2d3a4f; white-space: nowrap; }
-        .clear-btn { background: none; border: 1px solid #475569; color: #94a3b8; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.7rem; margin-top: 8px; width: 100%; }
-        .clear-btn:hover { background: #1e293b; color: white; }
-        
         .dual-panel { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
         .scale-box { flex: 1; background: #111827; border-radius: 24px; padding: 16px; border: 1px solid #2d3a4f; }
         .scale-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
@@ -43,68 +27,25 @@
         .signal-neutral { color: #facc15; }
         hr { margin: 12px 0; border-color: #2d3a4f; }
         .note { font-size: 0.7rem; color: #7e8b9c; margin-top: 12px; text-align: center; }
-        .stats-row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.7rem; background: #07121c; padding: 6px 12px; border-radius: 20px; flex-wrap: wrap; gap: 8px; }
+        .stats-row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.7rem; background: #07121c; padding: 6px 12px; border-radius: 20px; }
         @media (max-width: 600px) { .levels-grid { flex-direction: column; } }
-        .warning-banner { background: #422b00; border-left: 4px solid #f7931a; padding: 8px 12px; border-radius: 12px; margin-bottom: 16px; font-size: 0.75rem; }
-        .mode-switch { display: flex; gap: 8px; margin-bottom: 12px; }
-        .mode-btn { background: #1e293b; border: 1px solid #475569; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.7rem; }
-        .mode-btn.active { background: #f7931a; border-color: #f7931a; color: #0a0f1c; font-weight: bold; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📂 Pro-трейдер: CSV → Прогноз</h1>
-    <div class="sub">Загрузите CSV с колонками: Дата, Средняя, Открытие, Макс, Мин, Объём (последняя строка CSV игнорируется)</div>
-
-    <div class="csv-grid">
-        <!-- Дневной CSV -->
-        <div class="csv-card">
-            <h3>📆 ДНЕВНЫЕ ДАННЫЕ <span id="dailyFileStatus" style="font-size:0.7rem;">не загружен</span></h3>
-            <div class="upload-area" id="dailyUploadArea">
-                <div>📂 Перетащите или</div>
-                <label class="file-label">выберите CSV (дни)
-                    <input type="file" id="dailyFileInput" accept=".csv">
-                </label>
-                <div style="font-size:0.7rem;">Колонки: Дата, Средняя, High, Low</div>
-            </div>
-            <div id="dailyTableWrapper" class="table-wrapper" style="display:none;"></div>
-            <button id="clearDailyBtn" class="clear-btn">✖ Очистить дневные</button>
-        </div>
-        <!-- Недельный CSV -->
-        <div class="csv-card">
-            <h3>📅 НЕДЕЛЬНЫЕ ДАННЫЕ <span id="weeklyFileStatus" style="font-size:0.7rem;">не загружен</span></h3>
-            <div class="upload-area" id="weeklyUploadArea">
-                <div>📂 Перетащите или</div>
-                <label class="file-label">выберите CSV (недели)
-                    <input type="file" id="weeklyFileInput" accept=".csv">
-                </label>
-                <div style="font-size:0.7rem;">Колонки: Дата, Средняя, High, Low</div>
-            </div>
-            <div id="weeklyTableWrapper" class="table-wrapper" style="display:none;"></div>
-            <button id="clearWeeklyBtn" class="clear-btn">✖ Очистить недельные</button>
-        </div>
-    </div>
-
-    <!-- Настройки направления -->
-    <div class="warning-banner">
-        <div class="mode-switch" id="globalModeSwitch">
-            <span style="margin-right:8px;">🌍 Порядок копирования из таблиц:</span>
-            <button data-mode="top-down" class="mode-btn active">⬆️ Сверху вниз (1→N)</button>
-            <button data-mode="bottom-up" class="mode-btn">⬇️ Снизу вверх (N→1)</button>
-        </div>
-        <div style="font-size:0.7rem;">* Кликните на заголовок колонки в таблице, чтобы скопировать все значения в нужном порядке</div>
-    </div>
+    <h1>📐 Pro-трейдер: Месяц vs Год</h1>
+    <div class="sub">Дневные данные (30-40 дней) + Недельные данные (52 недели) → конкретные уровни</div>
 
     <div class="dual-panel">
         <div class="scale-box">
-            <h3>📊 ДНЕВНОЙ МАСШТАБ <span id="dailyCount" class="data-length">0 точек</span></h3>
-            <textarea id="dailyAvg" rows="2" placeholder="Средние цены (через запятую)"></textarea>
-            <textarea id="dailyHigh" rows="1" placeholder="Максимумы (опционально)"></textarea>
+            <h3>📆 ДНЕВНОЙ МАСШТАБ <span id="dailyCount" class="data-length">0 точек</span></h3>
+            <textarea id="dailyAvg" rows="3" placeholder="Средние цены за день (через запятую)&#10;Пример: 62500, 63200, 62800, 64000, 63800, 63500..."></textarea>
+            <textarea id="dailyHigh" rows="1" placeholder="Максимумы (опционально, но желательно)"></textarea>
             <textarea id="dailyLow" rows="1" placeholder="Минимумы (опционально)"></textarea>
         </div>
         <div class="scale-box">
-            <h3>📈 НЕДЕЛЬНЫЙ МАСШТАБ <span id="weeklyCount" class="data-length">0 точек</span></h3>
-            <textarea id="weeklyAvg" rows="2" placeholder="Средние цены (через запятую)"></textarea>
+            <h3>📅 НЕДЕЛЬНЫЙ МАСШТАБ <span id="weeklyCount" class="data-length">0 точек</span></h3>
+            <textarea id="weeklyAvg" rows="3" placeholder="Средние цены за неделю (за год — до 52 чисел)&#10;Пример: 61000, 59500, 57800, 56200, 55100..."></textarea>
             <textarea id="weeklyHigh" rows="1" placeholder="Максимумы недели"></textarea>
             <textarea id="weeklyLow" rows="1" placeholder="Минимумы недели"></textarea>
         </div>
@@ -130,28 +71,17 @@
                 <span>🎯 Приоритет: <strong>недельный (65-75%)</strong></span>
             </div>
         </div>
-        <div class="note">💡 CSV: первая строка — заголовки. Ищем колонки: средняя/avg, high, low. Последняя строка игнорируется. Данные от новых → к старым (автоматически переворачиваем).</div>
+        <div class="note">
+            💡 Больше данных = точнее ATR. Программа корректно работает с разной длиной рядов. Недельный тренд всегда имеет больший вес.
+        </div>
+    </div>
+    <div class="note" style="margin-top: 16px;">
+        ⚠️ Введите минимум 2 значения для дневного И для недельного масштаба. Чем больше истории — тем стабильнее прогноз.
     </div>
 </div>
 
 <script>
     (function(){
-        // --- Глобальные переменные ---
-        let dailyData = { avg: [], high: [], low: [] };
-        let weeklyData = { avg: [], high: [], low: [] };
-        let globalDirection = 'top-down'; // top-down или bottom-up
-        
-        // --- DOM элементы ---
-        const dailyFileInput = document.getElementById('dailyFileInput');
-        const weeklyFileInput = document.getElementById('weeklyFileInput');
-        const dailyUploadArea = document.getElementById('dailyUploadArea');
-        const weeklyUploadArea = document.getElementById('weeklyUploadArea');
-        const dailyTableWrapper = document.getElementById('dailyTableWrapper');
-        const weeklyTableWrapper = document.getElementById('weeklyTableWrapper');
-        const dailyFileStatus = document.getElementById('dailyFileStatus');
-        const weeklyFileStatus = document.getElementById('weeklyFileStatus');
-        
-        // --- Вспомогательные функции ---
         function parseList(raw) {
             if(!raw.trim()) return [];
             return raw.split(',').map(p => parseFloat(p.trim())).filter(v => !isNaN(v));
@@ -164,246 +94,19 @@
             document.getElementById('weeklyCount').innerText = weeklyAvg.length + ' точек';
         }
         
-        function fillTextareas(prefix, avgArr, highArr, lowArr) {
-            document.getElementById(prefix + 'Avg').value = avgArr.join(', ');
-            document.getElementById(prefix + 'High').value = highArr.length ? highArr.join(', ') : '';
-            document.getElementById(prefix + 'Low').value = lowArr.length ? lowArr.join(', ') : '';
-            updateCounters();
-        }
-        
-        // Очистка чисел (удаляем точки и запятые для копирования)
-        function cleanNumberValue(rawValue) {
-            if (rawValue === undefined || rawValue === null) return '';
-            let str = String(rawValue).trim();
-            if (str === '') return '';
-            return str.replace(/[.,]/g, '');
-        }
-        
-        // Копирование колонки
-        function copyColumn(columnData, columnName) {
-            if (!columnData.length) { showToast('⚠️ Нет данных'); return; }
-            let finalValues = globalDirection === 'bottom-up' ? [...columnData].reverse() : columnData;
-            const resultString = finalValues.join(',');
-            const dirText = globalDirection === 'bottom-up' ? 'снизу вверх' : 'сверху вниз';
-            navigator.clipboard.writeText(resultString).then(() => {
-                let preview = resultString.length > 70 ? resultString.substring(0, 70) + '…' : resultString;
-                showToast(`✅ Колонка «${columnName}» [${dirText}]: ${finalValues.length} значений → ${preview}`);
-            }).catch(err => showToast(`❌ Ошибка: ${err.message}`));
-        }
-        
-        function showToast(message) {
-            const existing = document.querySelector('.copy-toast');
-            if (existing) existing.remove();
-            const toast = document.createElement('div');
-            toast.className = 'copy-toast';
-            toast.textContent = message;
-            toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1e293b;color:white;padding:10px 20px;border-radius:40px;font-size:0.85rem;z-index:1000;animation:fadeInOut 2s ease forwards;pointer-events:none;';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2500);
-        }
-        
-        // --- Парсинг CSV с игнорированием последней строки ---
-        function parseCSV(text, delimiter) {
-            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-            const rows = [];
-            let currentRow = [], currentField = '', insideQuotes = false;
-            for (let i = 0; i < text.length; i++) {
-                const ch = text[i];
-                const isDelim = (ch === delimiter);
-                if (!insideQuotes && isDelim) {
-                    currentRow.push(currentField);
-                    currentField = '';
-                    continue;
-                }
-                if (ch === '\r' && i+1 < text.length && text[i+1] === '\n') {
-                    if (!insideQuotes) {
-                        currentRow.push(currentField);
-                        rows.push(currentRow);
-                        currentRow = [];
-                        currentField = '';
-                        i++;
-                        continue;
-                    } else { currentField += ch; continue; }
-                }
-                if (ch === '\n') {
-                    if (!insideQuotes) {
-                        currentRow.push(currentField);
-                        rows.push(currentRow);
-                        currentRow = [];
-                        currentField = '';
-                        continue;
-                    } else { currentField += ch; continue; }
-                }
-                if (ch === '"') {
-                    if (insideQuotes && i+1 < text.length && text[i+1] === '"') {
-                        currentField += '"';
-                        i++;
-                        continue;
-                    } else { insideQuotes = !insideQuotes; continue; }
-                }
-                currentField += ch;
-            }
-            if (currentField !== undefined || currentRow.length) currentRow.push(currentField);
-            if (currentRow.length) rows.push(currentRow);
-            while (rows.length && rows[rows.length-1].length === 1 && rows[rows.length-1][0] === '') rows.pop();
-            return rows;
-        }
-        
-        function detectDelimiter(text) {
-            let clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
-            const lines = clean.split(/\r?\n/);
-            let firstLine = '';
-            for (let l of lines) if (l.trim()) { firstLine = l; break; }
-            if (!firstLine) return ',';
-            const candidates = [',', ';', '\t', '|', ' '];
-            let best = ',', maxCount = 0;
-            for (let d of candidates) {
-                let count = 0, inQuote = false;
-                for (let i = 0; i < firstLine.length; i++) {
-                    const c = firstLine[i];
-                    if (c === '"') inQuote = !inQuote;
-                    if (!inQuote && c === d) count++;
-                }
-                if (count > maxCount) { maxCount = count; best = d; }
-            }
-            return best;
-        }
-        
-        function processCSV(file, type) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                let text = e.target.result;
-                const delimiter = detectDelimiter(text);
-                let parsed = parseCSV(text, delimiter);
-                if (!parsed.length) { showToast('❌ Нет данных'); return; }
-                // Игнорируем последнюю строку
-                parsed = parsed.slice(0, -1);
-                if (parsed.length < 2) { showToast('❌ После удаления последней строки данных не осталось'); return; }
-                
-                // Заголовки (первая строка)
-                let headers = parsed[0].map(h => String(h).toLowerCase());
-                let dataRows = parsed.slice(1);
-                
-                // Ищем индексы колонок
-                let avgIdx = -1, highIdx = -1, lowIdx = -1;
-                headers.forEach((h, idx) => {
-                    if (h.includes('средн') || h === 'avg' || h === 'average') avgIdx = idx;
-                    if (h.includes('максим') || h === 'high' || h === 'max') highIdx = idx;
-                    if (h.includes('минимум') || h === 'low' || h === 'min') lowIdx = idx;
-                });
-                
-                // Если нет средней, но есть high/low - вычисляем
-                if (avgIdx === -1 && highIdx !== -1 && lowIdx !== -1) avgIdx = -2; // будем вычислять
-                
-                // Извлекаем данные
-                let avgSeries = [], highSeries = [], lowSeries = [];
-                for (let row of dataRows) {
-                    let avg = avgIdx === -1 ? NaN : (avgIdx === -2 ? (parseFloat(row[highIdx]) + parseFloat(row[lowIdx])) / 2 : parseFloat(row[avgIdx]));
-                    let high = highIdx !== -1 ? parseFloat(row[highIdx]) : NaN;
-                    let low = lowIdx !== -1 ? parseFloat(row[lowIdx]) : NaN;
-                    
-                    if (isNaN(avg) && !isNaN(high) && !isNaN(low)) avg = (high + low) / 2;
-                    if (isNaN(high) && !isNaN(avg)) high = avg * 1.02;
-                    if (isNaN(low) && !isNaN(avg)) low = avg * 0.98;
-                    
-                    if (!isNaN(avg)) {
-                        avgSeries.push(avg);
-                        highSeries.push(high);
-                        lowSeries.push(low);
-                    }
-                }
-                
-                if (avgSeries.length === 0) { showToast('❌ Нет валидных числовых данных'); return; }
-                
-                // Переворачиваем: сверху новые → снизу старые, а нам нужно от старых к новым
-                avgSeries.reverse();
-                highSeries.reverse();
-                lowSeries.reverse();
-                
-                // Сохраняем
-                if (type === 'daily') {
-                    dailyData = { avg: avgSeries, high: highSeries, low: lowSeries };
-                    fillTextareas('daily', avgSeries, highSeries, lowSeries);
-                    dailyFileStatus.innerHTML = `✅ ${avgSeries.length} точек (последняя строка игнорируется)`;
-                    renderTable(avgSeries, highSeries, lowSeries, dailyTableWrapper, 'daily');
-                } else {
-                    weeklyData = { avg: avgSeries, high: highSeries, low: lowSeries };
-                    fillTextareas('weekly', avgSeries, highSeries, lowSeries);
-                    weeklyFileStatus.innerHTML = `✅ ${avgSeries.length} точек (последняя строка игнорируется)`;
-                    renderTable(avgSeries, highSeries, lowSeries, weeklyTableWrapper, 'weekly');
-                }
-            };
-            reader.readAsText(file, 'UTF-8');
-        }
-        
-        function renderTable(avgArr, highArr, lowArr, wrapper, type) {
-            if (!avgArr.length) { wrapper.style.display = 'none'; return; }
-            wrapper.style.display = 'block';
-            let html = '<table><thead><tr>';
-            html += '<th data-col="avg" style="cursor:pointer;">📊 Средняя ⬇️</th>';
-            html += '<th data-col="high" style="cursor:pointer;">📈 Максимум ⬇️</th>';
-            html += '<th data-col="low" style="cursor:pointer;">📉 Минимум ⬇️</th>';
-            html += '</tr></thead><tbody>';
-            
-            // Показываем последние 20 строк (самые новые данные)
-            const startIdx = Math.max(0, avgArr.length - 20);
-            for (let i = startIdx; i < avgArr.length; i++) {
-                html += `<tr>
-                    <td>${avgArr[i].toFixed(2)}</td>
-                    <td>${highArr[i] ? highArr[i].toFixed(2) : '-'}</td>
-                    <td>${lowArr[i] ? lowArr[i].toFixed(2) : '-'}</td>
-                </tr>`;
-            }
-            html += '</tbody></table>';
-            wrapper.innerHTML = html;
-            
-            // Добавляем обработчики кликов на заголовки
-            const headers = wrapper.querySelectorAll('th');
-            headers.forEach(th => {
-                th.addEventListener('click', () => {
-                    const col = th.getAttribute('data-col');
-                    let data = [];
-                    if (col === 'avg') data = [...avgArr];
-                    else if (col === 'high') data = [...highArr];
-                    else if (col === 'low') data = [...lowArr];
-                    data = data.filter(v => !isNaN(v));
-                    copyColumn(data, `${type === 'daily' ? 'дневная' : 'недельная'} ${col === 'avg' ? 'средняя' : (col === 'high' ? 'максимум' : 'минимум')}`);
-                });
-            });
-        }
-        
-        function clearData(type) {
-            if (type === 'daily') {
-                dailyData = { avg: [], high: [], low: [] };
-                document.getElementById('dailyAvg').value = '';
-                document.getElementById('dailyHigh').value = '';
-                document.getElementById('dailyLow').value = '';
-                dailyFileStatus.innerHTML = 'не загружен';
-                dailyTableWrapper.style.display = 'none';
-                dailyFileInput.value = '';
-            } else {
-                weeklyData = { avg: [], high: [], low: [] };
-                document.getElementById('weeklyAvg').value = '';
-                document.getElementById('weeklyHigh').value = '';
-                document.getElementById('weeklyLow').value = '';
-                weeklyFileStatus.innerHTML = 'не загружен';
-                weeklyTableWrapper.style.display = 'none';
-                weeklyFileInput.value = '';
-            }
-            updateCounters();
-            showToast(`🗑️ ${type === 'daily' ? 'Дневные' : 'Недельные'} данные очищены`);
-        }
-        
-        // --- Прогноз с ATR ---
+        // Расширенный прогноз + ATR (работает с любым количеством точек)
         function forecastWithATR(series) {
             if(!series.length) return null;
             const n = series.length;
-            if(n === 1) return { value: series[0], atr: Math.abs(series[0]*0.015), strength: 0.3, direction: 'neutral', last: series[0], points: 1 };
+            if(n === 1) return { value: series[0], atr: Math.abs(series[0]*0.015), strength: 0.3, direction: 'neutral', last: series[0] };
+            
+            // ATR по полной истории
             let trueRanges = [];
             for(let i=1;i<n;i++) trueRanges.push(Math.abs(series[i] - series[i-1]));
             let atr = trueRanges.reduce((a,b)=>a+b,0)/trueRanges.length;
             if(atr === 0 || !isFinite(atr)) atr = Math.abs(series[n-1]*0.01);
             
+            // Линейный тренд (вес увеличивается с длиной истории)
             let idx = Array.from({length:n}, (_,i)=>i+1);
             let sumX = idx.reduce((a,b)=>a+b,0), sumY = series.reduce((a,b)=>a+b,0);
             let sumXY=0, sumX2=0;
@@ -412,11 +115,14 @@
             let intercept = (sumY - slope*sumX)/n;
             let forecastLin = intercept + slope*(n+1);
             
+            // Экспоненциальное сглаживание (адаптивный alpha)
             let alpha = Math.min(0.7, 0.2 + 20/n * 0.3);
             let ses = series[0];
             for(let i=1;i<n;i++) ses = alpha*series[i] + (1-alpha)*ses;
+            
             let lastVal = series[n-1];
             let finalForecast = (forecastLin * 0.6 + ses * 0.4);
+            // ограничение не более 3 ATR от последнего значения
             let maxMove = atr * 3;
             if(Math.abs(finalForecast - lastVal) > maxMove){
                 let sign = finalForecast > lastVal ? 1 : -1;
@@ -424,7 +130,7 @@
             }
             let direction = finalForecast > lastVal ? 'bull' : (finalForecast < lastVal ? 'bear' : 'neutral');
             let strength = Math.min(0.9, Math.abs((finalForecast - lastVal) / (atr+0.001)) * 0.6);
-            return { value: finalForecast, atr, direction, strength, last: lastVal, points: n };
+            return { value: finalForecast, atr: atr, direction, strength, last: lastVal, points: n };
         }
         
         function analyzeAndAdvise(dailyAvg, dailyHigh, dailyLow, weeklyAvg, weeklyHigh, weeklyLow) {
@@ -433,6 +139,9 @@
             if(!dailyF || !weeklyF) return null;
             
             let lastDailyPrice = dailyAvg.length ? dailyAvg[dailyAvg.length-1] : dailyF.last;
+            let lastWeeklyPrice = weeklyAvg.length ? weeklyAvg[weeklyAvg.length-1] : weeklyF.last;
+            
+            // Вес недельного тренда: от 65% до 80% в зависимости от стабильности
             let weeklyWeight = 0.68;
             if(weeklyF.points > 30) weeklyWeight = 0.72;
             if(weeklyF.atr > dailyF.atr*1.5) weeklyWeight = 0.76;
@@ -465,9 +174,9 @@
             }
             
             let verdictMsg = '';
-            if(dailyDirNum > 0 && weeklyDirNum < 0) verdictMsg = `⚠️ Разнонаправленность: дневной тренд вверх, недельный давит вниз. Приоритет недельному → ${action.toLowerCase()}.`;
-            else if(dailyDirNum < 0 && weeklyDirNum > 0) verdictMsg = `⚠️ Противоречие: дневной сигнал на продажу, недельный на покупку. Учитывая силу недельного тренда → ${action.toLowerCase()}.`;
-            else verdictMsg = `✅ Таймфреймы сонаправлены. Недельный тренд усиливает дневной сигнал.`;
+            if(dailyDirNum > 0 && weeklyDirNum < 0) verdictMsg = `⚠️ Разнонаправленность: дневной тренд вверх, но недельный (${weeklyF.points} недель) давит вниз. Приоритет недельному → ${action.toLowerCase()}.`;
+            else if(dailyDirNum < 0 && weeklyDirNum > 0) verdictMsg = `⚠️ Противоречие: дневной сигнал на продажу, недельный на покупку. Учитывая силу недельного тренда (${weeklyF.points} точек), рекомендовано ${action.toLowerCase()}.`;
+            else verdictMsg = `✅ Таймфреймы сонаправлены. Недельный тренд (${weeklyF.direction==='bull'?'восходящий':'нисходящий'}) усиливает дневной сигнал.`;
             
             return {
                 action, actionColor, positionType,
@@ -519,7 +228,7 @@
             let weeklyLow = parseList(document.getElementById('weeklyLow').value);
             
             if(dailyAvg.length < 2 || weeklyAvg.length < 2){
-                alert("Введите минимум 2 значения средней цены для дневного И для недельного масштаба. Загрузите CSV или введите вручную.");
+                alert("Введите минимум 2 значения средней цены для дневного И для недельного масштаба. Чем больше данных — тем лучше.");
                 return;
             }
             if(dailyHigh.length === 0) dailyHigh = dailyAvg.map(v => v*1.02);
@@ -531,47 +240,25 @@
             renderStrategy(strategy);
         }
         
-        // --- Инициализация ---
-        dailyFileInput.addEventListener('change', (e) => { if(e.target.files[0]) processCSV(e.target.files[0], 'daily'); });
-        weeklyFileInput.addEventListener('change', (e) => { if(e.target.files[0]) processCSV(e.target.files[0], 'weekly'); });
-        
-        // Drag & drop
-        dailyUploadArea.addEventListener('dragover', e => e.preventDefault());
-        dailyUploadArea.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) processCSV(f, 'daily'); });
-        weeklyUploadArea.addEventListener('dragover', e => e.preventDefault());
-        weeklyUploadArea.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) processCSV(f, 'weekly'); });
-        
-        document.getElementById('clearDailyBtn').addEventListener('click', () => clearData('daily'));
-        document.getElementById('clearWeeklyBtn').addEventListener('click', () => clearData('weekly'));
         document.getElementById('predictBtn').addEventListener('click', run);
-        
-        // Глобальный режим
-        document.querySelectorAll('[data-mode]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                globalDirection = btn.getAttribute('data-mode');
-                showToast(`🌍 Режим копирования: ${globalDirection === 'top-down' ? 'сверху вниз' : 'снизу вверх'}`);
-            });
-        });
-        
         document.getElementById('dailyAvg').addEventListener('input', updateCounters);
         document.getElementById('weeklyAvg').addEventListener('input', updateCounters);
         
-        // Демо-данные
-        if(!localStorage.getItem('pro_csv_demo_final')){
-            let demoDaily = [62500, 63200, 62800, 64000, 63800, 63500, 64100, 63900, 64500, 64300];
+        // Демо: 30 дней + 52 недели (типичный случай)
+        if(!localStorage.getItem('pro_trader_v2_demo')){
+            let demoDaily = [];
+            let base = 62500;
+            for(let i=0;i<30;i++){
+                let change = (Math.random() - 0.5) * 800;
+                base = Math.max(58000, Math.min(68000, base + change));
+                demoDaily.push(Math.round(base));
+            }
             document.getElementById('dailyAvg').value = demoDaily.join(', ');
-            let demoWeekly = [61000, 60500, 59500, 58800, 58200, 57500];
+            let demoWeekly = [61000, 60500, 59500, 58800, 58200, 57500, 56800, 56200, 55700, 55100, 54600, 54000];
             document.getElementById('weeklyAvg').value = demoWeekly.join(', ');
-            localStorage.setItem('pro_csv_demo_final', 'true');
+            localStorage.setItem('pro_trader_v2_demo', 'true');
         }
         updateCounters();
-        
-        // Добавляем стиль для toasts
-        const style = document.createElement('style');
-        style.textContent = `@keyframes fadeInOut { 0% { opacity: 0; transform: translateX(-50%) translateY(10px); } 15% { opacity: 1; transform: translateX(-50%) translateY(0); } 85% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-10px); } }`;
-        document.head.appendChild(style);
     })();
 </script>
 </body>
