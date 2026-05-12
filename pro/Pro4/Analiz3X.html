@@ -2,23 +2,24 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Pro-трейдер: дневной vs недельный | Точки входа</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro-трейдер: Месяц (дни) vs Год (недели)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0a0f1c; font-family: 'Segoe UI', system-ui; padding: 20px 16px; color: #e2e8f0; }
-        .container { max-width: 700px; margin: 0 auto; }
+        .container { max-width: 760px; margin: 0 auto; }
         h1 { font-size: 1.7rem; font-weight: 700; background: linear-gradient(135deg, #f7931a, #ffd966); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 0.25rem; }
         .sub { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; border-left: 3px solid #f7931a; padding-left: 12px; }
-        .dual-panel { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
-        .scale-box { flex: 1; background: #111827; border-radius: 24px; padding: 12px; border: 1px solid #2d3a4f; }
-        .scale-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-        textarea { width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 10px; font-family: monospace; font-size: 0.8rem; color: #f1f5f9; resize: vertical; }
+        .dual-panel { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .scale-box { flex: 1; background: #111827; border-radius: 24px; padding: 16px; border: 1px solid #2d3a4f; }
+        .scale-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+        .data-length { font-size: 0.7rem; background: #1e293b; padding: 2px 8px; border-radius: 20px; font-family: monospace; }
+        textarea { width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 12px; font-family: monospace; font-size: 0.8rem; color: #f1f5f9; resize: vertical; margin-bottom: 8px; }
         .btn { background: linear-gradient(95deg, #f7931a, #e06c00); color: white; border: none; width: 100%; padding: 14px; font-weight: bold; border-radius: 44px; margin: 16px 0; cursor: pointer; font-size: 1rem; }
-        .strategy-card { background: #0f212e; border-radius: 28px; padding: 1rem; margin-top: 20px; border-left: 6px solid #f7931a; }
+        .strategy-card { background: #0f212e; border-radius: 28px; padding: 1.2rem; margin-top: 20px; border-left: 6px solid #f7931a; }
         .advice-title { font-size: 1.3rem; font-weight: 800; margin-bottom: 12px; }
         .levels-grid { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; justify-content: space-between; }
-        .level { background: #1a2a37; border-radius: 20px; padding: 10px 14px; flex: 1; text-align: center; }
+        .level { background: #1a2a37; border-radius: 20px; padding: 10px 14px; flex: 1; text-align: center; min-width: 100px; }
         .level .label { font-size: 0.7rem; opacity: 0.7; }
         .level .value { font-size: 1.3rem; font-weight: 700; font-family: monospace; }
         .signal-bull { color: #4ade80; }
@@ -26,49 +27,56 @@
         .signal-neutral { color: #facc15; }
         hr { margin: 12px 0; border-color: #2d3a4f; }
         .note { font-size: 0.7rem; color: #7e8b9c; margin-top: 12px; text-align: center; }
+        .stats-row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.7rem; background: #07121c; padding: 6px 12px; border-radius: 20px; }
         @media (max-width: 600px) { .levels-grid { flex-direction: column; } }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📐 Pro-трейдер: Таймфрейм-анализ</h1>
-    <div class="sub">Дневной vs Недельный → конкретные уровни для входа, стопа и целей</div>
+    <h1>📐 Pro-трейдер: Месяц vs Год</h1>
+    <div class="sub">Дневные данные (30-40 дней) + Недельные данные (52 недели) → конкретные уровни</div>
 
     <div class="dual-panel">
         <div class="scale-box">
-            <h3>📆 Дневные данные (OHLC)</h3>
-            <textarea id="avgDaily" rows="2" placeholder="Средние: 62500, 63200, 62800, 64000, 63800"></textarea>
-            <textarea id="highDaily" rows="1" placeholder="Макс: 63500, 64500, 64100, 65200, 65000" style="margin-top:6px"></textarea>
-            <textarea id="lowDaily" rows="1" placeholder="Мин: 61800, 62500, 62000, 63500, 63200" style="margin-top:6px"></textarea>
+            <h3>📆 ДНЕВНОЙ МАСШТАБ <span id="dailyCount" class="data-length">0 точек</span></h3>
+            <textarea id="dailyAvg" rows="3" placeholder="Средние цены за день (через запятую)&#10;Пример: 62500, 63200, 62800, 64000, 63800, 63500..."></textarea>
+            <textarea id="dailyHigh" rows="1" placeholder="Максимумы (опционально, но желательно)"></textarea>
+            <textarea id="dailyLow" rows="1" placeholder="Минимумы (опционально)"></textarea>
         </div>
         <div class="scale-box">
-            <h3>📅 Недельные данные (OHLC)</h3>
-            <textarea id="avgWeekly" rows="2" placeholder="Средние: 61000, 59500, 57800, 56200"></textarea>
-            <textarea id="highWeekly" rows="1" placeholder="Макс: 63000, 61200, 59500, 58000" style="margin-top:6px"></textarea>
-            <textarea id="lowWeekly" rows="1" placeholder="Мин: 59500, 58000, 56500, 54800" style="margin-top:6px"></textarea>
+            <h3>📅 НЕДЕЛЬНЫЙ МАСШТАБ <span id="weeklyCount" class="data-length">0 точек</span></h3>
+            <textarea id="weeklyAvg" rows="3" placeholder="Средние цены за неделю (за год — до 52 чисел)&#10;Пример: 61000, 59500, 57800, 56200, 55100..."></textarea>
+            <textarea id="weeklyHigh" rows="1" placeholder="Максимумы недели"></textarea>
+            <textarea id="weeklyLow" rows="1" placeholder="Минимумы недели"></textarea>
         </div>
     </div>
 
-    <button class="btn" id="predictBtn">⚡ Определить оптимальную стратегию + точки входа</button>
+    <button class="btn" id="predictBtn">⚡ Рассчитать стратегию (дни + недели)</button>
 
     <div id="strategyOutput" style="display: none;">
         <div class="strategy-card">
-            <div class="advice-title" id="signalTitle">⚖️ Анализ трендов</div>
-            <div id="verdictText" style="font-size: 0.95rem; margin-bottom: 12px;"></div>
+            <div class="advice-title" id="signalTitle">⚖️ Анализ</div>
+            <div id="verdictText" style="font-size: 0.9rem; margin-bottom: 12px;"></div>
             <div class="levels-grid" id="levelsGrid"></div>
             <hr>
-            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                <div><span style="opacity:0.6;">📊 Дневной сигнал:</span> <strong id="dailyDir">—</strong></div>
-                <div><span style="opacity:0.6;">📈 Недельный сигнал:</span> <strong id="weeklyDir">—</strong></div>
-                <div><span style="opacity:0.6;">⚡ Приоритет:</span> <strong id="priority">недельный (круче)</strong></div>
+            <div class="stats-row">
+                <span>📊 Дневных точек: <strong id="statDailyLen">—</strong></span>
+                <span>📈 Недельных точек: <strong id="statWeeklyLen">—</strong></span>
+                <span>⚡ ATR дневн: <strong id="statDailyATR">—</strong></span>
+                <span>📉 ATR недель: <strong id="statWeeklyATR">—</strong></span>
+            </div>
+            <div class="stats-row">
+                <span>🧭 Дневной сигнал: <strong id="dailyDir">—</strong></span>
+                <span>🌍 Недельный сигнал: <strong id="weeklyDir">—</strong></span>
+                <span>🎯 Приоритет: <strong>недельный (65-75%)</strong></span>
             </div>
         </div>
         <div class="note">
-            🧠 ATR-калькулятор + взвешивание таймфреймов. Стоп-лосс рассчитан как ATR×2.2, цели — на основе недельного размаха.
+            💡 Больше данных = точнее ATR. Программа корректно работает с разной длиной рядов. Недельный тренд всегда имеет больший вес.
         </div>
     </div>
     <div class="note" style="margin-top: 16px;">
-        ⚠️ В реальном рынке недельные движения имеют больший вес — программа автоматически отдаёт приоритет недельному тренду при расхождении.
+        ⚠️ Введите минимум 2 значения для дневного И для недельного масштаба. Чем больше истории — тем стабильнее прогноз.
     </div>
 </div>
 
@@ -78,20 +86,27 @@
             if(!raw.trim()) return [];
             return raw.split(',').map(p => parseFloat(p.trim())).filter(v => !isNaN(v));
         }
-
-        // Расширенный прогноз + волатильность
+        
+        function updateCounters() {
+            let dailyAvg = parseList(document.getElementById('dailyAvg').value);
+            let weeklyAvg = parseList(document.getElementById('weeklyAvg').value);
+            document.getElementById('dailyCount').innerText = dailyAvg.length + ' точек';
+            document.getElementById('weeklyCount').innerText = weeklyAvg.length + ' точек';
+        }
+        
+        // Расширенный прогноз + ATR (работает с любым количеством точек)
         function forecastWithATR(series) {
             if(!series.length) return null;
             const n = series.length;
-            if(n === 1) return { value: series[0], atr: Math.abs(series[0]*0.015), confidence: 0.4 };
+            if(n === 1) return { value: series[0], atr: Math.abs(series[0]*0.015), strength: 0.3, direction: 'neutral', last: series[0] };
             
-            // ATR (средний истинный диапазон)
+            // ATR по полной истории
             let trueRanges = [];
             for(let i=1;i<n;i++) trueRanges.push(Math.abs(series[i] - series[i-1]));
             let atr = trueRanges.reduce((a,b)=>a+b,0)/trueRanges.length;
-            if(atr===0) atr = Math.abs(series[n-1]*0.015);
+            if(atr === 0 || !isFinite(atr)) atr = Math.abs(series[n-1]*0.01);
             
-            // Линейный тренд
+            // Линейный тренд (вес увеличивается с длиной истории)
             let idx = Array.from({length:n}, (_,i)=>i+1);
             let sumX = idx.reduce((a,b)=>a+b,0), sumY = series.reduce((a,b)=>a+b,0);
             let sumXY=0, sumX2=0;
@@ -100,106 +115,82 @@
             let intercept = (sumY - slope*sumX)/n;
             let forecastLin = intercept + slope*(n+1);
             
-            // Экспоненциальное сглаживание
-            let alpha = 0.4;
+            // Экспоненциальное сглаживание (адаптивный alpha)
+            let alpha = Math.min(0.7, 0.2 + 20/n * 0.3);
             let ses = series[0];
             for(let i=1;i<n;i++) ses = alpha*series[i] + (1-alpha)*ses;
+            
             let lastVal = series[n-1];
-            let finalForecast = (forecastLin*0.55 + ses*0.45);
-            // ограничение不至于 слишком дикое
-            let maxMove = atr * 2.5;
+            let finalForecast = (forecastLin * 0.6 + ses * 0.4);
+            // ограничение не более 3 ATR от последнего значения
+            let maxMove = atr * 3;
             if(Math.abs(finalForecast - lastVal) > maxMove){
                 let sign = finalForecast > lastVal ? 1 : -1;
                 finalForecast = lastVal + sign * maxMove;
             }
             let direction = finalForecast > lastVal ? 'bull' : (finalForecast < lastVal ? 'bear' : 'neutral');
-            let strength = Math.min(0.95, Math.abs((finalForecast - lastVal) / (atr+0.001)) * 0.5);
-            return { value: finalForecast, atr: atr, direction, strength, last: lastVal };
+            let strength = Math.min(0.9, Math.abs((finalForecast - lastVal) / (atr+0.001)) * 0.6);
+            return { value: finalForecast, atr: atr, direction, strength, last: lastVal, points: n };
         }
-
-        // Главная стратегия
+        
         function analyzeAndAdvise(dailyAvg, dailyHigh, dailyLow, weeklyAvg, weeklyHigh, weeklyLow) {
-            // прогнозы по средним (основной сигнал)
             const dailyF = forecastWithATR(dailyAvg);
             const weeklyF = forecastWithATR(weeklyAvg);
             if(!dailyF || !weeklyF) return null;
             
-            // дополнительные опорные уровни
-            let lastDailyPrice = dailyAvg.length ? dailyAvg[dailyAvg.length-1] : (dailyF.last || dailyF.value);
-            let lastWeeklyPrice = weeklyAvg.length ? weeklyAvg[weeklyAvg.length-1] : (weeklyF.last || weeklyF.value);
+            let lastDailyPrice = dailyAvg.length ? dailyAvg[dailyAvg.length-1] : dailyF.last;
+            let lastWeeklyPrice = weeklyAvg.length ? weeklyAvg[weeklyAvg.length-1] : weeklyF.last;
             
-            // вычисляем "вес" недельного тренда – он всегда значимее для долгосрочной стратегии
-            let weeklyWeight = 0.65;  // неделя круче по умолчанию
-            if(weeklyF.atr > dailyF.atr*1.2) weeklyWeight = 0.75;
-            if(dailyF.atr > weeklyF.atr*2) weeklyWeight = 0.55; // если дневной скачок, но всё равно неделя приоритетнее
+            // Вес недельного тренда: от 65% до 80% в зависимости от стабильности
+            let weeklyWeight = 0.68;
+            if(weeklyF.points > 30) weeklyWeight = 0.72;
+            if(weeklyF.atr > dailyF.atr*1.5) weeklyWeight = 0.76;
             
-            // комбинированное направление (с перекосом в неделю)
             let dailyDirNum = dailyF.direction === 'bull' ? 1 : (dailyF.direction === 'bear' ? -1 : 0);
             let weeklyDirNum = weeklyF.direction === 'bull' ? 1 : (weeklyF.direction === 'bear' ? -1 : 0);
             let combinedDir = weeklyDirNum * weeklyWeight + dailyDirNum * (1-weeklyWeight);
             
-            let action = '';
-            let actionColor = '';
-            let signalStrength = Math.abs(combinedDir);
-            let positionType = '';
-            
+            let action = '', actionColor = '', positionType = '';
             if(combinedDir > 0.2) { action = '🔺 ПОКУПАТЬ'; actionColor = 'bull'; positionType = 'LONG'; }
             else if(combinedDir < -0.2) { action = '🔻 ПРОДАВАТЬ'; actionColor = 'bear'; positionType = 'SHORT'; }
             else { action = '⏸ ВНЕ РЫНКА / ЖДАТЬ'; actionColor = 'neutral'; positionType = 'WAIT'; }
             
-            // расчёт конкретных уровней входа
-            let entryPrice = 0, stopLoss = 0, takeProfit1 = 0, takeProfit2 = 0;
-            let riskReward = 0;
-            
-            // используем ATR недельного как базовый риск (более стабилен)
+            let entryPrice = 0, stopLoss = 0, takeProfit1 = 0, takeProfit2 = 0, riskReward = 0;
             let baseATR = weeklyF.atr > 0 ? weeklyF.atr : dailyF.atr;
             let currentPrice = lastDailyPrice;
             
             if(positionType === 'LONG'){
-                entryPrice = currentPrice * 0.998;  // чуть ниже рынка для лимитника
+                entryPrice = currentPrice * 0.998;
                 stopLoss = currentPrice - baseATR * 2.2;
                 takeProfit1 = currentPrice + baseATR * 2.5;
                 takeProfit2 = currentPrice + baseATR * 4.2;
                 riskReward = (takeProfit1 - entryPrice) / (entryPrice - stopLoss);
-            } 
-            else if(positionType === 'SHORT'){
+            } else if(positionType === 'SHORT'){
                 entryPrice = currentPrice * 1.002;
                 stopLoss = currentPrice + baseATR * 2.2;
                 takeProfit1 = currentPrice - baseATR * 2.5;
                 takeProfit2 = currentPrice - baseATR * 4.2;
                 riskReward = (entryPrice - takeProfit1) / (stopLoss - entryPrice);
             }
-            else {
-                entryPrice = currentPrice;
-                stopLoss = 0;
-                takeProfit1 = 0;
-                takeProfit2 = 0;
-                riskReward = 0;
-            }
             
-            // красивое округление
-            const round = (x) => x.toFixed(2);
-            
-            // вердикт текстом
             let verdictMsg = '';
-            if(dailyDirNum > 0 && weeklyDirNum < 0) verdictMsg = `⚠️ Разнонаправленность: дневной тренд вверх (${dailyF.value.toFixed(2)}), но недельный давит вниз (${weeklyF.value.toFixed(2)}). Приоритет отдан недельному — ${action.toLowerCase()}.`;
-            else if(dailyDirNum < 0 && weeklyDirNum > 0) verdictMsg = `⚠️ Противоречие: дневной сигнал на продажу, недельный на покупку. Учитывая силу недельного тренда, рекомендовано ${action.toLowerCase()}.`;
+            if(dailyDirNum > 0 && weeklyDirNum < 0) verdictMsg = `⚠️ Разнонаправленность: дневной тренд вверх, но недельный (${weeklyF.points} недель) давит вниз. Приоритет недельному → ${action.toLowerCase()}.`;
+            else if(dailyDirNum < 0 && weeklyDirNum > 0) verdictMsg = `⚠️ Противоречие: дневной сигнал на продажу, недельный на покупку. Учитывая силу недельного тренда (${weeklyF.points} точек), рекомендовано ${action.toLowerCase()}.`;
             else verdictMsg = `✅ Таймфреймы сонаправлены. Недельный тренд (${weeklyF.direction==='bull'?'восходящий':'нисходящий'}) усиливает дневной сигнал.`;
             
             return {
                 action, actionColor, positionType,
                 entryPrice, stopLoss, takeProfit1, takeProfit2, riskReward,
                 dailyDir: dailyF.direction, weeklyDir: weeklyF.direction,
-                dailyValue: dailyF.value, weeklyValue: weeklyF.value,
                 dailyATR: dailyF.atr, weeklyATR: weeklyF.atr,
-                verdictMsg, combinedDir, currentPrice
+                dailyPoints: dailyF.points, weeklyPoints: weeklyF.points,
+                verdictMsg, currentPrice
             };
         }
         
-        // Отрисовка
         function renderStrategy(strategy) {
             if(!strategy){
-                alert("Ошибка: недостаточно данных для анализа (нужно минимум 2 значения для дневного и недельного масштаба).");
+                alert("Ошибка: нужно минимум 2 значения для дневного И для недельного масштаба.");
                 return false;
             }
             document.getElementById('strategyOutput').style.display = 'block';
@@ -211,34 +202,35 @@
             if(strategy.positionType !== 'WAIT'){
                 levelsHtml = `
                     <div class="level"><div class="label">🎯 Цена входа</div><div class="value">${strategy.entryPrice.toFixed(2)}</div><div class="label">(лимит)</div></div>
-                    <div class="level"><div class="label">🛑 Стоп-лосс</div><div class="value">${strategy.stopLoss.toFixed(2)}</div><div class="label">~ ATR×2.2</div></div>
-                    <div class="level"><div class="label">🎯 Тейк-профит 1</div><div class="value">${strategy.takeProfit1.toFixed(2)}</div><div class="label">риск/прибыль 1:${strategy.riskReward.toFixed(1)}</div></div>
-                    <div class="level"><div class="label">🚀 Тейк-профит 2</div><div class="value">${strategy.takeProfit2.toFixed(2)}</div><div class="label">трендовый уровень</div></div>
+                    <div class="level"><div class="label">🛑 Стоп-лосс</div><div class="value">${strategy.stopLoss.toFixed(2)}</div><div class="label">ATR×2.2</div></div>
+                    <div class="level"><div class="label">🎯 Цель 1</div><div class="value">${strategy.takeProfit1.toFixed(2)}</div><div class="label">1:${strategy.riskReward.toFixed(1)}</div></div>
+                    <div class="level"><div class="label">🚀 Цель 2</div><div class="value">${strategy.takeProfit2.toFixed(2)}</div><div class="label">тренд</div></div>
                 `;
             } else {
-                levelsHtml = `<div class="level" style="width:100%"><div class="label">⏸ Оптимальная позиция — ожидание</div><div class="value">Сигналы разнонаправлены или слабы</div><div class="label">Лучше не входить до пробоя</div></div>`;
+                levelsHtml = `<div class="level" style="width:100%"><div class="label">⏸ Оптимальная стратегия — ожидание</div><div class="value">Сигналы разнонаправлены или слабы</div></div>`;
             }
             document.getElementById('levelsGrid').innerHTML = levelsHtml;
-            document.getElementById('dailyDir').innerHTML = (strategy.dailyDir === 'bull' ? '📈 ВВЕРХ' : (strategy.dailyDir === 'bear' ? '📉 ВНИЗ' : '⚖️ НЕЙТРАЛЬНО'));
-            document.getElementById('weeklyDir').innerHTML = (strategy.weeklyDir === 'bull' ? '📈 ВВЕРХ' : (strategy.weeklyDir === 'bear' ? '📉 ВНИЗ' : '⚖️ НЕЙТРАЛЬНО'));
-            document.getElementById('priority').innerHTML = `недельный (круче), вес 65%`;
+            document.getElementById('statDailyLen').innerText = strategy.dailyPoints;
+            document.getElementById('statWeeklyLen').innerText = strategy.weeklyPoints;
+            document.getElementById('statDailyATR').innerText = strategy.dailyATR.toFixed(2);
+            document.getElementById('statWeeklyATR').innerText = strategy.weeklyATR.toFixed(2);
+            document.getElementById('dailyDir').innerHTML = strategy.dailyDir === 'bull' ? '📈 ВВЕРХ' : (strategy.dailyDir === 'bear' ? '📉 ВНИЗ' : '⚖️ НЕЙТР');
+            document.getElementById('weeklyDir').innerHTML = strategy.weeklyDir === 'bull' ? '📈 ВВЕРХ' : (strategy.weeklyDir === 'bear' ? '📉 ВНИЗ' : '⚖️ НЕЙТР');
             return true;
         }
         
         function run() {
-            // сбор данных дневных
-            let dailyAvg = parseList(document.getElementById('avgDaily').value);
-            let dailyHigh = parseList(document.getElementById('highDaily').value);
-            let dailyLow = parseList(document.getElementById('lowDaily').value);
-            let weeklyAvg = parseList(document.getElementById('avgWeekly').value);
-            let weeklyHigh = parseList(document.getElementById('highWeekly').value);
-            let weeklyLow = parseList(document.getElementById('lowWeekly').value);
+            let dailyAvg = parseList(document.getElementById('dailyAvg').value);
+            let dailyHigh = parseList(document.getElementById('dailyHigh').value);
+            let dailyLow = parseList(document.getElementById('dailyLow').value);
+            let weeklyAvg = parseList(document.getElementById('weeklyAvg').value);
+            let weeklyHigh = parseList(document.getElementById('weeklyHigh').value);
+            let weeklyLow = parseList(document.getElementById('weeklyLow').value);
             
-            if(dailyAvg.length < 2 && weeklyAvg.length < 2){
-                alert("Введите хотя бы 2 значения средней цены для дневного И для недельного масштаба.");
+            if(dailyAvg.length < 2 || weeklyAvg.length < 2){
+                alert("Введите минимум 2 значения средней цены для дневного И для недельного масштаба. Чем больше данных — тем лучше.");
                 return;
             }
-            // если нет high/low - используем средние с допуском
             if(dailyHigh.length === 0) dailyHigh = dailyAvg.map(v => v*1.02);
             if(dailyLow.length === 0) dailyLow = dailyAvg.map(v => v*0.98);
             if(weeklyHigh.length === 0) weeklyHigh = weeklyAvg.map(v => v*1.02);
@@ -249,17 +241,24 @@
         }
         
         document.getElementById('predictBtn').addEventListener('click', run);
+        document.getElementById('dailyAvg').addEventListener('input', updateCounters);
+        document.getElementById('weeklyAvg').addEventListener('input', updateCounters);
         
-        // демо-данные (биткоин-подобные с противоречием)
-        if(!localStorage.getItem('pro_trader_demo')){
-            document.getElementById('avgDaily').value = "63500, 64200, 63800, 65100, 64800";
-            document.getElementById('highDaily').value = "64500, 65300, 64900, 66200, 65800";
-            document.getElementById('lowDaily').value = "62700, 63400, 63050, 64300, 64000";
-            document.getElementById('avgWeekly').value = "62500, 61200, 59800, 58300";
-            document.getElementById('highWeekly').value = "64000, 62500, 61000, 59500";
-            document.getElementById('lowWeekly').value = "61000, 59800, 58500, 57200";
-            localStorage.setItem('pro_trader_demo', 'true');
+        // Демо: 30 дней + 52 недели (типичный случай)
+        if(!localStorage.getItem('pro_trader_v2_demo')){
+            let demoDaily = [];
+            let base = 62500;
+            for(let i=0;i<30;i++){
+                let change = (Math.random() - 0.5) * 800;
+                base = Math.max(58000, Math.min(68000, base + change));
+                demoDaily.push(Math.round(base));
+            }
+            document.getElementById('dailyAvg').value = demoDaily.join(', ');
+            let demoWeekly = [61000, 60500, 59500, 58800, 58200, 57500, 56800, 56200, 55700, 55100, 54600, 54000];
+            document.getElementById('weeklyAvg').value = demoWeekly.join(', ');
+            localStorage.setItem('pro_trader_v2_demo', 'true');
         }
+        updateCounters();
     })();
 </script>
 </body>
