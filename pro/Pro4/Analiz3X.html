@@ -2,24 +2,29 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro-трейдер: CSV Загрузчик (дни + недели)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pro-трейдер: CSV загрузчик + Про-прогноз</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #0a0f1c; font-family: 'Segoe UI', system-ui; padding: 20px 16px; color: #e2e8f0; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 1400px; margin: 0 auto; }
         h1 { font-size: 1.7rem; font-weight: 700; background: linear-gradient(135deg, #f7931a, #ffd966); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 0.25rem; }
         .sub { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.5rem; border-left: 3px solid #f7931a; padding-left: 12px; }
         
-        .csv-upload-area { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-        .upload-box { flex: 1; background: #111827; border-radius: 24px; padding: 16px; border: 2px dashed #2d3a4f; transition: all 0.2s; }
-        .upload-box:hover { border-color: #f7931a; background: #1a2535; }
-        .upload-box h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-        .file-label { display: inline-block; background: linear-gradient(95deg, #f7931a, #e06c00); padding: 8px 20px; border-radius: 40px; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin: 8px 0; transition: 0.2s; text-align: center; width: 100%; }
-        .file-label:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .csv-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .csv-card { flex: 1; background: #111827; border-radius: 24px; padding: 16px; border: 1px solid #2d3a4f; min-width: 300px; }
+        .csv-card h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+        .upload-area { background: #1e293b; border: 2px dashed #3b82f6; border-radius: 20px; padding: 16px; text-align: center; cursor: pointer; transition: 0.2s; margin-bottom: 12px; }
+        .upload-area:hover { background: #334155; border-color: #f7931a; }
+        .file-label { background: linear-gradient(95deg, #f7931a, #e06c00); padding: 8px 20px; border-radius: 40px; display: inline-block; cursor: pointer; font-size: 0.85rem; font-weight: bold; margin: 8px 0; }
         input[type="file"] { display: none; }
-        .file-status { font-size: 0.75rem; color: #8ba0bc; margin-top: 8px; padding: 6px; background: #0f172a; border-radius: 12px; word-break: break-all; }
-        .preview { font-size: 0.7rem; background: #0f172a; padding: 8px; border-radius: 12px; max-height: 120px; overflow-y: auto; font-family: monospace; margin-top: 8px; }
+        .file-status { font-size: 0.75rem; color: #8ba0bc; margin-top: 8px; word-break: break-all; }
+        .table-wrapper { overflow-x: auto; max-height: 250px; overflow-y: auto; background: #0f172a; border-radius: 16px; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        th { background: #1e293b; padding: 8px 6px; position: sticky; top: 0; color: #f7931a; font-weight: 600; }
+        td { padding: 6px; border-bottom: 1px solid #2d3a4f; white-space: nowrap; }
+        .clear-btn { background: none; border: 1px solid #475569; color: #94a3b8; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.7rem; margin-top: 8px; width: 100%; }
+        .clear-btn:hover { background: #1e293b; color: white; }
         
         .dual-panel { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
         .scale-box { flex: 1; background: #111827; border-radius: 24px; padding: 16px; border: 1px solid #2d3a4f; }
@@ -40,44 +45,66 @@
         .note { font-size: 0.7rem; color: #7e8b9c; margin-top: 12px; text-align: center; }
         .stats-row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.7rem; background: #07121c; padding: 6px 12px; border-radius: 20px; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 600px) { .levels-grid { flex-direction: column; } }
-        .clear-btn { background: none; border: 1px solid #475569; color: #94a3b8; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.7rem; margin-left: 8px; }
-        .clear-btn:hover { background: #1e293b; color: white; }
+        .warning-banner { background: #422b00; border-left: 4px solid #f7931a; padding: 8px 12px; border-radius: 12px; margin-bottom: 16px; font-size: 0.75rem; }
+        .mode-switch { display: flex; gap: 8px; margin-bottom: 12px; }
+        .mode-btn { background: #1e293b; border: 1px solid #475569; padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 0.7rem; }
+        .mode-btn.active { background: #f7931a; border-color: #f7931a; color: #0a0f1c; font-weight: bold; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>📂 Pro-трейдер: CSV Загрузчик</h1>
-    <div class="sub">Загрузите CSV с колонками: Дата, Средняя, Открытие, Максимум, Минимум, Объём (другие колонки игнорируются)</div>
+    <h1>📂 Pro-трейдер: CSV → Прогноз</h1>
+    <div class="sub">Загрузите CSV с колонками: Дата, Средняя, Открытие, Макс, Мин, Объём (последняя строка CSV игнорируется)</div>
 
-    <div class="csv-upload-area">
-        <div class="upload-box">
-            <h3>📆 ДНЕВНЫЕ ДАННЫЕ</h3>
-            <label class="file-label" for="dailyFile">📁 Выбрать CSV (дни)</label>
-            <input type="file" id="dailyFile" accept=".csv">
-            <div id="dailyFileStatus" class="file-status">Файл не выбран</div>
-            <div id="dailyPreview" class="preview" style="display:none;"></div>
-            <button id="clearDaily" class="clear-btn" style="width:100%; margin-top:6px;">✖ Очистить дневные</button>
+    <div class="csv-grid">
+        <!-- Дневной CSV -->
+        <div class="csv-card">
+            <h3>📆 ДНЕВНЫЕ ДАННЫЕ <span id="dailyFileStatus" style="font-size:0.7rem;">не загружен</span></h3>
+            <div class="upload-area" id="dailyUploadArea">
+                <div>📂 Перетащите или</div>
+                <label class="file-label">выберите CSV (дни)
+                    <input type="file" id="dailyFileInput" accept=".csv">
+                </label>
+                <div style="font-size:0.7rem;">Колонки: Дата, Средняя, High, Low</div>
+            </div>
+            <div id="dailyTableWrapper" class="table-wrapper" style="display:none;"></div>
+            <button id="clearDailyBtn" class="clear-btn">✖ Очистить дневные</button>
         </div>
-        <div class="upload-box">
-            <h3>📅 НЕДЕЛЬНЫЕ ДАННЫЕ</h3>
-            <label class="file-label" for="weeklyFile">📁 Выбрать CSV (недели)</label>
-            <input type="file" id="weeklyFile" accept=".csv">
-            <div id="weeklyFileStatus" class="file-status">Файл не выбран</div>
-            <div id="weeklyPreview" class="preview" style="display:none;"></div>
-            <button id="clearWeekly" class="clear-btn" style="width:100%; margin-top:6px;">✖ Очистить недельные</button>
+        <!-- Недельный CSV -->
+        <div class="csv-card">
+            <h3>📅 НЕДЕЛЬНЫЕ ДАННЫЕ <span id="weeklyFileStatus" style="font-size:0.7rem;">не загружен</span></h3>
+            <div class="upload-area" id="weeklyUploadArea">
+                <div>📂 Перетащите или</div>
+                <label class="file-label">выберите CSV (недели)
+                    <input type="file" id="weeklyFileInput" accept=".csv">
+                </label>
+                <div style="font-size:0.7rem;">Колонки: Дата, Средняя, High, Low</div>
+            </div>
+            <div id="weeklyTableWrapper" class="table-wrapper" style="display:none;"></div>
+            <button id="clearWeeklyBtn" class="clear-btn">✖ Очистить недельные</button>
         </div>
+    </div>
+
+    <!-- Настройки направления -->
+    <div class="warning-banner">
+        <div class="mode-switch" id="globalModeSwitch">
+            <span style="margin-right:8px;">🌍 Порядок копирования из таблиц:</span>
+            <button data-mode="top-down" class="mode-btn active">⬆️ Сверху вниз (1→N)</button>
+            <button data-mode="bottom-up" class="mode-btn">⬇️ Снизу вверх (N→1)</button>
+        </div>
+        <div style="font-size:0.7rem;">* Кликните на заголовок колонки в таблице, чтобы скопировать все значения в нужном порядке</div>
     </div>
 
     <div class="dual-panel">
         <div class="scale-box">
             <h3>📊 ДНЕВНОЙ МАСШТАБ <span id="dailyCount" class="data-length">0 точек</span></h3>
-            <textarea id="dailyAvg" rows="3" placeholder="Средние цены за день (через запятую)"></textarea>
+            <textarea id="dailyAvg" rows="2" placeholder="Средние цены (через запятую)"></textarea>
             <textarea id="dailyHigh" rows="1" placeholder="Максимумы (опционально)"></textarea>
             <textarea id="dailyLow" rows="1" placeholder="Минимумы (опционально)"></textarea>
         </div>
         <div class="scale-box">
             <h3>📈 НЕДЕЛЬНЫЙ МАСШТАБ <span id="weeklyCount" class="data-length">0 точек</span></h3>
-            <textarea id="weeklyAvg" rows="3" placeholder="Средние цены за неделю (через запятую)"></textarea>
+            <textarea id="weeklyAvg" rows="2" placeholder="Средние цены (через запятую)"></textarea>
             <textarea id="weeklyHigh" rows="1" placeholder="Максимумы недели"></textarea>
             <textarea id="weeklyLow" rows="1" placeholder="Минимумы недели"></textarea>
         </div>
@@ -103,16 +130,28 @@
                 <span>🎯 Приоритет: <strong>недельный (65-75%)</strong></span>
             </div>
         </div>
-        <div class="note">💡 CSV парсится: первая строка — заголовки (ищем колонки: дата, средняя, открытие, максимум, минимум, объём). Последняя строка игнорируется. Данные упорядочены: сверху самые новые, снизу старые → мы переворачиваем.</div>
-    </div>
-    <div class="note" style="margin-top: 16px;">
-        ⚠️ Введите минимум 2 значения для дневного И для недельного масштаба. CSV пример: Дата,Средняя,Открытие,Макс,Мин,Объём
+        <div class="note">💡 CSV: первая строка — заголовки. Ищем колонки: средняя/avg, high, low. Последняя строка игнорируется. Данные от новых → к старым (автоматически переворачиваем).</div>
     </div>
 </div>
 
 <script>
     (function(){
-        // --- вспомогательные функции ---
+        // --- Глобальные переменные ---
+        let dailyData = { avg: [], high: [], low: [] };
+        let weeklyData = { avg: [], high: [], low: [] };
+        let globalDirection = 'top-down'; // top-down или bottom-up
+        
+        // --- DOM элементы ---
+        const dailyFileInput = document.getElementById('dailyFileInput');
+        const weeklyFileInput = document.getElementById('weeklyFileInput');
+        const dailyUploadArea = document.getElementById('dailyUploadArea');
+        const weeklyUploadArea = document.getElementById('weeklyUploadArea');
+        const dailyTableWrapper = document.getElementById('dailyTableWrapper');
+        const weeklyTableWrapper = document.getElementById('weeklyTableWrapper');
+        const dailyFileStatus = document.getElementById('dailyFileStatus');
+        const weeklyFileStatus = document.getElementById('weeklyFileStatus');
+        
+        // --- Вспомогательные функции ---
         function parseList(raw) {
             if(!raw.trim()) return [];
             return raw.split(',').map(p => parseFloat(p.trim())).filter(v => !isNaN(v));
@@ -125,127 +164,237 @@
             document.getElementById('weeklyCount').innerText = weeklyAvg.length + ' точек';
         }
         
-        // --- CSV парсер с учётом: последняя строка игнорируется, сверху новые, снизу старые ---
-        function parseCSVAndExtract(csvText, fileNameHint) {
-            const lines = csvText.split(/\r?\n/);
-            if(lines.length < 2) throw new Error('CSV слишком короткий');
-            
-            // заголовки
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-            
-            // индексы нужных колонок (поддержка рус/англ)
-            const colIndex = {
-                date: -1, avg: -1, open: -1, high: -1, low: -1, volume: -1
-            };
-            headers.forEach((h, idx) => {
-                if(h.includes('дата') || h === 'date') colIndex.date = idx;
-                if(h.includes('средн') || h === 'avg' || h === 'average' || h === 'mean') colIndex.avg = idx;
-                if(h.includes('открыт') || h === 'open') colIndex.open = idx;
-                if(h.includes('максим') || h === 'high' || h === 'max') colIndex.high = idx;
-                if(h.includes('минимум') || h === 'low' || h === 'min') colIndex.low = idx;
-                if(h.includes('объём') || h === 'volume' || h === 'vol') colIndex.volume = idx;
-            });
-            
-            // если нет средней, но есть open/high/low — можно вычислить, но лучше требовать avg
-            if(colIndex.avg === -1 && (colIndex.open !== -1 && colIndex.high !== -1 && colIndex.low !== -1)) {
-                // будем считать среднюю как (high+low+open)/3? Или (high+low)/2? Выберем типичную: (high+low+close)/3, но close нет. Используем (high+low)/2
-                console.warn('Колонка средней не найдена, будем использовать (High+Low)/2');
-            } else if(colIndex.avg === -1) {
-                throw new Error('Не найдена колонка со средней ценой (должна содержать "средн" или "avg")');
-            }
-            
-            // парсим строки со 2-й по предпоследнюю (последняя игнорируется)
-            const dataRows = [];
-            for(let i = 1; i < lines.length - 1; i++) {
-                const line = lines[i].trim();
-                if(!line) continue;
-                const parts = line.split(',');
-                if(parts.length < Math.max(colIndex.avg, colIndex.high, colIndex.low, 1)) continue;
-                
-                let avg = colIndex.avg !== -1 ? parseFloat(parts[colIndex.avg]) : NaN;
-                let high = colIndex.high !== -1 ? parseFloat(parts[colIndex.high]) : NaN;
-                let low = colIndex.low !== -1 ? parseFloat(parts[colIndex.low]) : NaN;
-                
-                // если средней нет, пробуем сгенерировать из high/low
-                if(isNaN(avg) && !isNaN(high) && !isNaN(low)) avg = (high + low) / 2;
-                if(isNaN(high) && !isNaN(avg)) high = avg * 1.02;
-                if(isNaN(low) && !isNaN(avg)) low = avg * 0.98;
-                
-                if(!isNaN(avg)) {
-                    dataRows.push({ avg, high, low, rawDate: colIndex.date !== -1 ? parts[colIndex.date] : '' });
-                }
-            }
-            
-            if(dataRows.length === 0) throw new Error('Нет валидных строк с данными');
-            
-            // СТРОКИ: сверху самые новые (индекс 0 — последняя дата). Это значит порядок от новых к старым.
-            // для прогноза нам нужно от старых к новым (чтобы хронология была правильной для ATR)
-            // поэтому переворачиваем массив!
-            dataRows.reverse();  // теперь dataRows[0] — самая старая, dataRows[length-1] — самая новая
-            
-            const avgSeries = dataRows.map(r => r.avg);
-            const highSeries = dataRows.map(r => r.high);
-            const lowSeries = dataRows.map(r => r.low);
-            
-            return { avgSeries, highSeries, lowSeries, count: avgSeries.length };
-        }
-        
-        function fillTextareas(avgArr, highArr, lowArr, prefix) {
+        function fillTextareas(prefix, avgArr, highArr, lowArr) {
             document.getElementById(prefix + 'Avg').value = avgArr.join(', ');
-            if(highArr && highArr.length) document.getElementById(prefix + 'High').value = highArr.join(', ');
-            else document.getElementById(prefix + 'High').value = '';
-            if(lowArr && lowArr.length) document.getElementById(prefix + 'Low').value = lowArr.join(', ');
-            else document.getElementById(prefix + 'Low').value = '';
+            document.getElementById(prefix + 'High').value = highArr.length ? highArr.join(', ') : '';
+            document.getElementById(prefix + 'Low').value = lowArr.length ? lowArr.join(', ') : '';
             updateCounters();
         }
         
-        // --- обработка загрузки CSV ---
-        function setupCSVLoader(fileInputId, statusDivId, previewDivId, prefix, clearBtnId) {
-            const fileInput = document.getElementById(fileInputId);
-            const statusDiv = document.getElementById(statusDivId);
-            const previewDiv = document.getElementById(previewDivId);
-            const clearBtn = document.getElementById(clearBtnId);
-            
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if(!file) return;
-                statusDiv.innerText = `📄 Загрузка: ${file.name}...`;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    try {
-                        const csvText = ev.target.result;
-                        const { avgSeries, highSeries, lowSeries, count } = parseCSVAndExtract(csvText, file.name);
-                        fillTextareas(avgSeries, highSeries, lowSeries, prefix);
-                        statusDiv.innerHTML = `✅ Загружено: ${count} точек (последняя строка CSV проигнорирована)`;
-                        // превью
-                        previewDiv.style.display = 'block';
-                        const sample = avgSeries.slice(-5).reverse().map(v => v.toFixed(2)).join(' → ');
-                        previewDiv.innerHTML = `📊 От старых → к новым: ... ${sample}<br>Всего ${count} точек, порядок исправлен (последняя строка CSV удалена)`;
-                        if(avgSeries.length < 2) statusDiv.innerHTML += `<br>⚠️ Меньше 2 точек — нужно больше данных!`;
-                    } catch(err) {
-                        statusDiv.innerHTML = `❌ Ошибка: ${err.message}`;
-                        previewDiv.style.display = 'none';
-                        console.error(err);
-                    }
-                };
-                reader.onerror = () => { statusDiv.innerHTML = `❌ Ошибка чтения файла`; };
-                reader.readAsText(file, 'UTF-8');
-            });
-            
-            if(clearBtn) {
-                clearBtn.addEventListener('click', () => {
-                    document.getElementById(prefix + 'Avg').value = '';
-                    document.getElementById(prefix + 'High').value = '';
-                    document.getElementById(prefix + 'Low').value = '';
-                    updateCounters();
-                    statusDiv.innerHTML = 'Файл не выбран/очищен';
-                    previewDiv.style.display = 'none';
-                    fileInput.value = '';
-                });
-            }
+        // Очистка чисел (удаляем точки и запятые для копирования)
+        function cleanNumberValue(rawValue) {
+            if (rawValue === undefined || rawValue === null) return '';
+            let str = String(rawValue).trim();
+            if (str === '') return '';
+            return str.replace(/[.,]/g, '');
         }
         
-        // --- прогноз (ATR, тренд) из предыдущей версии ---
+        // Копирование колонки
+        function copyColumn(columnData, columnName) {
+            if (!columnData.length) { showToast('⚠️ Нет данных'); return; }
+            let finalValues = globalDirection === 'bottom-up' ? [...columnData].reverse() : columnData;
+            const resultString = finalValues.join(',');
+            const dirText = globalDirection === 'bottom-up' ? 'снизу вверх' : 'сверху вниз';
+            navigator.clipboard.writeText(resultString).then(() => {
+                let preview = resultString.length > 70 ? resultString.substring(0, 70) + '…' : resultString;
+                showToast(`✅ Колонка «${columnName}» [${dirText}]: ${finalValues.length} значений → ${preview}`);
+            }).catch(err => showToast(`❌ Ошибка: ${err.message}`));
+        }
+        
+        function showToast(message) {
+            const existing = document.querySelector('.copy-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'copy-toast';
+            toast.textContent = message;
+            toast.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1e293b;color:white;padding:10px 20px;border-radius:40px;font-size:0.85rem;z-index:1000;animation:fadeInOut 2s ease forwards;pointer-events:none;';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+        
+        // --- Парсинг CSV с игнорированием последней строки ---
+        function parseCSV(text, delimiter) {
+            if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+            const rows = [];
+            let currentRow = [], currentField = '', insideQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                const isDelim = (ch === delimiter);
+                if (!insideQuotes && isDelim) {
+                    currentRow.push(currentField);
+                    currentField = '';
+                    continue;
+                }
+                if (ch === '\r' && i+1 < text.length && text[i+1] === '\n') {
+                    if (!insideQuotes) {
+                        currentRow.push(currentField);
+                        rows.push(currentRow);
+                        currentRow = [];
+                        currentField = '';
+                        i++;
+                        continue;
+                    } else { currentField += ch; continue; }
+                }
+                if (ch === '\n') {
+                    if (!insideQuotes) {
+                        currentRow.push(currentField);
+                        rows.push(currentRow);
+                        currentRow = [];
+                        currentField = '';
+                        continue;
+                    } else { currentField += ch; continue; }
+                }
+                if (ch === '"') {
+                    if (insideQuotes && i+1 < text.length && text[i+1] === '"') {
+                        currentField += '"';
+                        i++;
+                        continue;
+                    } else { insideQuotes = !insideQuotes; continue; }
+                }
+                currentField += ch;
+            }
+            if (currentField !== undefined || currentRow.length) currentRow.push(currentField);
+            if (currentRow.length) rows.push(currentRow);
+            while (rows.length && rows[rows.length-1].length === 1 && rows[rows.length-1][0] === '') rows.pop();
+            return rows;
+        }
+        
+        function detectDelimiter(text) {
+            let clean = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+            const lines = clean.split(/\r?\n/);
+            let firstLine = '';
+            for (let l of lines) if (l.trim()) { firstLine = l; break; }
+            if (!firstLine) return ',';
+            const candidates = [',', ';', '\t', '|', ' '];
+            let best = ',', maxCount = 0;
+            for (let d of candidates) {
+                let count = 0, inQuote = false;
+                for (let i = 0; i < firstLine.length; i++) {
+                    const c = firstLine[i];
+                    if (c === '"') inQuote = !inQuote;
+                    if (!inQuote && c === d) count++;
+                }
+                if (count > maxCount) { maxCount = count; best = d; }
+            }
+            return best;
+        }
+        
+        function processCSV(file, type) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                let text = e.target.result;
+                const delimiter = detectDelimiter(text);
+                let parsed = parseCSV(text, delimiter);
+                if (!parsed.length) { showToast('❌ Нет данных'); return; }
+                // Игнорируем последнюю строку
+                parsed = parsed.slice(0, -1);
+                if (parsed.length < 2) { showToast('❌ После удаления последней строки данных не осталось'); return; }
+                
+                // Заголовки (первая строка)
+                let headers = parsed[0].map(h => String(h).toLowerCase());
+                let dataRows = parsed.slice(1);
+                
+                // Ищем индексы колонок
+                let avgIdx = -1, highIdx = -1, lowIdx = -1;
+                headers.forEach((h, idx) => {
+                    if (h.includes('средн') || h === 'avg' || h === 'average') avgIdx = idx;
+                    if (h.includes('максим') || h === 'high' || h === 'max') highIdx = idx;
+                    if (h.includes('минимум') || h === 'low' || h === 'min') lowIdx = idx;
+                });
+                
+                // Если нет средней, но есть high/low - вычисляем
+                if (avgIdx === -1 && highIdx !== -1 && lowIdx !== -1) avgIdx = -2; // будем вычислять
+                
+                // Извлекаем данные
+                let avgSeries = [], highSeries = [], lowSeries = [];
+                for (let row of dataRows) {
+                    let avg = avgIdx === -1 ? NaN : (avgIdx === -2 ? (parseFloat(row[highIdx]) + parseFloat(row[lowIdx])) / 2 : parseFloat(row[avgIdx]));
+                    let high = highIdx !== -1 ? parseFloat(row[highIdx]) : NaN;
+                    let low = lowIdx !== -1 ? parseFloat(row[lowIdx]) : NaN;
+                    
+                    if (isNaN(avg) && !isNaN(high) && !isNaN(low)) avg = (high + low) / 2;
+                    if (isNaN(high) && !isNaN(avg)) high = avg * 1.02;
+                    if (isNaN(low) && !isNaN(avg)) low = avg * 0.98;
+                    
+                    if (!isNaN(avg)) {
+                        avgSeries.push(avg);
+                        highSeries.push(high);
+                        lowSeries.push(low);
+                    }
+                }
+                
+                if (avgSeries.length === 0) { showToast('❌ Нет валидных числовых данных'); return; }
+                
+                // Переворачиваем: сверху новые → снизу старые, а нам нужно от старых к новым
+                avgSeries.reverse();
+                highSeries.reverse();
+                lowSeries.reverse();
+                
+                // Сохраняем
+                if (type === 'daily') {
+                    dailyData = { avg: avgSeries, high: highSeries, low: lowSeries };
+                    fillTextareas('daily', avgSeries, highSeries, lowSeries);
+                    dailyFileStatus.innerHTML = `✅ ${avgSeries.length} точек (последняя строка игнорируется)`;
+                    renderTable(avgSeries, highSeries, lowSeries, dailyTableWrapper, 'daily');
+                } else {
+                    weeklyData = { avg: avgSeries, high: highSeries, low: lowSeries };
+                    fillTextareas('weekly', avgSeries, highSeries, lowSeries);
+                    weeklyFileStatus.innerHTML = `✅ ${avgSeries.length} точек (последняя строка игнорируется)`;
+                    renderTable(avgSeries, highSeries, lowSeries, weeklyTableWrapper, 'weekly');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+        
+        function renderTable(avgArr, highArr, lowArr, wrapper, type) {
+            if (!avgArr.length) { wrapper.style.display = 'none'; return; }
+            wrapper.style.display = 'block';
+            let html = '<table><thead><tr>';
+            html += '<th data-col="avg" style="cursor:pointer;">📊 Средняя ⬇️</th>';
+            html += '<th data-col="high" style="cursor:pointer;">📈 Максимум ⬇️</th>';
+            html += '<th data-col="low" style="cursor:pointer;">📉 Минимум ⬇️</th>';
+            html += '</tr></thead><tbody>';
+            
+            // Показываем последние 20 строк (самые новые данные)
+            const startIdx = Math.max(0, avgArr.length - 20);
+            for (let i = startIdx; i < avgArr.length; i++) {
+                html += `<tr>
+                    <td>${avgArr[i].toFixed(2)}</td>
+                    <td>${highArr[i] ? highArr[i].toFixed(2) : '-'}</td>
+                    <td>${lowArr[i] ? lowArr[i].toFixed(2) : '-'}</td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            wrapper.innerHTML = html;
+            
+            // Добавляем обработчики кликов на заголовки
+            const headers = wrapper.querySelectorAll('th');
+            headers.forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.getAttribute('data-col');
+                    let data = [];
+                    if (col === 'avg') data = [...avgArr];
+                    else if (col === 'high') data = [...highArr];
+                    else if (col === 'low') data = [...lowArr];
+                    data = data.filter(v => !isNaN(v));
+                    copyColumn(data, `${type === 'daily' ? 'дневная' : 'недельная'} ${col === 'avg' ? 'средняя' : (col === 'high' ? 'максимум' : 'минимум')}`);
+                });
+            });
+        }
+        
+        function clearData(type) {
+            if (type === 'daily') {
+                dailyData = { avg: [], high: [], low: [] };
+                document.getElementById('dailyAvg').value = '';
+                document.getElementById('dailyHigh').value = '';
+                document.getElementById('dailyLow').value = '';
+                dailyFileStatus.innerHTML = 'не загружен';
+                dailyTableWrapper.style.display = 'none';
+                dailyFileInput.value = '';
+            } else {
+                weeklyData = { avg: [], high: [], low: [] };
+                document.getElementById('weeklyAvg').value = '';
+                document.getElementById('weeklyHigh').value = '';
+                document.getElementById('weeklyLow').value = '';
+                weeklyFileStatus.innerHTML = 'не загружен';
+                weeklyTableWrapper.style.display = 'none';
+                weeklyFileInput.value = '';
+            }
+            updateCounters();
+            showToast(`🗑️ ${type === 'daily' ? 'Дневные' : 'Недельные'} данные очищены`);
+        }
+        
+        // --- Прогноз с ATR ---
         function forecastWithATR(series) {
             if(!series.length) return null;
             const n = series.length;
@@ -382,23 +531,47 @@
             renderStrategy(strategy);
         }
         
-        // инициализация загрузчиков CSV
-        setupCSVLoader('dailyFile', 'dailyFileStatus', 'dailyPreview', 'daily', 'clearDaily');
-        setupCSVLoader('weeklyFile', 'weeklyFileStatus', 'weeklyPreview', 'weekly', 'clearWeekly');
+        // --- Инициализация ---
+        dailyFileInput.addEventListener('change', (e) => { if(e.target.files[0]) processCSV(e.target.files[0], 'daily'); });
+        weeklyFileInput.addEventListener('change', (e) => { if(e.target.files[0]) processCSV(e.target.files[0], 'weekly'); });
         
+        // Drag & drop
+        dailyUploadArea.addEventListener('dragover', e => e.preventDefault());
+        dailyUploadArea.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) processCSV(f, 'daily'); });
+        weeklyUploadArea.addEventListener('dragover', e => e.preventDefault());
+        weeklyUploadArea.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) processCSV(f, 'weekly'); });
+        
+        document.getElementById('clearDailyBtn').addEventListener('click', () => clearData('daily'));
+        document.getElementById('clearWeeklyBtn').addEventListener('click', () => clearData('weekly'));
         document.getElementById('predictBtn').addEventListener('click', run);
+        
+        // Глобальный режим
+        document.querySelectorAll('[data-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                globalDirection = btn.getAttribute('data-mode');
+                showToast(`🌍 Режим копирования: ${globalDirection === 'top-down' ? 'сверху вниз' : 'снизу вверх'}`);
+            });
+        });
+        
         document.getElementById('dailyAvg').addEventListener('input', updateCounters);
         document.getElementById('weeklyAvg').addEventListener('input', updateCounters);
         
-        // демо-данные
-        if(!localStorage.getItem('pro_csv_demo_v2')){
-            let demoDaily = [62500, 63200, 62800, 64000, 63800, 63500, 64100, 63900, 64500, 64300, 64800, 65000];
+        // Демо-данные
+        if(!localStorage.getItem('pro_csv_demo_final')){
+            let demoDaily = [62500, 63200, 62800, 64000, 63800, 63500, 64100, 63900, 64500, 64300];
             document.getElementById('dailyAvg').value = demoDaily.join(', ');
             let demoWeekly = [61000, 60500, 59500, 58800, 58200, 57500];
             document.getElementById('weeklyAvg').value = demoWeekly.join(', ');
-            localStorage.setItem('pro_csv_demo_v2', 'true');
+            localStorage.setItem('pro_csv_demo_final', 'true');
         }
         updateCounters();
+        
+        // Добавляем стиль для toasts
+        const style = document.createElement('style');
+        style.textContent = `@keyframes fadeInOut { 0% { opacity: 0; transform: translateX(-50%) translateY(10px); } 15% { opacity: 1; transform: translateX(-50%) translateY(0); } 85% { opacity: 1; transform: translateX(-50%) translateY(0); } 100% { opacity: 0; transform: translateX(-50%) translateY(-10px); } }`;
+        document.head.appendChild(style);
     })();
 </script>
 </body>
