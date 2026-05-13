@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MultiMarket Pro | RSI + Свечной анализ</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0b1120;
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+            padding: 14px;
+            color: #e2e8f0;
+        }
+
+        .app-container {
+            max-width: 520px;
+            margin: 0 auto;
+            background: #0f172ad9;
+            backdrop-filter: blur(2px);
+            border-radius: 48px 32px 48px 32px;
+            box-shadow: 0 25px 45px -12px black;
+            overflow: hidden;
+            padding: 18px 16px 28px;
+            border: 1px solid #1e293b;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #c084fc, #38bdf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        h1 small { font-size: 0.55rem; background: #1e293b; color: #94a3b8; padding: 3px 8px; border-radius: 40px; }
+
+        .pair-selector {
+            background: #0f172a;
+            border-radius: 60px;
+            padding: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 12px 0 8px;
+            justify-content: center;
+        }
+
+        .pair-btn {
+            background: #1e293b;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.7rem;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pair-btn.active { background: #3b82f6; color: white; box-shadow: 0 0 8px #3b82f680; }
+
+        .timeframe-selector {
+            background: #0f172a;
+            border-radius: 60px;
+            padding: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 8px 0 10px;
+            justify-content: center;
+        }
+
+        .tf-btn {
+            background: #1e293b;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.65rem;
+            color: #cbd5e1;
+            cursor: pointer;
+        }
+
+        .tf-btn.active { background: #3b82f6; color: white; }
+
+        .refresh-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin: 8px 0 12px;
+        }
+
+        .last-update { font-size: 0.65rem; color: #7e8a9c; }
+        button {
+            background: #2d3a5e;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 60px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        button:active { transform: scale(0.96); }
+
+        .stats-row {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: #0a0f1c;
+            border-radius: 28px;
+            padding: 10px 12px;
+            flex: 1;
+            text-align: center;
+        }
+        .rsi-value { font-size: 1.6rem; font-weight: 800; }
+        .rsi-low { color: #22c55e; }
+        .rsi-high { color: #ef4444; }
+        .rsi-mid { color: #eab308; }
+
+        .market-stats {
+            background: #0a0f1c;
+            border-radius: 32px;
+            padding: 14px;
+            margin: 8px 0;
+            border-left: 4px solid;
+        }
+        .trend-up { border-left-color: #22c55e; }
+        .trend-down { border-left-color: #ef4444; }
+        .trend-flat { border-left-color: #eab308; }
+
+        .price-big { font-size: 1.8rem; font-weight: 800; font-family: monospace; }
+        .candle-grid {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            padding: 10px 0 16px;
+            margin: 4px 0;
+        }
+        .candle-card {
+            background: #111827;
+            border-radius: 18px;
+            padding: 6px 5px;
+            min-width: 72px;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .candle-bull { border-top: 3px solid #22c55e; }
+        .candle-bear { border-top: 3px solid #ef4444; }
+        .shadow-good {
+            background: #2a2f3f;
+            border-radius: 14px;
+            padding: 2px 5px;
+            font-size: 0.6rem;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #facc15;
+        }
+        .signal-box {
+            background: #02061780;
+            border-radius: 38px;
+            padding: 16px 18px;
+            margin: 14px 0 10px;
+            backdrop-filter: blur(8px);
+            border: 1px solid #334155;
+        }
+        .signal-action { font-size: 1.5rem; font-weight: 800; margin: 5px 0; }
+        .buy { color: #4ade80; text-shadow: 0 0 4px #14532d; }
+        .sell { color: #f87171; text-shadow: 0 0 4px #7f1a1a; }
+        .hold { color: #facc15; }
+        .advice-note { font-size: 0.7rem; background: #0f172e; border-radius: 24px; padding: 10px; margin-top: 12px; line-height: 1.4; }
+        footer { font-size: 0.55rem; text-align: center; margin-top: 16px; color: #4b556b; }
+        .loader { display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-badge { background: #450a0a; border-radius: 28px; padding: 10px; color: #ffb4a2; font-size: 0.7rem; }
+        .tf-note { font-size: 0.6rem; text-align: center; margin-top: -2px; margin-bottom: 6px; color: #7e8a9c; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <h1>📊 MultiMarket <small>RSI + Shadow</small></h1>
+        <div style="background:#1e293b; border-radius:30px; padding:4px 12px; font-size:0.7rem;">PRO</div>
+    </div>
+
+    <!-- Выбор инструмента -->
+    <div class="pair-selector" id="pairSelector">
+        <button data-symbol="EUR/USD" class="pair-btn active">🇪🇺 EUR/USD</button>
+        <button data-symbol="GBP/USD" class="pair-btn">🇬🇧 GBP/USD</button>
+        <button data-symbol="USD/JPY" class="pair-btn">🇯🇵 USD/JPY</button>
+        <button data-symbol="BTC/USD" class="pair-btn">₿ BTC/USD</button>
+        <button data-symbol="ETH/USD" class="pair-btn">⟠ ETH/USD</button>
+        <button data-symbol="XAU/USD" class="pair-btn">🥇 XAU/USD</button>
+        <button data-symbol="SPX" class="pair-btn">📈 SPX</button>
+        <button data-symbol="NDX" class="pair-btn">📊 NASDAQ</button>
+    </div>
+
+    <!-- Выбор таймфрейма -->
+    <div class="timeframe-selector" id="tfSelector">
+        <button data-tf="5min" class="tf-btn">5м</button>
+        <button data-tf="15min" class="tf-btn">15м</button>
+        <button data-tf="1h" class="tf-btn active">1ч</button>
+        <button data-tf="4h" class="tf-btn">4ч</button>
+        <button data-tf="1day" class="tf-btn">1д</button>
+    </div>
+    <div class="tf-note" id="tfHint">⚡ Таймфрейм влияет на RSI и чувствительность теней</div>
+
+    <div class="refresh-area">
+        <span class="last-update" id="updateTime">— обновление —</span>
+        <button id="refreshBtn">🔄 Анализ</button>
+    </div>
+
+    <div id="marketInfo" class="market-stats trend-flat">
+        <div class="price-big" id="currentPrice">—</div>
+        <div class="trend-text" id="trendLabel">📈 Определение тренда...</div>
+        <div id="changePercent" style="font-size:0.65rem">изменение: --%</div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card"><div style="font-size:0.65rem;">RSI (14)</div><div class="rsi-value" id="rsiValue">--</div><div id="rsiStatus" style="font-size:0.6rem;">—</div></div>
+        <div class="stat-card"><div style="font-size:0.65rem;">ATR волат.</div><div style="font-size:1.2rem; font-weight:700;" id="atrValue">--</div><div id="atrHint" style="font-size:0.55rem;">средний диапазон</div></div>
+    </div>
+
+    <div style="font-weight: 600; font-size:0.8rem; margin: 4px 0 0px 6px;">🕯️ Свечи + тени (<span id="timeframeLabel">1H</span>)</div>
+    <div id="candlesList" class="candle-grid">⏳ загрузка...</div>
+
+    <div class="signal-box">
+        <div class="signal-title">⚡ КОМБИНИРОВАННЫЙ СИГНАЛ (RSI + ТЕНИ + ТРЕНД)</div>
+        <div class="signal-action" id="signalAction">—</div>
+        <div id="signalReason" style="font-size: 0.7rem; opacity:0.9;">Анализируем...</div>
+    </div>
+
+    <div class="advice-note" id="adviceDetails">
+        💡 *RSI* >70 перекупленность, <30 перепроданность. Сигнал сильнее при совпадении с тенями.
+    </div>
+    <footer>Данные: Twelvedata (бесплатный tier) | Не финсовет. Технический анализ.</footer>
+</div>
+
+<script>
+    // --------------------------------------------------------------
+    // 8 популярных инструментов, включая криптовалюты, металлы, индексы
+    // Для SPX и NDX используется символ по умолчанию (индексы)
+    // --------------------------------------------------------------
+    const SYMBOLS = {
+        'EUR/USD': { api: 'EUR/USD', kind: 'fx', digits: 5 },
+        'GBP/USD': { api: 'GBP/USD', kind: 'fx', digits: 5 },
+        'USD/JPY': { api: 'USD/JPY', kind: 'fx', digits: 3 },
+        'BTC/USD': { api: 'BTC/USD', kind: 'crypto', digits: 2 },
+        'ETH/USD': { api: 'ETH/USD', kind: 'crypto', digits: 2 },
+        'XAU/USD': { api: 'XAU/USD', kind: 'metal', digits: 2 },
+        'SPX': { api: 'SPX', kind: 'index', digits: 2 },
+        'NDX': { api: 'NDX', kind: 'index', digits: 2 }
+    };
+    
+    const TIMEFRAMES = {
+        '5min': { label: '5 мин', apiValue: '5min', count: 30 },
+        '15min': { label: '15 мин', apiValue: '15min', count: 30 },
+        '1h': { label: '1 час', apiValue: '1h', count: 28 },
+        '4h': { label: '4 часа', apiValue: '4h', count: 24 },
+        '1day': { label: '1 день', apiValue: '1day', count: 21 }
+    };
+    
+    let currentSymbol = 'EUR/USD';
+    let currentTf = '1h';
+    let currentCandles = [];
+    let isLoading = false;
+    
+    // DOM
+    const marketInfoDiv = document.getElementById('marketInfo');
+    const currentPriceSpan = document.getElementById('currentPrice');
+    const trendLabelSpan = document.getElementById('trendLabel');
+    const changePercentSpan = document.getElementById('changePercent');
+    const candlesListDiv = document.getElementById('candlesList');
+    const signalActionSpan = document.getElementById('signalAction');
+    const signalReasonSpan = document.getElementById('signalReason');
+    const updateTimeSpan = document.getElementById('updateTime');
+    const adviceDetailsDiv = document.getElementById('adviceDetails');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const timeframeLabelSpan = document.getElementById('timeframeLabel');
+    const tfHint = document.getElementById('tfHint');
+    const rsiValueSpan = document.getElementById('rsiValue');
+    const rsiStatusSpan = document.getElementById('rsiStatus');
+    const atrValueSpan = document.getElementById('atrValue');
+    const atrHintSpan = document.getElementById('atrHint');
+    
+    // API
+    const API_KEY = 'demo';
+    const BASE_URL = 'https://api.twelvedata.com';
+    
+    async function fetchCandles(symbolKey, tfKey) {
+        const symConf = SYMBOLS[symbolKey];
+        if (!symConf) throw new Error('Неизвестный инструмент');
+        const apiSymbol = symConf.api;
+        const tfConf = TIMEFRAMES[tfKey];
+        const interval = tfConf.apiValue;
+        const outputSize = tfConf.count;
+        const url = `${BASE_URL}/time_series?symbol=${apiSymbol}&interval=${interval}&outputsize=${outputSize}&apikey=${API_KEY}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.code && data.status === 'error') throw new Error(data.message || 'API error');
+        if (!data.values || data.values.length === 0) throw new Error('Нет данных');
+        let candles = data.values.slice(0, outputSize).map(c => ({
+            datetime: c.datetime,
+            open: parseFloat(c.open),
+            high: parseFloat(c.high),
+            low: parseFloat(c.low),
+            close: parseFloat(c.close)
+        })).filter(c => !isNaN(c.close));
+        if (candles.length < 12) throw new Error('Мало свечей');
+        return candles.reverse();
+    }
+    
+    function calculateRSI(closes, period = 14) {
+        if (closes.length < period + 1) return 50;
+        let gains = 0, losses = 0;
+        for (let i = closes.length - period; i < closes.length; i++) {
+            const diff = closes[i] - closes[i-1];
+            if (diff >= 0) gains += diff;
+            else losses -= diff;
+        }
+        const avgGain = gains / period;
+        const avgLoss = losses / period;
+        if (avgLoss === 0) return 100;
+        const rs = avgGain / avgLoss;
+        return Math.min(100, Math.max(0, 100 - (100 / (1 + rs))));
+    }
+    
+    function calculateATR(candles, period = 14) {
+        if (candles.length < period) return 0;
+        let trSum = 0;
+        for (let i = candles.length - period; i < candles.length; i++) {
+            const prev = candles[i-1];
+            const curr = candles[i];
+            if (!prev) continue;
+            const hl = curr.high - curr.low;
+            const hc = Math.abs(curr.high - prev.close);
+            const lc = Math.abs(curr.low - prev.close);
+            trSum += Math.max(hl, hc, lc);
+        }
+        return trSum / period;
+    }
+    
+    function analyzeTrend(candles) {
+        if (candles.length < 5) return { direction: 'flat', strength: 0 };
+        const closes = candles.map(c => c.close);
+        const period = Math.min(5, Math.floor(candles.length / 2));
+        let currentSma = closes.slice(-period).reduce((a,b)=>a+b,0)/period;
+        let prevSma = closes.slice(-period-1, -1).reduce((a,b)=>a+b,0)/period || currentSma;
+        const delta = (currentSma - prevSma) / prevSma;
+        let slope = 0;
+        const recent = closes.slice(-7);
+        const n = recent.length;
+        if (n >= 3) {
+            let xSum=0,ySum=0,xySum=0,x2Sum=0;
+            for(let i=0;i<n;i++){ xSum+=i; ySum+=recent[i]; xySum+=i*recent[i]; x2Sum+=i*i; }
+            const denom = (n*x2Sum - xSum*xSum);
+            if(denom !== 0) slope = (n*xySum - xSum*ySum)/denom;
+        }
+        let direction = 'flat';
+        if (delta > 0.0012 || slope > 0.0004) direction = 'up';
+        else if (delta < -0.0012 || slope < -0.0004) direction = 'down';
+        return { direction, strength: Math.abs(delta)*100 };
+    }
+    
+    function detectShadows(candle) {
+        const bodyTop = Math.max(candle.open, candle.close);
+        const bodyBottom = Math.min(candle.open, candle.close);
+        const range = candle.high - candle.low;
+        if (range === 0) return { hasBullish: false, hasBearish: false };
+        const upperShadow = candle.high - bodyTop;
+        const lowerShadow = bodyBottom - candle.low;
+        const bodySize = Math.abs(candle.close - candle.open);
+        const minRatio = 0.55;
+        const minAbs = 0.0005;
+        const isBullish = (lowerShadow > bodySize * minRatio && lowerShadow > minAbs);
+        const isBearish = (upperShadow > bodySize * minRatio && upperShadow > minAbs);
+        return { hasBullish: isBullish, hasBearish: isBearish };
+    }
+    
+    function generateCombinedSignal(candles, trendInfo, rsi, atr, symbolKey) {
+        if (candles.length < 5) return { action: 'HOLD', confidence: 0, reason: 'Недостаточно данных' };
+        const lastCandle = candles[candles.length-1];
+        const secondLast = candles[candles.length-2];
+        const shadowsLast = detectShadows(lastCandle);
+        const shadowsSecond = secondLast ? detectShadows(secondLast) : null;
+        
+        let shadowScore = 0;
+        let shadowType = null;
+        if (shadowsLast.hasBullish) { shadowScore += 2.2; shadowType = 'bull'; }
+        if (shadowsSecond?.hasBullish) shadowScore += 1.3;
+        if (shadowsLast.hasBearish) { shadowScore += 2.2; shadowType = 'bear'; }
+        if (shadowsSecond?.hasBearish) shadowScore += 1.3;
+        
+        const isOversold = rsi < 30;
+        const isOverbought = rsi > 70;
+        const trend = trendInfo.direction;
+        
+        let action = 'HOLD';
+        let reason = '';
+        let confidence = 30;
+        
+        // Учитываем специфику инструмента (крипто/индексы чуть более волатильны, но логика та же)
+        if (trend === 'up' && isOversold && shadowType === 'bull') {
+            action = 'BUY'; confidence = 85;
+            reason = `✅ RSI перепродан (${rsi.toFixed(1)}) + бычья тень + восходящий тренд.`;
+        }
+        else if (trend === 'down' && isOverbought && shadowType === 'bear') {
+            action = 'SELL'; confidence = 85;
+            reason = `✅ RSI перекуплен (${rsi.toFixed(1)}) + медвежья тень + нисходящий тренд.`;
+        }
+        else if (isOversold && (shadowType === 'bull' || shadowScore > 1.5)) {
+            action = 'BUY'; confidence = 70;
+            reason = `📉 RSI перепродан (${rsi.toFixed(1)}) + бычья тень. Разворот вверх.`;
+        }
+        else if (isOverbought && (shadowType === 'bear' || shadowScore > 1.5)) {
+            action = 'SELL'; confidence = 70;
+            reason = `📈 RSI перекуплен (${rsi.toFixed(1)}) + медвежья тень. Давление продавцов.`;
+        }
+        else if (trend === 'up' && !isOverbought && shadowsLast.hasBullish) {
+            action = 'BUY'; confidence = 65;
+            reason = `📈 Тренд вверх + бычья тень, RSI ${rsi.toFixed(1)}.`;
+        }
+        else if (trend === 'down' && !isOversold && shadowsLast.hasBearish) {
+            action = 'SELL'; confidence = 65;
+            reason = `📉 Тренд вниз + медвежья тень, RSI ${rsi.toFixed(1)}.`;
+        }
+        else if (isOversold && trend !== 'down') {
+            action = 'BUY'; confidence = 55;
+            reason = `🟢 RSI перепродан (${rsi.toFixed(1)}), возможен отскок.`;
+        }
+        else if (isOverbought && trend !== 'up') {
+            action = 'SELL'; confidence = 55;
+            reason = `🔴 RSI перекуплен (${rsi.toFixed(1)}), возможна коррекция.`;
+        }
+        else if (shadowScore > 2.0) {
+            if (shadowType === 'bull') { action = 'BUY'; confidence = 50; reason = `⚡ Сильная бычья тень.`; }
+            else if (shadowType === 'bear') { action = 'SELL'; confidence = 50; reason = `⚡ Сильная медвежья тень.`; }
+            else { action = 'HOLD'; reason = `Тени сильные, но без чёткого направления.`; }
+        }
+        else {
+            reason = `RSI ${rsi.toFixed(1)}, теней недостаточно. Рекомендуется Hold.`;
+            action = 'HOLD';
+            confidence = 25;
+        }
+        if (atr > 0) reason += ` ATR ${atr.toFixed(5)}.`;
+        return { action, confidence, reason };
+    }
+    
+    function renderCandlesList(candles, symbolKey) {
+        if (!candles.length) { candlesListDiv.innerHTML = 'Нет данных'; return; }
+        const digits = SYMBOLS[symbolKey]?.digits || 5;
+        const html = candles.slice(-12).map(candle => {
+            const isBullish = candle.close >= candle.open;
+            const shadow = detectShadows(candle);
+            let shadowLabel = '';
+            if (shadow.hasBullish) shadowLabel = '⬆️ тень низ';
+            else if (shadow.hasBearish) shadowLabel = '⬇️ тень верх';
+            const dateShort = candle.datetime?.slice(5,16).replace('T',' ') || '';
+            return `<div class="candle-card ${isBullish ? 'candle-bull' : 'candle-bear'}">
+                        <div style="font-size:8px; opacity:0.7">${dateShort}</div>
+                        <div style="font-weight:700;">${candle.close.toFixed(digits)}</div>
+                        <div style="font-size:0.55rem">H:${candle.high.toFixed(digits)} L:${candle.low.toFixed(digits)}</div>
+                        ${shadowLabel ? `<div class="shadow-good">${shadowLabel}</div>` : '<div style="height:16px"></div>'}
+                    </div>`;
+        }).join('');
+        candlesListDiv.innerHTML = html;
+    }
+    
+    async function updateAnalysis() {
+        if (isLoading) return;
+        isLoading = true;
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<span class="loader"></span> Анализ...';
+        candlesListDiv.innerHTML = '🔄 Загрузка...';
+        try {
+            const candles = await fetchCandles(currentSymbol, currentTf);
+            currentCandles = candles;
+            const last = candles[candles.length-1];
+            const prev = candles[candles.length-2];
+            const change = prev ? ((last.close - prev.close)/prev.close*100) : 0;
+            const digits = SYMBOLS[currentSymbol]?.digits || 5;
+            currentPriceSpan.innerText = last.close.toFixed(digits);
+            changePercentSpan.innerText = `изм. ${change>=0?'+':''}${change.toFixed(3)}%`;
+            
+            const closes = candles.map(c => c.close);
+            const rsi = calculateRSI(closes, 14);
+            const atr = calculateATR(candles, 14);
+            rsiValueSpan.innerText = rsi.toFixed(1);
+            let rsiClass = 'rsi-mid', rsiStatusText = 'нейтрально';
+            if (rsi >= 70) { rsiClass = 'rsi-high'; rsiStatusText = '🔴 Перекупленность'; }
+            else if (rsi <= 30) { rsiClass = 'rsi-low'; rsiStatusText = '🟢 Перепроданность'; }
+            else rsiStatusText = '⚪ Нейтрально';
+            rsiValueSpan.className = `rsi-value ${rsiClass}`;
+            rsiStatusSpan.innerText = rsiStatusText;
+            
+            atrValueSpan.innerText = atr.toFixed(digits);
+            atrHintSpan.innerText = `ATR (14)`;
+            
+            const trendInfo = analyzeTrend(candles);
+            let trendClass = 'trend-flat', trendText = '⚖️ Флэт';
+            if (trendInfo.direction === 'up') { trendClass = 'trend-up'; trendText = '📈 ВОСХОДЯЩИЙ'; }
+            else if (trendInfo.direction === 'down') { trendClass = 'trend-down'; trendText = '📉 НИСХОДЯЩИЙ'; }
+            marketInfoDiv.className = `market-stats ${trendClass}`;
+            trendLabelSpan.innerHTML = `${trendText}  (сила: ${trendInfo.strength.toFixed(1)}%)`;
+            
+            const signal = generateCombinedSignal(candles, trendInfo, rsi, atr, currentSymbol);
+            let actionHtml = '', actionClass = 'hold';
+            if (signal.action === 'BUY') { actionHtml = '🔵 BUY (лонг)'; actionClass = 'buy'; }
+            else if (signal.action === 'SELL') { actionHtml = '🔴 SELL (шорт)'; actionClass = 'sell'; }
+            else { actionHtml = '⚪ HOLD (ожидание)'; actionClass = 'hold'; }
+            signalActionSpan.innerHTML = `<span class="${actionClass}">${actionHtml}</span>  • увер. ${Math.round(signal.confidence)}%`;
+            signalReasonSpan.innerHTML = signal.reason;
+            
+            renderCandlesList(candles, currentSymbol);
+            updateTimeSpan.innerText = `🕘 ${new Date().toLocaleTimeString()}`;
+            
+            const lastShadow = detectShadows(last);
+            let extra = lastShadow.hasBullish ? 'нижняя тень (бычья)' : (lastShadow.hasBearish ? 'верхняя тень (медвежья)' : 'нет сильной тени');
+            adviceDetailsDiv.innerHTML = `💡 *${currentSymbol}* | RSI = ${rsi.toFixed(1)} (${rsiStatusText}) | Последняя свеча: ${extra}<br>🎯 Комбинация RSI + тени + тренд.`;
+        } catch(err) {
+            console.error(err);
+            candlesListDiv.innerHTML = `<div class="error-badge">⚠️ ${err.message}. Возможны лимиты demo API.</div>`;
+            signalReasonSpan.innerHTML = `Ошибка: ${err.message}. Попробуйте другой инструмент или таймфрейм.`;
+            rsiValueSpan.innerText = '--';
+        } finally {
+            isLoading = false;
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '🔄 Анализ';
+        }
+    }
+    
+    function setSymbol(sym) {
+        if (!SYMBOLS[sym]) return;
+        currentSymbol = sym;
+        document.querySelectorAll('.pair-btn').forEach(btn => {
+            if (btn.dataset.symbol === sym) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        updateAnalysis();
+    }
+    
+    function setTimeframe(tf) {
+        if (!TIMEFRAMES[tf]) return;
+        currentTf = tf;
+        document.querySelectorAll('.tf-btn').forEach(btn => {
+            if (btn.dataset.tf === tf) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+        timeframeLabelSpan.innerText = TIMEFRAMES[tf].label;
+        tfHint.innerHTML = `⚡ Таймфрейм: ${TIMEFRAMES[tf].label}`;
+        updateAnalysis();
+    }
+    
+    document.querySelectorAll('.pair-btn').forEach(btn => btn.addEventListener('click', () => setSymbol(btn.dataset.symbol)));
+    document.querySelectorAll('.tf-btn').forEach(btn => btn.addEventListener('click', () => setTimeframe(btn.dataset.tf)));
+    refreshBtn.addEventListener('click', () => updateAnalysis());
+    setSymbol('EUR/USD');
+    setTimeframe('1h');
+</script>
+</body>
+</html>
