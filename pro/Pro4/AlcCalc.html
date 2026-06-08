@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Алко-Калькулятор</title>
+    <style>
+        :root { --bg: #121214; --card: #1a1a1e; --accent: #ff9f43; --text: #ffffff; --muted: #a0a0a5; --border: #2a2a30; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 400px; background: var(--card); border-radius: 20px; padding: 20px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        h1 { font-size: 1.4rem; text-align: center; margin-bottom: 20px; color: var(--accent); }
+        .section { margin-bottom: 16px; }
+        label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 8px; }
+        .toggle-group { display: flex; gap: 10px; }
+        .toggle-btn { flex: 1; background: #242428; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .toggle-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        input[type="number"] { width: 100%; background: #242428; border: 1px solid var(--border); color: #fff; padding: 14px; border-radius: 12px; font-size: 1.1rem; outline: none; }
+        input[type="number"]:focus { border-color: var(--accent); }
+        .drink-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .drink-card { background: #242428; border: 1px solid var(--border); padding: 12px; border-radius: 12px; text-align: center; cursor: pointer; }
+        .drink-card.active { border-color: var(--accent); background: rgba(255, 159, 67, 0.1); }
+        .drink-name { font-weight: bold; display: block; margin-bottom: 4px; }
+        .drink-strength { font-size: 0.8rem; color: var(--muted); }
+        .calc-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 14px; font-size: 1.2rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .result-box { margin-top: 20px; background: #242428; border-radius: 14px; padding: 16px; border: 1px solid var(--border); display: none; text-align: center; }
+        .promille { font-size: 2.2rem; font-weight: bold; color: var(--accent); margin: 8px 0; }
+        .status-text { font-size: 1rem; font-weight: 500; margin-bottom: 10px; }
+        .time-to-sober { font-size: 0.95rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
+        .gas-warning { font-size: 0.8rem; color: #ff6b6b; margin-top: 8px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Алко-Калькулятор</h1>
+
+    <div class="section">
+        <label>Биологический пол</label>
+        <div class="toggle-group">
+            <button type="button" class="toggle-btn active" id="btn-male" onclick="setGender('male')">Мужчина</button>
+            <button type="button" class="toggle-btn" id="btn-female" onclick="setGender('female')">Женщина</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <label for="weight">Ваш вес (кг)</label>
+        <input type="number" id="weight" value="75" min="30" max="200" pattern="[0-9]*">
+    </div>
+
+    <div class="section">
+        <label>Выберите напиток</label>
+        <div class="drink-grid">
+            <div class="drink-card active" id="d-vodka" onclick="selectDrink('vodka', 40, false)">
+                <span class="drink-name">Водка</span>
+                <span class="drink-strength">40%</span>
+            </div>
+            <div class="drink-card" id="d-beer" onclick="selectDrink('beer', 5, false)">
+                <span class="drink-name">Пиво</span>
+                <span class="drink-strength">5%</span>
+            </div>
+            <div class="drink-card" id="d-wine" onclick="selectDrink('wine', 12, false)">
+                <span class="drink-name">Вино</span>
+                <span class="drink-strength">12%</span>
+            </div>
+            <div class="drink-card" id="d-champagne" onclick="selectDrink('champagne', 11, true)">
+                <span class="drink-name">Шампанское</span>
+                <span class="drink-strength">11% 🫧</span>
+            </div>
+            <div class="drink-card" id="d-gwine" style="grid-column: span 2;" onclick="selectDrink('gwine', 12, true)">
+                <span class="drink-name">Игристое вино</span>
+                <span class="drink-strength">12% 🫧 (Всасывается быстрее)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <label for="amount">Выпито объема (мл)</label>
+        <input type="number" id="amount" value="200" min="10" max="5000" pattern="[0-9]*">
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">Рассчитать</button>
+
+    <div class="result-box" id="result">
+        <div>Примерная концентрация:</div>
+        <div class="promille" id="res-promille">0.00 ‰</div>
+        <div class="status-text" id="res-status">--</div>
+        <div class="gas-warning" id="gas-alert">⚠️ Газация ускоряет всасывание алкоголя в первые 15-30 минут!</div>
+        <div class="time-to-sober" id="res-time">--</div>
+    </div>
+</div>
+
+<script>
+    let currentGender = 'male';
+    let currentStrength = 40;
+    let isCarbonated = false;
+
+    function setGender(gender) {
+        currentGender = gender;
+        document.getElementById('btn-male').classList.toggle('active', gender === 'male');
+        document.getElementById('btn-female').classList.toggle('active', gender === 'female');
+    }
+
+    function selectDrink(id, strength, carbonated) {
+        currentStrength = strength;
+        isCarbonated = carbonated;
+        document.querySelectorAll('.drink-card').forEach(card => card.classList.remove('active'));
+        document.getElementById('d-' + id).classList.add('active');
+    }
+
+    function calculate() {
+        const weight = parseFloat(document.getElementById('weight').value);
+        const amount = parseFloat(document.getElementById('amount').value);
+        
+        if (!weight || !amount || weight <= 0 || amount <= 0) {
+            alert("Введите корректные данные.");
+            return;
+        }
+
+        const r = (currentGender === 'male') ? 0.68 : 0.55;
+        const pureAlcoholGrams = amount * (currentStrength / 100) * 0.789;
+        let promille = pureAlcoholGrams / (weight * r);
+        promille = Math.round(promille * 100) / 100;
+
+        let status = "";
+        if (promille < 0.3) status = "Трезв или легкий эффект";
+        else if (promille >= 0.3 && promille < 0.6) status = "Легкое опьянение";
+        else if (promille >= 0.6 && promille < 1.5) status = "Среднее опьянение";
+        else if (promille >= 1.5 && promille < 2.5) status = "Сильное опьянение";
+        else if (promille >= 2.5 && promille < 3.5) status = "Тяжелое отравление";
+        else status = "Критическая доза!";
+
+        const eliminationRate = 0.13; 
+        const hoursToSober = promille / eliminationRate;
+        const h = Math.floor(hoursToSober);
+        const m = Math.round((hoursToSober - h) * 60);
+
+        document.getElementById('res-promille').innerText = promille.toFixed(2) + " ‰";
+        document.getElementById('res-status').innerText = status;
+        document.getElementById('res-time').innerHTML = promille > 0 ? `Полное выведение примерно через:<br><strong>${h} ч. ${m} мин.</strong>` : "Вы трезвы.";
+        document.getElementById('gas-alert').style.display = isCarbonated ? 'block' : 'none';
+        document.getElementById('result').style.display = 'block';
+    }
+</script>
+</body>
+</html>
