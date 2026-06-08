@@ -28,6 +28,9 @@
         .status-text { font-size: 1rem; font-weight: 500; margin-bottom: 10px; }
         .time-to-sober { font-size: 0.95rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; margin-top: 10px; }
         .gas-warning { font-size: 0.8rem; color: #ff6b6b; margin-top: 8px; display: none; }
+        .guide-box { margin-top: 15px; padding: 12px; background: #242428; border-radius: 12px; border: 1px dashed var(--border); text-align: left; }
+        .guide-title { font-weight: bold; font-size: 0.95rem; color: var(--accent); margin-bottom: 6px; }
+        .guide-item { font-size: 0.85rem; margin-bottom: 4px; color: #e0e0e5; }
     </style>
 </head>
 <body>
@@ -45,7 +48,7 @@
 
     <div class="section">
         <label for="weight">Ваш вес (кг)</label>
-        <input type="number" id="weight" value="75" min="30" max="200" pattern="[0-9]*">
+        <input type="number" id="weight" value="75" min="30" max="200" pattern="[0-9]*" oninput="updateComfortLimits()">
     </div>
 
     <div class="section">
@@ -69,17 +72,25 @@
             </div>
             <div class="drink-card" id="d-gwine" style="grid-column: span 2;" onclick="selectDrink('gwine', 12, true)">
                 <span class="drink-name">Игристое вино</span>
-                <span class="drink-strength">12% 🫧 (Всасывается быстрее)</span>
+                <span class="drink-strength">12% 🫧</span>
             </div>
         </div>
     </div>
 
-    <div class="section">
+    <!-- Рекомендации по лимитам -->
+    <div class="guide-box">
+        <div class="guide-title">Ваш комфортный лимит для этого напитка:</div>
+        <div class="guide-item" id="lim-talk">🗣️ Слегка поболтать: <span>--</span></div>
+        <div class="guide-item" id="lim-home">🏡 Выпить и спокойно уйти домой: <span>--</span></div>
+        <div class="guide-item" id="lim-relax">🛋️ Хорошо расслабиться: <span>--</span></div>
+    </div>
+
+    <div class="section" style="margin-top: 16px;">
         <label for="amount">Выпито объема (мл)</label>
         <input type="number" id="amount" value="200" min="10" max="5000" pattern="[0-9]*">
     </div>
 
-    <button class="calc-btn" onclick="calculate()">Рассчитать</button>
+    <button class="calc-btn" onclick="calculate()">Рассчитать итог</button>
 
     <div class="result-box" id="result">
         <div>Примерная концентрация:</div>
@@ -99,6 +110,7 @@
         currentGender = gender;
         document.getElementById('btn-male').classList.toggle('active', gender === 'male');
         document.getElementById('btn-female').classList.toggle('active', gender === 'female');
+        updateComfortLimits();
     }
 
     function selectDrink(id, strength, carbonated) {
@@ -106,6 +118,27 @@
         isCarbonated = carbonated;
         document.querySelectorAll('.drink-card').forEach(card => card.classList.remove('active'));
         document.getElementById('d-' + id).classList.add('active');
+        updateComfortLimits();
+    }
+
+    function getMlFromPromille(targetPromille, weight, r, strength) {
+        const pureAlcoholGrams = targetPromille * (weight * r);
+        const ml = pureAlcoholGrams / (strength / 100) / 0.789;
+        return Math.round(ml);
+    }
+
+    function updateComfortLimits() {
+        const weight = parseFloat(document.getElementById('weight').value) || 75;
+        const r = (currentGender === 'male') ? 0.68 : 0.55;
+
+        // Целевые промилле для разных состояний
+        const mlTalk = getMlFromPromille(0.35, weight, r, currentStrength);
+        const mlHome = getMlFromPromille(0.55, weight, r, currentStrength);
+        const mlRelax = getMlFromPromille(0.85, weight, r, currentStrength);
+
+        document.querySelector('#lim-talk span').innerText = `${mlTalk} мл`;
+        document.querySelector('#lim-home span').innerText = `${mlHome} мл`;
+        document.querySelector('#lim-relax span').innerText = `${mlRelax} мл`;
     }
 
     function calculate() {
@@ -127,8 +160,7 @@
         else if (promille >= 0.3 && promille < 0.6) status = "Легкое опьянение";
         else if (promille >= 0.6 && promille < 1.5) status = "Среднее опьянение";
         else if (promille >= 1.5 && promille < 2.5) status = "Сильное опьянение";
-        else if (promille >= 2.5 && promille < 3.5) status = "Тяжелое отравление";
-        else status = "Критическая доза!";
+        else status = "Тяжелое опьянение / Отравление";
 
         const eliminationRate = 0.13; 
         const hoursToSober = promille / eliminationRate;
@@ -141,6 +173,9 @@
         document.getElementById('gas-alert').style.display = isCarbonated ? 'block' : 'none';
         document.getElementById('result').style.display = 'block';
     }
+
+    // Первичная инициализация лимитов при загрузке
+    updateComfortLimits();
 </script>
 </body>
 </html>
