@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>✨ Создать открытку</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff; min-height: 100vh; overflow-x: hidden;
+        }
+        #app {
+            max-width: 480px; margin: 0 auto; padding: 16px;
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        h1 {
+            text-align: center; font-size: 1.6rem; margin-bottom: 8px;
+            background: linear-gradient(90deg, #feca57, #ff6b6b, #48dbfb);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subtitle { text-align: center; color: #aaa; font-size: 0.85rem; margin-bottom: 20px; }
+        #step-form { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+        .field-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-group label { font-size: 0.9rem; color: #b8c5d6; font-weight: 500; }
+        .field-group input, .field-group textarea, .field-group select {
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 1rem;
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+        }
+        .field-group input:focus, .field-group textarea:focus, .field-group select:focus {
+            border-color: #48dbfb; box-shadow: 0 0 0 3px rgba(72,219,251,0.15);
+        }
+        .field-group textarea { min-height: 100px; resize: vertical; }
+        .field-group select option { background: #1a1a2e; color: #fff; }
+        .templates-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .template-card {
+            aspect-ratio: 3/4; border-radius: 12px; border: 2px solid transparent;
+            cursor: pointer; overflow: hidden; position: relative;
+            transition: transform 0.2s, border-color 0.2s; background-size: cover; background-position: center;
+        }
+        .template-card:hover { transform: scale(1.05); }
+        .template-card.active { border-color: #48dbfb; box-shadow: 0 0 20px rgba(72,219,251,0.3); }
+        .template-card .t-name {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(0,0,0,0.6); padding: 6px; font-size: 0.7rem;
+            text-align: center; backdrop-filter: blur(4px);
+        }
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px;
+            padding: 24px; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: rgba(255,255,255,0.03);
+        }
+        .upload-area:hover { border-color: #48dbfb; background: rgba(72,219,251,0.05); }
+        .upload-area.has-image { border-style: solid; border-color: #48dbfb; padding: 8px; }
+        .upload-area img { max-width: 100%; max-height: 180px; border-radius: 8px; object-fit: cover; }
+        #file-input { display: none; }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: #fff;
+            padding: 16px; border-radius: 14px; font-size: 1.1rem; font-weight: 600;
+            cursor: pointer; transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(102,126,234,0.3); margin-top: 8px;
+        }
+        .btn-primary:active { transform: scale(0.97); }
+        #step-preview { display: none; flex-direction: column; align-items: center; gap: 16px; flex: 1; }
+        #card-canvas-wrap {
+            position: relative; width: 100%; max-width: 400px;
+            border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        #card-canvas { width: 100%; height: auto; display: block; }
+        .preview-actions { display: flex; gap: 12px; width: 100%; max-width: 400px; }
+        .preview-actions button {
+            flex: 1; padding: 14px; border-radius: 12px; border: none;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s;
+        }
+        .preview-actions button:active { transform: scale(0.97); }
+        .btn-back { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn-download { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
+        .free-images { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: 120px; overflow-y: auto; padding: 4px; }
+        .free-img { aspect-ratio: 1; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s; }
+        .free-img:hover { transform: scale(1.08); }
+        .free-img.selected { border-color: #48dbfb; }
+        .section-title { font-size: 0.85rem; color: #8899aa; margin-top: 8px; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>✨ Создать открытку</h1>
+        <p class="subtitle">Красивая поздравительная открытка за минуту</p>
+        <div id="step-form">
+            <div class="field-group">
+                <label>Кому поздравление?</label>
+                <input type="text" id="recipient" placeholder="Например: Мама, Любимая, Друг" value="Дорогой друг">
+            </div>
+            <div class="field-group">
+                <label>Текст поздравления</label>
+                <textarea id="message" placeholder="Напишите тёплые слова...">С Днём Рождения! Желаю счастья, здоровья и исполнения всех мечт! Пусть каждый день приносит радость и вдохновение!</textarea>
+            </div>
+            <div class="field-group">
+                <label>От кого?</label>
+                <input type="text" id="sender" placeholder="Ваше имя" value="С любовью">
+            </div>
+            <div class="field-group">
+                <label>Выберите шаблон</label>
+                <div class="templates-grid" id="templates"></div>
+            </div>
+            <div class="field-group">
+                <label>Или загрузите свою картинку</label>
+                <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                    <span style="font-size: 2rem;">📷</span>
+                    <p style="margin-top: 8px; font-size: 0.9rem; color: #aaa;">Нажмите, чтобы выбрать фото</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+            </div>
+            <div class="field-group" id="free-images-section" style="display:none;">
+                <label class="section-title">🖼️ Бесплатные картинки (нажмите, чтобы выбрать)</label>
+                <div class="free-images" id="free-images"></div>
+            </div>
+            <button class="btn-primary" id="btn-create">✨ Создать открытку</button>
+        </div>
+        <div id="step-preview">
+            <div id="card-canvas-wrap">
+                <canvas id="card-canvas"></canvas>
+            </div>
+            <div class="preview-actions">
+                <button class="btn-back" id="btn-back">← Назад</button>
+                <button class="btn-download" id="btn-download">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const templates = [
+            { id: 'birthday', name: 'День рождения', bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', unsplash: 'photo-1530103862676-de3c9a59aa38', font: 'Georgia' },
+            { id: 'love', name: 'Любовь', bg: 'linear-gradient(135deg, #ff6b6b 0%, #feca57 100%)', unsplash: 'photo-1518199266791-5375a83190b7', font: 'Georgia' },
+            { id: 'nature', name: 'Природа', bg: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', unsplash: 'photo-1501854140884-074cf2b2c3af', font: 'Georgia' },
+            { id: 'night', name: 'Ночь', bg: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)', unsplash: 'photo-1519681393784-d120267933ba', font: 'Georgia' },
+            { id: 'sunset', name: 'Закат', bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', unsplash: 'photo-1506905925346-21bda4d32df4', font: 'Georgia' },
+            { id: 'ocean', name: 'Океан', bg: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', unsplash: 'photo-1505118380757-91f5f5632de0', font: 'Georgia' },
+        ];
+        const freeImages = [
+            'photo-1513151233558-d860c5398176',
+            'photo-1527529482837-4698179dc6ce', 'photo-1492684223066-81342ee5ff30',
+            'photo-1467810563316-b5476525c0f9',
+            'photo-1506905925346-21bda4d32df4', 'photo-1470071459604-3b5ec3a7fe05',
+            'photo-1441974231531-c6227db76b6e', 'photo-1501785888041-af3ef285b470',
+            'photo-1472214103451-9374bd1c798e', 'photo-1433086966358-54859d0ed716',
+        ];
+        let selectedTemplate = 0, customImage = null, selectedFreeImage = null, currentCardImage = null;
+
+        const templatesEl = document.getElementById('templates');
+        templates.forEach((t, i) => {
+            const div = document.createElement('div');
+            div.className = 'template-card' + (i === 0 ? ' active' : '');
+            div.style.background = t.bg;
+            div.innerHTML = `<div class="t-name">${t.name}</div>`;
+            div.onclick = () => {
+                document.querySelectorAll('.template-card').forEach(c => c.classList.remove('active'));
+                div.classList.add('active'); selectedTemplate = i;
+                customImage = null; selectedFreeImage = null;
+                document.querySelectorAll('.free-img').forEach(img => img.classList.remove('selected'));
+                resetUploadArea();
+            };
+            templatesEl.appendChild(div);
+        });
+
+        const freeImagesEl = document.getElementById('free-images');
+        const freeSection = document.getElementById('free-images-section');
+        freeSection.style.display = 'block';
+        freeImages.forEach((id, i) => {
+            const img = document.createElement('img');
+            img.className = 'free-img';
+            img.src = `https://images.unsplash.com/${id}?w=200&h=200&fit=crop`;
+            img.loading = 'lazy';
+            img.onclick = () => {
+                document.querySelectorAll('.free-img').forEach(im => im.classList.remove('selected'));
+                img.classList.add('selected');
+                selectedFreeImage = `https://images.unsplash.com/${id}?w=800&h=1200&fit=crop`;
+                customImage = null; resetUploadArea();
+            };
+            freeImagesEl.appendChild(img);
+        });
+
+        function resetUploadArea() {
+            const area = document.getElementById('upload-area');
+            area.classList.remove('has-image');
+            area.innerHTML = '<span style="font-size: 2rem;">📷</span><p style="margin-top: 8px; font-size: 0.9rem; color: #aaa;">Нажмите, чтобы выбрать фото</p>';
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                customImage = ev.target.result; selectedFreeImage = null;
+                document.querySelectorAll('.free-img').forEach(img => img.classList.remove('selected'));
+                const area = document.getElementById('upload-area');
+                area.classList.add('has-image');
+                area.innerHTML = `<img src="${customImage}" alt="preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('btn-create').onclick = async () => {
+            const recipient = document.getElementById('recipient').value.trim() || 'Дорогой друг';
+            const message = document.getElementById('message').value.trim() || 'С праздником!';
+            const sender = document.getElementById('sender').value.trim() || '';
+            const template = templates[selectedTemplate];
+            let bgImage = null;
+            if (customImage) bgImage = customImage;
+            else if (selectedFreeImage) bgImage = selectedFreeImage;
+            else bgImage = `https://images.unsplash.com/${template.unsplash}?w=800&h=1200&fit=crop`;
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => drawCard(img, recipient, message, sender, template);
+            img.onerror = () => drawCard(null, recipient, message, sender, template);
+            img.src = bgImage;
+        };
+
+        function drawCard(bgImg, recipient, message, sender, template) {
+            const canvas = document.getElementById('card-canvas');
+            const W = 600, H = 900;
+            canvas.width = W; canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            if (bgImg) {
+                ctx.drawImage(bgImg, 0, 0, W, H);
+                ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H);
+            } else {
+                const grad = ctx.createLinearGradient(0, 0, W, H);
+                if (template.id === 'birthday') { grad.addColorStop(0, '#667eea'); grad.addColorStop(1, '#764ba2'); }
+                else if (template.id === 'love') { grad.addColorStop(0, '#ff6b6b'); grad.addColorStop(1, '#feca57'); }
+                else if (template.id === 'nature') { grad.addColorStop(0, '#11998e'); grad.addColorStop(1, '#38ef7d'); }
+                else if (template.id === 'night') { grad.addColorStop(0, '#0f0c29'); grad.addColorStop(0.5, '#302b63'); grad.addColorStop(1, '#24243e'); }
+                else if (template.id === 'sunset') { grad.addColorStop(0, '#f093fb'); grad.addColorStop(1, '#f5576c'); }
+                else { grad.addColorStop(0, '#4facfe'); grad.addColorStop(1, '#00f2fe'); }
+                ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+            }
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            ctx.beginPath(); ctx.arc(W*0.8, H*0.15, 120, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(W*0.2, H*0.85, 80, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2;
+            ctx.strokeRect(30, 30, W-60, H-60);
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+            ctx.strokeRect(45, 45, W-90, H-90);
+            ctx.restore();
+
+            const centerX = W / 2;
+            ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = 'italic 22px Georgia, serif';
+            ctx.textAlign = 'center'; ctx.fillText('Для', centerX, 140);
+
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 52px Georgia, serif';
+            ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 15; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
+
+            const nameLines = wrapText(ctx, recipient, 480, 52);
+            let nameY = 200;
+            nameLines.forEach(line => { ctx.fillText(line, centerX, nameY); nameY += 62; });
+
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(centerX - 80, nameY + 10); ctx.lineTo(centerX + 80, nameY + 10); ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.font = '24px Georgia, serif';
+            ctx.textAlign = 'center'; ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = 10; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
+
+            const msgLines = wrapText(ctx, message, 460, 24);
+            let msgY = nameY + 70;
+            msgLines.forEach(line => { ctx.fillText(line, centerX, msgY); msgY += 36; });
+
+            if (sender) {
+                ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                ctx.font = 'italic 20px Georgia, serif'; ctx.textAlign = 'center';
+                ctx.fillText(sender, centerX, H - 100);
+            }
+            ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '16px Georgia, serif';
+            ctx.fillText('✦ ✦ ✦', centerX, H - 60);
+
+            document.getElementById('step-form').style.display = 'none';
+            document.getElementById('step-preview').style.display = 'flex';
+            currentCardImage = canvas.toDataURL('image/png');
+        }
+
+        function wrapText(ctx, text, maxWidth, fontSize) {
+            const words = text.split(' ');
+            const lines = []; let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                const testLine = currentLine + ' ' + words[i];
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth) { lines.push(currentLine); currentLine = words[i]; }
+                else currentLine = testLine;
+            }
+            lines.push(currentLine); return lines;
+        }
+
+        document.getElementById('btn-back').onclick = () => {
+            document.getElementById('step-preview').style.display = 'none';
+            document.getElementById('step-form').style.display = 'flex';
+        };
+
+        document.getElementById('btn-download').onclick = () => {
+            if (!currentCardImage) return;
+            const a = document.createElement('a');
+            a.href = currentCardImage; a.download = `открытка_${Date.now()}.png`; a.click();
+        };
+    </script>
+</body>
+</html>
