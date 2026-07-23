@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🎵 Cover Art Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: #fff; min-height: 100vh; overflow-x: hidden;
+        }
+        #app {
+            max-width: 480px; margin: 0 auto; padding: 16px;
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        h1 {
+            text-align: center; font-size: 1.5rem; margin-bottom: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .subtitle { text-align: center; color: #8899aa; font-size: 0.8rem; margin-bottom: 20px; }
+        .field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .field-group label { font-size: 0.85rem; color: #b8c5d6; font-weight: 500; }
+        .field-group input, .field-group textarea {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 1rem;
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: inherit;
+        }
+        .field-group input:focus, .field-group textarea:focus {
+            border-color: #feca57; box-shadow: 0 0 0 3px rgba(254,202,87,0.15);
+        }
+        .search-row { display: flex; gap: 8px; }
+        .search-row input { flex: 1; }
+        .search-row button {
+            background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: #fff;
+            padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer;
+            transition: transform 0.15s; white-space: nowrap;
+        }
+        .search-row button:active { transform: scale(0.95); }
+        .search-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .style-tabs {
+            display: flex; gap: 6px; margin-bottom: 10px;
+            overflow-x: auto; padding-bottom: 4px;
+        }
+        .style-tab {
+            padding: 8px 14px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05); color: #b8c5d6;
+            font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .style-tab.active {
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            color: #1a1a2e; border-color: transparent; font-weight: 600;
+        }
+        .image-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            margin-top: 8px; max-height: 220px; overflow-y: auto; padding: 4px;
+        }
+        .img-thumb {
+            aspect-ratio: 1; border-radius: 10px; object-fit: cover;
+            cursor: pointer; border: 2px solid transparent;
+            transition: transform 0.15s, border-color 0.15s;
+            background: rgba(255,255,255,0.05); width: 100%; min-height: 100px;
+        }
+        .img-thumb:hover { transform: scale(1.05); }
+        .img-thumb.selected {
+            border-color: #feca57;
+            box-shadow: 0 0 12px rgba(254,202,87,0.3);
+        }
+        .loading-spinner {
+            display: none; text-align: center; color: #feca57;
+            padding: 20px; font-size: 0.9rem;
+        }
+        .no-results {
+            text-align: center; color: #667; padding: 16px; font-size: 0.85rem;
+        }
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px;
+            padding: 20px; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: rgba(255,255,255,0.03); margin-top: 6px;
+        }
+        .upload-area:hover { border-color: #feca57; background: rgba(254,202,87,0.05); }
+        .upload-area.has-image { border-style: solid; border-color: #feca57; padding: 8px; }
+        .upload-area img { max-width: 100%; max-height: 160px; border-radius: 8px; object-fit: cover; }
+        #file-input { display: none; }
+        .btn-primary {
+            width: 100%; background: linear-gradient(135deg, #ff6b6b, #feca57);
+            border: none; color: #1a1a2e; padding: 16px; border-radius: 14px;
+            font-size: 1.1rem; font-weight: 700; cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(255,107,107,0.3); margin-top: 8px;
+        }
+        .btn-primary:active { transform: scale(0.97); }
+        #step-preview { display: none; flex-direction: column; align-items: center; gap: 16px; flex: 1; }
+        #card-canvas-wrap {
+            position: relative; width: 100%; max-width: 400px;
+            border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        #card-canvas { width: 100%; height: auto; display: block; }
+        .preview-actions { display: flex; gap: 12px; width: 100%; max-width: 400px; }
+        .preview-actions button {
+            flex: 1; padding: 14px; border-radius: 12px; border: none;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s;
+        }
+        .preview-actions button:active { transform: scale(0.97); }
+        .btn-back { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn-download { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; }
+        .section-label { font-size: 0.75rem; color: #667; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>🎵 Cover Art Generator</h1>
+        <p class="subtitle">Создай обложку для трека за минуту</p>
+
+        <div id="step-form">
+            <div class="field-group">
+                <label>🎶 Название композиции</label>
+                <input type="text" id="trackTitle" placeholder="Например: Midnight Dreams" value="Midnight Dreams">
+            </div>
+
+            <div class="field-group">
+                <label>👤 Исполнитель / Автор</label>
+                <input type="text" id="artistName" placeholder="Например: Your Name" value="Neon Artist">
+            </div>
+
+            <div class="field-group">
+                <label>🎨 Стиль обложки</label>
+                <div class="style-tabs" id="styleTabs">
+                    <div class="style-tab active" data-style="modern">Modern</div>
+                    <div class="style-tab" data-style="vintage">Vintage</div>
+                    <div class="style-tab" data-style="neon">Neon</div>
+                    <div class="style-tab" data-style="minimal">Minimal</div>
+                    <div class="style-tab" data-style="grunge">Grunge</div>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label>🔍 Поиск изображения по слову или фразе</label>
+                <div class="search-row">
+                    <input type="text" id="searchQuery" placeholder="Например: neon city, forest, space..." value="neon city">
+                    <button id="searchBtn" onclick="searchImages()">🔍 Найти</button>
+                </div>
+                <div class="loading-spinner" id="searchLoading">⏳ Ищем картинки...</div>
+                <div class="image-grid" id="imageResults"></div>
+                <div class="no-results" id="noResults" style="display:none;">Ничего не найдено. Попробуй другой запрос.</div>
+            </div>
+
+            <div class="field-group">
+                <label class="section-label">Или загрузи свою картинку</label>
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('file-input').click()">
+                    <span style="font-size: 2rem;">📷</span>
+                    <p style="margin-top: 6px; font-size: 0.85rem; color: #888;">Нажми, чтобы выбрать фото</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+            </div>
+
+            <button class="btn-primary" onclick="generateCover()">✨ Создать обложку</button>
+        </div>
+
+        <div id="step-preview">
+            <div id="card-canvas-wrap">
+                <canvas id="card-canvas"></canvas>
+            </div>
+            <div class="preview-actions">
+                <button class="btn-back" onclick="goBack()">← Назад</button>
+                <button class="btn-download" onclick="downloadCover()">💾 Скачать PNG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === БАЗА БЕСПЛАТНЫХ ИЗОБРАЖЕНИЙ UNSPLASH ===
+        const unsplashDB = [
+            { id: 'photo-1493225457124-a3eb161ffa5f', tags: ['music','concert','guitar','rock','band','stage','live'] },
+            { id: 'photo-1511379938547-c1f69419868d', tags: ['music','headphones','studio','sound','audio','listen'] },
+            { id: 'photo-1470225620780-dba8ba36b745', tags: ['music','dj','party','club','dance','edm','electronic'] },
+            { id: 'photo-1514320291840-2e0a9bf2a9ae', tags: ['music','piano','instrument','classic','keys'] },
+            { id: 'photo-1506157786151-b8491531f063', tags: ['music','festival','crowd','concert','lights'] },
+            { id: 'photo-1459749411175-04bf5292ceea', tags: ['music','concert','crowd','stage','lights'] },
+            { id: 'photo-1508700115892-45ecd05ae2ad', tags: ['music','vinyl','retro','record','analog'] },
+            { id: 'photo-1494232410401-ad00d5433cfa', tags: ['music','guitar','acoustic','strings'] },
+            { id: 'photo-1511671782779-c97d3d27a1d4', tags: ['music','microphone','sing','voice','karaoke'] },
+            { id: 'photo-1514525253440-b393452e8d26', tags: ['neon','city','night','urban','lights','street','glow'] },
+            { id: 'photo-1519608487953-e999c86e7455', tags: ['neon','sign','retro','glow','pink','purple'] },
+            { id: 'photo-1550684848-fac1c5b4e853', tags: ['neon','light','glow','dark','night','color'] },
+            { id: 'photo-1506905925346-21bda4d32df4', tags: ['nature','mountain','sunset','landscape','sky','peak'] },
+            { id: 'photo-1470071459604-3b5ec3a7fe05', tags: ['nature','forest','fog','mist','trees','green'] },
+            { id: 'photo-1441974231531-c6227db76b6e', tags: ['nature','forest','sunlight','trees','green','path'] },
+            { id: 'photo-1501785888041-af3ef285b470', tags: ['nature','lake','mountain','reflection','water'] },
+            { id: 'photo-1472214103451-9374bd1c798e', tags: ['nature','field','grass','sunset','meadow'] },
+            { id: 'photo-1433086966358-54859d0ed716', tags: ['nature','waterfall','water','green','forest'] },
+            { id: 'photo-1534796636912-3b95b3ab5986', tags: ['space','stars','galaxy','universe','dark','night'] },
+            { id: 'photo-1462331940025-496dfbfc7564', tags: ['space','nebula','galaxy','color','cosmos'] },
+            { id: 'photo-1419242902214-272b3f66ee7a', tags: ['space','stars','night','sky','milkyway'] },
+            { id: 'photo-1451187580459-43490279c0fa', tags: ['space','earth','planet','orbit','satellite'] },
+            { id: 'photo-1507400492013-162706c8c05e', tags: ['ocean','sea','water','blue','wave','beach'] },
+            { id: 'photo-1518837695005-2083093ee35b', tags: ['ocean','wave','water','blue','sea'] },
+            { id: 'photo-1505118380757-91f5f5632de0', tags: ['ocean','beach','sand','coast','water'] },
+            { id: 'photo-1437622368342-7a3d73a34c8f', tags: ['ocean','turtle','sea','underwater','blue'] },
+            { id: 'photo-1507525428034-b723cf961d3e', tags: ['beach','ocean','sand','summer','tropical'] },
+            { id: 'photo-1518199266791-5375a83190b7', tags: ['love','heart','romance','couple','pink'] },
+            { id: 'photo-1516589178581-6cd7833ae3b2', tags: ['love','couple','romance','sunset','beach'] },
+            { id: 'photo-1529333166437-7750a6dd5a70', tags: ['love','rose','flower','red','romance'] },
+            { id: 'photo-1513151233558-d860c5398176', tags: ['celebration','fireworks','party','night','color'] },
+            { id: 'photo-1527529482837-4698179dc6ce', tags: ['celebration','confetti','party','color','fun'] },
+            { id: 'photo-1492684223066-81342ee5ff30', tags: ['celebration','festival','crowd','lights'] },
+            { id: 'photo-1467810563316-b5476525c0f9', tags: ['celebration','christmas','winter','snow','lights'] },
+            { id: 'photo-1519681393784-d120267933ba', tags: ['night','stars','mountain','dark','sky'] },
+            { id: 'photo-1500530855697-b586d89ba3df', tags: ['sunset','beach','ocean','orange','gold'] },
+            { id: 'photo-1495616811223-4d98c6e9c869', tags: ['sunset','sky','clouds','orange','purple'] },
+            { id: 'photo-1504198458649-3128b932f49e', tags: ['city','urban','building','architecture','sky'] },
+            { id: 'photo-1477959858617-67f85cf4f1df', tags: ['city','skyline','building','urban','tall'] },
+            { id: 'photo-1449824913935-59a10b8d2000', tags: ['city','street','urban','night','light'] },
+            { id: 'photo-1480714378408-67cf0d13bc1b', tags: ['city','new york','building','urban','sky'] },
+            { id: 'photo-1514565131-fce0801e5785', tags: ['abstract','color','paint','art','creative'] },
+            { id: 'photo-1541701494587-cb58502866ab', tags: ['abstract','color','gradient','art','paint'] },
+            { id: 'photo-1557672172-298e090bd0f1', tags: ['abstract','texture','color','art','pattern'] },
+            { id: 'photo-1579546929518-9e396f3cc809', tags: ['abstract','gradient','color','purple','blue'] },
+            { id: 'photo-1550684848-86a5d8727436', tags: ['abstract','light','glow','neon','color'] },
+            { id: 'photo-1534447677768-be436bb09401', tags: ['dark','black','texture','minimal','shadow'] },
+            { id: 'photo-1504198458649-3128b932f49e', tags: ['dark','city','night','urban','light'] },
+            { id: 'photo-1518098268026-4e89f1a2cd8e', tags: ['desert','sand','dune','hot','dry'] },
+            { id: 'photo-1509316975850-ff9c5deb0cd9', tags: ['desert','sunset','dune','orange','sand'] },
+            { id: 'photo-1504608524841-42fe6f032b4b', tags: ['storm','lightning','thunder','dark','sky'] },
+            { id: 'photo-1504609773096-104ff2c73ba4', tags: ['snow','winter','cold','white','ice'] },
+            { id: 'photo-1483664852095-d6cc6870705d', tags: ['snow','mountain','winter','cold','peak'] },
+            { id: 'photo-1517299321609-52687d1bc55a', tags: ['fire','flame','burn','hot','orange'] },
+            { id: 'photo-1496483353456-90996930e05b', tags: ['fire','campfire','night','warm','camp'] },
+            { id: 'photo-1532274402911-5a369e4c4bb5', tags: ['rain','drop','water','wet','glass'] },
+            { id: 'photo-1515694346937-94d85e41e6f0', tags: ['rain','storm','cloud','dark','weather'] },
+            { id: 'photo-1464822759023-fed622ff2c3b', tags: ['mountain','peak','cloud','sky','high'] },
+            { id: 'photo-1483729558449-99ef09a8c325', tags: ['mountain','lake','reflection','nature'] },
+            { id: 'photo-1500534314209-a25ddb2bd429', tags: ['forest','tree','green','nature','path'] },
+            { id: 'photo-1448375240586-882707db888b', tags: ['forest','tree','autumn','fall','leaves'] },
+            { id: 'photo-1502082553048-f009c37129b9', tags: ['tree','green','nature','single','alone'] },
+            { id: 'photo-1518173946687-a4c036bc3c95', tags: ['flower','bloom','pink','spring','garden'] },
+            { id: 'photo-1490750967868-88aa2f6eb0d7', tags: ['flower','field','color','spring','nature'] },
+            { id: 'photo-1465146344425-f00d5f5c8f07', tags: ['dark','forest','moody','mystery','fog'] }
+        ];
+
+        let selectedImage = null;
+        let customImage = null;
+        let currentStyle = 'modern';
+        let generatedImage = null;
+
+        // Style tabs
+        document.querySelectorAll('.style-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.style-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentStyle = tab.dataset.style;
+            });
+        });
+
+        // Default search on load
+        window.onload = () => searchImages();
+
+        function searchImages() {
+            const query = document.getElementById('searchQuery').value.trim().toLowerCase() || 'music';
+            const btn = document.getElementById('searchBtn');
+            const loading = document.getElementById('searchLoading');
+            const grid = document.getElementById('imageResults');
+            const noResults = document.getElementById('noResults');
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            grid.innerHTML = '';
+            noResults.style.display = 'none';
+            selectedImage = null;
+
+            // Разбиваем запрос на слова
+            const queryWords = query.split(/[\s,]+/).filter(w => w.length > 0);
+
+            // Ищем совпадения по тегам
+            let matched = unsplashDB.filter(item => {
+                return queryWords.some(qw => item.tags.some(tag => tag.includes(qw)));
+            });
+
+            // Если ничего не нашли — показываем случайные
+            if (matched.length === 0) {
+                matched = [...unsplashDB].sort(() => Math.random() - 0.5).slice(0, 9);
+            }
+
+            // Берём первые 9 (или меньше)
+            matched = matched.slice(0, 9);
+
+            // Если всё равно мало — добавляем случайные
+            while (matched.length < 9 && matched.length < unsplashDB.length) {
+                const random = unsplashDB[Math.floor(Math.random() * unsplashDB.length)];
+                if (!matched.includes(random)) matched.push(random);
+            }
+
+            // Перемешиваем
+            matched.sort(() => Math.random() - 0.5);
+
+            // Рендерим
+            matched.forEach((item) => {
+                const url = `https://images.unsplash.com/${item.id}?w=400&h=400&fit=crop`;
+                const img = document.createElement('img');
+                img.className = 'img-thumb';
+                img.src = url;
+                img.loading = 'lazy';
+                img.alt = query;
+                img.onerror = function() {
+                    this.style.display = 'none';
+                };
+                img.onclick = () => {
+                    document.querySelectorAll('.img-thumb').forEach(im => im.classList.remove('selected'));
+                    img.classList.add('selected');
+                    selectedImage = `https://images.unsplash.com/${item.id}?w=800&h=800&fit=crop`;
+                    customImage = null;
+                    resetUploadArea();
+                };
+                grid.appendChild(img);
+            });
+
+            if (matched.length === 0) {
+                noResults.style.display = 'block';
+            }
+
+            btn.disabled = false;
+            loading.style.display = 'none';
+        }
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                customImage = ev.target.result;
+                selectedImage = null;
+                document.querySelectorAll('.img-thumb').forEach(im => im.classList.remove('selected'));
+                const area = document.getElementById('uploadArea');
+                area.classList.add('has-image');
+                area.innerHTML = `<img src="${customImage}" alt="preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUploadArea() {
+            const area = document.getElementById('uploadArea');
+            area.classList.remove('has-image');
+            area.innerHTML = '<span style="font-size: 2rem;">📷</span><p style="margin-top: 6px; font-size: 0.85rem; color: #888;">Нажми, чтобы выбрать фото</p>';
+        }
+
+        function generateCover() {
+            const title = document.getElementById('trackTitle').value.trim() || 'Untitled';
+            const artist = document.getElementById('artistName').value.trim() || 'Unknown Artist';
+            
+            let bgUrl = selectedImage || customImage;
+            if (!bgUrl) {
+                bgUrl = `https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=800&fit=crop`;
+            }
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => drawCover(img, title, artist, currentStyle);
+            img.onerror = () => drawCover(null, title, artist, currentStyle);
+            img.src = bgUrl;
+        }
+
+        function drawCover(bgImg, title, artist, style) {
+            const canvas = document.getElementById('card-canvas');
+            const W = 800, H = 800;
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            if (bgImg) {
+                ctx.drawImage(bgImg, 0, 0, W, H);
+            } else {
+                const grad = ctx.createLinearGradient(0, 0, W, H);
+                grad.addColorStop(0, '#1a1a2e');
+                grad.addColorStop(0.5, '#16213e');
+                grad.addColorStop(1, '#0f3460');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            // Style overlays
+            const overlays = {
+                modern: { color: 'rgba(0,0,0,0.4)', vignette: true },
+                vintage: { color: 'rgba(139,90,43,0.35)', vignette: true, sepia: true },
+                neon: { color: 'rgba(10,0,30,0.45)', vignette: true, glow: true },
+                minimal: { color: 'rgba(0,0,0,0.25)', vignette: false },
+                grunge: { color: 'rgba(30,20,10,0.5)', vignette: true, noise: true }
+            };
+
+            const s = overlays[style] || overlays.modern;
+
+            // Overlay
+            ctx.fillStyle = s.color;
+            ctx.fillRect(0, 0, W, H);
+
+            if (s.sepia) {
+                ctx.fillStyle = 'rgba(160,120,60,0.15)';
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            // Vignette
+            if (s.vignette) {
+                const vig = ctx.createRadialGradient(W/2, H/2, W*0.3, W/2, H/2, W*0.8);
+                vig.addColorStop(0, 'rgba(0,0,0,0)');
+                vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+                ctx.fillStyle = vig;
+                ctx.fillRect(0, 0, W, H);
+            }
+
+            // Noise for grunge
+            if (s.noise) {
+                for (let i = 0; i < 5000; i++) {
+                    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.03})`;
+                    ctx.fillRect(Math.random() * W, Math.random() * H, 2, 2);
+                }
+            }
+
+            // Border
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(30, 30, W - 60, H - 60);
+
+            // Style-specific decorations
+            if (style === 'neon') {
+                ctx.strokeStyle = 'rgba(255,0,255,0.3)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(40, 40, W - 80, H - 80);
+            } else if (style === 'vintage') {
+                ctx.strokeStyle = 'rgba(200,180,140,0.3)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([10, 10]);
+                ctx.strokeRect(45, 45, W - 90, H - 90);
+                ctx.setLineDash([]);
+            }
+
+            // Title
+            const titleFont = style === 'grunge' ? 'bold 64px Impact, sans-serif' :
+                              style === 'vintage' ? 'bold 58px Georgia, serif' :
+                              style === 'minimal' ? '300 68px "Segoe UI", sans-serif' :
+                              'bold 64px "Segoe UI", sans-serif';
+
+            ctx.font = titleFont;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const titleColor = style === 'neon' ? '#ff00ff' :
+                               style === 'vintage' ? '#f5e6c8' :
+                               '#ffffff';
+
+            // Shadow / Glow
+            if (style === 'neon') {
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 30;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            } else {
+                ctx.shadowColor = 'rgba(0,0,0,0.7)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 3;
+            }
+
+            // Wrap and draw title
+            const titleLines = wrapText(ctx, title.toUpperCase(), 680, 64);
+            let titleY = H / 2 - (titleLines.length - 1) * 40;
+            
+            titleLines.forEach((line, i) => {
+                ctx.fillStyle = titleColor;
+                ctx.fillText(line, W / 2, titleY + i * 80);
+            });
+
+            ctx.shadowBlur = 0;
+
+            // Separator line
+            const lineY = titleY + titleLines.length * 80 + 20;
+            ctx.strokeStyle = style === 'neon' ? 'rgba(255,0,255,0.5)' :
+                              style === 'vintage' ? 'rgba(245,230,200,0.4)' :
+                              'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(W / 2 - 100, lineY);
+            ctx.lineTo(W / 2 + 100, lineY);
+            ctx.stroke();
+
+            // Artist name
+            const artistFont = style === 'vintage' ? 'italic 32px Georgia, serif' :
+                               style === 'minimal' ? '300 28px "Segoe UI", sans-serif' :
+                               '500 30px "Segoe UI", sans-serif';
+            ctx.font = artistFont;
+            ctx.fillStyle = style === 'vintage' ? 'rgba(245,230,200,0.8)' :
+                            style === 'neon' ? 'rgba(0,255,255,0.9)' :
+                            'rgba(255,255,255,0.8)';
+
+            if (style === 'neon') {
+                ctx.shadowColor = '#00ffff';
+                ctx.shadowBlur = 20;
+            } else {
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+            }
+
+            ctx.fillText(artist, W / 2, lineY + 50);
+            ctx.shadowBlur = 0;
+
+            // Bottom decoration
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.font = '16px Georgia, serif';
+            ctx.fillText('♪ ♫ ♪', W / 2, H - 60);
+
+            // Show preview
+            document.getElementById('step-form').style.display = 'none';
+            document.getElementById('step-preview').style.display = 'flex';
+            generatedImage = canvas.toDataURL('image/png');
+        }
+
+        function wrapText(ctx, text, maxWidth, fontSize) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0] || '';
+            
+            for (let i = 1; i < words.length; i++) {
+                const testLine = currentLine + ' ' + words[i];
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxWidth) {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        function goBack() {
+            document.getElementById('step-preview').style.display = 'none';
+            document.getElementById('step-form').style.display = 'flex';
+        }
+
+        function downloadCover() {
+            if (!generatedImage) return;
+            const a = document.createElement('a');
+            a.href = generatedImage;
+            a.download = `cover_${document.getElementById('trackTitle').value.replace(/\s+/g, '_') || 'track'}_${Date.now()}.png`;
+            a.click();
+        }
+    </script>
+</body>
+</html>
