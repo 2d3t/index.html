@@ -244,8 +244,8 @@
   <p class="subtitle">Передача файлов и текста через анимированные QR-коды без интернета</p>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('sender')">📤 Отправитель</button>
-    <button class="tab-btn" onclick="switchTab('receiver')">📥 Получатель</button>
+    <button class="tab-btn active" data-tab="sender">📤 Отправитель</button>
+    <button class="tab-btn" data-tab="receiver">📥 Получатель</button>
   </div>
 
   <!-- ОТПРАВИТЕЛЬ -->
@@ -310,14 +310,37 @@
 </div>
 
 <script>
-// ==================== УТИЛИТЫ ====================
+// ==================== ВКЛАДКИ (ИСПРАВЛЕНО) ====================
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.tab-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      const tabName = this.getAttribute('data-tab');
+      switchTab(tabName);
+    });
+  });
+});
+
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById(name + '-panel').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  const activeTab = document.querySelector(`.tab-btn[data-tab="${name}"]`);
+  if (activeTab) {
+    activeTab.classList.add('active');
+  }
+  
+  document.querySelectorAll('.panel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+  
+  const targetPanel = document.getElementById(name + '-panel');
+  if (targetPanel) {
+    targetPanel.classList.add('active');
+  }
 }
 
+// ==================== УТИЛИТЫ ====================
 function simpleHash(data) {
   let h = 0;
   for (let i = 0; i < data.length; i++) {
@@ -343,7 +366,9 @@ function base64ToArray(b64) {
 async function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.7) {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
-      resolve({data: await file.arrayBuffer(), compressed: false, size: file.size});
+      file.arrayBuffer().then(buffer => {
+        resolve({data: buffer, compressed: false, size: buffer.byteLength});
+      });
       return;
     }
 
@@ -351,7 +376,6 @@ async function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        // Вычисляем новые размеры с сохранением пропорций
         let w = img.width;
         let h = img.height;
         if (w > maxWidth) {
@@ -421,7 +445,6 @@ async function onFileSelected() {
           <span class="size-compressed">Сжатый: ${(result.size/1024).toFixed(1)} КБ (${saved}% меньше)</span><br>
           <span style="color:#8892b0;">Размер: ${result.width}x${result.height} пикселей</span>
         `;
-        // Сохраняем сжатые данные для отправки
         rawBytes = new Uint8Array(result.data);
         fileName = f.name.replace(/\.[^.]+$/, '') + '.jpg';
       } else {
@@ -435,7 +458,6 @@ async function onFileSelected() {
       fileName = f.name;
     }
   } else {
-    // Для не-изображений просто читаем файл
     rawBytes = new Uint8Array(await f.arrayBuffer());
     fileName = f.name;
     fileInfo.innerHTML = `
@@ -461,7 +483,6 @@ async function prepareData() {
     fileName = 'message.txt';
     isTextMode = true;
   } else if (file) {
-    // Если файл ещё не прочитан (не изображение)
     data = new Uint8Array(await file.arrayBuffer());
     fileName = file.name;
     isTextMode = false;
@@ -473,14 +494,12 @@ async function prepareData() {
   const total = Math.ceil(data.length / chunkSize);
   const hash = simpleHash(data);
 
-  // Мета-фрейм
   sendMeta = JSON.stringify({
     v: 1, type: 'meta',
     name: fileName, size: data.length,
     chunks: total, hash: hash, text: isTextMode
   });
 
-  // Чанки
   sendChunks = [];
   for (let i = 0; i < total; i++) {
     const start = i * chunkSize;
