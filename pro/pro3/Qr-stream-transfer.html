@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QR-передатчик файлов</title>
+    <title>QR-Transfer - Автосканирование</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Библиотека для сканирования QR -->
     <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -155,17 +154,17 @@
         }
         #qrcode canvas { display: block; max-width: 200px; height: auto; }
         .progress-bar {
-            height: 6px;
+            height: 8px;
             background: #e2e8f0;
             border-radius: 12px;
             overflow: hidden;
-            margin: 8px 0;
+            margin: 10px 0;
         }
         .progress-fill {
             height: 100%;
             width: 0%;
-            background: #2563eb;
-            transition: width 0.3s;
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            transition: width 0.3s ease;
         }
         .sequence-controls {
             display: flex;
@@ -210,6 +209,12 @@
             border-radius: 12px;
             box-shadow: 0 0 0 9999px rgba(0,0,0,0.3);
             pointer-events: none;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { border-color: #3b82f6; }
+            50% { border-color: #60a5fa; }
+            100% { border-color: #3b82f6; }
         }
         .footer-actions {
             display: flex;
@@ -241,6 +246,21 @@
             border-radius: 40px;
             text-align: center;
         }
+        .status-text.success { background: #dcfce7; color: #166534; }
+        .status-text.error { background: #fee2e2; color: #991b1b; }
+        .status-text.scanning { background: #dbeafe; color: #1e3a8a; }
+        .scan-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 8px 0;
+        }
+        .scan-progress .badge {
+            font-size: 16px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+        }
         @media (max-width: 480px) {
             .app-card { padding: 14px; }
             .flex-row { flex-direction: column; align-items: stretch; }
@@ -253,13 +273,12 @@
 <div class="app-card">
     <h1>📦 QR-Transfer</h1>
     
-    <!-- Вкладки -->
     <div class="tabs">
         <button class="tab active" data-tab="send">📤 Отправить</button>
         <button class="tab" data-tab="receive">📥 Получить</button>
     </div>
 
-    <!-- ==================== ВКЛАДКА ОТПРАВКИ ==================== -->
+    <!-- ==================== ОТПРАВКА ==================== -->
     <div id="tab-send" class="tab-content active">
         <div class="section">
             <div class="flex-row">
@@ -303,46 +322,54 @@
         </div>
     </div>
 
-    <!-- ==================== ВКЛАДКА ПОЛУЧЕНИЯ ==================== -->
+    <!-- ==================== ПОЛУЧЕНИЕ ==================== -->
     <div id="tab-receive" class="tab-content">
         <div class="section">
             <div class="flex-row">
-                <button class="btn btn-success" id="startScanBtn">📷 Запустить сканер</button>
+                <button class="btn btn-success" id="startScanBtn">📷 Запустить автосканер</button>
                 <button class="btn btn-danger" id="stopScanBtn">⏹️ Остановить</button>
                 <button class="btn" id="clearReceiveBtn">🧹 Очистить</button>
             </div>
-            <div id="statusReceive" class="status-text">📷 Нажмите "Запустить сканер"</div>
+            <div id="statusReceive" class="status-text">📷 Нажмите "Запустить автосканер"</div>
 
             <div id="scannerContainer" style="display:none;">
                 <div class="video-container">
                     <video id="video" autoplay playsinline></video>
                     <div class="scanner-overlay"></div>
                 </div>
-                <div style="font-size:13px;color:#5b6b84;text-align:center;margin:6px 0;">
-                    Наведите камеру на QR-код
+                
+                <!-- Прогресс сканирования -->
+                <div class="scan-progress">
+                    <span class="badge" id="scanProgressText">0%</span>
+                    <div style="flex:1;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="scanProgressFill"></div>
+                        </div>
+                    </div>
+                    <span class="badge" id="scanChunksText">0/0</span>
+                </div>
+                <div style="text-align:center;font-size:13px;color:#5b6b84;" id="scanStatusText">
+                    🔍 Ожидание QR-кода...
                 </div>
             </div>
 
             <div id="receivedData" style="display:none;">
                 <div class="info-grid">
-                    <span>📦 Получено частей: <strong id="receivedChunks">0</strong></span>
+                    <span>📦 Собрано частей: <strong id="receivedChunks">0</strong></span>
                     <span>📊 Прогресс: <strong id="receiveProgress">0%</strong></span>
                 </div>
-                <div class="progress-bar"><div class="progress-fill" id="receiveProgressFill"></div></div>
                 
                 <!-- Превью -->
                 <div id="previewArea" class="preview-container" style="display:none;">
                     <div id="previewContent"></div>
                     <div style="margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
                         <button class="btn btn-primary" id="downloadReceivedBtn">💾 Скачать файл</button>
-                        <button class="btn" id="playReceivedBtn" style="display:none;">▶️ Воспроизвести</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Кнопка скачивания приложения -->
     <div class="footer-actions">
         <button class="download-btn" id="downloadAppBtn">📲 Скачать приложение (HTML)</button>
     </div>
@@ -365,6 +392,9 @@
     let isScanning = false;
     let scanStream = null;
     let animationId = null;
+    let scannedChunks = new Set(); // Для отслеживания уникальных чанков
+    let lastScanTime = 0;
+    let scanCooldown = 800; // мс между сканированиями
 
     // DOM элементы
     const fileInput = document.getElementById('fileInput');
@@ -396,12 +426,14 @@
     const receivedData = document.getElementById('receivedData');
     const receivedChunks = document.getElementById('receivedChunks');
     const receiveProgress = document.getElementById('receiveProgress');
-    const receiveProgressFill = document.getElementById('receiveProgressFill');
     const previewArea = document.getElementById('previewArea');
     const previewContent = document.getElementById('previewContent');
     const downloadReceivedBtn = document.getElementById('downloadReceivedBtn');
-    const playReceivedBtn = document.getElementById('playReceivedBtn');
     const downloadAppBtn = document.getElementById('downloadAppBtn');
+    const scanProgressFill = document.getElementById('scanProgressFill');
+    const scanProgressText = document.getElementById('scanProgressText');
+    const scanChunksText = document.getElementById('scanChunksText');
+    const scanStatusText = document.getElementById('scanStatusText');
 
     // ===================== ВКЛАДКИ =====================
     document.querySelectorAll('.tab').forEach(tab => {
@@ -410,7 +442,11 @@
             this.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById('tab-' + this.dataset.tab).classList.add('active');
-            if (this.dataset.tab === 'receive') stopScanning();
+            if (this.dataset.tab === 'receive') {
+                // При переходе на вкладку получения
+            } else {
+                stopScanning();
+            }
         });
     });
 
@@ -537,7 +573,6 @@
 
     function splitIntoChunks(data, chunkSize = 1300) {
         const chunks = [];
-        // Добавляем метаданные в первый чанк
         const header = JSON.stringify({
             name: rawFile.name,
             type: rawFile.type,
@@ -563,7 +598,6 @@
         const chunk = chunks[currentChunkIndex] || '';
         qrContainer.innerHTML = '';
         if (chunk) {
-            // Конвертируем Uint8Array в base64
             let binary = '';
             for (let i = 0; i < chunk.length; i++) binary += String.fromCharCode(chunk[i]);
             const base64 = btoa(binary);
@@ -610,9 +644,21 @@
         }
     }
 
-    // ===================== ФУНКЦИИ ПОЛУЧЕНИЯ =====================
+    // ===================== ФУНКЦИИ ПОЛУЧЕНИЯ (АВТОСКАНИРОВАНИЕ) =====================
     function startScanning() {
         if (isScanning) return;
+        
+        // Сброс состояния при новом сканировании
+        receivedChunks = [];
+        scannedChunks = new Set();
+        expectedTotal = 0;
+        receivedFileName = '';
+        receivedFileType = '';
+        document.getElementById('receivedData').style.display = 'none';
+        previewArea.style.display = 'none';
+        previewContent.innerHTML = '';
+        updateScanProgress();
+
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {
                 scanStream = stream;
@@ -620,12 +666,15 @@
                 video.play();
                 scannerContainer.style.display = 'block';
                 isScanning = true;
-                statusReceive.textContent = '🔍 Сканирование... Наведите на QR-код';
                 startScanBtn.disabled = true;
                 stopScanBtn.disabled = false;
+                statusReceive.className = 'status-text scanning';
+                statusReceive.textContent = '🔍 Автосканирование активно...';
+                scanStatusText.textContent = '🔍 Ожидание QR-кода...';
                 scanLoop();
             })
             .catch(err => {
+                statusReceive.className = 'status-text error';
                 statusReceive.textContent = '❌ Ошибка доступа к камере: ' + err.message;
             });
     }
@@ -645,6 +694,7 @@
         startScanBtn.disabled = false;
         stopScanBtn.disabled = true;
         if (!receivedChunks.length) {
+            statusReceive.className = 'status-text';
             statusReceive.textContent = '📷 Сканер остановлен';
         }
     }
@@ -662,7 +712,11 @@
                 inversionAttempts: "dontInvert",
             });
             if (code && code.data) {
-                processQRData(code.data);
+                const now = Date.now();
+                if (now - lastScanTime > scanCooldown) {
+                    lastScanTime = now;
+                    processQRData(code.data);
+                }
             }
         }
         animationId = requestAnimationFrame(scanLoop);
@@ -676,6 +730,21 @@
                 bytes[i] = binaryString.charCodeAt(i);
             }
             
+            // Вычисляем хеш для отслеживания дубликатов
+            let hash = 0;
+            for (let i = 0; i < Math.min(bytes.length, 100); i++) {
+                hash = ((hash << 5) - hash) + bytes[i];
+                hash = hash & hash;
+            }
+            
+            // Если уже сканировали этот чанк - игнорируем
+            if (scannedChunks.has(hash)) {
+                scanStatusText.textContent = '⏭️ Дубликат, пропускаем...';
+                return;
+            }
+            
+            scannedChunks.add(hash);
+            
             // Если это первый чанк - извлекаем метаданные
             if (receivedChunks.length === 0) {
                 const text = new TextDecoder().decode(bytes);
@@ -685,42 +754,55 @@
                     receivedFileName = header.name || 'file';
                     receivedFileType = header.type || 'application/octet-stream';
                     expectedTotal = header.total || 1;
-                    // Сохраняем данные без заголовка
                     const dataStart = separatorIndex + 1;
                     const dataBytes = new Uint8Array(bytes.length - dataStart);
                     dataBytes.set(bytes.slice(dataStart));
                     receivedChunks.push(dataBytes);
+                    scanStatusText.textContent = `✅ Получен чанк 1/${expectedTotal}`;
                 } else {
                     receivedChunks.push(bytes);
                     expectedTotal = 1;
+                    scanStatusText.textContent = '✅ Получен файл (1 часть)';
                 }
             } else {
                 receivedChunks.push(bytes);
+                scanStatusText.textContent = `✅ Получен чанк ${receivedChunks.length}/${expectedTotal}`;
             }
 
-            updateReceiveProgress();
+            updateScanProgress();
             
+            // Если собрали все части - собираем файл
             if (receivedChunks.length === expectedTotal) {
                 assembleFile();
+                // Останавливаем сканер после успешной сборки
+                setTimeout(() => {
+                    if (isScanning) {
+                        stopScanning();
+                        statusReceive.className = 'status-text success';
+                        statusReceive.textContent = '✅ Файл успешно получен!';
+                    }
+                }, 1000);
             }
         } catch (e) {
             // Игнорируем ошибки (невалидный QR)
+            scanStatusText.textContent = '⚠️ Ошибка декодирования QR';
         }
     }
 
-    function updateReceiveProgress() {
+    function updateScanProgress() {
         const total = expectedTotal || 1;
         const current = receivedChunks.length;
         const progress = Math.min(100, Math.round((current / total) * 100));
+        
+        scanProgressFill.style.width = progress + '%';
+        scanProgressText.textContent = progress + '%';
+        scanChunksText.textContent = `${current}/${total}`;
+        
         receivedChunks.textContent = current;
         receiveProgress.textContent = progress + '%';
-        receiveProgressFill.style.width = progress + '%';
-        statusReceive.textContent = `📥 Получено ${current} из ${total} частей`;
-        receivedData.style.display = 'block';
     }
 
     function assembleFile() {
-        // Собираем все чанки
         const totalLength = receivedChunks.reduce((sum, chunk) => sum + chunk.length, 0);
         const fullFile = new Uint8Array(totalLength);
         let offset = 0;
@@ -732,7 +814,7 @@
         const blob = new Blob([fullFile], { type: receivedFileType || 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
 
-        // Показываем превью
+        document.getElementById('receivedData').style.display = 'block';
         previewArea.style.display = 'block';
         previewContent.innerHTML = '';
 
@@ -741,19 +823,15 @@
             img.src = url;
             img.alt = 'Полученное изображение';
             previewContent.appendChild(img);
-            playReceivedBtn.style.display = 'none';
         } else if (receivedFileType.startsWith('audio/')) {
             const audio = document.createElement('audio');
             audio.controls = true;
             audio.src = url;
             previewContent.appendChild(audio);
-            playReceivedBtn.style.display = 'none';
         } else {
             previewContent.innerHTML = `<div style="padding:20px;color:#4a5a72;">📄 Файл: ${receivedFileName}</div>`;
-            playReceivedBtn.style.display = 'none';
         }
 
-        // Кнопка скачивания
         downloadReceivedBtn.onclick = () => {
             const a = document.createElement('a');
             a.href = url;
@@ -763,8 +841,9 @@
             document.body.removeChild(a);
         };
 
-        statusReceive.textContent = '✅ Файл собран! Можно скачать или просмотреть';
-        stopScanning();
+        statusReceive.className = 'status-text success';
+        statusReceive.textContent = `✅ Файл "${receivedFileName}" собран!`;
+        scanStatusText.textContent = '🎉 Сборка завершена!';
     }
 
     // ===================== ОБРАБОТЧИКИ =====================
@@ -815,14 +894,18 @@
 
     clearReceiveBtn.addEventListener('click', () => {
         receivedChunks = [];
+        scannedChunks = new Set();
         expectedTotal = 0;
         receivedFileName = '';
         receivedFileType = '';
-        receivedData.style.display = 'none';
+        document.getElementById('receivedData').style.display = 'none';
         previewArea.style.display = 'none';
         previewContent.innerHTML = '';
-        statusReceive.textContent = '🧹 Очищено. Нажмите "Запустить сканер"';
-        stopScanning();
+        statusReceive.className = 'status-text';
+        statusReceive.textContent = '🧹 Очищено. Нажмите "Запустить автосканер"';
+        scanStatusText.textContent = '🔍 Ожидание QR-кода...';
+        updateScanProgress();
+        if (isScanning) stopScanning();
     });
 
     downloadAppBtn.addEventListener('click', () => {
@@ -840,6 +923,7 @@
 
     // Инициализация
     stopScanBtn.disabled = true;
+    updateScanProgress();
 })();
 </script>
 </body>
