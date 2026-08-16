@@ -4,186 +4,212 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>QR-передатчик файлов</title>
-    <!-- библиотека QRCode.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Библиотека для сканирования QR -->
+    <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f7fa;
+            background: #f0f2f5;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 16px;
+            padding: 12px;
         }
         .app-card {
-            max-width: 640px;
+            max-width: 700px;
             width: 100%;
             background: white;
-            border-radius: 32px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-            padding: 24px 20px 32px;
-            transition: all 0.2s;
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            padding: 20px 18px 28px;
         }
         h1 {
-            font-size: 26px;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 8px;
             color: #0b1b33;
+            margin-bottom: 6px;
         }
-        h1 small {
-            font-size: 14px;
-            font-weight: 400;
-            color: #4a5a72;
-            margin-left: 6px;
-        }
-        .subhead {
-            color: #3e4e66;
-            margin-bottom: 24px;
-            font-size: 15px;
-            border-left: 4px solid #3b82f6;
-            padding-left: 14px;
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0 18px;
             background: #f0f4fe;
-            border-radius: 0 12px 12px 0;
-            line-height: 1.4;
+            border-radius: 60px;
+            padding: 4px;
         }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            background: transparent;
+            color: #4a5a72;
+        }
+        .tab.active {
+            background: white;
+            color: #0b1b33;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .tab-content {
+            display: none;
+            animation: fade 0.25s ease;
+        }
+        .tab-content.active { display: block; }
+        @keyframes fade { from { opacity: 0.3; } to { opacity: 1; } }
+
         .section {
             background: #f8faff;
             border-radius: 20px;
-            padding: 18px 16px;
-            margin-bottom: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
             border: 1px solid #e9edf4;
-        }
-        .section-title {
-            font-weight: 600;
-            font-size: 16px;
-            color: #1e2a44;
-            margin-bottom: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
         .flex-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
         }
         .btn {
             background: white;
             border: 1px solid #d0d8e6;
-            padding: 10px 18px;
+            padding: 10px 20px;
             border-radius: 60px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
-            color: #1f2a44;
             cursor: pointer;
             transition: 0.15s;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            flex: 0 1 auto;
         }
         .btn-primary {
             background: #1a2a4a;
-            border: 1px solid #1a2a4a;
+            border-color: #1a2a4a;
             color: white;
         }
         .btn-primary:hover { background: #2b3f64; }
-        .btn-outline { background: transparent; }
         .btn-success {
             background: #0f7b3a;
             border-color: #0f7b3a;
             color: white;
         }
         .btn-success:hover { background: #1a8f48; }
-        .btn:disabled {
-            opacity: 0.5;
-            pointer-events: none;
+        .btn-danger {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            color: white;
         }
+        .btn-danger:hover { background: #991b1b; }
+        .btn:disabled { opacity: 0.5; pointer-events: none; }
+
         .file-input-wrap {
             position: relative;
             display: inline-block;
         }
         .file-input-wrap input[type="file"] {
             position: absolute;
-            left: 0;
-            top: 0;
+            left: 0; top: 0;
             opacity: 0;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             cursor: pointer;
         }
         .badge {
             background: #eef2f9;
             padding: 6px 14px;
             border-radius: 60px;
-            font-size: 14px;
+            font-size: 13px;
             color: #1f2a44;
-            display: inline-block;
         }
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px 16px;
-            font-size: 14px;
+            gap: 6px 14px;
+            font-size: 13px;
             background: #f2f6fd;
-            padding: 12px 14px;
-            border-radius: 16px;
-            margin: 12px 0 4px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            margin: 10px 0 4px;
         }
         .qr-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 16px 0 8px;
+            margin: 12px 0 8px;
         }
         #qrcode {
             background: white;
-            padding: 12px;
-            border-radius: 20px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-            display: inline-block;
+            padding: 10px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
         }
-        #qrcode img, #qrcode canvas {
-            display: block;
-            max-width: 220px;
-            height: auto;
-            aspect-ratio: 1/1;
-        }
-        .qr-progress {
-            width: 100%;
-            margin-top: 16px;
-        }
+        #qrcode canvas { display: block; max-width: 200px; height: auto; }
         .progress-bar {
             height: 6px;
             background: #e2e8f0;
             border-radius: 12px;
             overflow: hidden;
-            margin: 6px 0 12px;
+            margin: 8px 0;
         }
         .progress-fill {
             height: 100%;
             width: 0%;
             background: #2563eb;
-            border-radius: 12px;
-            transition: width 0.25s;
+            transition: width 0.3s;
         }
         .sequence-controls {
             display: flex;
-            flex-wrap: wrap;
             gap: 10px;
             justify-content: center;
-            margin: 10px 0 4px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        .preview-container {
+            margin: 12px 0;
+            padding: 12px;
+            background: #f8faff;
+            border-radius: 16px;
+            border: 1px solid #e9edf4;
+            text-align: center;
+        }
+        .preview-container img, .preview-container audio {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 10px auto;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0b1b33;
+        }
+        #video {
+            width: 100%;
+            display: block;
+        }
+        .scanner-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border: 3px solid #3b82f6;
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0,0,0,0.3);
+            pointer-events: none;
         }
         .footer-actions {
             display: flex;
@@ -191,434 +217,630 @@
             justify-content: center;
             gap: 12px;
             border-top: 1px solid #e2e8f0;
-            padding-top: 24px;
+            padding-top: 20px;
             margin-top: 10px;
         }
         .download-btn {
             background: #0b1b33;
             color: white;
             border: none;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border-radius: 60px;
             font-weight: 600;
-            font-size: 16px;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 6px 14px rgba(11,27,51,0.25);
+            font-size: 15px;
             cursor: pointer;
             transition: 0.15s;
         }
         .download-btn:hover { background: #1f2f4a; transform: scale(1.02); }
-        .hint {
-            font-size: 13px;
-            color: #5b6b84;
-            margin-top: 6px;
-        }
-        .text-mono {
-            font-family: 'SF Mono', 'Menlo', monospace;
-            word-break: break-all;
-            background: #eef2f9;
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-size: 13px;
+        .status-text {
+            font-size: 14px;
+            color: #1f3a5f;
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: #f0f4fe;
+            border-radius: 40px;
+            text-align: center;
         }
         @media (max-width: 480px) {
-            .app-card { padding: 16px; }
+            .app-card { padding: 14px; }
             .flex-row { flex-direction: column; align-items: stretch; }
             .btn { justify-content: center; }
+            .info-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-<div class="app-card" id="app">
-    <h1>📦 QR-Transfer <small>сжатие + серии</small></h1>
-    <div class="subhead">⬇️ Уменьши фото/аудио и передай по частям через QR-коды</div>
-
-    <!-- Блок выбора файла -->
-    <div class="section">
-        <div class="section-title">📁 1. Выберите файл</div>
-        <div class="flex-row">
-            <div class="file-input-wrap">
-                <button class="btn btn-primary">➕ Выбрать</button>
-                <input type="file" id="fileInput" accept="image/*,audio/*">
-            </div>
-            <span class="badge" id="fileName">Файл не выбран</span>
-        </div>
-        <div id="fileInfo" class="info-grid" style="display: none;">
-            <span>📄 Имя: <span id="displayName">—</span></span>
-            <span>📏 Размер: <span id="displaySize">—</span></span>
-            <span>🖼️ Тип: <span id="displayType">—</span></span>
-            <span>⚡ Сжат: <span id="displayCompressed">—</span></span>
-        </div>
+<div class="app-card">
+    <h1>📦 QR-Transfer</h1>
+    
+    <!-- Вкладки -->
+    <div class="tabs">
+        <button class="tab active" data-tab="send">📤 Отправить</button>
+        <button class="tab" data-tab="receive">📥 Получить</button>
     </div>
 
-    <!-- Блок сжатия и QR -->
-    <div class="section">
-        <div class="section-title">⚙️ 2. Сжатие и QR-последовательность</div>
-        <div class="flex-row">
-            <button class="btn btn-primary" id="compressBtn">⬇️ Сжать и разделить</button>
-            <button class="btn btn-outline" id="clearBtn">🧹 Очистить</button>
-        </div>
-        <div id="statusMessage" style="margin: 12px 0 6px; font-size: 14px; color: #1f3a5f;">👆 Загрузите файл и нажмите "Сжать"</div>
-
-        <!-- QR-код -->
-        <div id="qrArea" style="display: none;">
-            <div class="qr-container">
-                <div id="qrcode"></div>
-                <div style="margin-top: 6px; font-weight: 500;" id="qrIndexLabel">Часть 1 / 1</div>
+    <!-- ==================== ВКЛАДКА ОТПРАВКИ ==================== -->
+    <div id="tab-send" class="tab-content active">
+        <div class="section">
+            <div class="flex-row">
+                <div class="file-input-wrap">
+                    <button class="btn btn-primary">➕ Выбрать файл</button>
+                    <input type="file" id="fileInput" accept="image/*,audio/*">
+                </div>
+                <span class="badge" id="fileName">Файл не выбран</span>
             </div>
-            <div class="qr-progress">
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span>Прогресс</span>
-                    <span id="progressText">0%</span>
+            <div id="fileInfo" class="info-grid" style="display:none;">
+                <span>📄 <span id="displayName">—</span></span>
+                <span>📏 <span id="displaySize">—</span></span>
+                <span>🖼️ <span id="displayType">—</span></span>
+                <span>⚡ Сжат: <span id="displayCompressed">—</span></span>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="flex-row">
+                <button class="btn btn-primary" id="compressBtn">⬇️ Сжать и создать QR</button>
+                <button class="btn" id="clearBtn">🧹 Очистить</button>
+            </div>
+            <div id="statusSend" class="status-text">👆 Загрузите файл и нажмите "Сжать"</div>
+
+            <div id="qrArea" style="display:none;">
+                <div class="qr-container">
+                    <div id="qrcode"></div>
+                    <div style="margin-top:6px;font-weight:500;" id="qrIndexLabel">Часть 1 / 1</div>
                 </div>
                 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-            </div>
-            <div class="sequence-controls">
-                <button class="btn btn-outline" id="prevBtn">◀ Пред.</button>
-                <button class="btn btn-outline" id="nextBtn">След. ▶</button>
-                <span class="badge" id="chunkCounter">0 / 0</span>
-            </div>
-            <div style="margin-top: 12px; background: #f2f6fd; padding: 8px 14px; border-radius: 40px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 18px;">
-                <span>📦 Частей: <strong id="totalChunksDisplay">0</strong></span>
-                <span>🧩 Размер части: ~<span id="chunkSizeDisplay">0</span> байт</span>
+                <div class="sequence-controls">
+                    <button class="btn" id="prevBtn">◀ Пред.</button>
+                    <button class="btn" id="nextBtn">След. ▶</button>
+                    <span class="badge" id="chunkCounter">0 / 0</span>
+                </div>
+                <div style="text-align:center;font-size:13px;color:#5b6b84;">
+                    Частей: <strong id="totalChunksDisplay">0</strong> · 
+                    Размер части: ~<span id="chunkSizeDisplay">0</span> байт
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Действия: скачать приложение -->
+    <!-- ==================== ВКЛАДКА ПОЛУЧЕНИЯ ==================== -->
+    <div id="tab-receive" class="tab-content">
+        <div class="section">
+            <div class="flex-row">
+                <button class="btn btn-success" id="startScanBtn">📷 Запустить сканер</button>
+                <button class="btn btn-danger" id="stopScanBtn">⏹️ Остановить</button>
+                <button class="btn" id="clearReceiveBtn">🧹 Очистить</button>
+            </div>
+            <div id="statusReceive" class="status-text">📷 Нажмите "Запустить сканер"</div>
+
+            <div id="scannerContainer" style="display:none;">
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <div class="scanner-overlay"></div>
+                </div>
+                <div style="font-size:13px;color:#5b6b84;text-align:center;margin:6px 0;">
+                    Наведите камеру на QR-код
+                </div>
+            </div>
+
+            <div id="receivedData" style="display:none;">
+                <div class="info-grid">
+                    <span>📦 Получено частей: <strong id="receivedChunks">0</strong></span>
+                    <span>📊 Прогресс: <strong id="receiveProgress">0%</strong></span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="receiveProgressFill"></div></div>
+                
+                <!-- Превью -->
+                <div id="previewArea" class="preview-container" style="display:none;">
+                    <div id="previewContent"></div>
+                    <div style="margin-top:10px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                        <button class="btn btn-primary" id="downloadReceivedBtn">💾 Скачать файл</button>
+                        <button class="btn" id="playReceivedBtn" style="display:none;">▶️ Воспроизвести</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопка скачивания приложения -->
     <div class="footer-actions">
         <button class="download-btn" id="downloadAppBtn">📲 Скачать приложение (HTML)</button>
-    </div>
-    <div style="text-align: center; margin-top: 12px; font-size: 13px; color: #6b7d9a;">
-        ⚡ Работает офлайн · Данные не покидают устройство
     </div>
 </div>
 
 <script>
-    (function() {
-        // ---------- состояние ----------
-        let rawFile = null;               // исходный File
-        let compressedData = null;        // Uint8Array (сжатый)
-        let chunks = [];                 // массив строк (base64)
-        let currentChunkIndex = 0;
-        let qrCodeInstance = null;
+(function() {
+    // ===================== СОСТОЯНИЕ =====================
+    // Отправка
+    let rawFile = null;
+    let chunks = [];
+    let currentChunkIndex = 0;
+    let qrCodeInstance = null;
 
-        // DOM-элементы
-        const fileInput = document.getElementById('fileInput');
-        const fileNameSpan = document.getElementById('fileName');
-        const fileInfoDiv = document.getElementById('fileInfo');
-        const displayName = document.getElementById('displayName');
-        const displaySize = document.getElementById('displaySize');
-        const displayType = document.getElementById('displayType');
-        const displayCompressed = document.getElementById('displayCompressed');
+    // Получение
+    let receivedChunks = [];
+    let expectedTotal = 0;
+    let receivedFileName = '';
+    let receivedFileType = '';
+    let isScanning = false;
+    let scanStream = null;
+    let animationId = null;
 
-        const compressBtn = document.getElementById('compressBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const statusMsg = document.getElementById('statusMessage');
+    // DOM элементы
+    const fileInput = document.getElementById('fileInput');
+    const fileNameSpan = document.getElementById('fileName');
+    const fileInfoDiv = document.getElementById('fileInfo');
+    const displayName = document.getElementById('displayName');
+    const displaySize = document.getElementById('displaySize');
+    const displayType = document.getElementById('displayType');
+    const displayCompressed = document.getElementById('displayCompressed');
+    const compressBtn = document.getElementById('compressBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusSend = document.getElementById('statusSend');
+    const qrArea = document.getElementById('qrArea');
+    const qrContainer = document.getElementById('qrcode');
+    const qrIndexLabel = document.getElementById('qrIndexLabel');
+    const progressFill = document.getElementById('progressFill');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const chunkCounter = document.getElementById('chunkCounter');
+    const totalChunksDisplay = document.getElementById('totalChunksDisplay');
+    const chunkSizeDisplay = document.getElementById('chunkSizeDisplay');
 
-        const qrArea = document.getElementById('qrArea');
-        const qrContainer = document.getElementById('qrcode');
-        const qrIndexLabel = document.getElementById('qrIndexLabel');
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const chunkCounter = document.getElementById('chunkCounter');
-        const totalChunksDisplay = document.getElementById('totalChunksDisplay');
-        const chunkSizeDisplay = document.getElementById('chunkSizeDisplay');
+    const startScanBtn = document.getElementById('startScanBtn');
+    const stopScanBtn = document.getElementById('stopScanBtn');
+    const clearReceiveBtn = document.getElementById('clearReceiveBtn');
+    const statusReceive = document.getElementById('statusReceive');
+    const scannerContainer = document.getElementById('scannerContainer');
+    const video = document.getElementById('video');
+    const receivedData = document.getElementById('receivedData');
+    const receivedChunks = document.getElementById('receivedChunks');
+    const receiveProgress = document.getElementById('receiveProgress');
+    const receiveProgressFill = document.getElementById('receiveProgressFill');
+    const previewArea = document.getElementById('previewArea');
+    const previewContent = document.getElementById('previewContent');
+    const downloadReceivedBtn = document.getElementById('downloadReceivedBtn');
+    const playReceivedBtn = document.getElementById('playReceivedBtn');
+    const downloadAppBtn = document.getElementById('downloadAppBtn');
 
-        const downloadAppBtn = document.getElementById('downloadAppBtn');
+    // ===================== ВКЛАДКИ =====================
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+            if (this.dataset.tab === 'receive') stopScanning();
+        });
+    });
 
-        // ---------- вспомогательные функции ----------
-        function formatSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
+    // ===================== ФУНКЦИИ ОТПРАВКИ =====================
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
 
-        // сжатие файла через Canvas (для изображений) или AudioContext (для аудио) — упрощённо
-        // В реальности мы используем компрессию через уменьшение качества/разрешения
-        function compressFile(file) {
-            return new Promise((resolve, reject) => {
-                const type = file.type;
-                if (type.startsWith('image/')) {
-                    // сжатие изображения
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            // уменьшаем размер до 800px по ширине/высоте сохраняя пропорции
-                            let w = img.width, h = img.height;
-                            const maxDim = 800;
-                            if (w > maxDim || h > maxDim) {
-                                const ratio = Math.min(maxDim / w, maxDim / h);
-                                w = Math.round(w * ratio);
-                                h = Math.round(h * ratio);
-                            }
-                            const canvas = document.createElement('canvas');
-                            canvas.width = w;
-                            canvas.height = h;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, w, h);
-                            // качество 0.6 для JPEG, для PNG конвертируем в JPEG
-                            const mime = 'image/jpeg';
-                            const quality = 0.6;
-                            const dataUrl = canvas.toDataURL(mime, quality);
-                            // dataUrl -> Uint8Array
-                            const base64 = dataUrl.split(',')[1];
-                            const binary = atob(base64);
-                            const arr = new Uint8Array(binary.length);
-                            for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
-                            resolve(arr);
-                        };
-                        img.onerror = () => reject(new Error('Не удалось декодировать изображение'));
-                        img.src = e.target.result;
-                    };
-                    reader.onerror = () => reject(new Error('Ошибка чтения файла'));
-                    reader.readAsDataURL(file);
-                } else if (type.startsWith('audio/')) {
-                    // аудио: пробуем сжать через уменьшение битрейта (используем Web Audio API)
-                    const reader = new FileReader();
-                    reader.onload = async (e) => {
-                        try {
-                            const arrayBuffer = e.target.result;
-                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                            // создаём буфер с меньшей частотой (16kHz) и моно
-                            const targetSampleRate = 16000;
-                            const duration = audioBuffer.duration;
-                            const numberOfChannels = 1; // моно
-                            const length = Math.floor(duration * targetSampleRate);
-                            const offlineContext = new OfflineAudioContext(numberOfChannels, length, targetSampleRate);
-                            const bufferSource = offlineContext.createBufferSource();
-                            bufferSource.buffer = audioBuffer;
-                            bufferSource.connect(offlineContext.destination);
-                            bufferSource.start(0);
-                            const renderedBuffer = await offlineContext.startRendering();
-                            // экспорт в WAV (PCM 16bit) — небольшой размер
-                            const wavData = audioBufferToWav(renderedBuffer);
-                            resolve(wavData);
-                        } catch (err) {
-                            reject(new Error('Ошибка сжатия аудио: ' + err.message));
+    function compressFile(file) {
+        return new Promise((resolve, reject) => {
+            const type = file.type;
+            if (type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        const maxDim = 800;
+                        if (w > maxDim || h > maxDim) {
+                            const ratio = Math.min(maxDim / w, maxDim / h);
+                            w = Math.round(w * ratio);
+                            h = Math.round(h * ratio);
                         }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                        const base64 = dataUrl.split(',')[1];
+                        const binary = atob(base64);
+                        const arr = new Uint8Array(binary.length);
+                        for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+                        resolve(arr);
                     };
-                    reader.onerror = () => reject(new Error('Ошибка чтения аудио'));
-                    reader.readAsArrayBuffer(file);
-                } else {
-                    reject(new Error('Неподдерживаемый тип файла. Используйте изображения или аудио.'));
-                }
+                    img.onerror = () => reject(new Error('Ошибка декодирования'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('Ошибка чтения'));
+                reader.readAsDataURL(file);
+            } else if (type.startsWith('audio/')) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        const targetSampleRate = 16000;
+                        const length = Math.floor(audioBuffer.duration * targetSampleRate);
+                        const offlineContext = new OfflineAudioContext(1, length, targetSampleRate);
+                        const bufferSource = offlineContext.createBufferSource();
+                        bufferSource.buffer = audioBuffer;
+                        bufferSource.connect(offlineContext.destination);
+                        bufferSource.start(0);
+                        const renderedBuffer = await offlineContext.startRendering();
+                        const wavData = audioBufferToWav(renderedBuffer);
+                        resolve(wavData);
+                    } catch (err) {
+                        reject(new Error('Ошибка сжатия аудио: ' + err.message));
+                    }
+                };
+                reader.onerror = () => reject(new Error('Ошибка чтения аудио'));
+                reader.readAsArrayBuffer(file);
+            } else {
+                reject(new Error('Поддерживаются только изображения и аудио'));
+            }
+        });
+    }
+
+    function audioBufferToWav(buffer) {
+        const numChannels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const length = buffer.length;
+        const data = new Float32Array(length * numChannels);
+        for (let channel = 0; channel < numChannels; channel++) {
+            const channelData = buffer.getChannelData(channel);
+            for (let i = 0; i < length; i++) {
+                data[i * numChannels + channel] = channelData[i];
+            }
+        }
+        const samples = new Int16Array(length * numChannels);
+        for (let i = 0; i < data.length; i++) {
+            const s = Math.max(-1, Math.min(1, data[i]));
+            samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        const bufferLength = 44 + samples.length * 2;
+        const wav = new Uint8Array(bufferLength);
+        const writeString = (offset, str) => {
+            for (let i = 0; i < str.length; i++) wav[offset + i] = str.charCodeAt(i);
+        };
+        writeString(0, 'RIFF');
+        wav[4] = (bufferLength - 8) & 0xff;
+        wav[5] = ((bufferLength - 8) >> 8) & 0xff;
+        wav[6] = ((bufferLength - 8) >> 16) & 0xff;
+        wav[7] = ((bufferLength - 8) >> 24) & 0xff;
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        wav[16] = 16; wav[17] = 0; wav[18] = 0; wav[19] = 0;
+        wav[20] = 1; wav[21] = 0;
+        wav[22] = numChannels & 0xff; wav[23] = (numChannels >> 8) & 0xff;
+        wav[24] = sampleRate & 0xff; wav[25] = (sampleRate >> 8) & 0xff;
+        wav[26] = (sampleRate >> 16) & 0xff; wav[27] = (sampleRate >> 24) & 0xff;
+        const byteRate = sampleRate * numChannels * 2;
+        wav[28] = byteRate & 0xff; wav[29] = (byteRate >> 8) & 0xff;
+        wav[30] = (byteRate >> 16) & 0xff; wav[31] = (byteRate >> 24) & 0xff;
+        const blockAlign = numChannels * 2;
+        wav[32] = blockAlign & 0xff; wav[33] = (blockAlign >> 8) & 0xff;
+        wav[34] = 16; wav[35] = 0;
+        writeString(36, 'data');
+        wav[40] = (samples.length * 2) & 0xff;
+        wav[41] = ((samples.length * 2) >> 8) & 0xff;
+        wav[42] = ((samples.length * 2) >> 16) & 0xff;
+        wav[43] = ((samples.length * 2) >> 24) & 0xff;
+        for (let i = 0; i < samples.length; i++) {
+            const index = 44 + i * 2;
+            const val = samples[i];
+            wav[index] = val & 0xff;
+            wav[index + 1] = (val >> 8) & 0xff;
+        }
+        return wav;
+    }
+
+    function splitIntoChunks(data, chunkSize = 1300) {
+        const chunks = [];
+        // Добавляем метаданные в первый чанк
+        const header = JSON.stringify({
+            name: rawFile.name,
+            type: rawFile.type,
+            total: Math.ceil(data.length / chunkSize)
+        });
+        const headerData = new TextEncoder().encode(header + '|');
+        const fullData = new Uint8Array(headerData.length + data.length);
+        fullData.set(headerData);
+        fullData.set(data, headerData.length);
+        
+        for (let i = 0; i < fullData.length; i += chunkSize) {
+            chunks.push(fullData.slice(i, i + chunkSize));
+        }
+        return chunks;
+    }
+
+    function updateQR() {
+        if (!chunks.length) {
+            qrArea.style.display = 'none';
+            return;
+        }
+        qrArea.style.display = 'block';
+        const chunk = chunks[currentChunkIndex] || '';
+        qrContainer.innerHTML = '';
+        if (chunk) {
+            // Конвертируем Uint8Array в base64
+            let binary = '';
+            for (let i = 0; i < chunk.length; i++) binary += String.fromCharCode(chunk[i]);
+            const base64 = btoa(binary);
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: base64,
+                width: 200,
+                height: 200,
+                colorDark: '#0b1b33',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
             });
         }
+        const total = chunks.length;
+        qrIndexLabel.textContent = `Часть ${currentChunkIndex + 1} / ${total}`;
+        chunkCounter.textContent = `${currentChunkIndex + 1} / ${total}`;
+        totalChunksDisplay.textContent = total;
+        chunkSizeDisplay.textContent = chunks[currentChunkIndex]?.length || 0;
+        const progress = total > 0 ? ((currentChunkIndex + 1) / total * 100) : 0;
+        progressFill.style.width = progress + '%';
+        prevBtn.disabled = currentChunkIndex === 0;
+        nextBtn.disabled = currentChunkIndex === total - 1;
+    }
 
-        // конвертация AudioBuffer в WAV (Uint8Array)
-        function audioBufferToWav(buffer) {
-            const numChannels = buffer.numberOfChannels;
-            const sampleRate = buffer.sampleRate;
-            const format = 1; // PCM
-            const bitDepth = 16;
-            const length = buffer.length;
-            const data = new Float32Array(length * numChannels);
-            for (let channel = 0; channel < numChannels; channel++) {
-                const channelData = buffer.getChannelData(channel);
-                for (let i = 0; i < length; i++) {
-                    data[i * numChannels + channel] = channelData[i];
-                }
-            }
-            const samples = new Int16Array(length * numChannels);
-            for (let i = 0; i < data.length; i++) {
-                const s = Math.max(-1, Math.min(1, data[i]));
-                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            const bufferLength = 44 + samples.length * 2;
-            const wav = new Uint8Array(bufferLength);
-            // RIFF header
-            const writeString = (offset, str) => {
-                for (let i = 0; i < str.length; i++) wav[offset + i] = str.charCodeAt(i);
-            };
-            writeString(0, 'RIFF');
-            wav[4] = (bufferLength - 8) & 0xff;
-            wav[5] = ((bufferLength - 8) >> 8) & 0xff;
-            wav[6] = ((bufferLength - 8) >> 16) & 0xff;
-            wav[7] = ((bufferLength - 8) >> 24) & 0xff;
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            wav[16] = 16; wav[17] = 0; wav[18] = 0; wav[19] = 0; // chunk size
-            wav[20] = format & 0xff; wav[21] = (format >> 8) & 0xff;
-            wav[22] = numChannels & 0xff; wav[23] = (numChannels >> 8) & 0xff;
-            wav[24] = sampleRate & 0xff; wav[25] = (sampleRate >> 8) & 0xff;
-            wav[26] = (sampleRate >> 16) & 0xff; wav[27] = (sampleRate >> 24) & 0xff;
-            const byteRate = sampleRate * numChannels * (bitDepth / 8);
-            wav[28] = byteRate & 0xff; wav[29] = (byteRate >> 8) & 0xff;
-            wav[30] = (byteRate >> 16) & 0xff; wav[31] = (byteRate >> 24) & 0xff;
-            const blockAlign = numChannels * (bitDepth / 8);
-            wav[32] = blockAlign & 0xff; wav[33] = (blockAlign >> 8) & 0xff;
-            wav[34] = bitDepth & 0xff; wav[35] = (bitDepth >> 8) & 0xff;
-            writeString(36, 'data');
-            wav[40] = (samples.length * 2) & 0xff;
-            wav[41] = ((samples.length * 2) >> 8) & 0xff;
-            wav[42] = ((samples.length * 2) >> 16) & 0xff;
-            wav[43] = ((samples.length * 2) >> 24) & 0xff;
-            for (let i = 0; i < samples.length; i++) {
-                const index = 44 + i * 2;
-                const val = samples[i];
-                wav[index] = val & 0xff;
-                wav[index + 1] = (val >> 8) & 0xff;
-            }
-            return wav;
+    async function handleCompress() {
+        if (!rawFile) {
+            statusSend.textContent = '⚠️ Сначала выберите файл';
+            return;
         }
-
-        // разбиение на чанки (макс. 1400 байт на чанк для QR-совместимости)
-        function splitIntoChunks(data, chunkSize = 1300) {
-            const chunks = [];
-            for (let i = 0; i < data.length; i += chunkSize) {
-                chunks.push(data.slice(i, i + chunkSize));
-            }
-            return chunks;
-        }
-
-        // Обновить QR-дисплей
-        function updateQR() {
-            if (!chunks.length) {
-                qrArea.style.display = 'none';
-                return;
-            }
-            qrArea.style.display = 'block';
-            const chunk = chunks[currentChunkIndex] || '';
-            // очищаем старый QR
-            qrContainer.innerHTML = '';
-            if (chunk) {
-                qrCodeInstance = new QRCode(qrContainer, {
-                    text: chunk,
-                    width: 220,
-                    height: 220,
-                    colorDark: '#0b1b33',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-            }
-            // индексы
-            const total = chunks.length;
-            qrIndexLabel.textContent = `Часть ${currentChunkIndex + 1} / ${total}`;
-            chunkCounter.textContent = `${currentChunkIndex + 1} / ${total}`;
-            totalChunksDisplay.textContent = total;
-            const chunkSize = chunk ? chunk.length : 0;
-            chunkSizeDisplay.textContent = chunkSize;
-
-            // прогресс
-            const progress = total > 0 ? ((currentChunkIndex + 1) / total * 100) : 0;
-            progressFill.style.width = progress + '%';
-            progressText.textContent = Math.round(progress) + '%';
-
-            prevBtn.disabled = currentChunkIndex === 0;
-            nextBtn.disabled = currentChunkIndex === total - 1;
-        }
-
-        // Обработка файла: сжатие + разделение
-        async function handleCompress() {
-            if (!rawFile) {
-                statusMsg.textContent = '⚠️ Сначала выберите файл.';
-                return;
-            }
-            statusMsg.textContent = '⏳ Сжатие и разделение...';
-            compressBtn.disabled = true;
-
-            try {
-                const compressed = await compressFile(rawFile);
-                compressedData = compressed;
-                // разбиваем на чанки (макс 1300 байт)
-                chunks = splitIntoChunks(compressed, 1300);
-                if (chunks.length === 0) {
-                    throw new Error('Файл слишком мал или пуст');
-                }
-                // все чанки преобразуем в base64 (строки)
-                chunks = chunks.map(chunk => {
-                    let binary = '';
-                    for (let i = 0; i < chunk.length; i++) binary += String.fromCharCode(chunk[i]);
-                    return btoa(binary);
-                });
-
-                currentChunkIndex = 0;
-                updateQR();
-
-                // отобразить сжатый размер
-                const originalSize = rawFile.size;
-                const compressedSize = compressed.length;
-                displayCompressed.textContent = formatSize(compressedSize) + ` (${Math.round((compressedSize/originalSize)*100)}%)`;
-                statusMsg.textContent = `✅ Готово! ${chunks.length} частей.`;
-            } catch (err) {
-                statusMsg.textContent = '❌ Ошибка: ' + err.message;
-                console.error(err);
-            } finally {
-                compressBtn.disabled = false;
-            }
-        }
-
-        // ---------- обработчики ----------
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            rawFile = file;
-            fileNameSpan.textContent = file.name;
-            fileInfoDiv.style.display = 'grid';
-            displayName.textContent = file.name;
-            displaySize.textContent = formatSize(file.size);
-            displayType.textContent = file.type || 'неизвестно';
-            displayCompressed.textContent = '—';
-            // сброс QR
-            chunks = [];
+        statusSend.textContent = '⏳ Сжатие...';
+        compressBtn.disabled = true;
+        try {
+            const compressed = await compressFile(rawFile);
+            chunks = splitIntoChunks(compressed, 1300);
+            if (chunks.length === 0) throw new Error('Файл пуст');
             currentChunkIndex = 0;
-            qrArea.style.display = 'none';
-            statusMsg.textContent = '📎 Файл загружен. Нажмите "Сжать"';
-        });
+            updateQR();
+            displayCompressed.textContent = formatSize(compressed.length) + 
+                ` (${Math.round((compressed.length/rawFile.size)*100)}%)`;
+            statusSend.textContent = `✅ Готово! ${chunks.length} частей`;
+        } catch (err) {
+            statusSend.textContent = '❌ ' + err.message;
+        } finally {
+            compressBtn.disabled = false;
+        }
+    }
 
-        compressBtn.addEventListener('click', handleCompress);
+    // ===================== ФУНКЦИИ ПОЛУЧЕНИЯ =====================
+    function startScanning() {
+        if (isScanning) return;
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => {
+                scanStream = stream;
+                video.srcObject = stream;
+                video.play();
+                scannerContainer.style.display = 'block';
+                isScanning = true;
+                statusReceive.textContent = '🔍 Сканирование... Наведите на QR-код';
+                startScanBtn.disabled = true;
+                stopScanBtn.disabled = false;
+                scanLoop();
+            })
+            .catch(err => {
+                statusReceive.textContent = '❌ Ошибка доступа к камере: ' + err.message;
+            });
+    }
 
-        clearBtn.addEventListener('click', () => {
-            rawFile = null;
-            compressedData = null;
-            chunks = [];
-            currentChunkIndex = 0;
-            fileInput.value = '';
-            fileNameSpan.textContent = 'Файл не выбран';
-            fileInfoDiv.style.display = 'none';
-            qrArea.style.display = 'none';
-            statusMsg.textContent = '🧹 Очищено. Выберите файл.';
-            displayCompressed.textContent = '—';
-        });
+    function stopScanning() {
+        isScanning = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        if (scanStream) {
+            scanStream.getTracks().forEach(track => track.stop());
+            scanStream = null;
+        }
+        video.srcObject = null;
+        scannerContainer.style.display = 'none';
+        startScanBtn.disabled = false;
+        stopScanBtn.disabled = true;
+        if (!receivedChunks.length) {
+            statusReceive.textContent = '📷 Сканер остановлен';
+        }
+    }
 
-        prevBtn.addEventListener('click', () => {
-            if (currentChunkIndex > 0) {
-                currentChunkIndex--;
-                updateQR();
+    function scanLoop() {
+        if (!isScanning) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
+            if (code && code.data) {
+                processQRData(code.data);
             }
-        });
+        }
+        animationId = requestAnimationFrame(scanLoop);
+    }
 
-        nextBtn.addEventListener('click', () => {
-            if (currentChunkIndex < chunks.length - 1) {
-                currentChunkIndex++;
-                updateQR();
+    function processQRData(base64Data) {
+        try {
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
             }
-        });
+            
+            // Если это первый чанк - извлекаем метаданные
+            if (receivedChunks.length === 0) {
+                const text = new TextDecoder().decode(bytes);
+                const separatorIndex = text.indexOf('|');
+                if (separatorIndex !== -1) {
+                    const header = JSON.parse(text.substring(0, separatorIndex));
+                    receivedFileName = header.name || 'file';
+                    receivedFileType = header.type || 'application/octet-stream';
+                    expectedTotal = header.total || 1;
+                    // Сохраняем данные без заголовка
+                    const dataStart = separatorIndex + 1;
+                    const dataBytes = new Uint8Array(bytes.length - dataStart);
+                    dataBytes.set(bytes.slice(dataStart));
+                    receivedChunks.push(dataBytes);
+                } else {
+                    receivedChunks.push(bytes);
+                    expectedTotal = 1;
+                }
+            } else {
+                receivedChunks.push(bytes);
+            }
 
-        // Скачать это приложение (HTML)
-        downloadAppBtn.addEventListener('click', () => {
-            const htmlContent = document.documentElement.outerHTML;
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
+            updateReceiveProgress();
+            
+            if (receivedChunks.length === expectedTotal) {
+                assembleFile();
+            }
+        } catch (e) {
+            // Игнорируем ошибки (невалидный QR)
+        }
+    }
+
+    function updateReceiveProgress() {
+        const total = expectedTotal || 1;
+        const current = receivedChunks.length;
+        const progress = Math.min(100, Math.round((current / total) * 100));
+        receivedChunks.textContent = current;
+        receiveProgress.textContent = progress + '%';
+        receiveProgressFill.style.width = progress + '%';
+        statusReceive.textContent = `📥 Получено ${current} из ${total} частей`;
+        receivedData.style.display = 'block';
+    }
+
+    function assembleFile() {
+        // Собираем все чанки
+        const totalLength = receivedChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+        const fullFile = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of receivedChunks) {
+            fullFile.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        const blob = new Blob([fullFile], { type: receivedFileType || 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+
+        // Показываем превью
+        previewArea.style.display = 'block';
+        previewContent.innerHTML = '';
+
+        if (receivedFileType.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Полученное изображение';
+            previewContent.appendChild(img);
+            playReceivedBtn.style.display = 'none';
+        } else if (receivedFileType.startsWith('audio/')) {
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = url;
+            previewContent.appendChild(audio);
+            playReceivedBtn.style.display = 'none';
+        } else {
+            previewContent.innerHTML = `<div style="padding:20px;color:#4a5a72;">📄 Файл: ${receivedFileName}</div>`;
+            playReceivedBtn.style.display = 'none';
+        }
+
+        // Кнопка скачивания
+        downloadReceivedBtn.onclick = () => {
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'QR-TransferApp.html';
+            a.download = receivedFileName || 'received_file';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
+        };
 
-        // начальное состояние
-        updateQR();
-    })();
+        statusReceive.textContent = '✅ Файл собран! Можно скачать или просмотреть';
+        stopScanning();
+    }
+
+    // ===================== ОБРАБОТЧИКИ =====================
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        rawFile = file;
+        fileNameSpan.textContent = file.name;
+        fileInfoDiv.style.display = 'grid';
+        displayName.textContent = file.name;
+        displaySize.textContent = formatSize(file.size);
+        displayType.textContent = file.type || 'неизвестно';
+        displayCompressed.textContent = '—';
+        chunks = [];
+        qrArea.style.display = 'none';
+        statusSend.textContent = '📎 Файл загружен. Нажмите "Сжать"';
+    });
+
+    compressBtn.addEventListener('click', handleCompress);
+
+    clearBtn.addEventListener('click', () => {
+        rawFile = null;
+        chunks = [];
+        currentChunkIndex = 0;
+        fileInput.value = '';
+        fileNameSpan.textContent = 'Файл не выбран';
+        fileInfoDiv.style.display = 'none';
+        qrArea.style.display = 'none';
+        statusSend.textContent = '👆 Загрузите файл и нажмите "Сжать"';
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentChunkIndex > 0) {
+            currentChunkIndex--;
+            updateQR();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentChunkIndex < chunks.length - 1) {
+            currentChunkIndex++;
+            updateQR();
+        }
+    });
+
+    startScanBtn.addEventListener('click', startScanning);
+    stopScanBtn.addEventListener('click', stopScanning);
+
+    clearReceiveBtn.addEventListener('click', () => {
+        receivedChunks = [];
+        expectedTotal = 0;
+        receivedFileName = '';
+        receivedFileType = '';
+        receivedData.style.display = 'none';
+        previewArea.style.display = 'none';
+        previewContent.innerHTML = '';
+        statusReceive.textContent = '🧹 Очищено. Нажмите "Запустить сканер"';
+        stopScanning();
+    });
+
+    downloadAppBtn.addEventListener('click', () => {
+        const htmlContent = document.documentElement.outerHTML;
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'QR-TransferApp.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // Инициализация
+    stopScanBtn.disabled = true;
+})();
 </script>
 </body>
 </html>
