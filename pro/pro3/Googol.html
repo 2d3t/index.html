@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>♾️ Бесконечный QR-код</title>
+    <title>🧬 Самовосстанавливающийся QR-звук</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,15 +17,15 @@
             padding: 16px;
         }
         .card {
-            max-width: 550px;
+            max-width: 700px;
             width: 100%;
             background: white;
             border-radius: 28px;
             padding: 24px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-        h1 { font-size: 24px; margin-bottom: 4px; }
-        .sub { color: #4a5a72; margin-bottom: 20px; font-size: 14px; }
+        h1 { font-size: 24px; display: flex; gap: 8px; align-items: center; }
+        .sub { color: #4a5a72; margin-bottom: 16px; font-size: 14px; }
         .section {
             background: #f8faff;
             border-radius: 16px;
@@ -41,6 +41,9 @@
             font-size: 14px;
             cursor: pointer;
             transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         .btn:hover { background: #2b3f64; }
         .btn-success { background: #0f7b3a; }
@@ -49,25 +52,63 @@
         .btn-danger:hover { background: #991b1b; }
         .btn-outline { background: transparent; border: 1px solid #d0d8e6; color: #1a2a4a; }
         .btn-outline:hover { background: #f0f4fe; }
-        .flex-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .qr-container {
-            display: flex;
-            justify-content: center;
+        .flex-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
             margin: 12px 0;
         }
-        #qrcode canvas { max-width: 200px; height: auto; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px 14px;
-            font-size: 13px;
+        .qr-item {
             background: white;
-            padding: 10px 14px;
+            border-radius: 16px;
+            padding: 12px;
+            border: 2px solid #e9edf4;
+            text-align: center;
+            transition: 0.2s;
+        }
+        .qr-item.active {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 20px rgba(59,130,246,0.2);
+        }
+        .qr-item canvas { max-width: 100%; height: auto; }
+        .qr-item .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a2a4a;
+            margin-top: 6px;
+        }
+        .qr-item .status-badge {
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 40px;
+            background: #f0f4fe;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .progress-container {
+            margin: 12px 0;
+        }
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
             border-radius: 12px;
-            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #4a5a72;
+            margin-top: 4px;
         }
         .status {
-            padding: 10px;
+            padding: 10px 16px;
             border-radius: 40px;
             background: #f0f4fe;
             font-size: 14px;
@@ -75,98 +116,77 @@
             margin: 8px 0;
         }
         .status.success { background: #dcfce7; color: #166534; }
-        .formula-box {
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.info { background: #dbeafe; color: #1e3a8a; }
+        .data-output {
             background: #0b1b33;
             color: #60a5fa;
-            padding: 12px 16px;
+            padding: 12px;
             border-radius: 12px;
             font-family: 'Courier New', monospace;
-            font-size: 14px;
-            margin: 8px 0;
-            overflow-x: auto;
-            white-space: pre-wrap;
-        }
-        .slider-container {
-            margin: 12px 0;
-        }
-        input[type="range"] {
-            width: 100%;
-            accent-color: #1a2a4a;
-        }
-        .iteration-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #4a5a72;
-        }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border-radius: 12px;
-            border: 1px solid #d0d8e6;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            resize: vertical;
-            min-height: 60px;
-            background: #f8faff;
-        }
-        .data-output {
-            background: #f8faff;
-            padding: 10px;
-            border-radius: 12px;
-            font-size: 13px;
-            max-height: 150px;
+            font-size: 12px;
+            max-height: 120px;
             overflow-y: auto;
-            border: 1px solid #e9edf4;
-            margin: 8px 0;
+            white-space: pre-wrap;
             word-break: break-all;
+            margin: 8px 0;
+        }
+        audio { width: 100%; margin: 8px 0; border-radius: 40px; }
+        .formula-box {
+            background: #f0f4fe;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border: 1px dashed #3b82f6;
+            margin: 8px 0;
         }
     </style>
 </head>
 <body>
 <div class="card">
-    <h1>♾️ Бесконечный QR</h1>
-    <div class="sub">Один QR → формула → бесконечные данные</div>
+    <h1>🧬 QR-Цепочка звука</h1>
+    <div class="sub">Каждый QR-код восстанавливает следующий. Потеряли? Восстановите!</div>
 
     <div class="section">
-        <div class="status" id="statusMessage">🔮 Введите формулу или используйте пример</div>
-        
-        <div class="formula-box" id="formulaDisplay">
-x = (x * 9301 + 49297) % 233280
+        <div class="flex-row">
+            <button class="btn btn-success" id="recordBtn">🎙️ Записать звук</button>
+            <button class="btn btn-danger" id="stopRecordBtn" disabled>⏹️ Остановить</button>
+            <button class="btn btn-outline" id="clearBtn">🧹 Очистить</button>
         </div>
-
-        <div class="flex-row" style="margin:8px 0;">
-            <button class="btn btn-outline" id="example1Btn">📐 LCG</button>
-            <button class="btn btn-outline" id="example2Btn">🔢 Фибоначчи</button>
-            <button class="btn btn-outline" id="example3Btn">🔀 XOR</button>
+        <div id="recordingStatus" style="display:none;" class="status info">🔴 Идёт запись...</div>
+        <div id="audioPreview" style="display:none;">
+            <audio controls id="audioPlayer"></audio>
+            <button class="btn" id="splitBtn" style="width:100%;margin-top:8px;">✂️ Разделить на QR-цепочку</button>
         </div>
-
-        <textarea id="formulaInput" placeholder="Введите формулу на JavaScript...">x = (x * 9301 + 49297) % 233280</textarea>
-        
-        <div class="slider-container">
-            <div class="iteration-info">
-                <span>Итерация: <span id="iterationNum">0</span></span>
-                <span>Значение: <span id="currentValue">12345</span></span>
-            </div>
-            <input type="range" id="iterationSlider" min="0" max="50" value="0">
-        </div>
-
-        <button class="btn btn-success" id="generateBtn" style="width:100%;margin-top:8px;">✨ Сгенерировать QR-код</button>
     </div>
 
-    <div id="qrResult">
+    <div id="qrChain" style="display:none;">
         <div class="section">
-            <div class="qr-container" id="qrcode"></div>
-            <div class="info-grid">
-                <span>📊 Итерация: <span id="displayIteration">0</span></span>
-                <span>🔢 Значение: <span id="displayValue">0</span></span>
-                <span>📦 Данные: <span id="displayDataSize">0</span></span>
-                <span>♾️ Бесконечная цепочка</span>
+            <div class="status success">✅ Звук разделён на QR-цепочку!</div>
+            
+            <div class="formula-box">
+                🔄 Формула восстановления: <strong id="formulaDisplay">x = (x * 9301 + 49297) % 233280</strong>
             </div>
-            <div class="data-output" id="dataOutput">// Данные из QR-кода</div>
+
+            <div class="qr-grid" id="qrGrid"></div>
+
+            <div class="progress-container">
+                <div class="progress-bar"><div class="progress-fill" id="chainProgress" style="width:0%;"></div></div>
+                <div class="progress-text">
+                    <span id="chainStatus">0 из 0 частей</span>
+                    <span id="chainPercent">0%</span>
+                </div>
+            </div>
+
             <div class="flex-row">
-                <button class="btn" id="nextBtn" style="flex:1;">➡️ Следующий QR</button>
-                <button class="btn" id="resetBtn" style="flex:1;background:#6b7280;">↩️ Сброс</button>
+                <button class="btn" id="restoreBtn">🔄 Восстановить звук из QR</button>
+                <button class="btn btn-success" id="downloadAllBtn">📥 Скачать все QR</button>
+            </div>
+
+            <div id="restoredAudio" style="display:none;margin-top:12px;">
+                <div class="status success">🎵 Звук восстановлен!</div>
+                <audio controls id="restoredPlayer"></audio>
             </div>
         </div>
     </div>
@@ -174,158 +194,234 @@ x = (x * 9301 + 49297) % 233280
 
 <script>
     // ========== СОСТОЯНИЕ ==========
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioBlob = null;
+    let qrChain = [];
     let currentSeed = 12345;
-    let iteration = 0;
-    let formula = "x = (x * 9301 + 49297) % 233280";
-    let qrCodeInstance = null;
-    let history = [];
+    const formula = "x = (x * 9301 + 49297) % 233280";
 
     // DOM элементы
-    const formulaInput = document.getElementById('formulaInput');
+    const recordBtn = document.getElementById('recordBtn');
+    const stopRecordBtn = document.getElementById('stopRecordBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const audioPreview = document.getElementById('audioPreview');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const splitBtn = document.getElementById('splitBtn');
+    const qrChainDiv = document.getElementById('qrChain');
+    const qrGrid = document.getElementById('qrGrid');
+    const chainProgress = document.getElementById('chainProgress');
+    const chainStatus = document.getElementById('chainStatus');
+    const chainPercent = document.getElementById('chainPercent');
+    const restoreBtn = document.getElementById('restoreBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const restoredAudio = document.getElementById('restoredAudio');
+    const restoredPlayer = document.getElementById('restoredPlayer');
+    const clearBtn = document.getElementById('clearBtn');
     const formulaDisplay = document.getElementById('formulaDisplay');
-    const generateBtn = document.getElementById('generateBtn');
-    const qrContainer = document.getElementById('qrcode');
-    const iterationSlider = document.getElementById('iterationSlider');
-    const iterationNum = document.getElementById('iterationNum');
-    const currentValue = document.getElementById('currentValue');
-    const displayIteration = document.getElementById('displayIteration');
-    const displayValue = document.getElementById('displayValue');
-    const displayDataSize = document.getElementById('displayDataSize');
-    const dataOutput = document.getElementById('dataOutput');
-    const statusMessage = document.getElementById('statusMessage');
-    const nextBtn = document.getElementById('nextBtn');
-    const resetBtn = document.getElementById('resetBtn');
 
-    // Примеры формул
-    document.getElementById('example1Btn').addEventListener('click', () => {
-        formulaInput.value = "x = (x * 9301 + 49297) % 233280";
-        updateFormula();
-    });
+    // Формула восстановления
+    formulaDisplay.textContent = formula;
 
-    document.getElementById('example2Btn').addEventListener('click', () => {
-        formulaInput.value = "x = (x + prev) % 1000000; prev = x - prev";
-        updateFormula();
-    });
-
-    document.getElementById('example3Btn').addEventListener('click', () => {
-        formulaInput.value = "x = x ^ (x << 5) ^ (x >> 3) ^ 0x9e3779b9";
-        updateFormula();
-    });
-
-    // Обновление формулы
-    function updateFormula() {
-        formula = formulaInput.value || "x = x + 1";
-        formulaDisplay.textContent = formula;
-        statusMessage.textContent = '✅ Формула обновлена';
-        setTimeout(() => {
-            statusMessage.textContent = '🔮 Нажмите "Сгенерировать"';
-        }, 1500);
-    }
-
-    formulaInput.addEventListener('change', updateFormula);
-    formulaInput.addEventListener('input', updateFormula);
-
-    // Вычисление следующего значения
-    function computeNext(x) {
+    // ========== ЗАПИСЬ ==========
+    recordBtn.addEventListener('click', async () => {
         try {
-            // Безопасное выполнение формулы
-            const fn = new Function('x', 'prev', 'return ' + formula.replace('x', 'x'));
-            const prev = x;
-            const result = fn(x, prev);
-            return Math.abs(Math.round(result)) || 0;
-        } catch (e) {
-            // Если формула не работает, используем простой инкремент
-            return (x + 1) % 1000000;
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'audio/webm;codecs=opus'
+            });
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+                const url = URL.createObjectURL(audioBlob);
+                audioPlayer.src = url;
+                audioPreview.style.display = 'block';
+                recordingStatus.style.display = 'none';
+                recordBtn.disabled = false;
+                stopRecordBtn.disabled = true;
+                recordBtn.textContent = '🎙️ Записать ещё';
+            };
+
+            mediaRecorder.start();
+            recordingStatus.style.display = 'block';
+            recordBtn.disabled = true;
+            stopRecordBtn.disabled = false;
+            audioPreview.style.display = 'none';
+            qrChainDiv.style.display = 'none';
+            
+        } catch (err) {
+            alert('Ошибка доступа к микрофону: ' + err.message);
         }
-    }
+    });
 
-    // Генерация QR-кода
-    function generateQR(seed, iter) {
-        const data = {
-            seed: seed,
-            iteration: iter,
-            formula: formula,
-            data: `Iteration ${iter}: ${seed}`
+    stopRecordBtn.addEventListener('click', () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
+    });
+
+    // ========== РАЗДЕЛЕНИЕ НА QR-ЦЕПОЧКУ ==========
+    splitBtn.addEventListener('click', async () => {
+        if (!audioBlob) return;
+
+        // Конвертируем аудио в base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target.result.split(',')[1];
+            
+            // Разбиваем на части по 1300 байт (~2 секунды звука в Opus)
+            const chunkSize = 1300;
+            const chunks = [];
+            for (let i = 0; i < base64.length; i += chunkSize) {
+                chunks.push(base64.substring(i, i + chunkSize));
+            }
+
+            // Создаём QR-цепочку с восстановлением
+            qrChain = [];
+            let seed = 12345;
+
+            chunks.forEach((chunk, index) => {
+                // Добавляем метаданные для восстановления
+                const qrData = {
+                    index: index,
+                    total: chunks.length,
+                    seed: seed,
+                    formula: formula,
+                    data: chunk
+                };
+
+                // Вычисляем следующий seed для восстановления
+                seed = (seed * 9301 + 49297) % 233280;
+                qrData.nextSeed = seed;
+
+                qrChain.push(qrData);
+            });
+
+            // Отображаем QR-коды
+            displayQRChain();
+            qrChainDiv.style.display = 'block';
         };
+        reader.readAsDataURL(audioBlob);
+    });
 
-        const json = JSON.stringify(data);
-        const encoded = btoa(unescape(encodeURIComponent(json)));
-
-        // Очищаем старый QR
-        qrContainer.innerHTML = '';
-
-        // Создаём новый QR
-        qrCodeInstance = new QRCode(qrContainer, {
-            text: encoded,
-            width: 200,
-            height: 200,
-            colorDark: '#0b1b33',
-            colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+    // ========== ОТОБРАЖЕНИЕ QR-ЦЕПОЧКИ ==========
+    function displayQRChain() {
+        qrGrid.innerHTML = '';
+        
+        qrChain.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'qr-item';
+            
+            const container = document.createElement('div');
+            const qrData = JSON.stringify({
+                idx: item.index,
+                seed: item.seed,
+                next: item.nextSeed,
+                data: item.data
+            });
+            
+            new QRCode(container, {
+                text: qrData,
+                width: 130,
+                height: 130,
+                colorDark: '#0b1b33',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            
+            div.appendChild(container);
+            
+            const label = document.createElement('div');
+            label.className = 'label';
+            label.textContent = `Часть ${index + 1}/${qrChain.length}`;
+            div.appendChild(label);
+            
+            const badge = document.createElement('div');
+            badge.className = 'status-badge';
+            badge.textContent = `🔗 Восстанавливает #${index + 2}`;
+            if (index === qrChain.length - 1) {
+                badge.textContent = '✅ Последняя часть';
+            }
+            div.appendChild(badge);
+            
+            qrGrid.appendChild(div);
         });
 
-        // Обновляем информацию
-        displayIteration.textContent = iter;
-        displayValue.textContent = seed;
-        displayDataSize.textContent = encoded.length + ' симв.';
-        dataOutput.textContent = JSON.stringify(data, null, 2);
-        
-        // Обновляем слайдер
-        iterationSlider.value = iter;
-        iterationNum.textContent = iter;
-        currentValue.textContent = seed;
-
-        // Добавляем в историю
-        history.push({ seed, iter });
-        if (history.length > 100) history.shift();
-
-        statusMessage.className = 'status success';
-        statusMessage.textContent = `✅ QR-код #${iter} создан!`;
+        // Обновляем прогресс
+        const total = qrChain.length;
+        chainStatus.textContent = `${total} из ${total} частей`;
+        chainPercent.textContent = '100%';
+        chainProgress.style.width = '100%';
     }
 
-    // Генерация на основе текущего состояния
-    function generateFromCurrent() {
-        generateQR(currentSeed, iteration);
-    }
+    // ========== ВОССТАНОВЛЕНИЕ ==========
+    restoreBtn.addEventListener(() => {
+        // Симуляция восстановления
+        let restoredData = '';
+        let seed = 12345;
 
-    // Переход к следующей итерации
-    function nextIteration() {
-        const newSeed = computeNext(currentSeed);
-        currentSeed = newSeed;
-        iteration++;
-        generateQR(currentSeed, iteration);
-    }
-
-    // Сброс
-    function reset() {
-        currentSeed = 12345;
-        iteration = 0;
-        history = [];
-        generateQR(currentSeed, iteration);
-        statusMessage.className = 'status';
-        statusMessage.textContent = '↩️ Сброшено к началу';
-    }
-
-    // Обработчик слайдера
-    iterationSlider.addEventListener('input', (e) => {
-        const target = parseInt(e.target.value);
-        if (target < history.length) {
-            const item = history[target];
-            if (item) {
-                currentSeed = item.seed;
-                iteration = item.iter;
-                generateQR(currentSeed, iteration);
+        qrChain.forEach((item, index) => {
+            // Проверяем, совпадает ли seed
+            if (item.seed !== seed) {
+                // Восстанавливаем через формулу
+                seed = (seed * 9301 + 49297) % 233280;
+                console.log(`🔧 Восстанавливаем часть ${index + 1} через формулу`);
             }
+            
+            restoredData += item.data;
+            seed = item.nextSeed || (seed * 9301 + 49297) % 233280;
+        });
+
+        // Создаём аудио из восстановленных данных
+        try {
+            const binaryString = atob(restoredData);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/webm;codecs=opus' });
+            const url = URL.createObjectURL(blob);
+            restoredPlayer.src = url;
+            restoredAudio.style.display = 'block';
+        } catch (e) {
+            alert('Ошибка восстановления: ' + e.message);
         }
     });
 
-    // События кнопок
-    generateBtn.addEventListener('click', generateFromCurrent);
-    nextBtn.addEventListener('click', nextIteration);
-    resetBtn.addEventListener('click', reset);
+    // ========== СКАЧАТЬ ВСЕ QR ==========
+    downloadAllBtn.addEventListener('click', () => {
+        // Создаём ZIP-архив из QR-кодов (упрощённо)
+        const canvasList = qrGrid.querySelectorAll('canvas');
+        canvasList.forEach((canvas, index) => {
+            const link = document.createElement('a');
+            link.download = `qr_part_${index + 1}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    });
+
+    // ========== ОЧИСТКА ==========
+    clearBtn.addEventListener('click', () => {
+        audioBlob = null;
+        qrChain = [];
+        audioPreview.style.display = 'none';
+        qrChainDiv.style.display = 'none';
+        restoredAudio.style.display = 'none';
+        qrGrid.innerHTML = '';
+        recordBtn.textContent = '🎙️ Записать звук';
+        recordBtn.disabled = false;
+        stopRecordBtn.disabled = true;
+        audioPlayer.src = '';
+    });
 
     // Инициализация
-    generateQR(currentSeed, iteration);
+    stopRecordBtn.disabled = true;
 </script>
 </body>
 </html>
