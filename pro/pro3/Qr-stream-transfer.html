@@ -1,626 +1,624 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR-Stream Transfer v4</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0a0a1a,#1a1a3a,#0f0f2f);min-height:100vh;color:#e0e0ff;padding:16px}
-  .container{max-width:960px;margin:0 auto}
-  h1{text-align:center;font-size:1.7rem;margin-bottom:6px;background:linear-gradient(90deg,#00f2ff,#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .subtitle{text-align:center;color:#667799;margin-bottom:22px;font-size:0.9rem}
-
-  .tabs{display:flex;gap:8px;margin-bottom:20px;background:rgba(255,255,255,0.04);padding:5px;border-radius:16px;backdrop-filter:blur(10px)}
-  .tab-btn{flex:1;padding:13px;border:none;background:transparent;color:#7788aa;font-size:0.95rem;font-weight:700;border-radius:12px;cursor:pointer;transition:all 0.25s}
-  .tab-btn.active{background:linear-gradient(135deg,#00f2ff33,#ff00aa33);color:#fff;box-shadow:0 4px 15px rgba(0,242,255,0.15)}
-
-  .panel{display:none;background:rgba(255,255,255,0.04);border-radius:20px;padding:22px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06)}
-  .panel.active{display:block}
-
-  .section-title{font-size:1.1rem;margin-bottom:12px;color:#00f2ff}
-  textarea,input[type="file"]{width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.25);color:#ddeeff;font-size:0.92rem;margin-bottom:12px;resize:vertical}
-  textarea{min-height:100px}
-  textarea::placeholder{color:#445566}
-
-  .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-  .control-group{background:rgba(0,0,0,0.18);padding:14px;border-radius:12px;text-align:center}
-  .control-group label{display:block;margin-bottom:6px;font-size:0.78rem;color:#8899bb}
-  .control-group input[type="range"]{width:100%;accent-color:#00f2ff}
-  .control-group .value{font-weight:800;color:#00f2ff;margin-top:4px;font-size:0.95rem}
-
-  .btn-row{display:flex;gap:10px;margin-bottom:16px}
-  button{flex:1;padding:13px 20px;border:none;border-radius:12px;font-size:0.95rem;font-weight:800;cursor:pointer;transition:all 0.25s}
-  .btn-primary{background:linear-gradient(135deg,#00f2ff,#0099cc);color:#000;box-shadow:0 4px 18px rgba(0,242,255,0.25)}
-  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,242,255,0.35)}
-  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
-  .btn-danger{background:linear-gradient(135deg,#ff4757,#cc0033);color:#fff;box-shadow:0 4px 18px rgba(255,71,87,0.25)}
-  .btn-danger:hover{transform:translateY(-2px)}
-  .btn-success{background:linear-gradient(135deg,#2ed573,#1e9e52);color:#fff;box-shadow:0 4px 18px rgba(46,213,115,0.25)}
-
-  #qr-canvas{display:block;margin:0 auto;border-radius:16px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,0.5);max-width:100%;border:4px solid #00f2ff44}
-  .qr-info{text-align:center;margin-top:10px;font-size:0.85rem;color:#8899bb}
-  .time-calc{text-align:center;margin-top:8px;font-size:0.85rem;color:#2ed573;font-weight:700}
-
-  #cam-video{width:100%;max-width:520px;display:block;margin:0 auto 16px;border-radius:16px;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.5);border:3px solid #333;transition:border-color 0.15s}
-  #cam-video.scanning{border-color:#00f2ff}
-  #cam-video.caught{border-color:#2ed573}
-
-  .status{text-align:center;padding:12px;border-radius:12px;margin-top:12px;font-weight:700;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.92rem}
-  .status.info{background:rgba(0,242,255,0.08);color:#00f2ff}
-  .status.success{background:rgba(46,213,115,0.1);color:#2ed573}
-  .status.warn{background:rgba(255,193,7,0.1);color:#ffc107}
-  .status.error{background:rgba(255,71,87,0.1);color:#ff4757}
-
-  .live-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-  .stat-box{background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.05)}
-  .stat-box .label{font-size:0.7rem;color:#667799;text-transform:uppercase;letter-spacing:0.5px}
-  .stat-box .val{font-size:1.2rem;font-weight:800;color:#00f2ff;margin-top:4px}
-  .stat-box .val.green{color:#2ed573}
-  .stat-box .val.yellow{color:#ffc107}
-
-  .progress-bar{width:100%;height:28px;background:rgba(0,0,0,0.25);border-radius:14px;overflow:hidden;margin:12px 0;border:1px solid rgba(255,255,255,0.08)}
-  .progress-fill{height:100%;background:linear-gradient(90deg,#00f2ff,#ff00aa);transition:width 0.3s;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.8rem;color:#000;min-width:40px}
-
-  .preview-box{background:rgba(0,0,0,0.2);border-radius:16px;padding:16px;margin-top:14px;border:1px solid rgba(255,255,255,0.06)}
-  .preview-box .prev-title{font-size:0.85rem;color:#8899bb;margin-bottom:10px;font-weight:700}
-  .preview-box img{max-width:100%;border-radius:10px;display:block;margin:0 auto}
-  .preview-box audio,.preview-box video{width:100%;border-radius:10px}
-  .preview-box textarea{width:100%;min-height:120px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;color:#ddeeff;font-size:0.9rem}
-  .preview-box .dl-btn{margin-top:12px;width:100%}
-
-  .log-box{background:rgba(0,0,0,0.25);border-radius:12px;padding:12px;max-height:140px;overflow-y:auto;font-family:'Courier New',monospace;font-size:0.78rem;color:#aabbcc;border:1px solid rgba(255,255,255,0.06);margin-top:10px}
-  .log-box .log-line{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
-  .log-box .log-line.ok{color:#2ed573}
-  .log-box .log-line.warn{color:#ffc107}
-  .log-box .log-line.err{color:#ff4757}
-
-  .file-info{background:rgba(0,242,ff,0.04);padding:10px 14px;border-radius:10px;margin-bottom:12px;border-left:3px solid #00f2ff;font-size:0.88rem;color:#ccddee}
-  .hint{font-size:0.82rem;color:#556677;margin-top:12px;line-height:1.5}
-
-  .pulse-dot{width:10px;height:10px;border-radius:50%;background:#00f2ff;display:inline-block;animation:pulse 1s infinite}
-  @keyframes pulse{0%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:0.4}100%{transform:scale(1);opacity:1}}
-
-  @media(max-width:640px){.controls{grid-template-columns:1fr}.live-stats{grid-template-columns:repeat(2,1fr)}h1{font-size:1.4rem}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR-передатчик файлов</title>
+    <!-- библиотека QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .app-card {
+            max-width: 640px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+            padding: 24px 20px 32px;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: #0b1b33;
+        }
+        h1 small {
+            font-size: 14px;
+            font-weight: 400;
+            color: #4a5a72;
+            margin-left: 6px;
+        }
+        .subhead {
+            color: #3e4e66;
+            margin-bottom: 24px;
+            font-size: 15px;
+            border-left: 4px solid #3b82f6;
+            padding-left: 14px;
+            background: #f0f4fe;
+            border-radius: 0 12px 12px 0;
+            line-height: 1.4;
+        }
+        .section {
+            background: #f8faff;
+            border-radius: 20px;
+            padding: 18px 16px;
+            margin-bottom: 20px;
+            border: 1px solid #e9edf4;
+        }
+        .section-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1e2a44;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .btn {
+            background: white;
+            border: 1px solid #d0d8e6;
+            padding: 10px 18px;
+            border-radius: 60px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #1f2a44;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            flex: 0 1 auto;
+        }
+        .btn-primary {
+            background: #1a2a4a;
+            border: 1px solid #1a2a4a;
+            color: white;
+        }
+        .btn-primary:hover { background: #2b3f64; }
+        .btn-outline { background: transparent; }
+        .btn-success {
+            background: #0f7b3a;
+            border-color: #0f7b3a;
+            color: white;
+        }
+        .btn-success:hover { background: #1a8f48; }
+        .btn:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .file-input-wrap {
+            position: relative;
+            display: inline-block;
+        }
+        .file-input-wrap input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .badge {
+            background: #eef2f9;
+            padding: 6px 14px;
+            border-radius: 60px;
+            font-size: 14px;
+            color: #1f2a44;
+            display: inline-block;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            font-size: 14px;
+            background: #f2f6fd;
+            padding: 12px 14px;
+            border-radius: 16px;
+            margin: 12px 0 4px;
+        }
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 16px 0 8px;
+        }
+        #qrcode {
+            background: white;
+            padding: 12px;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+            display: inline-block;
+        }
+        #qrcode img, #qrcode canvas {
+            display: block;
+            max-width: 220px;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        .qr-progress {
+            width: 100%;
+            margin-top: 16px;
+        }
+        .progress-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 6px 0 12px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #2563eb;
+            border-radius: 12px;
+            transition: width 0.25s;
+        }
+        .sequence-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0 4px;
+        }
+        .footer-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 24px;
+            margin-top: 10px;
+        }
+        .download-btn {
+            background: #0b1b33;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 6px 14px rgba(11,27,51,0.25);
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .download-btn:hover { background: #1f2f4a; transform: scale(1.02); }
+        .hint {
+            font-size: 13px;
+            color: #5b6b84;
+            margin-top: 6px;
+        }
+        .text-mono {
+            font-family: 'SF Mono', 'Menlo', monospace;
+            word-break: break-all;
+            background: #eef2f9;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 13px;
+        }
+        @media (max-width: 480px) {
+            .app-card { padding: 16px; }
+            .flex-row { flex-direction: column; align-items: stretch; }
+            .btn { justify-content: center; }
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-  <h1>📡 QR-Stream Transfer v4</h1>
-  <p class="subtitle">Передача файлов через анимированные QR-коды с мгновенным предпросмотром</p>
+<div class="app-card" id="app">
+    <h1>📦 QR-Transfer <small>сжатие + серии</small></h1>
+    <div class="subhead">⬇️ Уменьши фото/аудио и передай по частям через QR-коды</div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('sender')">📤 Отправитель</button>
-    <button class="tab-btn" onclick="switchTab('receiver')">📥 Получатель</button>
-  </div>
-
-  <!-- ========== ОТПРАВИТЕЛЬ ========== -->
-  <div id="sender-panel" class="panel active">
-    <div class="section-title">Что отправляем?</div>
-    <textarea id="text-input" placeholder="Введите текст... (или выберите файл ниже)"></textarea>
-    <input type="file" id="file-input" onchange="onFileSelected()">
-    <div class="file-info" id="file-info" style="display:none"></div>
-
-    <div class="controls">
-      <div class="control-group">
-        <label>⚡ Скорость (FPS)</label>
-        <input type="range" id="fps" min="1" max="15" value="5" oninput="updateVal('fps-val',this.value+' FPS');calcTime()">
-        <div class="value" id="fps-val">5 FPS</div>
-      </div>
-      <div class="control-group">
-        <label>📦 Размер чанка</label>
-        <input type="range" id="chunk-size" min="100" max="700" step="50" value="400" oninput="updateVal('chunk-val',this.value+' байт');calcTime()">
-        <div class="value" id="chunk-val">400 байт</div>
-      </div>
+    <!-- Блок выбора файла -->
+    <div class="section">
+        <div class="section-title">📁 1. Выберите файл</div>
+        <div class="flex-row">
+            <div class="file-input-wrap">
+                <button class="btn btn-primary">➕ Выбрать</button>
+                <input type="file" id="fileInput" accept="image/*,audio/*">
+            </div>
+            <span class="badge" id="fileName">Файл не выбран</span>
+        </div>
+        <div id="fileInfo" class="info-grid" style="display: none;">
+            <span>📄 Имя: <span id="displayName">—</span></span>
+            <span>📏 Размер: <span id="displaySize">—</span></span>
+            <span>🖼️ Тип: <span id="displayType">—</span></span>
+            <span>⚡ Сжат: <span id="displayCompressed">—</span></span>
+        </div>
     </div>
 
-    <div class="btn-row">
-      <button class="btn-primary" id="btn-start" onclick="startTransfer()">▶ СТАРТ</button>
-      <button class="btn-danger" id="btn-stop" onclick="stopTransfer()" disabled>⏹ СТОП</button>
+    <!-- Блок сжатия и QR -->
+    <div class="section">
+        <div class="section-title">⚙️ 2. Сжатие и QR-последовательность</div>
+        <div class="flex-row">
+            <button class="btn btn-primary" id="compressBtn">⬇️ Сжать и разделить</button>
+            <button class="btn btn-outline" id="clearBtn">🧹 Очистить</button>
+        </div>
+        <div id="statusMessage" style="margin: 12px 0 6px; font-size: 14px; color: #1f3a5f;">👆 Загрузите файл и нажмите "Сжать"</div>
+
+        <!-- QR-код -->
+        <div id="qrArea" style="display: none;">
+            <div class="qr-container">
+                <div id="qrcode"></div>
+                <div style="margin-top: 6px; font-weight: 500;" id="qrIndexLabel">Часть 1 / 1</div>
+            </div>
+            <div class="qr-progress">
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span>Прогресс</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+            <div class="sequence-controls">
+                <button class="btn btn-outline" id="prevBtn">◀ Пред.</button>
+                <button class="btn btn-outline" id="nextBtn">След. ▶</button>
+                <span class="badge" id="chunkCounter">0 / 0</span>
+            </div>
+            <div style="margin-top: 12px; background: #f2f6fd; padding: 8px 14px; border-radius: 40px; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 18px;">
+                <span>📦 Частей: <strong id="totalChunksDisplay">0</strong></span>
+                <span>🧩 Размер части: ~<span id="chunkSizeDisplay">0</span> байт</span>
+            </div>
+        </div>
     </div>
 
-    <div class="time-calc" id="time-calc" style="display:none"></div>
-    <canvas id="qr-canvas" width="400" height="400" style="display:none"></canvas>
-    <div class="qr-info" id="qr-info" style="display:none"></div>
-
-    <div class="status info" id="send-status">
-      <span class="pulse-dot" style="display:none" id="send-pulse"></span>
-      <span id="send-status-text">Выберите файл/текст и нажмите СТАРТ</span>
+    <!-- Действия: скачать приложение -->
+    <div class="footer-actions">
+        <button class="download-btn" id="downloadAppBtn">📲 Скачать приложение (HTML)</button>
     </div>
-
-    <p class="hint">
-      💡 <b>Совет:</b> начинайте с 5 FPS и 400 байт. Если телефон не ловит — уменьшите скорость. 
-      Передача зациклена — можно начать сканировать в любой момент.
-    </p>
-  </div>
-
-  <!-- ========== ПОЛУЧАТЕЛЬ ========== -->
-  <div id="receiver-panel" class="panel">
-    <div class="section-title">Наведите камеру на экран отправителя</div>
-
-    <video id="cam-video" autoplay playsinline muted></video>
-    <canvas id="scan-canvas" style="display:none"></canvas>
-
-    <div class="live-stats" id="live-stats" style="display:none">
-      <div class="stat-box"><div class="label">Кадров/сек</div><div class="val" id="stat-fps">0</div></div>
-      <div class="stat-box"><div class="label">Распознано</div><div class="val green" id="stat-ok">0</div></div>
-      <div class="stat-box"><div class="label">Пропущено</div><div class="val yellow" id="stat-miss">0</div></div>
-      <div class="stat-box"><div class="label">Чанков</div><div class="val" id="stat-chunks">0/0</div></div>
+    <div style="text-align: center; margin-top: 12px; font-size: 13px; color: #6b7d9a;">
+        ⚡ Работает офлайн · Данные не покидают устройство
     </div>
-
-    <div class="progress-bar" id="progress-bar" style="display:none">
-      <div class="progress-fill" id="progress-fill" style="width:0%">0%</div>
-    </div>
-
-    <div class="btn-row">
-      <button class="btn-primary" id="btn-scan" onclick="startScanning()">📷 ВКЛЮЧИТЬ КАМЕРУ</button>
-      <button class="btn-danger" id="btn-stop-scan" onclick="stopScanning()" disabled>⏹ СТОП</button>
-    </div>
-
-    <div class="status info" id="recv-status">
-      <span class="pulse-dot" style="display:none" id="recv-pulse"></span>
-      <span id="recv-status-text">Нажмите «Включить камеру»</span>
-    </div>
-
-    <div class="log-box" id="log-box" style="display:none">
-      <div style="color:#667799;font-size:0.75rem;margin-bottom:6px">📋 Лог:</div>
-      <div id="log-content"></div>
-    </div>
-
-    <!-- ПРЕДПРОСМОТР -->
-    <div class="preview-box" id="preview-box" style="display:none">
-      <div class="prev-title" id="preview-title">📄 Полученный файл</div>
-      <div id="preview-content"></div>
-      <button class="btn-success dl-btn" id="btn-download" style="display:none" onclick="downloadFile()">💾 СКАЧАТЬ ФАЙЛ</button>
-    </div>
-
-    <p class="hint">
-      💡 <b>Как сканировать:</b> держите телефон на 10–20 см. Смотрите на «Распознано» — если растёт, QR видны. 
-      Текст/картинка/аудио появятся сразу после получения. Можно начать в любой момент.
-    </p>
-  </div>
 </div>
 
 <script>
-// ==================== УТИЛИТЫ ====================
-function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById(name+'-panel').classList.add('active');
-}
-function updateVal(id,txt){document.getElementById(id).textContent=txt}
-function simpleHash(data){
-  let h=0;
-  for(let i=0;i<data.length;i++)h=((h<<5)-h+data[i])|0;
-  return(h>>>0).toString(16).padStart(8,'0');
-}
-function arrayToBase64(bytes){
-  let bin='';
-  for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-function base64ToArray(b64){
-  const bin=atob(b64);
-  const bytes=new Uint8Array(bin.length);
-  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-  return bytes;
-}
-function guessMime(name){
-  const ext=name.split('.').pop().toLowerCase();
-  const map={
-    txt:'text/plain',md:'text/plain',json:'application/json',csv:'text/csv',
-    jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',
-    mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4',
-    mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',
-    pdf:'application/pdf',zip:'application/zip',gz:'application/gzip'
-  };
-  return map[ext]||'application/octet-stream';
-}
-function beep(freq=880,dur=80){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const osc=ctx.createOscillator(),gain=ctx.createGain();
-    osc.connect(gain);gain.connect(ctx.destination);
-    osc.frequency.value=freq;
-    gain.gain.setValueAtTime(0.08,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur/1000);
-    osc.start();osc.stop(ctx.currentTime+dur/1000);
-  }catch(e){}
-}
+    (function() {
+        // ---------- состояние ----------
+        let rawFile = null;               // исходный File
+        let compressedData = null;        // Uint8Array (сжатый)
+        let chunks = [];                 // массив строк (base64)
+        let currentChunkIndex = 0;
+        let qrCodeInstance = null;
 
-// ==================== ОТПРАВИТЕЛЬ ====================
-let sendQueue=[];
-let sendInterval=null;
-let sendIdx=0;
-let rawBytes=null;
-let fileName='data.txt';
-let isTextMode=false;
+        // DOM-элементы
+        const fileInput = document.getElementById('fileInput');
+        const fileNameSpan = document.getElementById('fileName');
+        const fileInfoDiv = document.getElementById('fileInfo');
+        const displayName = document.getElementById('displayName');
+        const displaySize = document.getElementById('displaySize');
+        const displayType = document.getElementById('displayType');
+        const displayCompressed = document.getElementById('displayCompressed');
 
-function onFileSelected(){
-  const f=document.getElementById('file-input').files[0];
-  if(f){
-    document.getElementById('file-info').style.display='block';
-    document.getElementById('file-info').innerHTML=`<b>📎</b> ${f.name} &nbsp;|&nbsp; ${(f.size/1024).toFixed(1)} КБ`;
-    document.getElementById('text-input').value='';
-    calcTime();
-  }
-}
-function calcTime(){
-  const f=document.getElementById('file-input').files[0];
-  const text=document.getElementById('text-input').value;
-  const chunkSize=parseInt(document.getElementById('chunk-size').value);
-  const fps=parseInt(document.getElementById('fps').value);
-  let size=0;
-  if(f)size=f.size;
-  else if(text)size=new TextEncoder().encode(text).length;
-  if(size===0){document.getElementById('time-calc').style.display='none';return;}
-  const chunks=Math.ceil(size/chunkSize);
-  const framesPerCycle=chunks+1;
-  const secPerCycle=framesPerCycle/fps;
-  const needCycles=3;
-  const totalSec=secPerCycle*needCycles;
-  const el=document.getElementById('time-calc');
-  el.style.display='block';
-  el.textContent=`⏱ ~${totalSec.toFixed(1)} сек (${chunks} чанков × ${needCycles} цикла @ ${fps} FPS)`;
-}
+        const compressBtn = document.getElementById('compressBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusMsg = document.getElementById('statusMessage');
 
-async function prepareData(){
-  const file=document.getElementById('file-input').files[0];
-  const text=document.getElementById('text-input').value;
-  const chunkSize=parseInt(document.getElementById('chunk-size').value);
+        const qrArea = document.getElementById('qrArea');
+        const qrContainer = document.getElementById('qrcode');
+        const qrIndexLabel = document.getElementById('qrIndexLabel');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const chunkCounter = document.getElementById('chunkCounter');
+        const totalChunksDisplay = document.getElementById('totalChunksDisplay');
+        const chunkSizeDisplay = document.getElementById('chunkSizeDisplay');
 
-  let data;
-  if(file){data=new Uint8Array(await file.arrayBuffer());fileName=file.name;isTextMode=false;}
-  else if(text){data=new TextEncoder().encode(text);fileName='message.txt';isTextMode=true;}
-  else throw new Error('Нет данных');
+        const downloadAppBtn = document.getElementById('downloadAppBtn');
 
-  rawBytes=data;
-  const total=Math.ceil(data.length/chunkSize);
-  const hash=simpleHash(data);
-
-  // Meta БЕЗ mime — чтобы был короче и точно влез в QR
-  const meta=JSON.stringify({v:4,type:'meta',name:fileName,size:data.length,chunks:total,hash:hash,text:isTextMode});
-  const chunks=[];
-  for(let i=0;i<total;i++){
-    const s=i*chunkSize;
-    const e=Math.min(s+chunkSize,data.length);
-    chunks.push(JSON.stringify({v:4,type:'chunk',i:i,t:total,d:arrayToBase64(data.slice(s,e))}));
-  }
-
-  sendQueue=[meta,...chunks];
-  return{total,hash,sizeKB:(data.length/1024).toFixed(1)};
-}
-
-function drawQR(text,canvas){
-  const qr=qrcode(0,'M');
-  qr.addData(text);
-  qr.make();
-  const ctx=canvas.getContext('2d');
-  const size=canvas.width;
-  const mod=qr.getModuleCount();
-  const cell=size/mod;
-  ctx.fillStyle='#ffffff';
-  ctx.fillRect(0,0,size,size);
-  ctx.fillStyle='#000000';
-  for(let r=0;r<mod;r++){
-    for(let c=0;c<mod;c++){
-      if(qr.isDark(r,c))ctx.fillRect(Math.round(c*cell),Math.round(r*cell),Math.ceil(cell),Math.ceil(cell));
-    }
-  }
-  ctx.strokeStyle='#00f2ff';
-  ctx.lineWidth=5;
-  ctx.strokeRect(2,2,size-4,size-4);
-  ctx.fillStyle='#00f2ff';
-  ctx.font='bold 13px monospace';
-  const label=sendIdx===0?'META':`#${sendIdx}`;
-  ctx.fillText(label,10,22);
-}
-
-async function startTransfer(){
-  try{
-    const info=await prepareData();
-    const fps=parseInt(document.getElementById('fps').value);
-    const canvas=document.getElementById('qr-canvas');
-    const statusText=document.getElementById('send-status-text');
-    const pulse=document.getElementById('send-pulse');
-
-    canvas.style.display='block';
-    document.getElementById('qr-info').style.display='block';
-    document.getElementById('btn-start').disabled=true;
-    document.getElementById('btn-stop').disabled=false;
-    pulse.style.display='inline-block';
-
-    sendIdx=0;
-    statusText.textContent=`▶ ${info.total} чанков · ${info.sizeKB} КБ · ${fps} FPS`;
-
-    drawQR(sendQueue[0],canvas);
-    document.getElementById('qr-info').textContent=`Кадр 1 / ${sendQueue.length} (цикл)`;
-
-    sendInterval=setInterval(()=>{
-      sendIdx=(sendIdx+1)%sendQueue.length;
-      drawQR(sendQueue[sendIdx],canvas);
-      document.getElementById('qr-info').textContent=`Кадр ${sendIdx+1} / ${sendQueue.length}`;
-    },1000/fps);
-
-  }catch(e){
-    document.getElementById('send-status-text').textContent='⚠️ '+e.message;
-  }
-}
-function stopTransfer(){
-  if(sendInterval)clearInterval(sendInterval);
-  sendInterval=null;
-  document.getElementById('btn-start').disabled=false;
-  document.getElementById('btn-stop').disabled=true;
-  document.getElementById('send-pulse').style.display='none';
-  document.getElementById('send-status-text').textContent='⏹ Передача остановлена';
-}
-
-// ==================== ПОЛУЧАТЕЛЬ ====================
-let scanTimer=null;
-let recvMeta=null;
-let recvChunks=new Map();
-let recvStream=null;
-let assembledFile=null;
-let scanStats={ok:0,miss:0,frames:0,lastSec:0};
-let lastDecoded='';
-let isAssembled=false;
-
-function addLog(msg,cls=''){
-  const box=document.getElementById('log-content');
-  const line=document.createElement('div');
-  line.className='log-line '+cls;
-  const t=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:2});
-  line.textContent=`[${t}] ${msg}`;
-  box.prepend(line);
-  while(box.children.length>20)box.lastChild.remove();
-}
-
-function showPreview(){
-  if(!assembledFile)return;
-  const box=document.getElementById('preview-box');
-  const content=document.getElementById('preview-content');
-  const title=document.getElementById('preview-title');
-  const dlBtn=document.getElementById('btn-download');
-  box.style.display='block';
-  title.textContent=`📄 ${assembledFile.name} (${(assembledFile.bytes.length/1024).toFixed(1)} КБ)`;
-  // НЕ очищаем content если уже показали — чтобы не мигало
-  if(content.children.length>0)return;
-  content.innerHTML='';
-  dlBtn.style.display='none';
-
-  const mime=guessMime(assembledFile.name);
-
-  if(assembledFile.text||mime.startsWith('text/')||mime==='application/json'||mime==='application/javascript'){
-    const text=new TextDecoder().decode(assembledFile.bytes);
-    const ta=document.createElement('textarea');
-    ta.value=text;
-    ta.spellcheck=false;
-    content.appendChild(ta);
-  }
-  else if(mime.startsWith('image/')){
-    const blob=new Blob([assembledFile.bytes],{type:mime});
-    const url=URL.createObjectURL(blob);
-    const img=document.createElement('img');
-    img.src=url;
-    img.alt=assembledFile.name;
-    content.appendChild(img);
-  }
-  else if(mime.startsWith('audio/')){
-    const blob=new Blob([assembledFile.bytes],{type:mime});
-    const url=URL.createObjectURL(blob);
-    const aud=document.createElement('audio');
-    aud.controls=true;aud.src=url;aud.autoplay=true;
-    content.appendChild(aud);
-  }
-  else if(mime.startsWith('video/')){
-    const blob=new Blob([assembledFile.bytes],{type:mime});
-    const url=URL.createObjectURL(blob);
-    const vid=document.createElement('video');
-    vid.controls=true;vid.src=url;vid.autoplay=true;
-    content.appendChild(vid);
-  }
-  else{
-    dlBtn.style.display='block';
-  }
-}
-
-async function startScanning(){
-  const video=document.getElementById('cam-video');
-  const canvas=document.getElementById('scan-canvas');
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});
-  const statusText=document.getElementById('recv-status-text');
-  const pulse=document.getElementById('recv-pulse');
-
-  try{
-    recvStream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
-    });
-    video.srcObject=recvStream;
-    await video.play();
-
-    document.getElementById('btn-scan').disabled=true;
-    document.getElementById('btn-stop-scan').disabled=false;
-    document.getElementById('progress-bar').style.display='block';
-    document.getElementById('live-stats').style.display='grid';
-    document.getElementById('log-box').style.display='block';
-    document.getElementById('preview-box').style.display='none';
-    document.getElementById('preview-content').innerHTML='';
-    pulse.style.display='inline-block';
-
-    recvMeta=null;recvChunks=new Map();assembledFile=null;
-    scanStats={ok:0,miss:0,frames:0,lastSec:Date.now()};
-    lastDecoded='';isAssembled=false;
-    updateStats();updateProgress();
-    addLog('Камера запущена. Сканируем...','ok');
-    statusText.textContent='🔍 Сканируем... Наведите на QR-коды';
-
-    scanTimer=setInterval(()=>{
-      if(isAssembled)return; // СТОП если уже собрали
-
-      scanStats.frames++;
-      const now=Date.now();
-      if(now-scanStats.lastSec>=1000){
-        document.getElementById('stat-fps').textContent=scanStats.frames;
-        scanStats.frames=0;scanStats.lastSec=now;
-      }
-
-      if(video.readyState<video.HAVE_ENOUGH_DATA){
-        video.classList.remove('scanning','caught');
-        return;
-      }
-
-      canvas.width=video.videoWidth;
-      canvas.height=video.videoHeight;
-      ctx.drawImage(video,0,0,canvas.width,canvas.height);
-      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'dontInvert'});
-
-      if(!code||!code.data){
-        scanStats.miss++;
-        video.classList.remove('caught');
-        video.classList.add('scanning');
-        updateStats();
-        return;
-      }
-
-      // QR пойман!
-      video.classList.remove('scanning');
-      video.classList.add('caught');
-      scanStats.ok++;
-      updateStats();
-
-      // ДЕДУПЛИКАЦИЯ: пропускаем если тот же текст что и в прошлый раз
-      if(code.data===lastDecoded)return;
-      lastDecoded=code.data;
-
-      try{
-        const obj=JSON.parse(code.data);
-        if(obj.v!==4)return;
-
-        if(obj.type==='meta'){
-          if(!recvMeta||recvMeta.hash!==obj.hash){
-            recvMeta=obj;
-            recvChunks=new Map();
-            assembledFile=null;
-            isAssembled=false;
-            updateProgress();
-            statusText.textContent=`📥 ${obj.name} · ${(obj.size/1024).toFixed(1)} КБ · ${obj.chunks} чанков`;
-            addLog(`МЕТА: ${obj.name} (${obj.chunks} чанков) хеш=${obj.hash}`,'ok');
-            beep(520,60);
-            document.getElementById('preview-box').style.display='none';
-            document.getElementById('preview-content').innerHTML='';
-          }
+        // ---------- вспомогательные функции ----------
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
         }
-        else if(obj.type==='chunk'&&recvMeta&&!isAssembled){
-          if(!recvChunks.has(obj.i)){
-            recvChunks.set(obj.i,obj.d);
-            updateProgress();
-            addLog(`Чанк #${obj.i+1}/${obj.t} ✅`,'ok');
-            beep(880,40);
 
-            if(recvChunks.size===recvMeta.chunks){
-              finishReassembly();
+        // сжатие файла через Canvas (для изображений) или AudioContext (для аудио) — упрощённо
+        // В реальности мы используем компрессию через уменьшение качества/разрешения
+        function compressFile(file) {
+            return new Promise((resolve, reject) => {
+                const type = file.type;
+                if (type.startsWith('image/')) {
+                    // сжатие изображения
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            // уменьшаем размер до 800px по ширине/высоте сохраняя пропорции
+                            let w = img.width, h = img.height;
+                            const maxDim = 800;
+                            if (w > maxDim || h > maxDim) {
+                                const ratio = Math.min(maxDim / w, maxDim / h);
+                                w = Math.round(w * ratio);
+                                h = Math.round(h * ratio);
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            // качество 0.6 для JPEG, для PNG конвертируем в JPEG
+                            const mime = 'image/jpeg';
+                            const quality = 0.6;
+                            const dataUrl = canvas.toDataURL(mime, quality);
+                            // dataUrl -> Uint8Array
+                            const base64 = dataUrl.split(',')[1];
+                            const binary = atob(base64);
+                            const arr = new Uint8Array(binary.length);
+                            for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+                            resolve(arr);
+                        };
+                        img.onerror = () => reject(new Error('Не удалось декодировать изображение'));
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = () => reject(new Error('Ошибка чтения файла'));
+                    reader.readAsDataURL(file);
+                } else if (type.startsWith('audio/')) {
+                    // аудио: пробуем сжать через уменьшение битрейта (используем Web Audio API)
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        try {
+                            const arrayBuffer = e.target.result;
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                            // создаём буфер с меньшей частотой (16kHz) и моно
+                            const targetSampleRate = 16000;
+                            const duration = audioBuffer.duration;
+                            const numberOfChannels = 1; // моно
+                            const length = Math.floor(duration * targetSampleRate);
+                            const offlineContext = new OfflineAudioContext(numberOfChannels, length, targetSampleRate);
+                            const bufferSource = offlineContext.createBufferSource();
+                            bufferSource.buffer = audioBuffer;
+                            bufferSource.connect(offlineContext.destination);
+                            bufferSource.start(0);
+                            const renderedBuffer = await offlineContext.startRendering();
+                            // экспорт в WAV (PCM 16bit) — небольшой размер
+                            const wavData = audioBufferToWav(renderedBuffer);
+                            resolve(wavData);
+                        } catch (err) {
+                            reject(new Error('Ошибка сжатия аудио: ' + err.message));
+                        }
+                    };
+                    reader.onerror = () => reject(new Error('Ошибка чтения аудио'));
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    reject(new Error('Неподдерживаемый тип файла. Используйте изображения или аудио.'));
+                }
+            });
+        }
+
+        // конвертация AudioBuffer в WAV (Uint8Array)
+        function audioBufferToWav(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            const length = buffer.length;
+            const data = new Float32Array(length * numChannels);
+            for (let channel = 0; channel < numChannels; channel++) {
+                const channelData = buffer.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    data[i * numChannels + channel] = channelData[i];
+                }
             }
-          }
+            const samples = new Int16Array(length * numChannels);
+            for (let i = 0; i < data.length; i++) {
+                const s = Math.max(-1, Math.min(1, data[i]));
+                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            const bufferLength = 44 + samples.length * 2;
+            const wav = new Uint8Array(bufferLength);
+            // RIFF header
+            const writeString = (offset, str) => {
+                for (let i = 0; i < str.length; i++) wav[offset + i] = str.charCodeAt(i);
+            };
+            writeString(0, 'RIFF');
+            wav[4] = (bufferLength - 8) & 0xff;
+            wav[5] = ((bufferLength - 8) >> 8) & 0xff;
+            wav[6] = ((bufferLength - 8) >> 16) & 0xff;
+            wav[7] = ((bufferLength - 8) >> 24) & 0xff;
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            wav[16] = 16; wav[17] = 0; wav[18] = 0; wav[19] = 0; // chunk size
+            wav[20] = format & 0xff; wav[21] = (format >> 8) & 0xff;
+            wav[22] = numChannels & 0xff; wav[23] = (numChannels >> 8) & 0xff;
+            wav[24] = sampleRate & 0xff; wav[25] = (sampleRate >> 8) & 0xff;
+            wav[26] = (sampleRate >> 16) & 0xff; wav[27] = (sampleRate >> 24) & 0xff;
+            const byteRate = sampleRate * numChannels * (bitDepth / 8);
+            wav[28] = byteRate & 0xff; wav[29] = (byteRate >> 8) & 0xff;
+            wav[30] = (byteRate >> 16) & 0xff; wav[31] = (byteRate >> 24) & 0xff;
+            const blockAlign = numChannels * (bitDepth / 8);
+            wav[32] = blockAlign & 0xff; wav[33] = (blockAlign >> 8) & 0xff;
+            wav[34] = bitDepth & 0xff; wav[35] = (bitDepth >> 8) & 0xff;
+            writeString(36, 'data');
+            wav[40] = (samples.length * 2) & 0xff;
+            wav[41] = ((samples.length * 2) >> 8) & 0xff;
+            wav[42] = ((samples.length * 2) >> 16) & 0xff;
+            wav[43] = ((samples.length * 2) >> 24) & 0xff;
+            for (let i = 0; i < samples.length; i++) {
+                const index = 44 + i * 2;
+                const val = samples[i];
+                wav[index] = val & 0xff;
+                wav[index + 1] = (val >> 8) & 0xff;
+            }
+            return wav;
         }
-      }catch(e){
-        // Не наш формат — игнорируем
-      }
-    },60);
 
-  }catch(err){
-    statusText.textContent='⚠️ '+err.message;
-    addLog('ОШИБКА: '+err.message,'err');
-  }
-}
+        // разбиение на чанки (макс. 1400 байт на чанк для QR-совместимости)
+        function splitIntoChunks(data, chunkSize = 1300) {
+            const chunks = [];
+            for (let i = 0; i < data.length; i += chunkSize) {
+                chunks.push(data.slice(i, i + chunkSize));
+            }
+            return chunks;
+        }
 
-function updateStats(){
-  document.getElementById('stat-ok').textContent=scanStats.ok;
-  document.getElementById('stat-miss').textContent=scanStats.miss;
-  if(recvMeta){
-    document.getElementById('stat-chunks').textContent=recvChunks.size+'/'+recvMeta.chunks;
-  }else{
-    document.getElementById('stat-chunks').textContent='0/0';
-  }
-}
-function updateProgress(){
-  if(!recvMeta){
-    document.getElementById('progress-fill').style.width='0%';
-    document.getElementById('progress-fill').textContent='0%';
-    return;
-  }
-  const pct=Math.round((recvChunks.size/recvMeta.chunks)*100);
-  document.getElementById('progress-fill').style.width=pct+'%';
-  document.getElementById('progress-fill').textContent=pct+'%';
-}
+        // Обновить QR-дисплей
+        function updateQR() {
+            if (!chunks.length) {
+                qrArea.style.display = 'none';
+                return;
+            }
+            qrArea.style.display = 'block';
+            const chunk = chunks[currentChunkIndex] || '';
+            // очищаем старый QR
+            qrContainer.innerHTML = '';
+            if (chunk) {
+                qrCodeInstance = new QRCode(qrContainer, {
+                    text: chunk,
+                    width: 220,
+                    height: 220,
+                    colorDark: '#0b1b33',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            }
+            // индексы
+            const total = chunks.length;
+            qrIndexLabel.textContent = `Часть ${currentChunkIndex + 1} / ${total}`;
+            chunkCounter.textContent = `${currentChunkIndex + 1} / ${total}`;
+            totalChunksDisplay.textContent = total;
+            const chunkSize = chunk ? chunk.length : 0;
+            chunkSizeDisplay.textContent = chunkSize;
 
-function finishReassembly(){
-  const statusText=document.getElementById('recv-status-text');
-  try{
-    const parts=[];
-    for(let i=0;i<recvMeta.chunks;i++)parts.push(recvChunks.get(i));
-    let bytes;
-    try{
-      bytes=base64ToArray(parts.join(''));
-    }catch(e){
-      addLog('Ошибка base64: '+e.message,'err');
-      statusText.textContent='⚠️ Поврежденные данные, продолжаем...';
-      recvChunks=new Map();
-      updateProgress();
-      return;
-    }
-    const hash=simpleHash(bytes);
-    if(hash!==recvMeta.hash){
-      addLog(`Хеш НЕ совпал! Ожидал: ${recvMeta.hash}, Получил: ${hash}`,'warn');
-      statusText.textContent='⚠️ Хеш не совпал. Повторное сканирование...';
-      beep(220,200);
-      recvChunks=new Map();
-      updateProgress();
-      return;
-    }
-    // УСПЕХ!
-    isAssembled=true;
-    assembledFile={bytes,name:recvMeta.name,text:recvMeta.text};
-    statusText.textContent='✅ ГОТОВО! Файл получен.';
-    addLog(`✅ УСПЕХ! Хеш совпал: ${hash}`,'ok');
-    beep(1100,100);setTimeout(()=>beep(1320,100),120);
-    showPreview();
-    stopScanning();
-  }catch(e){
-    statusText.textContent='⚠️ Ошибка сборки';
-    addLog('Ошибка: '+e.message,'err');
-  }
-}
+            // прогресс
+            const progress = total > 0 ? ((currentChunkIndex + 1) / total * 100) : 0;
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
 
-function downloadFile(){
-  if(!assembledFile)return;
-  const blob=new Blob([assembledFile.bytes]);
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=assembledFile.name;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  addLog('Скачано: '+assembledFile.name,'ok');
-}
+            prevBtn.disabled = currentChunkIndex === 0;
+            nextBtn.disabled = currentChunkIndex === total - 1;
+        }
 
-function stopScanning(){
-  if(scanTimer)clearInterval(scanTimer);
-  scanTimer=null;
-  const video=document.getElementById('cam-video');
-  if(recvStream){recvStream.getTracks().forEach(t=>t.stop());recvStream=null;}
-  video.srcObject=null;
-  video.classList.remove('scanning','caught');
-  document.getElementById('btn-scan').disabled=false;
-  document.getElementById('btn-stop-scan').disabled=true;
-  document.getElementById('recv-pulse').style.display='none';
-  const st=document.getElementById('recv-status-text');
-  if(!isAssembled){
-    st.textContent=`⏹ Остановлено. Поймано ${recvChunks.size} из ${recvMeta?recvMeta.chunks:'?'} чанков`;
-  }
-}
+        // Обработка файла: сжатие + разделение
+        async function handleCompress() {
+            if (!rawFile) {
+                statusMsg.textContent = '⚠️ Сначала выберите файл.';
+                return;
+            }
+            statusMsg.textContent = '⏳ Сжатие и разделение...';
+            compressBtn.disabled = true;
+
+            try {
+                const compressed = await compressFile(rawFile);
+                compressedData = compressed;
+                // разбиваем на чанки (макс 1300 байт)
+                chunks = splitIntoChunks(compressed, 1300);
+                if (chunks.length === 0) {
+                    throw new Error('Файл слишком мал или пуст');
+                }
+                // все чанки преобразуем в base64 (строки)
+                chunks = chunks.map(chunk => {
+                    let binary = '';
+                    for (let i = 0; i < chunk.length; i++) binary += String.fromCharCode(chunk[i]);
+                    return btoa(binary);
+                });
+
+                currentChunkIndex = 0;
+                updateQR();
+
+                // отобразить сжатый размер
+                const originalSize = rawFile.size;
+                const compressedSize = compressed.length;
+                displayCompressed.textContent = formatSize(compressedSize) + ` (${Math.round((compressedSize/originalSize)*100)}%)`;
+                statusMsg.textContent = `✅ Готово! ${chunks.length} частей.`;
+            } catch (err) {
+                statusMsg.textContent = '❌ Ошибка: ' + err.message;
+                console.error(err);
+            } finally {
+                compressBtn.disabled = false;
+            }
+        }
+
+        // ---------- обработчики ----------
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            rawFile = file;
+            fileNameSpan.textContent = file.name;
+            fileInfoDiv.style.display = 'grid';
+            displayName.textContent = file.name;
+            displaySize.textContent = formatSize(file.size);
+            displayType.textContent = file.type || 'неизвестно';
+            displayCompressed.textContent = '—';
+            // сброс QR
+            chunks = [];
+            currentChunkIndex = 0;
+            qrArea.style.display = 'none';
+            statusMsg.textContent = '📎 Файл загружен. Нажмите "Сжать"';
+        });
+
+        compressBtn.addEventListener('click', handleCompress);
+
+        clearBtn.addEventListener('click', () => {
+            rawFile = null;
+            compressedData = null;
+            chunks = [];
+            currentChunkIndex = 0;
+            fileInput.value = '';
+            fileNameSpan.textContent = 'Файл не выбран';
+            fileInfoDiv.style.display = 'none';
+            qrArea.style.display = 'none';
+            statusMsg.textContent = '🧹 Очищено. Выберите файл.';
+            displayCompressed.textContent = '—';
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentChunkIndex > 0) {
+                currentChunkIndex--;
+                updateQR();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentChunkIndex < chunks.length - 1) {
+                currentChunkIndex++;
+                updateQR();
+            }
+        });
+
+        // Скачать это приложение (HTML)
+        downloadAppBtn.addEventListener('click', () => {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'QR-TransferApp.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // начальное состояние
+        updateQR();
+    })();
 </script>
 </body>
 </html>
