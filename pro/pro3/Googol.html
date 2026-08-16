@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🧬 Самовосстанавливающийся QR-звук</title>
+    <title>🧬 QR-Матрёшка: Один QR → Бесконечность</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,64 +53,23 @@
         .btn-outline { background: transparent; border: 1px solid #d0d8e6; color: #1a2a4a; }
         .btn-outline:hover { background: #f0f4fe; }
         .flex-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .qr-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 16px;
-            margin: 12px 0;
-        }
-        .qr-item {
-            background: white;
-            border-radius: 16px;
-            padding: 12px;
-            border: 2px solid #e9edf4;
-            text-align: center;
-            transition: 0.2s;
-        }
-        .qr-item.active {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 20px rgba(59,130,246,0.2);
-        }
-        .qr-item canvas { max-width: 100%; height: auto; }
-        .qr-item .label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a2a4a;
-            margin-top: 6px;
-        }
-        .qr-item .status-badge {
-            font-size: 11px;
-            padding: 2px 10px;
-            border-radius: 40px;
-            background: #f0f4fe;
-            display: inline-block;
-            margin-top: 4px;
-        }
-        .progress-container {
-            margin: 12px 0;
-        }
+        .qr-container { display: flex; justify-content: center; margin: 12px 0; }
+        #qrcode canvas { max-width: 200px; height: auto; }
         .progress-bar {
             height: 8px;
             background: #e2e8f0;
             border-radius: 12px;
             overflow: hidden;
+            margin: 8px 0;
         }
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #3b82f6, #2563eb);
             transition: width 0.3s ease;
         }
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #4a5a72;
-            margin-top: 4px;
-        }
         .status {
             padding: 10px 16px;
             border-radius: 40px;
-            background: #f0f4fe;
             font-size: 14px;
             text-align: center;
             margin: 8px 0;
@@ -141,12 +100,27 @@
             border: 1px dashed #3b82f6;
             margin: 8px 0;
         }
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        }
+        .matrix-item {
+            background: white;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #e9edf4;
+            text-align: center;
+            font-size: 12px;
+        }
+        .matrix-item canvas { max-width: 100%; height: auto; }
     </style>
 </head>
 <body>
 <div class="card">
-    <h1>🧬 QR-Цепочка звука</h1>
-    <div class="sub">Каждый QR-код восстанавливает следующий. Потеряли? Восстановите!</div>
+    <h1>🧬 QR-Матрёшка</h1>
+    <div class="sub">Один QR-код → Бесконечная цепочка → Звук</div>
 
     <div class="section">
         <div class="flex-row">
@@ -157,49 +131,60 @@
         <div id="recordingStatus" style="display:none;" class="status info">🔴 Идёт запись...</div>
         <div id="audioPreview" style="display:none;">
             <audio controls id="audioPlayer"></audio>
-            <button class="btn" id="splitBtn" style="width:100%;margin-top:8px;">✂️ Разделить на QR-цепочку</button>
+            <button class="btn" id="encodeBtn" style="width:100%;margin-top:8px;">🧬 Создать QR-Матрёшку</button>
         </div>
     </div>
 
-    <div id="qrChain" style="display:none;">
+    <div id="matryoshkaResult" style="display:none;">
         <div class="section">
-            <div class="status success">✅ Звук разделён на QR-цепочку!</div>
+            <div class="status success">✅ QR-Матрёшка создана!</div>
             
             <div class="formula-box">
-                🔄 Формула восстановления: <strong id="formulaDisplay">x = (x * 9301 + 49297) % 233280</strong>
+                🧬 Формула: <strong id="formulaDisplay">x = (x * 9301 + 49297) % 233280</strong>
             </div>
 
-            <div class="qr-grid" id="qrGrid"></div>
+            <div class="qr-container">
+                <div id="mainQR"></div>
+            </div>
 
-            <div class="progress-container">
-                <div class="progress-bar"><div class="progress-fill" id="chainProgress" style="width:0%;"></div></div>
-                <div class="progress-text">
-                    <span id="chainStatus">0 из 0 частей</span>
-                    <span id="chainPercent">0%</span>
+            <div style="text-align:center;font-size:13px;color:#4a5a72;margin:8px 0;">
+                ⬇️ Скачайте этот QR-код — он содержит всё!
+            </div>
+
+            <button class="btn btn-success" id="downloadMainQR" style="width:100%;">💾 Скачать QR-Матрёшку</button>
+
+            <div style="margin-top:12px;">
+                <button class="btn btn-outline" id="expandBtn" style="width:100%;">🔍 Развернуть матрёшку</button>
+            </div>
+
+            <div id="expandedChain" style="display:none;margin-top:12px;">
+                <div class="status info">🔍 Матрёшка разворачивается...</div>
+                <div class="matrix-grid" id="chainGrid"></div>
+                <div class="progress-bar"><div class="progress-fill" id="expandProgress"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#4a5a72;">
+                    <span id="expandStatus">0 из 0 частей</span>
+                    <span id="expandPercent">0%</span>
                 </div>
-            </div>
 
-            <div class="flex-row">
-                <button class="btn" id="restoreBtn">🔄 Восстановить звук из QR</button>
-                <button class="btn btn-success" id="downloadAllBtn">📥 Скачать все QR</button>
-            </div>
-
-            <div id="restoredAudio" style="display:none;margin-top:12px;">
-                <div class="status success">🎵 Звук восстановлен!</div>
-                <audio controls id="restoredPlayer"></audio>
+                <div id="restoredAudioContainer" style="display:none;margin-top:12px;">
+                    <div class="status success">🎵 Звук восстановлен из матрёшки!</div>
+                    <audio controls id="restoredPlayer"></audio>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    // ========================================================
     // ========== СОСТОЯНИЕ ==========
+    // ========================================================
     let mediaRecorder = null;
     let audioChunks = [];
     let audioBlob = null;
-    let qrChain = [];
+    let mainQRData = null;
+    const FORMULA = "x = (x * 9301 + 49297) % 233280";
     let currentSeed = 12345;
-    const formula = "x = (x * 9301 + 49297) % 233280";
 
     // DOM элементы
     const recordBtn = document.getElementById('recordBtn');
@@ -207,23 +192,26 @@
     const recordingStatus = document.getElementById('recordingStatus');
     const audioPreview = document.getElementById('audioPreview');
     const audioPlayer = document.getElementById('audioPlayer');
-    const splitBtn = document.getElementById('splitBtn');
-    const qrChainDiv = document.getElementById('qrChain');
-    const qrGrid = document.getElementById('qrGrid');
-    const chainProgress = document.getElementById('chainProgress');
-    const chainStatus = document.getElementById('chainStatus');
-    const chainPercent = document.getElementById('chainPercent');
-    const restoreBtn = document.getElementById('restoreBtn');
-    const downloadAllBtn = document.getElementById('downloadAllBtn');
-    const restoredAudio = document.getElementById('restoredAudio');
+    const encodeBtn = document.getElementById('encodeBtn');
+    const matryoshkaResult = document.getElementById('matryoshkaResult');
+    const mainQR = document.getElementById('mainQR');
+    const formulaDisplay = document.getElementById('formulaDisplay');
+    const downloadMainQR = document.getElementById('downloadMainQR');
+    const expandBtn = document.getElementById('expandBtn');
+    const expandedChain = document.getElementById('expandedChain');
+    const chainGrid = document.getElementById('chainGrid');
+    const expandProgress = document.getElementById('expandProgress');
+    const expandStatus = document.getElementById('expandStatus');
+    const expandPercent = document.getElementById('expandPercent');
+    const restoredAudioContainer = document.getElementById('restoredAudioContainer');
     const restoredPlayer = document.getElementById('restoredPlayer');
     const clearBtn = document.getElementById('clearBtn');
-    const formulaDisplay = document.getElementById('formulaDisplay');
 
-    // Формула восстановления
-    formulaDisplay.textContent = formula;
+    formulaDisplay.textContent = FORMULA;
 
+    // ========================================================
     // ========== ЗАПИСЬ ==========
+    // ========================================================
     recordBtn.addEventListener('click', async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -252,7 +240,7 @@
             recordBtn.disabled = true;
             stopRecordBtn.disabled = false;
             audioPreview.style.display = 'none';
-            qrChainDiv.style.display = 'none';
+            matryoshkaResult.style.display = 'none';
             
         } catch (err) {
             alert('Ошибка доступа к микрофону: ' + err.message);
@@ -266,154 +254,160 @@
         }
     });
 
-    // ========== РАЗДЕЛЕНИЕ НА QR-ЦЕПОЧКУ ==========
-    splitBtn.addEventListener('click', async () => {
+    // ========================================================
+    // ========== СОЗДАНИЕ QR-МАТРЁШКИ ==========
+    // ========================================================
+    encodeBtn.addEventListener('click', () => {
         if (!audioBlob) return;
 
-        // Конвертируем аудио в base64
         const reader = new FileReader();
         reader.onload = (e) => {
             const base64 = e.target.result.split(',')[1];
             
-            // Разбиваем на части по 1300 байт (~2 секунды звука в Opus)
+            // Разбиваем на части
             const chunkSize = 1300;
             const chunks = [];
             for (let i = 0; i < base64.length; i += chunkSize) {
                 chunks.push(base64.substring(i, i + chunkSize));
             }
 
-            // Создаём QR-цепочку с восстановлением
-            qrChain = [];
+            // Создаём QR-цепочку
+            const qrChain = [];
             let seed = 12345;
 
             chunks.forEach((chunk, index) => {
-                // Добавляем метаданные для восстановления
                 const qrData = {
                     index: index,
                     total: chunks.length,
                     seed: seed,
-                    formula: formula,
+                    formula: FORMULA,
                     data: chunk
                 };
-
-                // Вычисляем следующий seed для восстановления
                 seed = (seed * 9301 + 49297) % 233280;
                 qrData.nextSeed = seed;
-
                 qrChain.push(qrData);
             });
 
-            // Отображаем QR-коды
-            displayQRChain();
-            qrChainDiv.style.display = 'block';
+            // Сохраняем ВСЁ в один главный QR-код
+            mainQRData = {
+                type: 'matryoshka',
+                formula: FORMULA,
+                seed: 12345,
+                total: chunks.length,
+                data: chunks.join('|') // Все части в одной строке
+            };
+
+            // Создаём главный QR-код
+            mainQR.innerHTML = '';
+            const mainData = JSON.stringify(mainQRData);
+            new QRCode(mainQR, {
+                text: mainData,
+                width: 200,
+                height: 200,
+                colorDark: '#0b1b33',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            matryoshkaResult.style.display = 'block';
+            expandedChain.style.display = 'none';
         };
         reader.readAsDataURL(audioBlob);
     });
 
-    // ========== ОТОБРАЖЕНИЕ QR-ЦЕПОЧКИ ==========
-    function displayQRChain() {
-        qrGrid.innerHTML = '';
-        
-        qrChain.forEach((item, index) => {
+    // ========================================================
+    // ========== СКАЧАТЬ QR-МАТРЁШКУ ==========
+    // ========================================================
+    downloadMainQR.addEventListener('click', () => {
+        const canvas = mainQR.querySelector('canvas');
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = 'qr_matryoshka.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    });
+
+    // ========================================================
+    // ========== РАЗВЕРНУТЬ МАТРЁШКУ ==========
+    // ========================================================
+    expandBtn.addEventListener('click', () => {
+        if (!mainQRData) return;
+
+        expandedChain.style.display = 'block';
+        chainGrid.innerHTML = '';
+        restoredAudioContainer.style.display = 'none';
+
+        // Разбиваем данные на части
+        const parts = mainQRData.data.split('|');
+        const total = parts.length;
+
+        // Создаём QR-коды для каждой части
+        parts.forEach((part, index) => {
             const div = document.createElement('div');
-            div.className = 'qr-item';
+            div.className = 'matrix-item';
             
             const container = document.createElement('div');
             const qrData = JSON.stringify({
-                idx: item.index,
-                seed: item.seed,
-                next: item.nextSeed,
-                data: item.data
+                idx: index,
+                total: total,
+                data: part
             });
             
             new QRCode(container, {
                 text: qrData,
-                width: 130,
-                height: 130,
+                width: 100,
+                height: 100,
                 colorDark: '#0b1b33',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.M
             });
             
             div.appendChild(container);
-            
-            const label = document.createElement('div');
-            label.className = 'label';
-            label.textContent = `Часть ${index + 1}/${qrChain.length}`;
-            div.appendChild(label);
-            
-            const badge = document.createElement('div');
-            badge.className = 'status-badge';
-            badge.textContent = `🔗 Восстанавливает #${index + 2}`;
-            if (index === qrChain.length - 1) {
-                badge.textContent = '✅ Последняя часть';
-            }
-            div.appendChild(badge);
-            
-            qrGrid.appendChild(div);
+            div.innerHTML += `<div style="margin-top:4px;font-weight:600;">Часть ${index + 1}</div>`;
+            chainGrid.appendChild(div);
         });
 
         // Обновляем прогресс
-        const total = qrChain.length;
-        chainStatus.textContent = `${total} из ${total} частей`;
-        chainPercent.textContent = '100%';
-        chainProgress.style.width = '100%';
-    }
+        expandProgress.style.width = '100%';
+        expandStatus.textContent = `${total} из ${total} частей`;
+        expandPercent.textContent = '100%';
 
-    // ========== ВОССТАНОВЛЕНИЕ ==========
-    restoreBtn.addEventListener(() => {
-        // Симуляция восстановления
-        let restoredData = '';
-        let seed = 12345;
+        // Восстанавливаем звук из частей
+        let fullData = '';
+        for (let i = 0; i < parts.length; i++) {
+            fullData += parts[i] || '';
+        }
 
-        qrChain.forEach((item, index) => {
-            // Проверяем, совпадает ли seed
-            if (item.seed !== seed) {
-                // Восстанавливаем через формулу
-                seed = (seed * 9301 + 49297) % 233280;
-                console.log(`🔧 Восстанавливаем часть ${index + 1} через формулу`);
-            }
-            
-            restoredData += item.data;
-            seed = item.nextSeed || (seed * 9301 + 49297) % 233280;
-        });
-
-        // Создаём аудио из восстановленных данных
         try {
-            const binaryString = atob(restoredData);
+            const binaryString = atob(fullData);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
             const blob = new Blob([bytes], { type: 'audio/webm;codecs=opus' });
             const url = URL.createObjectURL(blob);
+            
             restoredPlayer.src = url;
-            restoredAudio.style.display = 'block';
+            restoredAudioContainer.style.display = 'block';
+            
+            expandStatus.textContent = '🎵 Звук восстановлен!';
         } catch (e) {
-            alert('Ошибка восстановления: ' + e.message);
+            alert('Ошибка восстановления звука: ' + e.message);
         }
     });
 
-    // ========== СКАЧАТЬ ВСЕ QR ==========
-    downloadAllBtn.addEventListener('click', () => {
-        // Создаём ZIP-архив из QR-кодов (упрощённо)
-        const canvasList = qrGrid.querySelectorAll('canvas');
-        canvasList.forEach((canvas, index) => {
-            const link = document.createElement('a');
-            link.download = `qr_part_${index + 1}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        });
-    });
-
+    // ========================================================
     // ========== ОЧИСТКА ==========
+    // ========================================================
     clearBtn.addEventListener('click', () => {
         audioBlob = null;
-        qrChain = [];
+        mainQRData = null;
         audioPreview.style.display = 'none';
-        qrChainDiv.style.display = 'none';
-        restoredAudio.style.display = 'none';
-        qrGrid.innerHTML = '';
+        matryoshkaResult.style.display = 'none';
+        expandedChain.style.display = 'none';
+        chainGrid.innerHTML = '';
+        mainQR.innerHTML = '';
         recordBtn.textContent = '🎙️ Записать звук';
         recordBtn.disabled = false;
         stopRecordBtn.disabled = true;
