@@ -3,192 +3,97 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR-Stream Transfer v2</title>
+<title>QR-Stream Transfer v3</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: linear-gradient(135deg, #0a0a1a, #1a1a3a, #0f0f2f);
-    min-height: 100vh;
-    color: #e0e0ff;
-    padding: 16px;
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:linear-gradient(135deg,#0a0a1a,#1a1a3a,#0f0f2f);
+    min-height:100vh;color:#e0e0ff;padding:16px;
   }
-  .container { max-width: 960px; margin: 0 auto; }
-  h1 {
-    text-align: center;
-    font-size: 1.7rem;
-    margin-bottom: 6px;
-    background: linear-gradient(90deg, #00f2ff, #ff00aa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .subtitle { text-align: center; color: #667799; margin-bottom: 22px; font-size: 0.9rem; }
+  .container{max-width:960px;margin:0 auto}
+  h1{text-align:center;font-size:1.7rem;margin-bottom:6px;background:linear-gradient(90deg,#00f2ff,#ff00aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .subtitle{text-align:center;color:#667799;margin-bottom:22px;font-size:0.9rem}
 
-  .tabs {
-    display: flex; gap: 8px; margin-bottom: 20px;
-    background: rgba(255,255,255,0.04);
-    padding: 5px; border-radius: 16px;
-    backdrop-filter: blur(10px);
-  }
-  .tab-btn {
-    flex: 1; padding: 13px; border: none; background: transparent;
-    color: #7788aa; font-size: 0.95rem; font-weight: 700;
-    border-radius: 12px; cursor: pointer; transition: all 0.25s;
-  }
-  .tab-btn.active {
-    background: linear-gradient(135deg, #00f2ff33, #ff00aa33);
-    color: #fff; box-shadow: 0 4px 15px rgba(0,242,255,0.15);
-  }
+  .tabs{display:flex;gap:8px;margin-bottom:20px;background:rgba(255,255,255,0.04);padding:5px;border-radius:16px;backdrop-filter:blur(10px)}
+  .tab-btn{flex:1;padding:13px;border:none;background:transparent;color:#7788aa;font-size:0.95rem;font-weight:700;border-radius:12px;cursor:pointer;transition:all 0.25s}
+  .tab-btn.active{background:linear-gradient(135deg,#00f2ff33,#ff00aa33);color:#fff;box-shadow:0 4px 15px rgba(0,242,255,0.15)}
 
-  .panel {
-    display: none;
-    background: rgba(255,255,255,0.04);
-    border-radius: 20px; padding: 22px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-  .panel.active { display: block; }
+  .panel{display:none;background:rgba(255,255,255,0.04);border-radius:20px;padding:22px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06)}
+  .panel.active{display:block}
 
-  .section-title { font-size: 1.1rem; margin-bottom: 12px; color: #00f2ff; }
-  textarea, input[type="file"] {
-    width: 100%; padding: 13px; border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(0,0,0,0.25); color: #ddeeff;
-    font-size: 0.92rem; margin-bottom: 12px; resize: vertical;
-  }
-  textarea { min-height: 100px; }
-  textarea::placeholder { color: #445566; }
+  .section-title{font-size:1.1rem;margin-bottom:12px;color:#00f2ff}
+  textarea,input[type="file"]{width:100%;padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.25);color:#ddeeff;font-size:0.92rem;margin-bottom:12px;resize:vertical}
+  textarea{min-height:100px}
+  textarea::placeholder{color:#445566}
 
-  .controls {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;
-  }
-  .control-group {
-    background: rgba(0,0,0,0.18); padding: 14px; border-radius: 12px;
-    text-align: center;
-  }
-  .control-group label { display: block; margin-bottom: 6px; font-size: 0.78rem; color: #8899bb; }
-  .control-group input[type="range"] { width: 100%; accent-color: #00f2ff; }
-  .control-group .value { font-weight: 800; color: #00f2ff; margin-top: 4px; font-size: 0.95rem; }
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .control-group{background:rgba(0,0,0,0.18);padding:14px;border-radius:12px;text-align:center}
+  .control-group label{display:block;margin-bottom:6px;font-size:0.78rem;color:#8899bb}
+  .control-group input[type="range"]{width:100%;accent-color:#00f2ff}
+  .control-group .value{font-weight:800;color:#00f2ff;margin-top:4px;font-size:0.95rem}
 
-  .btn-row { display: flex; gap: 10px; margin-bottom: 16px; }
-  button {
-    flex: 1; padding: 13px 20px; border: none; border-radius: 12px;
-    font-size: 0.95rem; font-weight: 800; cursor: pointer; transition: all 0.25s;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #00f2ff, #0099cc); color: #000;
-    box-shadow: 0 4px 18px rgba(0,242,255,0.25);
-  }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,242,255,0.35); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .btn-danger {
-    background: linear-gradient(135deg, #ff4757, #cc0033); color: #fff;
-    box-shadow: 0 4px 18px rgba(255,71,87,0.25);
-  }
-  .btn-danger:hover { transform: translateY(-2px); }
-  .btn-success {
-    background: linear-gradient(135deg, #2ed573, #1e9e52); color: #fff;
-    box-shadow: 0 4px 18px rgba(46,213,115,0.25);
-  }
+  .btn-row{display:flex;gap:10px;margin-bottom:16px}
+  button{flex:1;padding:13px 20px;border:none;border-radius:12px;font-size:0.95rem;font-weight:800;cursor:pointer;transition:all 0.25s}
+  .btn-primary{background:linear-gradient(135deg,#00f2ff,#0099cc);color:#000;box-shadow:0 4px 18px rgba(0,242,255,0.25)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,242,255,0.35)}
+  .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+  .btn-danger{background:linear-gradient(135deg,#ff4757,#cc0033);color:#fff;box-shadow:0 4px 18px rgba(255,71,87,0.25)}
+  .btn-danger:hover{transform:translateY(-2px)}
+  .btn-success{background:linear-gradient(135deg,#2ed573,#1e9e52);color:#fff;box-shadow:0 4px 18px rgba(46,213,115,0.25)}
 
-  #qr-canvas {
-    display: block; margin: 0 auto; border-radius: 16px;
-    background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    max-width: 100%; border: 4px solid #00f2ff44;
-  }
-  .qr-info {
-    text-align: center; margin-top: 10px; font-size: 0.85rem; color: #8899bb;
-  }
+  #qr-canvas{display:block;margin:0 auto;border-radius:16px;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,0.5);max-width:100%;border:4px solid #00f2ff44}
+  .qr-info{text-align:center;margin-top:10px;font-size:0.85rem;color:#8899bb}
+  .time-calc{text-align:center;margin-top:8px;font-size:0.85rem;color:#2ed573;font-weight:700}
 
-  #cam-video {
-    width: 100%; max-width: 520px; display: block; margin: 0 auto 16px;
-    border-radius: 16px; background: #000;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    border: 3px solid #333;
-    transition: border-color 0.15s;
-  }
-  #cam-video.scanning { border-color: #00f2ff; }
-  #cam-video.caught { border-color: #2ed573; }
+  #cam-video{width:100%;max-width:520px;display:block;margin:0 auto 16px;border-radius:16px;background:#000;box-shadow:0 10px 40px rgba(0,0,0,0.5);border:3px solid #333;transition:border-color 0.15s}
+  #cam-video.scanning{border-color:#00f2ff}
+  #cam-video.caught{border-color:#2ed573}
 
-  .status {
-    text-align: center; padding: 12px; border-radius: 12px;
-    margin-top: 12px; font-weight: 700; min-height: 44px;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    font-size: 0.92rem;
-  }
-  .status.info { background: rgba(0,242,255,0.08); color: #00f2ff; }
-  .status.success { background: rgba(46,213,115,0.1); color: #2ed573; }
-  .status.warn { background: rgba(255,193,7,0.1); color: #ffc107; }
-  .status.error { background: rgba(255,71,87,0.1); color: #ff4757; }
+  .status{text-align:center;padding:12px;border-radius:12px;margin-top:12px;font-weight:700;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.92rem}
+  .status.info{background:rgba(0,242,255,0.08);color:#00f2ff}
+  .status.success{background:rgba(46,213,115,0.1);color:#2ed573}
+  .status.warn{background:rgba(255,193,7,0.1);color:#ffc107}
+  .status.error{background:rgba(255,71,87,0.1);color:#ff4757}
 
-  .live-stats {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-    margin: 14px 0;
-  }
-  .stat-box {
-    background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px;
-    text-align: center; border: 1px solid rgba(255,255,255,0.05);
-  }
-  .stat-box .label { font-size: 0.7rem; color: #667799; text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-box .val { font-size: 1.3rem; font-weight: 800; color: #00f2ff; margin-top: 4px; }
-  .stat-box .val.green { color: #2ed573; }
-  .stat-box .val.yellow { color: #ffc107; }
-  .stat-box .val.red { color: #ff4757; }
+  .live-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  .stat-box{background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.05)}
+  .stat-box .label{font-size:0.7rem;color:#667799;text-transform:uppercase;letter-spacing:0.5px}
+  .stat-box .val{font-size:1.2rem;font-weight:800;color:#00f2ff;margin-top:4px}
+  .stat-box .val.green{color:#2ed573}
+  .stat-box .val.yellow{color:#ffc107}
 
-  .progress-bar {
-    width: 100%; height: 28px; background: rgba(0,0,0,0.25);
-    border-radius: 14px; overflow: hidden; margin: 12px 0;
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .progress-fill {
-    height: 100%; background: linear-gradient(90deg, #00f2ff, #ff00aa);
-    transition: width 0.3s; display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 0.8rem; color: #000; min-width: 40px;
-  }
+  .progress-bar{width:100%;height:28px;background:rgba(0,0,0,0.25);border-radius:14px;overflow:hidden;margin:12px 0;border:1px solid rgba(255,255,255,0.08)}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#00f2ff,#ff00aa);transition:width 0.3s;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.8rem;color:#000;min-width:40px}
 
-  .log-box {
-    background: rgba(0,0,0,0.25); border-radius: 12px; padding: 12px;
-    max-height: 160px; overflow-y: auto; font-family: 'Courier New', monospace;
-    font-size: 0.78rem; color: #aabbcc; border: 1px solid rgba(255,255,255,0.06);
-    margin-top: 10px;
-  }
-  .log-box .log-line { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
-  .log-box .log-line.ok { color: #2ed573; }
-  .log-box .log-line.warn { color: #ffc107; }
-  .log-box .log-line.err { color: #ff4757; }
+  .preview-box{background:rgba(0,0,0,0.2);border-radius:16px;padding:16px;margin-top:14px;border:1px solid rgba(255,255,255,0.06);display:none}
+  .preview-box.active{display:block}
+  .preview-box .prev-title{font-size:0.85rem;color:#8899bb;margin-bottom:10px;font-weight:700}
+  .preview-box img{max-width:100%;border-radius:10px;display:block;margin:0 auto}
+  .preview-box audio,.preview-box video{width:100%;border-radius:10px}
+  .preview-box textarea{width:100%;min-height:120px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;color:#ddeeff;font-size:0.9rem}
 
-  .file-info {
-    background: rgba(0,242,255,0.04); padding: 10px 14px;
-    border-radius: 10px; margin-bottom: 12px;
-    border-left: 3px solid #00f2ff; font-size: 0.88rem; color: #ccddee;
-  }
+  .log-box{background:rgba(0,0,0,0.25);border-radius:12px;padding:12px;max-height:140px;overflow-y:auto;font-family:'Courier New',monospace;font-size:0.78rem;color:#aabbcc;border:1px solid rgba(255,255,255,0.06);margin-top:10px}
+  .log-box .log-line{padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .log-box .log-line.ok{color:#2ed573}
+  .log-box .log-line.warn{color:#ffc107}
+  .log-box .log-line.err{color:#ff4757}
 
-  .hint { font-size: 0.82rem; color: #556677; margin-top: 12px; line-height: 1.5; }
+  .file-info{background:rgba(0,242,255,0.04);padding:10px 14px;border-radius:10px;margin-bottom:12px;border-left:3px solid #00f2ff;font-size:0.88rem;color:#ccddee}
+  .hint{font-size:0.82rem;color:#556677;margin-top:12px;line-height:1.5}
 
-  .pulse-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: #00f2ff; display: inline-block;
-    animation: pulse 1s infinite;
-  }
-  @keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.6); opacity: 0.4; }
-    100% { transform: scale(1); opacity: 1; }
-  }
+  .pulse-dot{width:10px;height:10px;border-radius:50%;background:#00f2ff;display:inline-block;animation:pulse 1s infinite}
+  @keyframes pulse{0%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:0.4}100%{transform:scale(1);opacity:1}}
 
-  @media (max-width: 640px) {
-    .controls { grid-template-columns: 1fr; }
-    .live-stats { grid-template-columns: repeat(2, 1fr); }
-    h1 { font-size: 1.4rem; }
-  }
+  @media(max-width:640px){.controls{grid-template-columns:1fr}.live-stats{grid-template-columns:repeat(2,1fr)}h1{font-size:1.4rem}}
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>📡 QR-Stream Transfer v2</h1>
-  <p class="subtitle">Живая передача файлов через анимированные QR-коды</p>
+  <h1>📡 QR-Stream Transfer v3</h1>
+  <p class="subtitle">Передача файлов через анимированные QR-коды с мгновенным предпросмотром</p>
 
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('sender')">📤 Отправитель</button>
@@ -205,18 +110,13 @@
     <div class="controls">
       <div class="control-group">
         <label>⚡ Скорость (FPS)</label>
-        <input type="range" id="fps" min="1" max="20" value="5" oninput="updateVal('fps-val',this.value+' FPS')">
-        <div class="value" id="fps-val">5 FPS</div>
+        <input type="range" id="fps" min="1" max="15" value="4" oninput="updateVal('fps-val',this.value+' FPS');calcTime()">
+        <div class="value" id="fps-val">4 FPS</div>
       </div>
       <div class="control-group">
         <label>📦 Размер чанка</label>
-        <input type="range" id="chunk-size" min="100" max="800" step="50" value="400" oninput="updateVal('chunk-val',this.value+' байт')">
-        <div class="value" id="chunk-val">400 байт</div>
-      </div>
-      <div class="control-group">
-        <label>🔁 Повторы мета</label>
-        <input type="range" id="meta-every" min="1" max="10" value="3" oninput="updateVal('meta-val','каждые '+this.value+' чанка')">
-        <div class="value" id="meta-val">каждые 3 чанка</div>
+        <input type="range" id="chunk-size" min="100" max="700" step="50" value="300" oninput="updateVal('chunk-val',this.value+' байт');calcTime()">
+        <div class="value" id="chunk-val">300 байт</div>
       </div>
     </div>
 
@@ -225,7 +125,8 @@
       <button class="btn-danger" id="btn-stop" onclick="stopTransfer()" disabled>⏹ СТОП</button>
     </div>
 
-    <canvas id="qr-canvas" width="420" height="420" style="display:none"></canvas>
+    <div class="time-calc" id="time-calc" style="display:none"></div>
+    <canvas id="qr-canvas" width="400" height="400" style="display:none"></canvas>
     <div class="qr-info" id="qr-info" style="display:none"></div>
 
     <div class="status info" id="send-status">
@@ -234,8 +135,8 @@
     </div>
 
     <p class="hint">
-      💡 <b>Совет:</b> начинайте с 5 FPS и 400 байт. Если телефон не ловит — уменьшите скорость. 
-      Если ловит хорошо — можно увеличить. Мета-кадр повторяется регулярно, чтобы получатель мог «подключиться» в любой момент.
+      💡 <b>Совет:</b> начинайте с 4 FPS и 300 байт. Если телефон не ловит — уменьшите скорость. 
+      Передача зациклена — можно начать сканировать в любой момент.
     </p>
   </div>
 
@@ -247,22 +148,10 @@
     <canvas id="scan-canvas" style="display:none"></canvas>
 
     <div class="live-stats" id="live-stats" style="display:none">
-      <div class="stat-box">
-        <div class="label">Кадров/сек</div>
-        <div class="val" id="stat-fps">0</div>
-      </div>
-      <div class="stat-box">
-        <div class="label">Распознано</div>
-        <div class="val green" id="stat-ok">0</div>
-      </div>
-      <div class="stat-box">
-        <div class="label">Пропущено</div>
-        <div class="val yellow" id="stat-miss">0</div>
-      </div>
-      <div class="stat-box">
-        <div class="label">Чанков</div>
-        <div class="val" id="stat-chunks">0/0</div>
-      </div>
+      <div class="stat-box"><div class="label">Кадров/сек</div><div class="val" id="stat-fps">0</div></div>
+      <div class="stat-box"><div class="label">Распознано</div><div class="val green" id="stat-ok">0</div></div>
+      <div class="stat-box"><div class="label">Пропущено</div><div class="val yellow" id="stat-miss">0</div></div>
+      <div class="stat-box"><div class="label">Чанков</div><div class="val" id="stat-chunks">0/0</div></div>
     </div>
 
     <div class="progress-bar" id="progress-bar" style="display:none">
@@ -280,250 +169,318 @@
     </div>
 
     <div class="log-box" id="log-box" style="display:none">
-      <div style="color:#667799; font-size:0.75rem; margin-bottom:6px;">📋 Лог сканирования:</div>
+      <div style="color:#667799;font-size:0.75rem;margin-bottom:6px">📋 Лог:</div>
       <div id="log-content"></div>
     </div>
 
-    <button class="btn-success" id="btn-download" style="display:none;margin-top:12px;width:100%" onclick="downloadFile()">💾 СКАЧАТЬ ФАЙЛ</button>
+    <!-- ПРЕДПРОСМОТР -->
+    <div class="preview-box" id="preview-box">
+      <div class="prev-title" id="preview-title">📄 Полученный файл</div>
+      <div id="preview-content"></div>
+      <button class="btn-success" id="btn-download" style="margin-top:12px;width:100%;display:none" onclick="downloadFile()">💾 СКАЧАТЬ ФАЙЛ</button>
+    </div>
 
     <p class="hint">
-      💡 <b>Как сканировать:</b> держите телефон на 10–20 см от экрана. 
-      Смотрите на счётчик «Распознано» — если он растёт, значит камера видит QR-коды. 
-      Если нет — попробуйте приблизить/отдалить или уменьшить яркость экрана.
+      💡 <b>Как сканировать:</b> держите телефон на 10–20 см. Смотрите на «Распознано» — если растёт, QR видны. 
+      Текст/картинка/аудио появятся сразу после получения. Можно начать в любой момент.
     </p>
   </div>
 </div>
 
 <script>
 // ==================== УТИЛИТЫ ====================
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   event.target.classList.add('active');
-  document.getElementById(name + '-panel').classList.add('active');
+  document.getElementById(name+'-panel').classList.add('active');
 }
-function updateVal(id, txt) { document.getElementById(id).textContent = txt; }
-
-function simpleHash(data) {
-  let h = 0;
-  for (let i = 0; i < data.length; i++) h = ((h << 5) - h + data[i]) | 0;
-  return (h >>> 0).toString(16).padStart(8, '0');
+function updateVal(id,txt){document.getElementById(id).textContent=txt}
+function simpleHash(data){
+  let h=0;
+  for(let i=0;i<data.length;i++)h=((h<<5)-h+data[i])|0;
+  return(h>>>0).toString(16).padStart(8,'0');
 }
-function arrayToBase64(bytes) {
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+function arrayToBase64(bytes){
+  let bin='';
+  for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
   return btoa(bin);
 }
-function base64ToArray(b64) {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+function base64ToArray(b64){
+  const bin=atob(b64);
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
   return bytes;
 }
-function beep(freq=880, dur=80) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur/1000);
-    osc.start(); osc.stop(ctx.currentTime + dur/1000);
-  } catch(e){}
+function guessMime(name){
+  const ext=name.split('.').pop().toLowerCase();
+  const map={
+    txt:'text/plain',md:'text/plain',json:'application/json',csv:'text/csv',
+    jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',
+    mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4',
+    mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',
+    pdf:'application/pdf',zip:'application/zip',gz:'application/gzip'
+  };
+  return map[ext]||'application/octet-stream';
+}
+function beep(freq=880,dur=80){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.value=freq;
+    gain.gain.setValueAtTime(0.08,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur/1000);
+    osc.start();osc.stop(ctx.currentTime+dur/1000);
+  }catch(e){}
 }
 
 // ==================== ОТПРАВИТЕЛЬ ====================
-let sendQueue = [];
-let sendInterval = null;
-let sendIdx = 0;
-let rawBytes = null;
-let fileName = 'data.txt';
-let isTextMode = false;
+let sendQueue=[];
+let sendInterval=null;
+let sendIdx=0;
+let rawBytes=null;
+let fileName='data.txt';
+let isTextMode=false;
+let fileMime='text/plain';
 
-function onFileSelected() {
-  const f = document.getElementById('file-input').files[0];
-  if (f) {
-    document.getElementById('file-info').style.display = 'block';
-    document.getElementById('file-info').innerHTML = 
-      `<b>📎</b> ${f.name} &nbsp;|&nbsp; ${(f.size/1024).toFixed(1)} КБ`;
-    document.getElementById('text-input').value = '';
+function onFileSelected(){
+  const f=document.getElementById('file-input').files[0];
+  if(f){
+    document.getElementById('file-info').style.display='block';
+    document.getElementById('file-info').innerHTML=`<b>📎</b> ${f.name} &nbsp;|&nbsp; ${(f.size/1024).toFixed(1)} КБ`;
+    document.getElementById('text-input').value='';
+    calcTime();
   }
 }
+function calcTime(){
+  const f=document.getElementById('file-input').files[0];
+  const text=document.getElementById('text-input').value;
+  const chunkSize=parseInt(document.getElementById('chunk-size').value);
+  const fps=parseInt(document.getElementById('fps').value);
+  let size=0;
+  if(f)size=f.size;
+  else if(text)size=new TextEncoder().encode(text).length;
+  if(size===0){document.getElementById('time-calc').style.display='none';return;}
+  const chunks=Math.ceil(size/chunkSize);
+  const framesPerCycle=chunks+1;
+  const secPerCycle=framesPerCycle/fps;
+  const needCycles=3; // минимум 3 цикла для надёжности
+  const totalSec=secPerCycle*needCycles;
+  const el=document.getElementById('time-calc');
+  el.style.display='block';
+  el.textContent=`⏱ ~${totalSec.toFixed(1)} сек передачи (${chunks} чанков × ${needCycles} цикла @ ${fps} FPS)`;
+}
 
-async function prepareData() {
-  const file = document.getElementById('file-input').files[0];
-  const text = document.getElementById('text-input').value;
-  const chunkSize = parseInt(document.getElementById('chunk-size').value);
-  const metaEvery = parseInt(document.getElementById('meta-every').value);
+async function prepareData(){
+  const file=document.getElementById('file-input').files[0];
+  const text=document.getElementById('text-input').value;
+  const chunkSize=parseInt(document.getElementById('chunk-size').value);
 
   let data;
-  if (file) { data = new Uint8Array(await file.arrayBuffer()); fileName = file.name; isTextMode = false; }
-  else if (text) { data = new TextEncoder().encode(text); fileName = 'message.txt'; isTextMode = true; }
+  if(file){data=new Uint8Array(await file.arrayBuffer());fileName=file.name;isTextMode=false;fileMime=guessMime(file.name);}
+  else if(text){data=new TextEncoder().encode(text);fileName='message.txt';isTextMode=true;fileMime='text/plain';}
   else throw new Error('Нет данных');
 
-  rawBytes = data;
-  const total = Math.ceil(data.length / chunkSize);
-  const hash = simpleHash(data);
+  rawBytes=data;
+  const total=Math.ceil(data.length/chunkSize);
+  const hash=simpleHash(data);
 
-  const meta = JSON.stringify({v:2, type:'meta', name:fileName, size:data.length, chunks:total, hash:hash, text:isTextMode});
-  const chunks = [];
-  for (let i = 0; i < total; i++) {
-    const s = i * chunkSize;
-    const e = Math.min(s + chunkSize, data.length);
-    chunks.push(JSON.stringify({v:2, type:'chunk', i:i, t:total, d:arrayToBase64(data.slice(s,e))}));
+  const meta=JSON.stringify({v:3,type:'meta',name:fileName,size:data.length,chunks:total,hash:hash,text:isTextMode,mime:fileMime});
+  const chunks=[];
+  for(let i=0;i<total;i++){
+    const s=i*chunkSize;
+    const e=Math.min(s+chunkSize,data.length);
+    chunks.push(JSON.stringify({v:3,type:'chunk',i:i,t:total,d:arrayToBase64(data.slice(s,e))}));
   }
 
-  // Формируем очередь: meta, chunk0..chunkN, meta, chunk0..chunkN, ...
-  // Но meta вставляем каждые metaEvery чанков для надёжности
-  sendQueue = [];
-  let q = [meta];
-  for (let i = 0; i < chunks.length; i++) {
-    q.push(chunks[i]);
-    if ((i + 1) % metaEvery === 0 && i !== chunks.length - 1) q.push(meta);
-  }
-  // Дублируем всю очередь 3 раза подряд, чтобы получатель точно всё поймал
-  sendQueue = [...q, ...q, ...q];
-  return {total, hash, sizeKB: (data.length/1024).toFixed(1)};
+  // Циклическая очередь: meta, chunk0, chunk1, ..., chunkN — просто и надёжно
+  sendQueue=[meta,...chunks];
+  return{total,hash,sizeKB:(data.length/1024).toFixed(1)};
 }
 
-function drawQR(text, canvas) {
-  const qr = qrcode(0, 'M');
+function drawQR(text,canvas){
+  const qr=qrcode(0,'M');
   qr.addData(text);
   qr.make();
-  const ctx = canvas.getContext('2d');
-  const size = canvas.width;
-  const mod = qr.getModuleCount();
-  const cell = size / mod;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = '#000000';
-  for (let r = 0; r < mod; r++) {
-    for (let c = 0; c < mod; c++) {
-      if (qr.isDark(r, c)) ctx.fillRect(Math.round(c*cell), Math.round(r*cell), Math.ceil(cell), Math.ceil(cell));
+  const ctx=canvas.getContext('2d');
+  const size=canvas.width;
+  const mod=qr.getModuleCount();
+  const cell=size/mod;
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,size,size);
+  ctx.fillStyle='#000000';
+  for(let r=0;r<mod;r++){
+    for(let c=0;c<mod;c++){
+      if(qr.isDark(r,c))ctx.fillRect(Math.round(c*cell),Math.round(r*cell),Math.ceil(cell),Math.ceil(cell));
     }
   }
   // Рамка
-  ctx.strokeStyle = '#00f2ff';
-  ctx.lineWidth = 5;
-  ctx.strokeRect(2, 2, size-4, size-4);
-  // Номер кадра в углу
-  ctx.fillStyle = '#00f2ff';
-  ctx.font = 'bold 14px monospace';
-  ctx.fillText('#' + (sendIdx % 1000), 12, 24);
+  ctx.strokeStyle='#00f2ff';
+  ctx.lineWidth=5;
+  ctx.strokeRect(2,2,size-4,size-4);
+  // Метка кадра
+  ctx.fillStyle='#00f2ff';
+  ctx.font='bold 13px monospace';
+  const label=sendIdx===0?'META':`#${sendIdx}`;
+  ctx.fillText(label,10,22);
 }
 
-async function startTransfer() {
-  try {
-    const info = await prepareData();
-    const fps = parseInt(document.getElementById('fps').value);
-    const canvas = document.getElementById('qr-canvas');
-    const statusText = document.getElementById('send-status-text');
-    const pulse = document.getElementById('send-pulse');
+async function startTransfer(){
+  try{
+    const info=await prepareData();
+    const fps=parseInt(document.getElementById('fps').value);
+    const canvas=document.getElementById('qr-canvas');
+    const statusText=document.getElementById('send-status-text');
+    const pulse=document.getElementById('send-pulse');
 
-    canvas.style.display = 'block';
-    document.getElementById('qr-info').style.display = 'block';
-    document.getElementById('btn-start').disabled = true;
-    document.getElementById('btn-stop').disabled = false;
-    pulse.style.display = 'inline-block';
+    canvas.style.display='block';
+    document.getElementById('qr-info').style.display='block';
+    document.getElementById('btn-start').disabled=true;
+    document.getElementById('btn-stop').disabled=false;
+    pulse.style.display='inline-block';
 
-    sendIdx = 0;
-    statusText.textContent = `▶ ${info.total} чанков · ${info.sizeKB} КБ · ${fps} FPS · повтор ×3`;
+    sendIdx=0;
+    statusText.textContent=`▶ ${info.total} чанков · ${info.sizeKB} КБ · ${fps} FPS · циклическая`;
 
-    drawQR(sendQueue[0], canvas);
-    document.getElementById('qr-info').textContent = `Кадр 1 / ${sendQueue.length}`;
+    drawQR(sendQueue[0],canvas);
+    document.getElementById('qr-info').textContent=`Кадр 1 / ${sendQueue.length} (цикл повторяется)`;
 
-    sendInterval = setInterval(() => {
-      sendIdx = (sendIdx + 1) % sendQueue.length;
-      drawQR(sendQueue[sendIdx], canvas);
-      document.getElementById('qr-info').textContent = `Кадр ${sendIdx + 1} / ${sendQueue.length}`;
-    }, 1000 / fps);
+    sendInterval=setInterval(()=>{
+      sendIdx=(sendIdx+1)%sendQueue.length;
+      drawQR(sendQueue[sendIdx],canvas);
+      document.getElementById('qr-info').textContent=`Кадр ${sendIdx+1} / ${sendQueue.length}`;
+    },1000/fps);
 
-  } catch (e) {
-    document.getElementById('send-status-text').textContent = '⚠️ ' + e.message;
+  }catch(e){
+    document.getElementById('send-status-text').textContent='⚠️ '+e.message;
   }
 }
-
-function stopTransfer() {
-  if (sendInterval) clearInterval(sendInterval);
-  sendInterval = null;
-  document.getElementById('btn-start').disabled = false;
-  document.getElementById('btn-stop').disabled = true;
-  document.getElementById('send-pulse').style.display = 'none';
-  document.getElementById('send-status-text').textContent = '⏹ Передача остановлена';
+function stopTransfer(){
+  if(sendInterval)clearInterval(sendInterval);
+  sendInterval=null;
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('send-pulse').style.display='none';
+  document.getElementById('send-status-text').textContent='⏹ Передача остановлена';
 }
 
 // ==================== ПОЛУЧАТЕЛЬ ====================
-let scanTimer = null;
-let recvMeta = null;
-let recvChunks = new Map();
-let recvStream = null;
-let assembledFile = null;
-let scanStats = { ok:0, miss:0, frames:0, lastSec:0 };
-let lastSeenHash = '';
-let lastSeenTime = 0;
+let scanTimer=null;
+let recvMeta=null;
+let recvChunks=new Map();
+let recvStream=null;
+let assembledFile=null;
+let scanStats={ok:0,miss:0,frames:0,lastSec:0};
+let seenChunks=new Map(); // chunk index -> timestamp
 
-function addLog(msg, cls='') {
-  const box = document.getElementById('log-content');
-  const line = document.createElement('div');
-  line.className = 'log-line ' + cls;
-  const t = new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:2});
-  line.textContent = `[${t}] ${msg}`;
+function addLog(msg,cls=''){
+  const box=document.getElementById('log-content');
+  const line=document.createElement('div');
+  line.className='log-line '+cls;
+  const t=new Date().toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:2});
+  line.textContent=`[${t}] ${msg}`;
   box.prepend(line);
-  while (box.children.length > 30) box.lastChild.remove();
+  while(box.children.length>25)box.lastChild.remove();
 }
 
-async function startScanning() {
-  const video = document.getElementById('cam-video');
-  const canvas = document.getElementById('scan-canvas');
-  const ctx = canvas.getContext('2d', {willReadFrequently: true});
-  const statusText = document.getElementById('recv-status-text');
-  const pulse = document.getElementById('recv-pulse');
+function showPreview(){
+  if(!assembledFile)return;
+  const box=document.getElementById('preview-box');
+  const content=document.getElementById('preview-content');
+  const title=document.getElementById('preview-title');
+  const dlBtn=document.getElementById('btn-download');
+  box.classList.add('active');
+  title.textContent=`📄 ${assembledFile.name} (${(assembledFile.bytes.length/1024).toFixed(1)} КБ)`;
+  content.innerHTML='';
+  dlBtn.style.display='none';
 
-  try {
-    recvStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720} }
+  const mime=assembledFile.mime||guessMime(assembledFile.name);
+
+  if(assembledFile.text||mime.startsWith('text/')||mime==='application/json'||mime==='application/javascript'){
+    // Текст
+    const text=new TextDecoder().decode(assembledFile.bytes);
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.readOnly=true;
+    content.appendChild(ta);
+  }
+  else if(mime.startsWith('image/')){
+    const blob=new Blob([assembledFile.bytes],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const img=document.createElement('img');
+    img.src=url;
+    img.alt=assembledFile.name;
+    content.appendChild(img);
+  }
+  else if(mime.startsWith('audio/')){
+    const blob=new Blob([assembledFile.bytes],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const aud=document.createElement('audio');
+    aud.controls=true;aud.src=url;aud.autoplay=true;
+    content.appendChild(aud);
+  }
+  else if(mime.startsWith('video/')){
+    const blob=new Blob([assembledFile.bytes],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const vid=document.createElement('video');
+    vid.controls=true;vid.src=url;vid.autoplay=true;
+    content.appendChild(vid);
+  }
+  else{
+    // Неизвестный тип — просто кнопка скачать
+    dlBtn.style.display='block';
+  }
+}
+
+async function startScanning(){
+  const video=document.getElementById('cam-video');
+  const canvas=document.getElementById('scan-canvas');
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const statusText=document.getElementById('recv-status-text');
+  const pulse=document.getElementById('recv-pulse');
+
+  try{
+    recvStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
     });
-    video.srcObject = recvStream;
+    video.srcObject=recvStream;
     await video.play();
 
-    document.getElementById('btn-scan').disabled = true;
-    document.getElementById('btn-stop-scan').disabled = false;
-    document.getElementById('progress-bar').style.display = 'block';
-    document.getElementById('live-stats').style.display = 'grid';
-    document.getElementById('log-box').style.display = 'block';
-    document.getElementById('btn-download').style.display = 'none';
-    pulse.style.display = 'inline-block';
+    document.getElementById('btn-scan').disabled=true;
+    document.getElementById('btn-stop-scan').disabled=false;
+    document.getElementById('progress-bar').style.display='block';
+    document.getElementById('live-stats').style.display='grid';
+    document.getElementById('log-box').style.display='block';
+    document.getElementById('preview-box').classList.remove('active');
+    pulse.style.display='inline-block';
 
-    recvMeta = null; recvChunks = new Map(); assembledFile = null;
-    scanStats = { ok:0, miss:0, frames:0, lastSec: Date.now() };
-    lastSeenHash = ''; lastSeenTime = 0;
-    updateStats(); updateProgress();
-    addLog('Камера запущена. Сканирование...', 'ok');
+    recvMeta=null;recvChunks=new Map();assembledFile=null;seenChunks=new Map();
+    scanStats={ok:0,miss:0,frames:0,lastSec:Date.now()};
+    updateStats();updateProgress();
+    addLog('Камера запущена. Сканируем...','ok');
+    statusText.textContent='🔍 Сканируем... Наведите на QR-коды';
 
-    statusText.textContent = '🔍 Сканируем...';
-
-    scanTimer = setInterval(() => {
+    scanTimer=setInterval(()=>{
       scanStats.frames++;
-      const now = Date.now();
-      if (now - scanStats.lastSec >= 1000) {
-        document.getElementById('stat-fps').textContent = scanStats.frames;
-        scanStats.frames = 0;
-        scanStats.lastSec = now;
+      const now=Date.now();
+      if(now-scanStats.lastSec>=1000){
+        document.getElementById('stat-fps').textContent=scanStats.frames;
+        scanStats.frames=0;scanStats.lastSec=now;
       }
 
-      if (video.readyState < video.HAVE_ENOUGH_DATA) {
-        video.classList.remove('scanning', 'caught');
+      if(video.readyState<video.HAVE_ENOUGH_DATA){
+        video.classList.remove('scanning','caught');
         return;
       }
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: 'dontInvert' });
+      canvas.width=video.videoWidth;
+      canvas.height=video.videoHeight;
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=jsQR(imgData.data,imgData.width,imgData.height,{inversionAttempts:'dontInvert'});
 
-      if (!code || !code.data) {
+      if(!code||!code.data){
         scanStats.miss++;
         video.classList.remove('caught');
         video.classList.add('scanning');
@@ -537,126 +494,119 @@ async function startScanning() {
       scanStats.ok++;
       updateStats();
 
-      // Дедупликация по времени (не по тексту!) — 300мс на один и тот же хеш
-      const dataHash = code.data.length + ':' + code.data.slice(0, 40);
-      if (dataHash === lastSeenHash && (now - lastSeenTime) < 300) return;
-      lastSeenHash = dataHash;
-      lastSeenTime = now;
+      try{
+        const obj=JSON.parse(code.data);
+        if(obj.v!==3)return;
 
-      try {
-        const obj = JSON.parse(code.data);
-        if (obj.v !== 2) return;
-
-        if (obj.type === 'meta') {
-          if (!recvMeta || recvMeta.hash !== obj.hash) {
-            recvMeta = obj;
-            recvChunks = new Map();
-            assembledFile = null;
+        if(obj.type==='meta'){
+          if(!recvMeta||recvMeta.hash!==obj.hash){
+            recvMeta=obj;
+            recvChunks=new Map();
+            assembledFile=null;
+            seenChunks=new Map();
             updateProgress();
-            statusText.textContent = `📥 ${obj.name} · ${(obj.size/1024).toFixed(1)} КБ · ${obj.chunks} чанков`;
-            addLog(`МЕТА: ${obj.name} (${obj.chunks} чанков)`, 'ok');
-            beep(660, 60);
-            document.getElementById('btn-download').style.display = 'none';
+            statusText.textContent=`📥 ${obj.name} · ${(obj.size/1024).toFixed(1)} КБ · ${obj.chunks} чанков`;
+            addLog(`МЕТА: ${obj.name} (${obj.chunks} чанков)`,'ok');
+            beep(520,60);
+            document.getElementById('preview-box').classList.remove('active');
           }
         }
-        else if (obj.type === 'chunk' && recvMeta) {
-          if (!recvChunks.has(obj.i)) {
-            recvChunks.set(obj.i, obj.d);
-            updateProgress();
-            addLog(`Чанк #${obj.i + 1}/${obj.t} получен`, 'ok');
-            beep(880, 40);
+        else if(obj.type==='chunk'&&recvMeta){
+          const lastSeen=seenChunks.get(obj.i)||0;
+          if(now-lastSeen<400)return; // тот же чанк <400мс назад — пропускаем
+          seenChunks.set(obj.i,now);
 
-            if (recvChunks.size === recvMeta.chunks) {
+          if(!recvChunks.has(obj.i)){
+            recvChunks.set(obj.i,obj.d);
+            updateProgress();
+            addLog(`Чанк #${obj.i+1}/${obj.t} ✅`,'ok');
+            beep(880,40);
+
+            if(recvChunks.size===recvMeta.chunks){
               finishReassembly();
             }
-          } else {
-            // Уже был — мягкий писк
-            // beep(440, 20);
           }
         }
-      } catch(e) {
-        // Не наш формат
-      }
-    }, 60); // ~16 сканов/сек
+      }catch(e){}
+    },60);
 
-  } catch (err) {
-    statusText.textContent = '⚠️ ' + err.message;
-    addLog('ОШИБКА: ' + err.message, 'err');
+  }catch(err){
+    statusText.textContent='⚠️ '+err.message;
+    addLog('ОШИБКА: '+err.message,'err');
   }
 }
 
-function updateStats() {
-  document.getElementById('stat-ok').textContent = scanStats.ok;
-  document.getElementById('stat-miss').textContent = scanStats.miss;
-  if (recvMeta) {
-    document.getElementById('stat-chunks').textContent = recvChunks.size + '/' + recvMeta.chunks;
-  } else {
-    document.getElementById('stat-chunks').textContent = '0/0';
+function updateStats(){
+  document.getElementById('stat-ok').textContent=scanStats.ok;
+  document.getElementById('stat-miss').textContent=scanStats.miss;
+  if(recvMeta){
+    document.getElementById('stat-chunks').textContent=recvChunks.size+'/'+recvMeta.chunks;
+  }else{
+    document.getElementById('stat-chunks').textContent='0/0';
   }
 }
-
-function updateProgress() {
-  if (!recvMeta) {
-    document.getElementById('progress-fill').style.width = '0%';
-    document.getElementById('progress-fill').textContent = '0%';
+function updateProgress(){
+  if(!recvMeta){
+    document.getElementById('progress-fill').style.width='0%';
+    document.getElementById('progress-fill').textContent='0%';
     return;
   }
-  const pct = Math.round((recvChunks.size / recvMeta.chunks) * 100);
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('progress-fill').textContent = pct + '%';
+  const pct=Math.round((recvChunks.size/recvMeta.chunks)*100);
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-fill').textContent=pct+'%';
 }
 
-function finishReassembly() {
-  const statusText = document.getElementById('recv-status-text');
-  try {
-    const parts = [];
-    for (let i = 0; i < recvMeta.chunks; i++) parts.push(recvChunks.get(i));
-    const bytes = base64ToArray(parts.join(''));
-    const hash = simpleHash(bytes);
-    if (hash !== recvMeta.hash) {
-      statusText.textContent = '⚠️ Хеш не совпал! Пересканируем...';
-      addLog('Хеш НЕ совпал! Сброс и повтор...', 'warn');
-      beep(220, 200);
-      recvChunks = new Map();
+function finishReassembly(){
+  const statusText=document.getElementById('recv-status-text');
+  try{
+    const parts=[];
+    for(let i=0;i<recvMeta.chunks;i++)parts.push(recvChunks.get(i));
+    const bytes=base64ToArray(parts.join(''));
+    const hash=simpleHash(bytes);
+    if(hash!==recvMeta.hash){
+      statusText.textContent='⚠️ Хеш не совпал! Повторное сканирование...';
+      addLog('Хеш НЕ совпал. Сброс...','warn');
+      beep(220,200);
+      recvChunks=new Map();seenChunks=new Map();
       updateProgress();
       return;
     }
-    assembledFile = {bytes, name: recvMeta.name, text: recvMeta.text};
-    statusText.textContent = '✅ ФАЙЛ ПОЛУЧЕН! Хеш OK.';
-    addLog('✅ УСПЕХ! Файл собран.', 'ok');
-    beep(1100, 120); setTimeout(()=>beep(1320, 120), 150);
-    document.getElementById('btn-download').style.display = 'block';
-    setTimeout(stopScanning, 800);
-  } catch (e) {
-    statusText.textContent = '⚠️ Ошибка сборки';
-    addLog('Ошибка: ' + e.message, 'err');
+    assembledFile={bytes,name:recvMeta.name,text:recvMeta.text,mime:recvMeta.mime};
+    statusText.textContent='✅ ГОТОВО! Файл получен и проверен.';
+    addLog('✅ УСПЕХ! Файл собран.','ok');
+    beep(1100,100);setTimeout(()=>beep(1320,100),120);
+    showPreview();
+    setTimeout(stopScanning,600);
+  }catch(e){
+    statusText.textContent='⚠️ Ошибка сборки';
+    addLog('Ошибка: '+e.message,'err');
   }
 }
 
-function downloadFile() {
-  if (!assembledFile) return;
-  const blob = new Blob([assembledFile.bytes]);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = assembledFile.name;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+function downloadFile(){
+  if(!assembledFile)return;
+  const blob=new Blob([assembledFile.bytes]);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=assembledFile.name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  addLog('Файл сохранён: ' + assembledFile.name, 'ok');
+  addLog('Скачано: '+assembledFile.name,'ok');
 }
 
-function stopScanning() {
-  if (scanTimer) clearInterval(scanTimer);
-  scanTimer = null;
-  const video = document.getElementById('cam-video');
-  if (recvStream) { recvStream.getTracks().forEach(t => t.stop()); recvStream = null; }
-  video.srcObject = null;
-  video.classList.remove('scanning', 'caught');
-  document.getElementById('btn-scan').disabled = false;
-  document.getElementById('btn-stop-scan').disabled = true;
-  document.getElementById('recv-pulse').style.display = 'none';
-  const st = document.getElementById('recv-status-text');
-  if (!assembledFile) {
-    st.textContent = `⏹ Остановлено. Поймано ${recvChunks.size} из ${recvMeta ? recvMeta.chunks : '?'} чанков`;
+function stopScanning(){
+  if(scanTimer)clearInterval(scanTimer);
+  scanTimer=null;
+  const video=document.getElementById('cam-video');
+  if(recvStream){recvStream.getTracks().forEach(t=>t.stop());recvStream=null;}
+  video.srcObject=null;
+  video.classList.remove('scanning','caught');
+  document.getElementById('btn-scan').disabled=false;
+  document.getElementById('btn-stop-scan').disabled=true;
+  document.getElementById('recv-pulse').style.display='none';
+  const st=document.getElementById('recv-status-text');
+  if(!assembledFile){
+    st.textContent=`⏹ Остановлено. Поймано ${recvChunks.size} из ${recvMeta?recvMeta.chunks:'?'} чанков`;
   }
 }
 </script>
