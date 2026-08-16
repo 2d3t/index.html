@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPEG → PNG конвертер</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: linear-gradient(145deg, #1e2b3c, #0f1722);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            padding: 1.5rem;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 3rem;
+            padding: 2.5rem 2rem;
+            max-width: 640px;
+            width: 100%;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+            transition: 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        h1 {
+            font-weight: 400;
+            font-size: 2.2rem;
+            letter-spacing: -0.5px;
+            color: #f0f4fe;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.1rem;
+        }
+        h1 small {
+            font-size: 1rem;
+            font-weight: 300;
+            background: rgba(255, 215, 100, 0.15);
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            margin-left: 0.5rem;
+            color: #f5cd7a;
+            letter-spacing: 0.3px;
+        }
+        .sub {
+            color: #b1c9e8;
+            margin-bottom: 2rem;
+            font-weight: 300;
+            border-left: 3px solid #f5b042;
+            padding-left: 1rem;
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+        .drop-zone {
+            background: rgba(20, 30, 48, 0.7);
+            border: 2px dashed #4d688b;
+            border-radius: 2.2rem;
+            padding: 2.8rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 2rem;
+            color: #bdd3f0;
+            position: relative;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #f5b042;
+            background: rgba(245, 176, 66, 0.06);
+            box-shadow: 0 0 20px rgba(245, 176, 66, 0.05);
+        }
+        .drop-zone svg {
+            width: 48px;
+            height: 48px;
+            fill: #a7c0e2;
+            opacity: 0.6;
+            margin-bottom: 0.5rem;
+        }
+        .drop-zone .main-text {
+            font-size: 1.2rem;
+            font-weight: 400;
+        }
+        .drop-zone .hint {
+            font-size: 0.9rem;
+            color: #8da6c9;
+            margin-top: 0.4rem;
+        }
+        .file-input {
+            display: none;
+        }
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            background: #0d1824;
+            border-radius: 2rem;
+            padding: 1.2rem 1.5rem;
+            margin: 1.8rem 0 1.2rem;
+            border: 1px solid #2f405a;
+            min-height: 80px;
+        }
+        .preview-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            flex: 1;
+            min-width: 100px;
+        }
+        .preview-box img {
+            max-width: 100%;
+            max-height: 140px;
+            border-radius: 18px;
+            background: #101b29;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+            border: 1px solid #31445e;
+            object-fit: contain;
+        }
+        .preview-box .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #7f99bd;
+            background: #1f3145;
+            padding: 0.2rem 0.9rem;
+            border-radius: 30px;
+        }
+        .arrow-symbol {
+            font-size: 2.2rem;
+            color: #f5b042;
+            opacity: 0.7;
+            padding: 0 0.2rem;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #b6cef0;
+            background: #121f30;
+            padding: 0.7rem 1.2rem;
+            border-radius: 60px;
+            margin: 1.2rem 0 1.8rem;
+            border: 1px solid #2b3f5a;
+        }
+        .info-row span:first-child {
+            opacity: 0.7;
+        }
+        .info-row span:last-child {
+            font-weight: 500;
+            color: #e8f0fe;
+        }
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+        }
+        .btn {
+            background: #2d405b;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 1rem;
+            color: #dfebfc;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #41597a;
+            flex: 1 1 auto;
+            justify-content: center;
+            background: #1f3147;
+        }
+        .btn-primary {
+            background: #f5b042;
+            border-color: #f5b042;
+            color: #0f1a2b;
+            font-weight: 600;
+            box-shadow: 0 6px 18px rgba(245, 176, 66, 0.2);
+        }
+        .btn-primary:hover {
+            background: #ffbe5a;
+            transform: scale(1.01);
+            box-shadow: 0 8px 24px rgba(245, 176, 66, 0.3);
+        }
+        .btn-primary:disabled {
+            opacity: 0.35;
+            pointer-events: none;
+            filter: grayscale(0.7);
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-secondary {
+            background: #1e3147;
+            border-color: #385073;
+        }
+        .btn-secondary:hover {
+            background: #2a405c;
+        }
+        .file-info {
+            font-size: 0.8rem;
+            color: #849fc9;
+            text-align: center;
+            margin-top: 1.5rem;
+            word-break: break-all;
+        }
+        .file-info strong {
+            color: #c6dbfa;
+            font-weight: 400;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1d2f44;
+            backdrop-filter: blur(12px);
+            padding: 0.8rem 2.2rem;
+            border-radius: 60px;
+            border: 1px solid #f5b042;
+            color: #f0f4fe;
+            font-weight: 400;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+        @media (max-width: 480px) {
+            .card { padding: 1.8rem 1rem; }
+            h1 { font-size: 1.8rem; flex-wrap: wrap; }
+            .preview-container { flex-direction: column; }
+            .arrow-symbol { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>
+        🖼️ JPEG → PNG
+        <small>конвертер</small>
+    </h1>
+    <div class="sub">Загрузите JPEG, получите PNG без потерь</div>
+
+    <!-- Зона загрузки -->
+    <div class="drop-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" width="48" height="48"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <div class="main-text">Перетащите JPEG сюда или кликните</div>
+        <div class="hint">Поддерживаются .jpg, .jpeg, .jfif</div>
+        <input type="file" class="file-input" id="fileInput" accept=".jpg,.jpeg,.jfif,image/jpeg">
+    </div>
+
+    <!-- Превью -->
+    <div id="previewArea" class="preview-container hidden">
+        <div class="preview-box">
+            <img id="sourcePreview" src="#" alt="исходник">
+            <span class="label">JPEG</span>
+        </div>
+        <div class="arrow-symbol">➡</div>
+        <div class="preview-box">
+            <img id="resultPreview" src="#" alt="результат PNG">
+            <span class="label">PNG</span>
+        </div>
+    </div>
+
+    <!-- Инфо о файле -->
+    <div id="fileInfo" class="info-row hidden">
+        <span>📄 Файл</span>
+        <span id="fileName">—</span>
+    </div>
+
+    <!-- Кнопки -->
+    <div class="actions">
+        <button class="btn btn-secondary" id="resetBtn">↺ Очистить</button>
+        <button class="btn btn-primary" id="convertBtn" disabled>⬇ Скачать PNG</button>
+    </div>
+    <div class="file-info" id="statusMessage">Выберите изображение для конвертации</div>
+</div>
+
+<!-- Всплывающее уведомление -->
+<div id="toast" class="toast">✅ Готово</div>
+
+<script>
+    (function() {
+        // DOM references
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const sourcePreview = document.getElementById('sourcePreview');
+        const resultPreview = document.getElementById('resultPreview');
+        const previewArea = document.getElementById('previewArea');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileNameSpan = document.getElementById('fileName');
+        const convertBtn = document.getElementById('convertBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusMsg = document.getElementById('statusMessage');
+        const toast = document.getElementById('toast');
+
+        // state
+        let currentFile = null;          // оригинальный File
+        let currentImageData = null;     // { name, dataURL, width, height }
+        let convertedDataURL = null;     // PNG data URL
+
+        // ---- вспомогательные функции ----
+        function showToast(text, duration = 2500) {
+            toast.textContent = text || '✅ Готово';
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        function resetState() {
+            currentFile = null;
+            currentImageData = null;
+            convertedDataURL = null;
+            sourcePreview.src = '';
+            resultPreview.src = '';
+            previewArea.classList.add('hidden');
+            fileInfo.classList.add('hidden');
+            fileNameSpan.textContent = '—';
+            convertBtn.disabled = true;
+            statusMsg.textContent = 'Выберите изображение для конвертации';
+            // сброс input, чтобы можно было заново выбрать тот же файл
+            fileInput.value = '';
+        }
+
+        // конвертация: загружаем изображение, создаём канву, экспортируем PNG
+        function performConversion(file) {
+            if (!file) return;
+
+            // проверка, что это JPEG (MIME или расширение)
+            const isJpeg = file.type === 'image/jpeg' || 
+                           file.type === 'image/jpg' ||
+                           /\.jpe?g$/i.test(file.name) ||
+                           /\.jfif$/i.test(file.name);
+            if (!isJpeg) {
+                statusMsg.textContent = '⚠️ Пожалуйста, выберите файл в формате JPEG (jpg, jpeg, jfif)';
+                showToast('❌ Неподдерживаемый формат', 2200);
+                resetState();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataURL = e.target.result;
+                const img = new Image();
+                img.onload = function() {
+                    // сохраняем исходные данные
+                    currentImageData = {
+                        name: file.name,
+                        dataURL: dataURL,
+                        width: img.naturalWidth || img.width,
+                        height: img.naturalHeight || img.height,
+                    };
+
+                    // отображаем исходник
+                    sourcePreview.src = dataURL;
+                    
+                    // рисуем на канве и экспортируем PNG
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.naturalWidth || img.width;
+                    canvas.height = img.naturalHeight || img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    const pngDataURL = canvas.toDataURL('image/png');
+
+                    // сохраняем результат
+                    convertedDataURL = pngDataURL;
+                    resultPreview.src = pngDataURL;
+
+                    // показываем блоки
+                    previewArea.classList.remove('hidden');
+                    fileInfo.classList.remove('hidden');
+                    // имя файла (обрезаем расширение, добавляем .png)
+                    const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+                    fileNameSpan.textContent = `${baseName}.png (${canvas.width}×${canvas.height})`;
+
+                    convertBtn.disabled = false;
+                    statusMsg.textContent = `✅ Готово к скачиванию: ${baseName}.png`;
+                    showToast('Конвертация выполнена!', 1800);
+                };
+                img.onerror = function() {
+                    statusMsg.textContent = '❌ Ошибка загрузки изображения';
+                    showToast('Ошибка декодирования', 2000);
+                    resetState();
+                };
+                img.src = dataURL;
+            };
+            reader.onerror = function() {
+                statusMsg.textContent = '❌ Ошибка чтения файла';
+                showToast('Ошибка чтения', 2000);
+                resetState();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // обработчик выбора файла (из input или drop)
+        function handleFile(file) {
+            if (!file) return;
+            // сброс перед новым файлом
+            resetState(); 
+            currentFile = file;
+            performConversion(file);
+        }
+
+        // ---- drag & drop ----
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            } else {
+                showToast('Нет файлов', 1200);
+            }
+        });
+
+        // клик по зоне -> открыть диалог
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // выбор через input
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length > 0) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        // ---- кнопка скачивания PNG ----
+        convertBtn.addEventListener('click', () => {
+            if (!convertedDataURL) {
+                showToast('Нет данных для скачивания', 1500);
+                return;
+            }
+            // генерируем имя
+            let baseName = 'image';
+            if (currentImageData && currentImageData.name) {
+                baseName = currentImageData.name.replace(/\.[^.]+$/, '') || 'image';
+            }
+            const link = document.createElement('a');
+            link.download = `${baseName}.png`;
+            link.href = convertedDataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast(`⬇ Скачан ${baseName}.png`, 2000);
+        });
+
+        // ---- кнопка очистки ----
+        resetBtn.addEventListener('click', () => {
+            resetState();
+            showToast('Сброшено', 1000);
+            statusMsg.textContent = 'Выберите изображение для конвертации';
+        });
+
+        // ---- защита от случайной потери данных, небольшая инициализация ----
+        // разрешаем вставить картинку через буфер (доп. удобство)
+        document.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items;
+            if (items) {
+                for (let item of items) {
+                    if (item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            handleFile(file);
+                            e.preventDefault();
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+
+        // стартовое сообщение
+        statusMsg.textContent = 'Перетащите JPEG или кликните для выбора';
+    })();
+</script>
+
+</body>
+</html>
