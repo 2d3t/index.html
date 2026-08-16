@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>♾️ Бесконечный QR-код</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0b1b33;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .card {
+            max-width: 550px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { font-size: 24px; margin-bottom: 4px; }
+        .sub { color: #4a5a72; margin-bottom: 20px; font-size: 14px; }
+        .section {
+            background: #f8faff;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .btn {
+            background: #1a2a4a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 60px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .btn:hover { background: #2b3f64; }
+        .btn-success { background: #0f7b3a; }
+        .btn-success:hover { background: #1a8f48; }
+        .btn-danger { background: #b91c1c; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-outline { background: transparent; border: 1px solid #d0d8e6; color: #1a2a4a; }
+        .btn-outline:hover { background: #f0f4fe; }
+        .flex-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            margin: 12px 0;
+        }
+        #qrcode canvas { max-width: 200px; height: auto; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 14px;
+            font-size: 13px;
+            background: white;
+            padding: 10px 14px;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 40px;
+            background: #f0f4fe;
+            font-size: 14px;
+            text-align: center;
+            margin: 8px 0;
+        }
+        .status.success { background: #dcfce7; color: #166534; }
+        .formula-box {
+            background: #0b1b33;
+            color: #60a5fa;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 8px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .slider-container {
+            margin: 12px 0;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: #1a2a4a;
+        }
+        .iteration-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #4a5a72;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #d0d8e6;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 60px;
+            background: #f8faff;
+        }
+        .data-output {
+            background: #f8faff;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e9edf4;
+            margin: 8px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>♾️ Бесконечный QR</h1>
+    <div class="sub">Один QR → формула → бесконечные данные</div>
+
+    <div class="section">
+        <div class="status" id="statusMessage">🔮 Введите формулу или используйте пример</div>
+        
+        <div class="formula-box" id="formulaDisplay">
+x = (x * 9301 + 49297) % 233280
+        </div>
+
+        <div class="flex-row" style="margin:8px 0;">
+            <button class="btn btn-outline" id="example1Btn">📐 LCG</button>
+            <button class="btn btn-outline" id="example2Btn">🔢 Фибоначчи</button>
+            <button class="btn btn-outline" id="example3Btn">🔀 XOR</button>
+        </div>
+
+        <textarea id="formulaInput" placeholder="Введите формулу на JavaScript...">x = (x * 9301 + 49297) % 233280</textarea>
+        
+        <div class="slider-container">
+            <div class="iteration-info">
+                <span>Итерация: <span id="iterationNum">0</span></span>
+                <span>Значение: <span id="currentValue">12345</span></span>
+            </div>
+            <input type="range" id="iterationSlider" min="0" max="50" value="0">
+        </div>
+
+        <button class="btn btn-success" id="generateBtn" style="width:100%;margin-top:8px;">✨ Сгенерировать QR-код</button>
+    </div>
+
+    <div id="qrResult">
+        <div class="section">
+            <div class="qr-container" id="qrcode"></div>
+            <div class="info-grid">
+                <span>📊 Итерация: <span id="displayIteration">0</span></span>
+                <span>🔢 Значение: <span id="displayValue">0</span></span>
+                <span>📦 Данные: <span id="displayDataSize">0</span></span>
+                <span>♾️ Бесконечная цепочка</span>
+            </div>
+            <div class="data-output" id="dataOutput">// Данные из QR-кода</div>
+            <div class="flex-row">
+                <button class="btn" id="nextBtn" style="flex:1;">➡️ Следующий QR</button>
+                <button class="btn" id="resetBtn" style="flex:1;background:#6b7280;">↩️ Сброс</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== СОСТОЯНИЕ ==========
+    let currentSeed = 12345;
+    let iteration = 0;
+    let formula = "x = (x * 9301 + 49297) % 233280";
+    let qrCodeInstance = null;
+    let history = [];
+
+    // DOM элементы
+    const formulaInput = document.getElementById('formulaInput');
+    const formulaDisplay = document.getElementById('formulaDisplay');
+    const generateBtn = document.getElementById('generateBtn');
+    const qrContainer = document.getElementById('qrcode');
+    const iterationSlider = document.getElementById('iterationSlider');
+    const iterationNum = document.getElementById('iterationNum');
+    const currentValue = document.getElementById('currentValue');
+    const displayIteration = document.getElementById('displayIteration');
+    const displayValue = document.getElementById('displayValue');
+    const displayDataSize = document.getElementById('displayDataSize');
+    const dataOutput = document.getElementById('dataOutput');
+    const statusMessage = document.getElementById('statusMessage');
+    const nextBtn = document.getElementById('nextBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Примеры формул
+    document.getElementById('example1Btn').addEventListener('click', () => {
+        formulaInput.value = "x = (x * 9301 + 49297) % 233280";
+        updateFormula();
+    });
+
+    document.getElementById('example2Btn').addEventListener('click', () => {
+        formulaInput.value = "x = (x + prev) % 1000000; prev = x - prev";
+        updateFormula();
+    });
+
+    document.getElementById('example3Btn').addEventListener('click', () => {
+        formulaInput.value = "x = x ^ (x << 5) ^ (x >> 3) ^ 0x9e3779b9";
+        updateFormula();
+    });
+
+    // Обновление формулы
+    function updateFormula() {
+        formula = formulaInput.value || "x = x + 1";
+        formulaDisplay.textContent = formula;
+        statusMessage.textContent = '✅ Формула обновлена';
+        setTimeout(() => {
+            statusMessage.textContent = '🔮 Нажмите "Сгенерировать"';
+        }, 1500);
+    }
+
+    formulaInput.addEventListener('change', updateFormula);
+    formulaInput.addEventListener('input', updateFormula);
+
+    // Вычисление следующего значения
+    function computeNext(x) {
+        try {
+            // Безопасное выполнение формулы
+            const fn = new Function('x', 'prev', 'return ' + formula.replace('x', 'x'));
+            const prev = x;
+            const result = fn(x, prev);
+            return Math.abs(Math.round(result)) || 0;
+        } catch (e) {
+            // Если формула не работает, используем простой инкремент
+            return (x + 1) % 1000000;
+        }
+    }
+
+    // Генерация QR-кода
+    function generateQR(seed, iter) {
+        const data = {
+            seed: seed,
+            iteration: iter,
+            formula: formula,
+            data: `Iteration ${iter}: ${seed}`
+        };
+
+        const json = JSON.stringify(data);
+        const encoded = btoa(unescape(encodeURIComponent(json)));
+
+        // Очищаем старый QR
+        qrContainer.innerHTML = '';
+
+        // Создаём новый QR
+        qrCodeInstance = new QRCode(qrContainer, {
+            text: encoded,
+            width: 200,
+            height: 200,
+            colorDark: '#0b1b33',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+
+        // Обновляем информацию
+        displayIteration.textContent = iter;
+        displayValue.textContent = seed;
+        displayDataSize.textContent = encoded.length + ' симв.';
+        dataOutput.textContent = JSON.stringify(data, null, 2);
+        
+        // Обновляем слайдер
+        iterationSlider.value = iter;
+        iterationNum.textContent = iter;
+        currentValue.textContent = seed;
+
+        // Добавляем в историю
+        history.push({ seed, iter });
+        if (history.length > 100) history.shift();
+
+        statusMessage.className = 'status success';
+        statusMessage.textContent = `✅ QR-код #${iter} создан!`;
+    }
+
+    // Генерация на основе текущего состояния
+    function generateFromCurrent() {
+        generateQR(currentSeed, iteration);
+    }
+
+    // Переход к следующей итерации
+    function nextIteration() {
+        const newSeed = computeNext(currentSeed);
+        currentSeed = newSeed;
+        iteration++;
+        generateQR(currentSeed, iteration);
+    }
+
+    // Сброс
+    function reset() {
+        currentSeed = 12345;
+        iteration = 0;
+        history = [];
+        generateQR(currentSeed, iteration);
+        statusMessage.className = 'status';
+        statusMessage.textContent = '↩️ Сброшено к началу';
+    }
+
+    // Обработчик слайдера
+    iterationSlider.addEventListener('input', (e) => {
+        const target = parseInt(e.target.value);
+        if (target < history.length) {
+            const item = history[target];
+            if (item) {
+                currentSeed = item.seed;
+                iteration = item.iter;
+                generateQR(currentSeed, iteration);
+            }
+        }
+    });
+
+    // События кнопок
+    generateBtn.addEventListener('click', generateFromCurrent);
+    nextBtn.addEventListener('click', nextIteration);
+    resetBtn.addEventListener('click', reset);
+
+    // Инициализация
+    generateQR(currentSeed, iteration);
+</script>
+</body>
+</html>
