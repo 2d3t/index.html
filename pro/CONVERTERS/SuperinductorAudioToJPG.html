@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPEG Аудио Кодер - Исправленная версия</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #16213e;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #e94560;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            background: #0f3460;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #533483;
+        }
+        
+        .section h2 {
+            color: #e94560;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #533483;
+            padding-bottom: 10px;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            background: #1a1a2e;
+            border: 2px dashed #533483;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            margin: 15px 0;
+        }
+        
+        button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #e94560, #533483);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3);
+        }
+        
+        .result {
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .result img {
+            max-width: 100%;
+            border: 3px solid #e94560;
+            border-radius: 10px;
+            margin: 20px 0;
+            image-rendering: pixelated;
+        }
+        
+        .info {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #e94560;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        
+        .success {
+            color: #4ecca3;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 15px 0;
+        }
+        
+        audio {
+            width: 100%;
+            margin: 15px 0;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            padding: 12px 25px;
+            background: #4ecca3;
+            color: #1a1a2e;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #533483;
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📀 QR-подобный Аудио Кодер v2.0</h1>
+        <p class="subtitle">Исправленная версия с адаптивным порогом и суперсэмплингом</p>
+        
+        <div class="section">
+            <h2>🔊 Кодирование аудио в JPEG</h2>
+            <input type="file" id="audioInput" accept="audio/*">
+            <button onclick="encodeToJPEG()">💾 Создать JPEG изображение</button>
+            <div class="loading" id="encodingLoading">
+                <div class="spinner"></div>
+                <p>Кодирование аудио...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📷 Декодирование из JPEG</h2>
+            <input type="file" id="imageInput" accept="image/*">
+            <button onclick="decodeJPEG()">🔓 Декодировать аудио</button>
+            <div class="loading" id="decodingLoading">
+                <div class="spinner"></div>
+                <p>Декодирование...</p>
+            </div>
+        </div>
+        
+        <div class="result" id="resultContainer">
+            <h3 style="color:#e94560; margin-bottom:15px;">Результат</h3>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Константы
+        const MODULE_SIZE = 10;
+        const MARKER_SIZE = 7;
+        const QUIET_ZONE = 2; // дополнительные модули вокруг данных
+        
+        // Кодирование
+        function encodeToJPEG() {
+            const audioInput = document.getElementById('audioInput');
+            if (!audioInput.files || !audioInput.files[0]) {
+                alert('Выберите аудиофайл');
+                return;
+            }
+            
+            document.getElementById('encodingLoading').style.display = 'block';
+            
+            const file = audioInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const audioBytes = new Uint8Array(e.target.result);
+                    
+                    // Сохраняем тип файла
+                    const fileType = file.type || 'audio/mpeg';
+                    const typeBytes = new TextEncoder().encode(fileType);
+                    
+                    // Формируем заголовок:
+                    // 4 байта - длина аудио
+                    // 1 байт - длина типа файла
+                    // N байт - тип файла
+                    const headerLength = 5 + typeBytes.length;
+                    const headerBytes = new Uint8Array(headerLength);
+                    
+                    new DataView(headerBytes.buffer).setUint32(0, audioBytes.length);
+                    headerBytes[4] = typeBytes.length;
+                    headerBytes.set(typeBytes, 5);
+                    
+                    // Объединяем все данные
+                    const allBytes = new Uint8Array(headerLength + audioBytes.length);
+                    allBytes.set(headerBytes, 0);
+                    allBytes.set(audioBytes, headerLength);
+                    
+                    // Конвертируем в биты
+                    let binaryString = '';
+                    for (let i = 0; i < allBytes.length; i++) {
+                        binaryString += allBytes[i].toString(2).padStart(8, '0');
+                    }
+                    
+                    // Вычисляем размер матрицы с учетом padding
+                    const totalBits = binaryString.length;
+                    const matrixSize = Math.ceil(Math.sqrt(totalBits));
+                    const totalCells = matrixSize * matrixSize;
+                    
+                    // Добавляем padding (чередование 0xEC и 0x11 как в QR)
+                    const paddingBytes = [0xEC, 0x11];
+                    let paddingIndex = 0;
+                    while (binaryString.length < totalCells) {
+                        binaryString += paddingBytes[paddingIndex % 2].toString(2).padStart(8, '0');
+                        paddingIndex++;
+                    }
+                    
+                    // Обрезаем до нужной длины
+                    binaryString = binaryString.substring(0, totalCells);
+                    
+                    // Размер изображения
+                    const imageSize = (matrixSize + (MARKER_SIZE + QUIET_ZONE) * 2) * MODULE_SIZE;
+                    
+                    // Создаем canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imageSize;
+                    canvas.height = imageSize;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Белый фон
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, imageSize, imageSize);
+                    
+                    // Рисуем рамку
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(5, 5, imageSize - 10, imageSize - 10);
+                    
+                    // Позиция данных
+                    const dataOffset = (MARKER_SIZE + QUIET_ZONE) * MODULE_SIZE;
+                    
+                    // Рисуем данные
+                    for (let i = 0; i < totalCells; i++) {
+                        const row = Math.floor(i / matrixSize);
+                        const col = i % matrixSize;
+                        
+                        const x = dataOffset + col * MODULE_SIZE;
+                        const y = dataOffset + row * MODULE_SIZE;
+                        
+                        ctx.fillStyle = binaryString[i] === '1' ? '#000000' : '#FFFFFF';
+                        ctx.fillRect(x, y, MODULE_SIZE, MODULE_SIZE);
+                    }
+                    
+                    // Добавляем 4 маркера
+                    const markerPos = (MARKER_SIZE / 2 + QUIET_ZONE / 2) * MODULE_SIZE;
+                    drawMarker(ctx, markerPos, markerPos);
+                    drawMarker(ctx, imageSize - markerPos, markerPos);
+                    drawMarker(ctx, markerPos, imageSize - markerPos);
+                    drawMarker(ctx, imageSize - markerPos, imageSize - markerPos);
+                    
+                    // Конвертируем в JPEG с высоким качеством
+                    const jpegURL = canvas.toDataURL('image/jpeg', 0.98);
+                    
+                    // Показываем результат
+                    const resultContainer = document.getElementById('resultContainer');
+                    const resultContent = document.getElementById('resultContent');
+                    
+                    resultContent.innerHTML = `
+                        <div class="success">✅ Аудио успешно закодировано!</div>
+                        <p>Размер аудио: ${(audioBytes.length / 1024).toFixed(1)} КБ</p>
+                        <p>Тип: ${fileType}</p>
+                        <p>Матрица: ${matrixSize}×${matrixSize}</p>
+                        <p>Изображение: ${imageSize}×${imageSize} пикселей</p>
+                        <img src="${jpegURL}" alt="QR-код с аудио">
+                        <br>
+                        <a href="${jpegURL}" download="audio_qr_code.jpg" class="download-btn">📥 Скачать JPEG</a>
+                    `;
+                    
+                    resultContainer.classList.add('show');
+                    document.getElementById('encodingLoading').style.display = 'none';
+                    
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                    document.getElementById('encodingLoading').style.display = 'none';
+                }
+            };
+            
+            reader.onerror = function() {
+                alert('Ошибка чтения файла');
+                document.getElementById('encodingLoading').style.display = 'none';
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function drawMarker(ctx, centerX, centerY) {
+            const markerSize = MARKER_SIZE * MODULE_SIZE;
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(centerX - markerSize/2, centerY - markerSize/2, markerSize, markerSize);
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(centerX - markerSize/3, centerY - markerSize/3, markerSize/1.5, markerSize/1.5);
+            
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(centerX - markerSize/6, centerY - markerSize/6, markerSize/3, markerSize/3);
+            
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(centerX - markerSize/12, centerY - markerSize/12, markerSize/6, markerSize/6);
+        }
+        
+        // Декодирование с улучшенным алгоритмом
+        function decodeJPEG() {
+            const imageInput = document.getElementById('imageInput');
+            if (!imageInput.files || !imageInput.files[0]) {
+                alert('Выберите изображение');
+                return;
+            }
+            
+            document.getElementById('decodingLoading').style.display = 'block';
+            
+            const file = imageInput.files[0];
+            const img = new Image();
+            
+            img.onload = function() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    // Применяем размытие для уменьшения JPEG-артефактов
+                    const blurredData = applyGaussianBlur(imageData, canvas.width, canvas.height);
+                    
+                    // Вычисляем корректный размер матрицы
+                    const dataOffset = (MARKER_SIZE + QUIET_ZONE) * MODULE_SIZE;
+                    const matrixSize = Math.floor((canvas.width - dataOffset * 2) / MODULE_SIZE);
+                    
+                    // Извлекаем биты с суперсэмплингом
+                    let binaryString = '';
+                    
+                    for (let row = 0; row < matrixSize; row++) {
+                        for (let col = 0; col < matrixSize; col++) {
+                            const centerX = dataOffset + col * MODULE_SIZE + MODULE_SIZE / 2;
+                            const centerY = dataOffset + row * MODULE_SIZE + MODULE_SIZE / 2;
+                            
+                            // Суперсэмплинг: считываем область 5x5 пикселей
+                            const bit = sampleModule(blurredData, canvas.width, centerX, centerY);
+                            binaryString += bit;
+                        }
+                    }
+                    
+                    // Извлекаем длину аудио (первые 32 бита)
+                    let audioLength = 0;
+                    for (let i = 0; i < 32; i++) {
+                        audioLength = (audioLength << 1) | (binaryString[i] === '1' ? 1 : 0);
+                    }
+                    
+                    // Извлекаем длину типа файла (следующие 8 бит)
+                    let typeLength = 0;
+                    for (let i = 32; i < 40; i++) {
+                        typeLength = (typeLength << 1) | (binaryString[i] === '1' ? 1 : 0);
+                    }
+                    
+                    // Извлекаем тип файла
+                    let fileType = '';
+                    for (let i = 0; i < typeLength; i++) {
+                        let charCode = 0;
+                        for (let j = 0; j < 8; j++) {
+                            const bitIndex = 40 + i * 8 + j;
+                            charCode = (charCode << 1) | (binaryString[bitIndex] === '1' ? 1 : 0);
+                        }
+                        fileType += String.fromCharCode(charCode);
+                    }
+                    
+                    // Начало аудио данных
+                    const audioDataStart = 40 + typeLength * 8;
+                    
+                    // Проверяем валидность
+                    if (audioLength <= 0 || audioLength > (binaryString.length - audioDataStart) / 8) {
+                        throw new Error('Некорректные данные. Попробуйте переснять фото.');
+                    }
+                    
+                    // Извлекаем аудио данные
+                    const audioBytes = new Uint8Array(audioLength);
+                    
+                    for (let i = 0; i < audioLength; i++) {
+                        let byte = 0;
+                        for (let j = 0; j < 8; j++) {
+                            const bitIndex = audioDataStart + i * 8 + j;
+                            byte = (byte << 1) | (binaryString[bitIndex] === '1' ? 1 : 0);
+                        }
+                        audioBytes[i] = byte;
+                    }
+                    
+                    // Создаем аудио blob
+                    const audioBlob = new Blob([audioBytes.buffer], { type: fileType || 'audio/mpeg' });
+                    const audioURL = URL.createObjectURL(audioBlob);
+                    
+                    // Показываем результат
+                    const resultContainer = document.getElementById('resultContainer');
+                    const resultContent = document.getElementById('resultContent');
+                    
+                    resultContent.innerHTML = `
+                        <div class="success">🎵 Аудио успешно декодировано!</div>
+                        <p>Размер: ${(audioLength / 1024).toFixed(1)} КБ</p>
+                        <p>Тип: ${fileType || 'audio/mpeg'}</p>
+                    `;
+                    
+                    // Создаем аудио элемент
+                    const audioElement = document.createElement('audio');
+                    audioElement.controls = true;
+                    audioElement.src = audioURL;
+                    audioElement.style.width = '100%';
+                    audioElement.style.margin = '15px 0';
+                    resultContent.appendChild(audioElement);
+                    
+                    // Кнопка скачивания
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = audioURL;
+                    downloadLink.download = `decoded_audio.${getExtension(fileType)}`;
+                    downloadLink.className = 'download-btn';
+                    downloadLink.textContent = '📥 Скачать аудио';
+                    resultContent.appendChild(downloadLink);
+                    
+                    resultContainer.classList.add('show');
+                    document.getElementById('decodingLoading').style.display = 'none';
+                    
+                } catch (error) {
+                    alert('Ошибка декодирования: ' + error.message);
+                    document.getElementById('decodingLoading').style.display = 'none';
+                }
+            };
+            
+            img.onerror = function() {
+                alert('Не удалось загрузить изображение');
+                document.getElementById('decodingLoading').style.display = 'none';
+            };
+            
+            img.src = URL.createObjectURL(file);
+        }
+        
+        // Суперсэмплинг модуля
+        function sampleModule(data, width, centerX, centerY) {
+            const sampleSize = 5; // 5x5 пикселей
+            const halfSize = Math.floor(sampleSize / 2);
+            let blackCount = 0;
+            let whiteCount = 0;
+            
+            for (let dy = -halfSize; dy <= halfSize; dy++) {
+                for (let dx = -halfSize; dx <= halfSize; dx++) {
+                    const x = Math.floor(centerX + dx);
+                    const y = Math.floor(centerY + dy);
+                    
+                    const brightness = getBrightness(data, width, x, y);
+                    
+                    if (brightness < 128) {
+                        blackCount++;
+                    } else {
+                        whiteCount++;
+                    }
+                }
+            }
+            
+            return blackCount > whiteCount ? '1' : '0';
+        }
+        
+        // Простое размытие по Гауссу 3x3
+        function applyGaussianBlur(imageData, width, height) {
+            const src = imageData.data;
+            const output = new Uint8ClampedArray(src.length);
+            const kernel = [
+                [1, 2, 1],
+                [2, 4, 2],
+                [1, 2, 1]
+            ];
+            const kernelSum = 16;
+            
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let r = 0, g = 0, b = 0;
+                    
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const idx = ((y + ky) * width + (x + kx)) * 4;
+                            const weight = kernel[ky + 1][kx + 1];
+                            
+                            r += src[idx] * weight;
+                            g += src[idx + 1] * weight;
+                            b += src[idx + 2] * weight;
+                        }
+                    }
+                    
+                    const idx = (y * width + x) * 4;
+                    output[idx] = r / kernelSum;
+                    output[idx + 1] = g / kernelSum;
+                    output[idx + 2] = b / kernelSum;
+                    output[idx + 3] = 255;
+                }
+            }
+            
+            return new ImageData(output, width, height);
+        }
+        
+        function getBrightness(imageData, width, x, y) {
+            const ix = Math.floor(x);
+            const iy = Math.floor(y);
+            
+            if (ix < 0 || ix >= width || iy < 0 || iy >= imageData.height) {
+                return 255;
+            }
+            
+            const idx = (iy * width + ix) * 4;
+            return (imageData.data[idx] + imageData.data[idx + 1] + imageData.data[idx + 2]) / 3;
+        }
+        
+        function getExtension(mimeType) {
+            const extensions = {
+                'audio/mpeg': 'mp3',
+                'audio/mp3': 'mp3',
+                'audio/wav': 'wav',
+                'audio/wave': 'wav',
+                'audio/ogg': 'ogg',
+                'audio/mp4': 'm4a',
+                'audio/aac': 'aac',
+                'audio/flac': 'flac'
+            };
+            return extensions[mimeType] || 'mp3';
+        }
+    </script>
+</body>
+</html>
