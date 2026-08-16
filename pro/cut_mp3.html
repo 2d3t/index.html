@@ -5,8 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Обрезка песни в MP3</title>
 <style>
-  body {
+  * {
     margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #1f1c2c, #928dab);
     color: #fff;
@@ -14,148 +19,337 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    padding: 20px;
   }
+  
   .container {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
     padding: 30px 40px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-    max-width: 400px;
-    width: 90%;
-    text-align: center;
-  }
-  h2 {
-    margin-bottom: 25px;
-    font-weight: 600;
-    font-size: 1.8em;
-    color: #ffe;
-  }
-  input[type=file],
-  input[type=text],
-  select {
-    padding: 8px 10px;
-    border-radius: 10px;
-    border: none;
-    background: rgba(255,255,255,0.1);
-    color: #fff;
-  }
-  input[type=file] {
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    max-width: 420px;
     width: 100%;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
   }
-  input[type=text] {
-    width: 80px;
-    text-align: center;
+  
+  h2 {
+    font-weight: 600;
+    font-size: 1.6em;
+    color: #ffe;
+    margin: 0;
   }
-  input[disabled] {
-    background: rgba(255,255,255,0.2);
-    color: #999;
+  
+  .exit-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #aaa;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
   }
-  select {
-    margin-left: 10px;
-  }
-  label {
-    display: block;
-    margin: 15px 0 5px;
-    font-weight: 500;
-    font-size: 0.95em;
+  
+  .exit-btn:hover {
+    background: rgba(255,255,255,0.12);
     color: #fff;
+    border-color: rgba(255,255,255,0.3);
   }
-  .player audio {
+  
+  input[type="file"] {
     width: 100%;
-    margin: 20px 0;
+    padding: 12px;
     border-radius: 12px;
-    outline: none;
+    border: 2px dashed rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-bottom: 20px;
   }
-  button {
+  
+  input[type="file"]:hover {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.08);
+  }
+  
+  input[type="file"]::file-selector-button {
     background: #ff6b81;
     color: #fff;
     border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 15px;
+    transition: 0.3s;
+  }
+  
+  input[type="file"]::file-selector-button:hover {
+    background: #ff4757;
+  }
+  
+  .player audio {
+    width: 100%;
+    margin: 15px 0;
     border-radius: 12px;
-    padding: 12px 25px;
-    font-size: 1em;
+    outline: none;
+    background: rgba(0,0,0,0.2);
+  }
+  
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 15px 0;
+  }
+  
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    padding: 10px 15px;
+    border-radius: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .control-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 0.95em;
+    color: #ddd;
+  }
+  
+  .control-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ff6b81;
+  }
+  
+  .control-group input[type="text"] {
+    width: 70px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    text-align: center;
+    font-size: 0.95em;
+    transition: 0.3s;
+  }
+  
+  .control-group input[type="text"]:disabled {
+    background: rgba(255,255,255,0.05);
+    color: #666;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  
+  .control-group input[type="text"]:not(:disabled):focus {
+    outline: 2px solid #ff6b81;
+    background: rgba(255,255,255,0.15);
+  }
+  
+  .control-group select {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    min-width: 80px;
+  }
+  
+  .control-group select option {
+    background: #2a2a3a;
+    color: #fff;
+  }
+  
+  .bitrate-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    padding: 10px 15px;
+    border-radius: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .bitrate-label span {
+    color: #aaa;
+    font-size: 0.9em;
+  }
+  
+  .bitrate-label .min-bitrate-badge {
+    background: #ff6b81;
+    color: #fff;
+    padding: 2px 12px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  #progressContainer {
+    margin-top: 15px;
+    display: none;
+  }
+  
+  #progressContainer .progress-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    height: 24px;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  #progressBar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff6b81, #ff4757);
+    transition: width 0.15s ease;
+    border-radius: 12px;
+    position: relative;
+  }
+  
+  #progressText {
+    margin-top: 8px;
+    font-size: 0.9em;
+    color: #ccc;
+    font-weight: 500;
+  }
+  
+  #cutBtn {
+    background: linear-gradient(135deg, #ff6b81, #ff4757);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 30px;
+    font-size: 1.05em;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.3s;
+    transition: all 0.3s ease;
     margin-top: 20px;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(255,71,87,0.3);
   }
-  button:hover {
-    background: #ff4757;
+  
+  #cutBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 25px rgba(255,71,87,0.4);
   }
-  @media(max-width: 450px){
-    .container { padding: 20px 25px; }
-    button { width: 100%; }
-    input[type=text], select { width: 60px; }
+  
+  #cutBtn:active {
+    transform: translateY(0);
+  }
+  
+  #cutBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .info-text {
+    font-size: 0.8em;
+    color: #888;
+    margin-top: 15px;
+    line-height: 1.6;
+  }
+  
+  @media(max-width: 480px){
+    .container { padding: 20px; }
+    .control-group { flex-direction: column; gap: 8px; }
+    .control-group label { width: 100%; justify-content: center; }
+    h2 { font-size: 1.3em; }
   }
 </style>
 </head>
 <body>
 <div class="container">
-<button class="exit-btn" onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход</button>
-
-<style>
-.exit-btn {
-  background: transparent;
-  border: none;
-  color: #666; /* спокойный серый текст */
-  font-size: 14px;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-}
-
-.exit-btn:hover {
-  background: rgba(0, 0, 0, 0.05); /* лёгкий серый фон при наведении */
-  color: #000; /* чуть темнее текст */
-}
-</style>
-
-  <h2>Обрезка песни в MP3</h2>
+  <div class="header">
+    <h2>🎵 Обрезка MP3</h2>
+    <button class="exit-btn" onclick="window.location.href='https://2d3t.github.io/index.html/'">✕ Выход</button>
+  </div>
+  
   <input type="file" id="fileInput" accept="audio/*">
   
-  <div id="progressContainer" style="display:none; margin-top:15px; text-align:center;">
-    <div style="background:#444; border-radius:10px; overflow:hidden; height:20px; width:80%; margin:0 auto;">
-      <div id="progressBar" style="width:0%; height:100%; background:#4caf50; transition:width 0.2s;"></div>
+  <div id="progressContainer">
+    <div class="progress-track">
+      <div id="progressBar" style="width: 0%;"></div>
     </div>
-    <p id="progressText" style="margin-top:5px; font-size:0.9em; color:#ccc;">0%</p>
+    <p id="progressText">0%</p>
   </div>
 
   <div class="player">
     <audio id="audio" controls></audio>
   </div>
 
-  <label>
-    <input type="checkbox" id="useStart" checked>
-    Начало:
-    <input type="text" id="start" value="0:00">
-  </label>
-  <label>
-    <input type="checkbox" id="useEnd" checked>
-    Конец:
-    <input type="text" id="end" value="0:10">
-  </label>
+  <div class="controls">
+    <div class="control-group">
+      <label>
+        <input type="checkbox" id="useStart" checked>
+        Начало:
+        <input type="text" id="start" value="0:00">
+      </label>
+    </div>
+    
+    <div class="control-group">
+      <label>
+        <input type="checkbox" id="useEnd" checked>
+        Конец:
+        <input type="text" id="end" value="0:10">
+      </label>
+    </div>
+  </div>
 
-  <label>Битрейт MP3:
+  <div class="bitrate-label">
+    <span>⚡ Битрейт:</span>
     <select id="bitrate">
-      <option value="128">128</option>
-      <option value="192">192</option>
-      <option value="256">256</option>
       <option value="320">320</option>
-    </select> кбит/с
-  </label>
+      <option value="256">256</option>
+      <option value="192">192</option>
+      <option value="128" selected>128</option>
+      <option value="64">64</option>
+      <option value="32">32</option>
+      <option value="16">16</option>
+      <option value="8">8 ⭐</option>
+    </select>
+    <span>кбит/с</span>
+    <span class="min-bitrate-badge">Минимальный</span>
+  </div>
 
-  <button id="cutBtn">Обрезать и скачать MP3</button>
+  <button id="cutBtn">✂️ Обрезать и скачать MP3</button>
+  
+  <div class="info-text">
+    💡 Поддерживаются форматы: MP3, WAV, OGG, FLAC, AAC<br>
+    ⚡ Минимальный битрейт: 8 кбит/с (экономия места)
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
 <script>
 const fileInput = document.getElementById('fileInput');
 const audio = document.getElementById('audio');
+const cutBtn = document.getElementById('cutBtn');
 let audioBuffer = null;
+let isProcessing = false;
 
 fileInput.addEventListener('change', async (event) => {
   const file = event.target.files[0];
@@ -163,16 +357,26 @@ fileInput.addEventListener('change', async (event) => {
 
   const url = URL.createObjectURL(file);
   audio.src = url;
+  audio.load();
 
-  const arrayBuffer = await file.arrayBuffer();
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    cutBtn.disabled = false;
+  } catch (e) {
+    alert("Ошибка загрузки аудио: " + e.message);
+    cutBtn.disabled = true;
+  }
 });
 
 function timeToSeconds(str) {
+  str = str.trim();
+  if (!str) return 0;
   const parts = str.split(":").map(p => parseInt(p, 10));
   if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return parseInt(str, 10) || 0;
+  if (parts.length === 1) return parts[0] || 0;
+  return 0;
 }
 
 function floatTo16BitPCM(float32Array) {
@@ -184,18 +388,29 @@ function floatTo16BitPCM(float32Array) {
   return buffer;
 }
 
-// включение/выключение полей по галочкам
 function toggleInput(checkboxId, inputId) {
   const checkbox = document.getElementById(checkboxId);
   const input = document.getElementById(inputId);
   input.disabled = !checkbox.checked;
+  if (checkbox.checked) {
+    input.style.opacity = "1";
+  } else {
+    input.style.opacity = "0.5";
+  }
 }
+
 document.getElementById('useStart').addEventListener('change', () => toggleInput('useStart', 'start'));
 document.getElementById('useEnd').addEventListener('change', () => toggleInput('useEnd', 'end'));
 
-document.getElementById('cutBtn').addEventListener('click', async () => {
+// Инициализация
+toggleInput('useStart', 'start');
+toggleInput('useEnd', 'end');
+
+cutBtn.addEventListener('click', async () => {
+  if (isProcessing) return;
+  
   if (!audioBuffer) {
-    alert("Сначала загрузите песню!");
+    alert("Сначала загрузите аудиофайл!");
     return;
   }
 
@@ -205,12 +420,19 @@ document.getElementById('cutBtn').addEventListener('click', async () => {
   let startSec = 0;
   let endSec = audioBuffer.duration;
 
-  if (useStart) startSec = timeToSeconds(document.getElementById('start').value);
-  if (useEnd) endSec = timeToSeconds(document.getElementById('end').value);
+  if (useStart) {
+    startSec = timeToSeconds(document.getElementById('start').value);
+    if (startSec < 0) startSec = 0;
+  }
+  
+  if (useEnd) {
+    endSec = timeToSeconds(document.getElementById('end').value);
+    if (endSec > audioBuffer.duration) endSec = audioBuffer.duration;
+  }
 
   const duration = endSec - startSec;
   if (duration <= 0) {
-    alert("Неверные значения начала и конца");
+    alert("Неверные значения начала и конца! Убедитесь, что конец больше начала.");
     return;
   }
 
@@ -235,6 +457,10 @@ document.getElementById('cutBtn').addEventListener('click', async () => {
   progressContainer.style.display = "block";
   progressBar.style.width = "0%";
   progressText.innerText = "0%";
+  
+  isProcessing = true;
+  cutBtn.disabled = true;
+  cutBtn.textContent = "⏳ Обработка...";
 
   const sampleBlockSize = 1152;
   const totalSamples = cutData[0].length;
@@ -243,39 +469,65 @@ document.getElementById('cutBtn').addEventListener('click', async () => {
   function encodeChunk(start) {
     const end = Math.min(start + sampleBlockSize, totalSamples);
 
-    if (numChannels === 2) {
-      const left = floatTo16BitPCM(cutData[0].subarray(start, end));
-      const right = floatTo16BitPCM(cutData[1].subarray(start, end));
-      const mp3buf = mp3Encoder.encodeBuffer(left, right);
-      if (mp3buf.length > 0) mp3Data.push(mp3buf);
-    } else {
-      const samples = floatTo16BitPCM(cutData[0].subarray(start, end));
-      const mp3buf = mp3Encoder.encodeBuffer(samples);
-      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    try {
+      if (numChannels === 2) {
+        const left = floatTo16BitPCM(cutData[0].subarray(start, end));
+        const right = floatTo16BitPCM(cutData[1].subarray(start, end));
+        const mp3buf = mp3Encoder.encodeBuffer(left, right);
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      } else {
+        const samples = floatTo16BitPCM(cutData[0].subarray(start, end));
+        const mp3buf = mp3Encoder.encodeBuffer(samples);
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      }
+    } catch (e) {
+      console.error("Ошибка кодирования:", e);
     }
 
     processedSamples = end;
-    const percent = Math.floor((processedSamples / totalSamples) * 100);
+    const percent = Math.min(Math.floor((processedSamples / totalSamples) * 100), 100);
     progressBar.style.width = percent + "%";
     progressText.innerText = percent + "%";
 
     if (end < totalSamples) {
       setTimeout(() => encodeChunk(end), 0);
     } else {
-      const mp3buf = mp3Encoder.flush();
-      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      try {
+        const mp3buf = mp3Encoder.flush();
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
 
-      const blob = new Blob(mp3Data, { type: 'audio/mp3' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = "cut.mp3";
-      link.click();
+        const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        const fileName = fileInput.files[0] ? fileInput.files[0].name.replace(/\.[^.]+$/, '') : 'cut';
+        link.download = `${fileName}_cut_${bitrate}kbps.mp3`;
+        link.click();
+        URL.revokeObjectURL(link.href);
 
-      progressText.innerText = "Готово!";
+        progressText.innerText = "✅ Готово!";
+        progressBar.style.width = "100%";
+      } catch (e) {
+        alert("Ошибка при создании MP3: " + e.message);
+        progressText.innerText = "❌ Ошибка";
+      } finally {
+        isProcessing = false;
+        cutBtn.disabled = false;
+        cutBtn.textContent = "✂️ Обрезать и скачать MP3";
+        mp3Data = [];
+      }
     }
   }
 
   encodeChunk(0);
+});
+
+// Добавляем поддержку клавиши Enter для полей ввода
+document.querySelectorAll('input[type="text"]').forEach(input => {
+  input.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      cutBtn.click();
+    }
+  });
 });
 </script>
 </body>
