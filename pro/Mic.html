@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 Крипте-Котик v3 (отладка)</title>
+    <title>🐱 Крипте-Котик v4 (агрессивный приём)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -145,8 +145,8 @@
 <body>
 <div class="card">
     <h1>
-        <span>🐱 Крипте-Котик v3</span>
-        <small>отладка</small>
+        <span>🐱 Крипте-Котик v4</span>
+        <small>агрессивный приём</small>
     </h1>
 
     <div class="status-bar">
@@ -174,12 +174,16 @@
         <div id="volumeMeter"><div id="volumeFill"></div></div>
         <div class="threshold-slider">
             <span>🔽 Порог:</span>
-            <input type="range" id="thresholdSlider" min="10" max="100" value="55">
-            <span class="value" id="thresholdValue">55</span>
+            <input type="range" id="thresholdSlider" min="5" max="80" value="25">
+            <span class="value" id="thresholdValue">25</span>
         </div>
         <div class="item" style="grid-column: span 2;">
             <span>📦 Буфер пауз:</span>
             <span class="value" id="bufferValue">[]</span>
+        </div>
+        <div class="item" style="grid-column: span 2;">
+            <span>⏱️ Время с последнего щелчка:</span>
+            <span class="value" id="timeSinceLastClick">0мс</span>
         </div>
     </div>
 </div>
@@ -191,8 +195,8 @@
         const BASE_PAUSE = 150;
         const PAUSE_STEP = 50;
         const MAX_PAUSE = BASE_PAUSE + (ALPHABET.length - 1) * PAUSE_STEP;
-        const END_PAUSE = MAX_PAUSE + 400;
-        const CLICK_DURATION = 80; // увеличенная длительность
+        const END_PAUSE = 2000; // 2 секунды тишины = конец сообщения
+        const CLICK_DURATION = 50;
 
         // DOM
         const chatlog = document.getElementById('chatlog');
@@ -206,6 +210,7 @@
         const rmsValue = document.getElementById('rmsValue');
         const lastPauseValue = document.getElementById('lastPauseValue');
         const bufferValue = document.getElementById('bufferValue');
+        const timeSinceLastClick = document.getElementById('timeSinceLastClick');
         const volumeFill = document.getElementById('volumeFill');
         const thresholdSlider = document.getElementById('thresholdSlider');
         const thresholdValue = document.getElementById('thresholdValue');
@@ -217,6 +222,7 @@
         let lastClickTime = 0;
         let deviceId = '';
         let debugMode = false;
+        let lastClickReceived = 0;
 
         // ---------- AUDIO ----------
         function initAudio() {
@@ -243,8 +249,8 @@
                     mediaStream = stream;
                     const source = audioContext.createMediaStreamSource(stream);
                     analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 512;
-                    analyser.smoothingTimeConstant = 0.2;
+                    analyser.fftSize = 256; // меньше = быстрее реакция
+                    analyser.smoothingTimeConstant = 0.1;
                     source.connect(analyser);
                     dataArray = new Uint8Array(analyser.fftSize);
                     micActive = true;
@@ -256,9 +262,9 @@
                 });
         }
 
-        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ ----------
+        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ (АГРЕССИВНОЕ) ----------
         let listening = false;
-        let currentThreshold = 55;
+        let currentThreshold = 25;
 
         thresholdSlider.addEventListener('input', () => {
             currentThreshold = parseInt(thresholdSlider.value);
@@ -283,7 +289,7 @@
                 rmsValue.textContent = Math.round(rms);
                 const percent = Math.min(rms * 2, 100);
                 volumeFill.style.width = percent + '%';
-                if (percent > 30) {
+                if (percent > 20) {
                     volumeFill.style.background = '#ecc94b';
                 } else {
                     volumeFill.style.background = '#48bb78';
@@ -291,14 +297,29 @@
 
                 const now = performance.now();
 
-                // Если громкость выше порога
-                if (rms > currentThreshold) {
-                    // Игнорируем свой сигнал
-                    if (now - lastSendTime < 200) {
+                // Обновляем таймер тишины
+                if (lastClickTime > 0) {
+                    const silence = now - lastClickTime;
+                    timeSinceLastClick.textContent = silence.toFixed(0) + 'мс';
+                    
+                    // Если тишина больше END_PAUSE — принудительно завершаем приём
+                    if (silence > END_PAUSE && receiveBuffer.length > 0) {
+                        if (debugMode) addMessage('⏰ Таймаут тишины, завершаем приём', 'debug');
+                        finishReceiving();
                         requestAnimationFrame(check);
                         return;
                     }
-                    // Обрабатываем щелчок
+                }
+
+                // АГРЕССИВНОЕ ДЕТЕКТИРОВАНИЕ: любой пик выше порога
+                if (rms > currentThreshold) {
+                    // Игнорируем свой сигнал (по времени)
+                    if (now - lastSendTime < 150) {
+                        requestAnimationFrame(check);
+                        return;
+                    }
+                    
+                    // СЧИТАЕМ ЩЕЛЧОМ! БЕЗ ЗАЩИТЫ ОТ ДРЕБЕЗГА!
                     handleClick(now);
                 }
 
@@ -308,38 +329,29 @@
         }
 
         // ---------- ОБРАБОТКА ЩЕЛЧКА ----------
-        let lastClickReceived = 0;
-
         function handleClick(now) {
-            if (now - lastClickReceived < 70) return;
-            lastClickReceived = now;
-
+            // Просто считаем щелчком — никакой защиты от дребезга!
             if (debugMode) {
                 addMessage(`🔊 Щелчок в ${now.toFixed(0)}`, 'debug');
             }
 
             if (lastClickTime === 0) {
+                // Начало сообщения
                 lastClickTime = now;
                 receiveBuffer = [];
                 if (receiveTimer) {
                     clearTimeout(receiveTimer);
                     receiveTimer = null;
                 }
-                receiveTimer = setTimeout(() => {
-                    finishReceiving();
-                }, END_PAUSE);
                 if (debugMode) addMessage('📦 Начало приёма', 'debug');
                 return;
             }
 
+            // Вычисляем паузу
             const pause = now - lastClickTime;
             lastClickTime = now;
 
-            if (pause > END_PAUSE) {
-                finishReceiving();
-                return;
-            }
-
+            // Сохраняем паузу, даже если она очень маленькая
             receiveBuffer.push(pause);
             lastPauseValue.textContent = pause.toFixed(0) + 'мс';
             bufferValue.textContent = '[' + receiveBuffer.map(p => p.toFixed(0)).join(', ') + ']';
@@ -348,11 +360,10 @@
                 addMessage(`⏱️ Пауза: ${pause.toFixed(0)}мс`, 'debug');
             }
 
+            // Сбрасываем таймер тишины
             if (receiveTimer) {
                 clearTimeout(receiveTimer);
-                receiveTimer = setTimeout(() => {
-                    finishReceiving();
-                }, END_PAUSE);
+                receiveTimer = null;
             }
         }
 
@@ -362,11 +373,14 @@
                 clearTimeout(receiveTimer);
                 receiveTimer = null;
             }
+            
             if (receiveBuffer.length === 0) {
                 lastClickTime = 0;
+                if (debugMode) addMessage('📭 Пустой буфер, ничего не декодируем', 'debug');
                 return;
             }
 
+            // Декодируем
             let message = '';
             for (let p of receiveBuffer) {
                 let index = Math.round((p - BASE_PAUSE) / PAUSE_STEP);
@@ -376,17 +390,19 @@
             }
 
             if (debugMode) {
-                addMessage(`📝 Расшифровано: "${message}"`, 'debug');
+                addMessage(`📝 Расшифровано: "${message}" (буфер: ${receiveBuffer.length} пауз)`, 'debug');
             }
 
             if (message.trim().length > 0) {
                 addMessage(message, 'in');
             }
 
+            // Сброс
             lastClickTime = 0;
             receiveBuffer = [];
             lastPauseValue.textContent = '—';
             bufferValue.textContent = '[]';
+            timeSinceLastClick.textContent = '0мс';
         }
 
         // ---------- ОТПРАВКА ----------
@@ -414,7 +430,7 @@
             playClicks(pauses);
         }
 
-        // ---------- ВОСПРОИЗВЕДЕНИЕ ----------
+        // ---------- ВОСПРОИЗВЕДЕНИЕ (ПРЯМОУГОЛЬНЫЙ СИГНАЛ) ----------
         function playClicks(pauses) {
             if (isSending) return;
             isSending = true;
@@ -424,11 +440,13 @@
 
             function playNext() {
                 if (index >= pauses.length) {
+                    // После последнего щелчка ждём END_PAUSE и завершаем
                     setTimeout(() => finishSend(), END_PAUSE);
                     return;
                 }
 
-                playClick(CLICK_DURATION, 1800);
+                // Используем прямоугольный сигнал (резкий, легко детектировать)
+                playClick(CLICK_DURATION);
                 lastSendTime = performance.now();
 
                 const delay = pauses[index];
@@ -438,7 +456,8 @@
                 }, delay);
             }
 
-            playClick(CLICK_DURATION, 1800);
+            // Первый щелчок
+            playClick(CLICK_DURATION);
             lastSendTime = performance.now();
             setTimeout(() => {
                 index = 1;
@@ -450,18 +469,23 @@
             }, pauses[0] || 0);
         }
 
-        function playClick(duration, freq) {
+        function playClick(duration) {
             if (!audioContext) return;
             try {
-                const osc = audioContext.createOscillator();
+                // Прямоугольный сигнал даёт резкий щелчок
+                const bufferSize = audioContext.sampleRate * duration / 1000;
+                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.sin(2 * Math.PI * 1800 * i / audioContext.sampleRate) * 0.8;
+                }
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
                 const gain = audioContext.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq || 1500;
-                gain.gain.value = 1.0; // максимальная громкость
-                osc.connect(gain);
+                gain.gain.value = 1.0;
+                source.connect(gain);
                 gain.connect(audioContext.destination);
-                osc.start();
-                setTimeout(() => { osc.stop(); }, duration);
+                source.start();
             } catch(e) {}
         }
 
@@ -513,9 +537,9 @@
         });
 
         window.addEventListener('load', () => {
-            addSystemMessage('🐱 Крипте-Котик v3 с отладкой');
-            addSystemMessage('💡 Включи отладку, чтобы видеть каждый щелчок');
-            addSystemMessage('📊 Следи за громкостью — она должна быть > порога');
+            addSystemMessage('🐱 Крипте-Котик v4 — агрессивный приём');
+            addSystemMessage('💡 Теперь ЛЮБОЙ звук выше порога считается щелчком');
+            addSystemMessage('📊 Следи за буфером пауз — он должен заполняться');
         });
     })();
 </script>
