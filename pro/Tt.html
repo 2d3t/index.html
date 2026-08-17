@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MP3 <-> QR Code Converter PRO</title>
-    <!-- Подключаем необходимые библиотеки -->
+    <title>MP3 <-> QR Кодировщик на А4</title>
+    
+    <!-- Надежные и стабильные версии внешних библиотек -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
     <style>
         :root {
             --primary: #4f46e5;
             --primary-hover: #4338ca;
             --bg: #f9fafb;
             --card-bg: #ffffff;
-            --text: #1f2937;
-            --border: #e5e7eb;
+            --text: #111827;
         }
+
         body {
             font-family: system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
@@ -24,604 +26,505 @@
             margin: 0;
             padding: 20px;
         }
+
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
         }
-        .header {
+
+        header {
             text-align: center;
             margin-bottom: 30px;
         }
+
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+
         @media (max-width: 768px) {
             .grid { grid-template-columns: 1fr; }
         }
+
         .card {
             background: var(--card-bg);
             padding: 24px;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            border: 1px solid var(--border);
         }
-        h2 { margin-top: 0; color: #111827; font-size: 1.25rem; border-bottom: 2px solid var(--border); padding-bottom: 8px;}
-        .form-group { margin-bottom: 16px; }
-        label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.9rem;}
+
+        h2 { margin-top: 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
         input[type="file"], select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            box-sizing: border-box;
+            width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box;
         }
+
         button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            width: 100%;
-            transition: background 0.2s;
+            background-color: var(--primary); color: white; border: none; padding: 12px 20px;
+            border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s;
+            margin-top: 10px;
         }
         button:hover { background-color: var(--primary-hover); }
         button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
         .progress-container {
-            margin-top: 15px;
-            background: #e5e7eb;
-            border-radius: 9999px;
-            height: 12px;
-            overflow: hidden;
-            display: none;
+            background: #e5e7eb; border-radius: 9999px; height: 12px; margin-top: 15px; display: none; overflow: hidden;
         }
-        .progress-bar {
-            background: var(--primary);
-            height: 100%;
-            width: 0%;
-            transition: width 0.1s ease;
-        }
-        .status-text {
-            font-size: 0.85rem;
-            margin-top: 4px;
-            color: #6b7280;
-            text-align: center;
-        }
+        .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: width 0.1s ease; }
+        .status-text { font-size: 14px; color: #4b5563; margin-top: 5px; text-align: center; }
+
         #video-container {
-            position: relative;
-            width: 100%;
-            max-width: 400px;
-            margin: 10px auto;
-            display: none;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid var(--primary);
+            display: none; position: relative; width: 100%; max-width: 400px; margin: 15px auto; border-radius: 8px; overflow: hidden;
         }
-        #webcam-video { width: 100%; height: auto; display: block; }
-        #audio-result {
-            margin-top: 15px;
-            display: none;
-            text-align: center;
-            background: #f0fdf4;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #bbf7d0;
-        }
-        #audio-player { width: 100%; margin-top: 10px; }
-        
-        /* Сетка превью QR кодов */
-        #qr-preview-area {
-            margin-top: 20px;
-            display: grid;
-            gap: 10px;
-        }
-        .grid-density-4 { grid-template-columns: repeat(2, 1fr); }
-        .grid-density-6 { grid-template-columns: repeat(2, 1fr); }
-        .grid-density-1 { grid-template-columns: 1fr; }
-        
-        .qr-item-preview {
-            border: 1px dashed #ccc;
-            padding: 8px;
-            text-align: center;
-            background: white;
-        }
-        .qr-item-preview img { max-width: 120px; margin: 0 auto; }
-        
-        /* Стили для вывода на печать А4 */
+        video { width: 100%; height: auto; display: block; background: #000; }
+
+        #print-area { display: none; }
+
+        /* НАСТРОЙКИ СТИЛЕЙ ДЛЯ ПЕЧАТИ В PDF */
         @media print {
-            body * { visibility: hidden; }
-            #print-zone, #print-zone * { visibility: visible; }
-            #print-zone {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                background: white;
+            body * { display: none !important; }
+            #print-area { display: block !important; }
+            #print-area * { display: block !important; }
+
+            @page {
+                size: A4 portrait;
+                margin: 0;
             }
-            .print-page {
+
+            .page-a4 {
                 width: 210mm;
-                height: 296mm; /* Слегка уменьшено для полей */
+                height: 296mm;
                 page-break-after: always;
                 box-sizing: border-box;
-                padding: 15mm;
-                display: grid;
-                align-content: start;
-                justify-content: center;
-                background: white;
+                padding: 20mm;
+                display: grid !important;
+                align-content: space-around;
+                justify-content: space-around;
             }
-            /* Сетка для 1 кода на А4 */
-            .print-page.density-1 {
-                grid-template-columns: 1fr;
-                align-items: center;
-                justify-items: center;
-            }
-            .print-page.density-1 .qr-block { text-align: center; margin-top: 40mm; }
-            .print-page.density-1 img { width: 140mm; height: 140mm; }
-            
-            /* Сетка для 4 кодов на А4 (2х2) */
-            .print-page.density-4 {
-                grid-template-columns: repeat(2, 1fr);
-                grid-template-rows: repeat(2, 1fr);
-                gap: 20mm;
-                align-items: center;
-                justify-items: center;
-            }
-            .print-page.density-4 img { width: 75mm; height: 75mm; }
-            
-            /* Сетка для 6 кодов на А4 (2х3) */
-            .print-page.density-6 {
-                grid-template-columns: repeat(2, 1fr);
-                grid-template-rows: repeat(3, 1fr);
-                gap: 15mm;
-                align-items: center;
-                justify-items: center;
-            }
-            .print-page.density-6 img { width: 65mm; height: 65mm; }
-            
-            .qr-block {
+
+            .grid-1 { grid-template-columns: 1fr !important; }
+            .grid-4 { grid-template-columns: 1fr 1fr !important; gap: 15mm; }
+            .grid-6 { grid-template-columns: 1fr 1fr !important; grid-template-rows: 1fr 1fr 1fr !important; gap: 10mm; }
+
+            .qr-item {
                 text-align: center;
-                font-family: monospace;
-                font-size: 12px;
-                color: black;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
-            .qr-block img { display: block; margin: 0 auto 5px auto; }
+
+            .qr-item img {
+                display: inline-block !important;
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            .qr-label {
+                font-family: sans-serif;
+                font-size: 12px;
+                font-weight: bold;
+                margin-top: 8px;
+            }
         }
-        
-        /* Зона для печати скрыта на экране */
-        #print-zone { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h1>MP3 в QR-Код и обратно (A4 PRO)</h1>
-            <p>Конвертируйте аудиофайлы в печатные коды и сшивайте обратно через PDF или Камеру</p>
+<div class="container">
+    <header>
+        <h1>Преобразователь MP3 в QR-коды (А4)</h1>
+        <p>Разбивайте аудио в коды для печати и собирайте обратно через PDF или веб-камеру.</p>
+    </header>
+
+    <div class="grid">
+        <!-- БЛОК КОДИРОВАНИЯ -->
+        <div class="card">
+            <h2>1. Кодирование в QR</h2>
+            <div class="form-group">
+                <label for="mp3-file">Выберите MP3 файл:</label>
+                <input type="file" id="mp3-file" accept="audio/mp3, audio/*">
+            </div>
+            <div class="form-group">
+                <label for="density">Плотность кодов на лист А4:</label>
+                <select id="density">
+                    <option value="1">1 код на страницу (Максимальный размер)</option>
+                    <option value="4" selected>4 кода на страницу (Сетка 2х2)</option>
+                    <option value="6">6 кодов на страницу (Сетка 2х3)</option>
+                </select>
+            </div>
+            <button id="btn-generate">Сгенерировать QR-коды</button>
+            <button id="btn-print" style="display:none; background-color: #10b981;">Распечатать / Сохранить в PDF</button>
+
+            <div class="progress-container" id="encode-progress-box">
+                <div class="progress-bar" id="encode-progress"></div>
+            </div>
+            <div class="status-text" id="encode-status"></div>
         </div>
 
-        <div class="grid">
-            <!-- ПАНЕЛЬ КОДИРОВАНИЯ (MP3 -> QR) -->
-            <div class="card">
-                <h2>1. Кодирование в QR (Запись)</h2>
-                <div class="form-group">
-                    <label for="mp3-input">Выберите MP3 файл:</label>
-                    <input type="file" id="mp3-input" accept="audio/mp3, audio/*">
-                </div>
-                <div class="form-group">
-                    <label for="density-select">Плотность размещения на листе А4:</label>
-                    <select id="density-select">
-                        <option value="1">1 QR-код на страницу (Макс. надежность)</option>
-                        <option value="4" selected>4 QR-кода на страницу (2 х 2)</option>
-                        <option value="6">6 QR-кодов на страницу (2 х 3)</option>
-                    </select>
-                </div>
-                <button id="btn-encode">Сгенерировать коды</button>
-                
-                <div id="encode-progress-container" class="progress-container">
-                    <div id="encode-progress-bar" class="progress-bar"></div>
-                </div>
-                <div id="encode-status" class="status-text"></div>
-                
-                <button id="btn-print" style="margin-top: 15px; display: none; background-color: #10b981;">Распечатать / Сохранить в PDF</button>
-                
-                <div id="qr-preview-area"></div>
+        <!-- БЛОК СБОРКИ -->
+        <div class="card">
+            <h2>2. Восстановление звука</h2>
+            <div class="form-group">
+                <label for="pdf-file">Загрузить сохраненный PDF:</label>
+                <input type="file" id="pdf-file" accept="application/pdf">
+            </div>
+            <button id="btn-scan-pdf">Распознать из PDF</button>
+            
+            <div style="text-align: center; margin: 15px 0; font-weight: bold; color: #6b7280;">ИЛИ</div>
+
+            <button id="btn-toggle-camera">Включить сканирование камерой</button>
+            <div id="video-container">
+                <video id="webcam-video" playsinline></video>
             </div>
 
-            <!-- ПАНЕЛЬ ДЕКОДИРОВАНИЯ (QR -> MP3) -->
-            <div class="card">
-                <h2>2. Декодирование (Восстановление)</h2>
-                <div class="form-group">
-                    <label for="pdf-input">Вариант А: Загрузить PDF-файл с кодами:</label>
-                    <input type="file" id="pdf-input" accept="application/pdf">
-                </div>
-                <button id="btn-decode-pdf">Распознать из PDF</button>
-                
-                <div style="text-align: center; margin: 15px 0; font-weight: bold; color: #6b7280;">ИЛИ</div>
-                
-                <div class="form-group">
-                    <label>Вариант Б: Сканировать через веб-камеру:</label>
-                    <button id="btn-toggle-cam" style="background-color: #ef4444;">Включить камеру</button>
-                </div>
-                
-                <div id="video-container">
-                    <video id="webcam-video" playsinline></video>
-                </div>
+            <div class="progress-container" id="decode-progress-box">
+                <div class="progress-bar" id="decode-progress"></div>
+            </div>
+            <div class="status-text" id="decode-status"></div>
 
-                <div id="decode-progress-container" class="progress-container">
-                    <div id="decode-progress-bar" class="progress-bar"></div>
-                </div>
-                <div id="decode-status" class="status-text"></div>
-
-                <!-- Блок результата сборки звука -->
-                <div id="audio-result">
-                    <strong style="color: #15803d;">Аудио успешно собрано!</strong>
-                    <audio id="audio-player" controls></audio>
-                </div>
+            <div id="audio-output" style="margin-top:20px; display:none; text-align:center;">
+                <h3>Аудио успешно восстановлено!</h3>
+                <audio id="player" controls style="width:100%; margin-bottom:10px;"></audio>
+                <a id="download-link" download="restored.mp3" style="color:var(--primary); font-weight:bold; text-decoration:none;">💾 Скачать готовый MP3</a>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Скрытая зона, которая будет уходить на принтер при Ctrl+P / кнопке Печать -->
-    <div id="print-zone"></div>
+<div id="print-area"></div>
 
-    <script>
-        // Инициализируем PDF.js глобально
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+<script>
+    // 900 символов гарантирует стабильное чтение
+    const CHUNK_SIZE = 900; 
+    let gatheredChunks = {}; 
+    let totalExpectedChunks = null;
+    let cameraStream = null;
+    let cameraInterval = null;
 
-        // Константы размера куска. 
-        // 1050 байт - оптимально для QR code Version 40 (с поправкой на Base64 оверхед ~33%)
-        // Позволяет гарантировать стабильное чтение даже дешевой камерой.
-        const CHUNK_SIZE = 1050; 
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-        // Глобальные хранилища данных для сборки
-        let scannedChunks = {}; 
-        let webcamStream = null;
-        let isCamScanning = false;
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-        // Элементы интерфейса
-        const mp3Input = document.getElementById('mp3-input');
-        const densitySelect = document.getElementById('density-select');
-        const btnEncode = document.getElementById('btn-encode');
-        const btnPrint = document.getElementById('btn-print');
-        const qrPreviewArea = document.getElementById('qr-preview-area');
-        const encodeProgressCont = document.getElementById('encode-progress-container');
-        const encodeProgressBar = document.getElementById('encode-progress-bar');
-        const encodeStatus = document.getElementById('encode-status');
+    // КОРРЕКТНЫЙ ПЕРЕВОД ИЗ ARRAYBUFFER В BASE64 Без ограничений стека памяти
+    function bufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
 
-        const pdfInput = document.getElementById('pdf-input');
-        const btnDecodePdf = document.getElementById('btn-decode-pdf');
-        const btnToggleCam = document.getElementById('btn-toggle-cam');
-        const video = document.getElementById('webcam-video');
-        const videoContainer = document.getElementById('video-container');
-        const decodeProgressCont = document.getElementById('decode-progress-container');
-        const decodeProgressBar = document.getElementById('decode-progress-bar');
-        const decodeStatus = document.getElementById('decode-status');
-        const audioResult = document.getElementById('audio-result');
-        const audioPlayer = document.getElementById('audio-player');
-        const printZone = document.getElementById('print-zone');
+    // ==========================================
+    // ГЕНЕРАЦИЯ QR
+    // ==========================================
+    document.getElementById('btn-generate').addEventListener('click', async () => {
+        const fileInput = document.getElementById('mp3-file');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            return alert('Пожалуйста, выберите файл MP3.');
+        }
 
-        // ==========================================
-        // БЛОК 1: КОДИРОВАНИЕ MP3 -> QR СЕТКА -> PDF
-        // ==========================================
-        btnEncode.addEventListener('click', async () => {
-            const file = mp3Input.files[0];
-            if (!file) return alert('Пожалуйста, выберите MP3 файл!');
+        const file = fileInput.files[0];
+        const density = parseInt(document.getElementById('density').value);
+        
+        const progressBox = document.getElementById('encode-progress-box');
+        const progressBar = document.getElementById('encode-progress');
+        const statusText = document.getElementById('encode-status');
+        const printBtn = document.getElementById('btn-print');
+        const printArea = document.getElementById('print-area');
 
-            // Сброс состояния
-            qrPreviewArea.innerHTML = '';
-            printZone.innerHTML = '';
-            encodeProgressCont.style.display = 'block';
-            btnPrint.style.display = 'none';
+        progressBox.style.display = 'block';
+        printBtn.style.display = 'none';
+        printArea.innerHTML = '';
 
-            encodeStatus.innerText = 'Читаем файл...';
-            encodeProgressBar.style.width = '5%';
+        statusText.innerText = "Чтение бинарных данных аудиофайла...";
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const encodedData = bufferToBase64(arrayBuffer);
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const arrayBuffer = e.target.result;
-                // Переводим бинарный файл в Base64 для безопасной упаковки в текст QR
-                const base64String = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            const chunks = [];
+            for (let i = 0; i < encodedData.length; i += CHUNK_SIZE) {
+                chunks.push(encodedData.substring(i, i + CHUNK_SIZE));
+            }
+
+            const totalChunks = chunks.length;
+            statusText.innerText = `Генерация графических изображений. Всего частей: ${totalChunks}`;
+
+            let currentGrid = null;
+            let codesOnCurrentPage = 0;
+
+            for (let i = 0; i < totalChunks; i++) {
+                if (codesOnCurrentPage === 0 || codesOnCurrentPage === density) {
+                    currentGrid = document.createElement('div');
+                    currentGrid.className = `page-a4 grid-${density}`;
+                    printArea.appendChild(currentGrid);
+                    codesOnCurrentPage = 0;
+                }
+
+                const qrItem = document.createElement('div');
+                qrItem.className = 'qr-item';
                 
-                const totalLength = base64String.length;
-                const totalChunks = Math.ceil(totalLength / CHUNK_SIZE);
+                // Строгий формат метаданных
+                const payload = `${i}|${totalChunks}|${chunks[i]}`;
+                const tempQrDiv = document.createElement('div');
                 
-                encodeStatus.innerText = `Файл разделен на ${totalChunks} частей. Генерация QR кодов...`;
+                const qrSize = density === 1 ? 400 : (density === 4 ? 230 : 180);
                 
-                const density = parseInt(densitySelect.value);
-                qrPreviewArea.className = `grid-density-${density}`;
+                new QRCode(tempQrDiv, {
+                    text: payload,
+                    width: qrSize,
+                    height: qrSize,
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                // Ожидаем рендеринг картинки библиотекой внутри DOM
+                await sleep(50);
+                let imgElement = tempQrDiv.querySelector('img');
                 
-                let currentPageNode = null;
-                let codesInCurrentPage = 0;
+                if (!imgElement || !imgElement.src) {
+                    await sleep(150); // Дополнительное время ожидания для медленных систем
+                    imgElement = tempQrDiv.querySelector('img');
+                }
 
-                // Для генерации QR последовательно используем задержки, чтобы браузер не завис
-                for(let i = 0; i < totalChunks; i++) {
-                    const start = i * CHUNK_SIZE;
-                    const end = Math.min(start + CHUNK_SIZE, totalLength);
-                    const chunkData = base64String.substring(start, end);
-                    
-                    // Пакет данных: ИНДЕКС|ВСЕГО_ЧАСТЕЙ|БЛОК_ДАННЫХ
-                    const payload = `${i}|${totalChunks}|${chunkData}`;
-
-                    // 1. Создаем элемент для превью на экране
-                    const previewItem = document.createElement('div');
-                    previewItem.className = 'qr-item-preview';
-                    previewItem.innerHTML = `<div><strong>Код ${i+1}/${totalChunks}</strong></div><div id="prev-qr-${i}"></div>`;
-                    qrPreviewArea.appendChild(previewItem);
-
-                    // 2. Создаем структуру для печатного листа А4 в скрытом printZone
-                    if (codesInCurrentPage === 0) {
-                        currentPageNode = document.createElement('div');
-                        currentPageNode.className = `print-page density-${density}`;
-                        printZone.appendChild(currentPageNode);
-                    }
-
-                    const printBlock = document.createElement('div');
-                    printBlock.className = 'qr-block';
-                    printBlock.innerHTML = `<div id="print-qr-${i}"></div><div>Часть ${i+1} из ${totalChunks}</div>`;
-                    currentPageNode.appendChild(printBlock);
-
-                    // Рендерим QR-коды в оба контейнера
-                    new QRCode(document.getElementById(`prev-qr-${i}`), { text: payload, width: 120, height: 120, correctLevel: QRCode.CorrectLevel.M });
-                    new QRCode(document.getElementById(`print-qr-${i}`), { text: payload, width: 350, height: 350, correctLevel: QRCode.CorrectLevel.M });
-
-                    codesInCurrentPage++;
-                    if (codesInCurrentPage >= density) {
-                        codesInCurrentPage = 0; // На следующем шаге создастся новый лист А4
-                    }
-
-                    // Обновляем прогресс-бар
-                    const progress = Math.round(((i + 1) / totalChunks) * 100);
-                    encodeProgressBar.style.width = `${progress}%`;
-                    if(i % 5 === 0) {
-                        encodeStatus.innerText = `Сгенерировано кодов: ${i+1} из ${totalChunks}`;
-                        await new Promise(r => setTimeout(r, 10)); // Даем браузеру "подышать"
+                if (imgElement && imgElement.src) {
+                    const finalImg = document.createElement('img');
+                    finalImg.src = imgElement.src;
+                    qrItem.appendChild(finalImg);
+                } else {
+                    // Фолбэк на Canvas если элемент img не создался
+                    const canvasEl = tempQrDiv.querySelector('canvas');
+                    if (canvasEl) {
+                        const finalImg = document.createElement('img');
+                        finalImg.src = canvasEl.toDataURL("image/png");
+                        qrItem.appendChild(finalImg);
                     }
                 }
 
-                encodeStatus.innerText = `Успешно готово! Сгенерировано ${totalChunks} кодов.`;
-                btnPrint.style.display = 'block';
-            };
-            reader.readAsArrayBuffer(file);
-        });
+                const label = document.createElement('div');
+                label.className = 'qr-label';
+                label.innerText = `Часть ${i + 1} из ${totalChunks}`;
+                qrItem.appendChild(label);
 
-        btnPrint.addEventListener('click', () => {
-            window.print(); // Открывает системное окно печати, где настроен экспорт в PDF
-        });
+                currentGrid.appendChild(qrItem);
+                codesOnCurrentPage++;
 
-
-        // ==========================================
-        // БЛОК 2: ДЕКОДИРОВАНИЕ QR -> MP3 (ИЗ PDF)
-        // ==========================================
-        btnDecodePdf.addEventListener('click', async () => {
-            const file = pdfInput.files[0];
-            if (!file) return alert('Пожалуйста, выберите PDF-файл для анализа!');
-
-            decodeProgressCont.style.display = 'block';
-            audioResult.style.display = 'none';
-            scannedChunks = {}; 
-            
-            decodeStatus.innerText = 'Загрузка PDF документа...';
-            decodeProgressBar.style.width = '5%';
-
-            try {
-                const fileReader = new FileReader();
-                fileReader.onload = async function () {
-                    const typedarray = new Uint8Array(this.result);
-                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                    const totalPages = pdf.numPages;
-                    
-                    decodeStatus.innerText = `В документе ${totalPages} страниц. Анализируем структуру кодов...`;
-
-                    // Проходим по каждой странице PDF
-                    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                        decodeStatus.innerText = `Обработка страницы ${pageNum} из ${totalPages}...`;
-                        
-                        const page = await pdf.getPage(pageNum);
-                        
-                        // Используем увеличенный масштаб для высокой точности распознавания мелких QR
-                        const viewport = page.getViewport({ scale: 2.0 }); 
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-
-                        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-
-                        // Считываем пиксели и ищем QR коды через jsQR
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        
-                        // Метод jsQR ищет один код. Если на странице их несколько (плотность 4 или 6), 
-                        // мы сканируем сетку кусочками (суб-регионами холста) для гарантированного обнаружения.
-                        const codeDetected = attemptMultiQRScan(imageData, ctx, canvas.width, canvas.height);
-
-                        const progress = Math.round((pageNum / totalPages) * 100);
-                        decodeProgressBar.style.width = `${progress}%`;
-                    }
-
-                    checkAndAssembleAudio();
-                };
-                fileReader.readAsArrayBuffer(file);
-            } catch (err) {
-                alert('Ошибка чтения PDF: ' + err.message);
+                const pct = Math.round(((i + 1) / totalChunks) * 100);
+                progressBar.style.width = pct + '%';
             }
-        });
 
-        // Вспомогательный разборщик сетки кодов на холсте страницы
-        function attemptMultiQRScan(imageData, ctx, width, height) {
-            // Сначала пробуем распознать страницу целиком (если код 1 на страницу)
-            let result = jsQR(imageData.data, width, height);
-            if (result) {
-                parsePayload(result.data);
-            }
-            
-            // На всякий случай бьем страницу на логическую сетку 2x3, чтобы выцепить локальные QR-коды
-            const cols = 2;
-            const rows = 3;
-            const wPart = Math.floor(width / cols);
-            const hPart = Math.floor(height / rows);
+            statusText.innerText = `Успешно сформировано! Всего кодов: ${totalChunks}. Нажмите кнопку экспорта ниже.`;
+            printBtn.style.display = 'block';
 
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const subImgData = ctx.getImageData(c * wPart, r * hPart, wPart, hPart);
-                    let subResult = jsQR(subImgData.data, wPart, hPart);
-                    if (subResult) {
-                        parsePayload(subResult.data);
-                    }
-                }
-            }
+        } catch (err) {
+            alert("Произошла ошибка при кодировании: " + err.message);
+            statusText.innerText = "Ошибка генерации.";
         }
+    });
 
-        // Парсинг прочитанной из QR строки
-        function parsePayload(text) {
-            if (!text || !text.includes('|')) return;
-            const parts = text.split('|');
-            if (parts.length < 3) return;
-            
-            const index = parseInt(parts[0]);
-            const total = parseInt(parts[1]);
-            const data = parts[2];
-            
-            scannedChunks[index] = { total: total, data: data };
+    document.getElementById('btn-print').addEventListener('click', () => {
+        window.print();
+    });
+
+    // ==========================================
+    // СБОРКА И ОБРАБОТКА ДАННЫХ КОДОВ
+    // ==========================================
+    function parsePayload(text) {
+        if (!text || !text.includes('|')) return null;
+        const parts = text.split('|');
+        if (parts.length < 3) return null;
+
+        const idx = parseInt(parts[0], 10);
+        const total = parseInt(parts[1], 10);
+        const base64Data = parts[2];
+
+        if (isNaN(idx) || isNaN(total)) return null;
+        return { idx, total, base64Data };
+    }
+
+    function processQrPayload(text) {
+        const parsed = parsePayload(text);
+        if (!parsed) return null;
+
+        totalExpectedChunks = parsed.total;
+        if (!gatheredChunks[parsed.idx]) {
+            gatheredChunks[parsed.idx] = parsed.base64Data;
+            return { current: Object.keys(gatheredChunks).length, total: parsed.total };
         }
+        return null;
+    }
 
-        // Проверка комплектации и сборка финального MP3
-        function checkAndAssembleAudio() {
-            const keys = Object.keys(scannedChunks);
-            if (keys.length === 0) {
-                decodeStatus.innerText = 'Ни одного QR кода не обнаружено.';
-                return;
-            }
+    function checkAndAssemble() {
+        if (!totalExpectedChunks || Object.keys(gatheredChunks).length !== totalExpectedChunks) return;
 
-            const expectedTotal = scannedChunks[keys[0]].total;
-            const currentCount = keys.length;
-
-            if (currentCount < expectedTotal) {
-                decodeStatus.innerText = `Ошибка сборки: Получено только ${currentCount} из ${expectedTotal} частей. Просканируйте недостающие листы.`;
-                return;
-            }
-
-            decodeStatus.innerText = 'Все части собраны! Склеиваем аудио-поток...';
-
-            // Собираем Base64 строку строго по порядку индексов
-            let fullBase64 = '';
-            for (let i = 0; i < expectedTotal; i++) {
-                if (!scannedChunks[i]) {
-                    decodeStatus.innerText = `Критическая ошибка: отсутствует фрагмент №${i+1}`;
+        try {
+            document.getElementById('decode-status').innerText = "Все фрагменты получены. Собираю аудиофайл...";
+            
+            let fullBase64 = "";
+            for (let i = 0; i < totalExpectedChunks; i++) {
+                if (gatheredChunks[i] === undefined) {
+                    document.getElementById('decode-status').innerText = `Ошибка сшивки: отсутствует часть ${i + 1}`;
                     return;
                 }
-                fullBase64 += scannedChunks[i].data;
+                fullBase64 += gatheredChunks[i];
             }
 
+            const binaryStr = atob(fullBase64);
+            const len = binaryStr.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+
+            const blob = new Blob([bytes], { type: 'audio/mp3' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            const player = document.getElementById('player');
+            player.src = blobUrl;
+            document.getElementById('download-link').href = blobUrl;
+            document.getElementById('audio-output').style.display = 'block';
+            document.getElementById('decode-status').innerText = "Поздравляем! Аудиофайл успешно восстановлен.";
+            
+            stopCamera();
+        } catch (e) {
+            alert("Критическая ошибка при восстановлении файла. Данные повреждены: " + e.message);
+        }
+    }
+
+    // РАСПОЗНАВАНИЕ ИЗ PDF
+    document.getElementById('btn-scan-pdf').addEventListener('click', async () => {
+        const fileInput = document.getElementById('pdf-file');
+        if (!fileInput.files || fileInput.files.length === 0) return alert('Выберите корректный PDF файл.');
+
+        const file = fileInput.files[0];
+        gatheredChunks = {};
+        totalExpectedChunks = null;
+
+        const progressBox = document.getElementById('decode-progress-box');
+        const progressBar = document.getElementById('decode-progress');
+        const statusText = document.getElementById('decode-status');
+        
+        progressBox.style.display = 'block';
+        progressBar.style.width = '0%';
+
+        const fileReader = new FileReader();
+        fileReader.onload = async function() {
             try {
-                // Переводим Base64 обратно в бинарный массив байтов
-                const byteCharacters = atob(fullBase64);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                }
-                const byteArray = new Uint8Array(byteNumbers);
+                const typedarray = new Uint8Array(this.result);
+                const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 
-                // Создаем аудио-б blob
-                const audioBlob = new Blob([byteArray], { type: 'audio/mp3' });
-                const audioUrl = URL.createObjectURL(audioBlob);
-                
-                audioPlayer.src = audioUrl;
-                audioResult.style.display = 'block';
-                decodeStatus.innerText = 'Сборка завершена! Вы можете прослушать или скачать трек.';
-            } catch (e) {
-                decodeStatus.innerText = 'Ошибка декодирования Base64 данных: ' + e.message;
-            }
-        }
-
-        // ==========================================
-        // БЛОК 3: ПОТОКОВОЕ СКАНИРОВАНИЕ КАМЕРОЙ
-        // ==========================================
-        btnToggleCam.addEventListener('click', async () => {
-            if (isCamScanning) {
-                // Выключение камеры
-                stopWebcam();
-                btnToggleCam.innerText = 'Включить камеру';
-                btnToggleCam.style.backgroundColor = '#ef4444';
-                videoContainer.style.display = 'none';
-                isCamScanning = false;
-            } else {
-                // Включение камеры
-                try {
-                    scannedChunks = {}; // Обнуляем буфер при новом сеансе
-                    decodeProgressCont.style.display = 'block';
-                    audioResult.style.display = 'none';
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    statusText.innerText = `Анализ страницы PDF: ${pageNum} из ${pdf.numPages}...`;
+                    const page = await pdf.getPage(pageNum);
                     
-                    webcamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = webcamStream;
-                    video.setAttribute("playsinline", true);
-                    video.play();
-                    
-                    videoContainer.style.display = 'block';
-                    isCamScanning = true;
-                    btnToggleCam.innerText = 'Выключить камеру';
-                    btnToggleCam.style.backgroundColor = '#1f2937';
-                    
-                    decodeStatus.innerText = 'Камера активна. Наведите на QR-код...';
-                    requestAnimationFrame(tickWebcamScan);
-                } catch (err) {
-                    alert('Доступ к камере отклонен или недоступен: ' + err.message);
-                }
-            }
-        });
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
 
-        function stopWebcam() {
-            if (webcamStream) {
-                webcamStream.getTracks().forEach(track => track.stop());
-                webcamStream = null;
-            }
-        }
+                    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
 
-        // Цикл обработки кадров камеры в реальном времени
-        function tickWebcamScan() {
-            if (!isCamScanning) return;
-
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, canvas.width, canvas.height);
-                
-                if (code) {
-                    parsePayload(code.data);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     
-                    // Высчитываем текущий прогресс сбора по камере
-                    const keys = Object.keys(scannedChunks);
-                    if (keys.length > 0) {
-                        const expectedTotal = scannedChunks[keys[0]].total;
-                        const currentCount = keys.length;
-                        const progress = Math.round((currentCount / expectedTotal) * 100);
-                        
-                        decodeProgressBar.style.width = `${progress}%`;
-                        decodeStatus.innerHTML = `<span style="color:#10b981; font-weight:bold;">Успешно считан код!</span> Собрано частей: ${currentCount} из ${expectedTotal}`;
-                        
-                        // Если все коды собрали прямо через камеру - автоматически выключаем и собираем
-                        if (currentCount === expectedTotal) {
-                            stopWebcam();
-                            btnToggleCam.innerText = 'Включить камеру';
-                            btnToggleCam.style.backgroundColor = '#ef4444';
-                            videoContainer.style.display = 'none';
-                            isCamScanning = false;
-                            checkAndAssembleAudio();
-                            return;
+                    // Сканирование по сетке для захвата множества кодов на листе
+                    const cols = 2;
+                    const rows = 3;
+                    const wZone = Math.floor(canvas.width / cols);
+                    const hZone = Math.floor(canvas.height / rows);
+
+                    for (let r = 0; r < rows; r++) {
+                        for (let c = 0; c < cols; c++) {
+                            const zoneData = ctx.getImageData(c * wZone, r * hZone, wZone, hZone);
+                            const code = jsQR(zoneData.data, zoneData.width, zoneData.height);
+                            if (code && code.data) {
+                                processQrPayload(code.data);
+                            }
                         }
                     }
+
+                    // Полноэкранный проход
+                    const globalCode = jsQR(imageData.data, imageData.width, imageData.height);
+                    if (globalCode && globalCode.data) processQrPayload(globalCode.data);
+
+                    const pct = Math.round((pageNum / pdf.numPages) * 100);
+                    progressBar.style.width = pct + '%';
                 }
+
+                if (totalExpectedChunks && Object.keys(gatheredChunks).length === totalExpectedChunks) {
+                    checkAndAssemble();
+                } else {
+                    statusText.innerText = `Сканирование завершено. Собрано фрагментов: ${Object.keys(gatheredChunks).length} из ${totalExpectedChunks || 'неизвестно'}. Некоторых частей не хватает.`;
+                }
+            } catch (err) {
+                alert("Ошибка чтения страниц PDF: " + err.message);
             }
-            // Продолжаем запрашивать кадры, пока включен режим сканирования
-            requestAnimationFrame(tickWebcamScan);
+        };
+        fileReader.readAsArrayBuffer(file);
+    });
+
+    // ПОТОК С ВЕБ-КАМЕРЫ
+    const camBtn = document.getElementById('btn-toggle-camera');
+    camBtn.addEventListener('click', async () => {
+        if (cameraStream) {
+            stopCamera();
+        } else {
+            gatheredChunks = {};
+            totalExpectedChunks = null;
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                const video = document.getElementById('webcam-video');
+                video.srcObject = cameraStream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                document.getElementById('video-container').style.display = 'block';
+                camBtn.innerText = "Выключить камеру";
+                camBtn.style.backgroundColor = "#ef4444";
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                cameraInterval = setInterval(() => {
+                    if (video.readyState === video.HAVE_CURRENT_DATA) {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imgData.data, imgData.width, imgData.height);
+
+                        if (code && code.data) {
+                            const result = processQrPayload(code.data);
+                            if (result) {
+                                document.getElementById('decode-status').innerText = `Считан код! Успешно собрано: ${result.current} из ${result.total}`;
+                                if (navigator.vibrate) navigator.vibrate(100);
+                                checkAndAssemble();
+                            }
+                        }
+                    }
+                }, 300);
+
+            } catch (err) {
+                alert("Нет доступа к камере: " + err.message);
+            }
         }
-    </script>
+    });
+
+    function stopCamera() {
+        if (cameraInterval) clearInterval(cameraInterval);
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+        }
+        cameraStream = null;
+        cameraInterval = null;
+        document.getElementById('video-container').style.display = 'none';
+        camBtn.innerText = "Включить сканирование камерой";
+        camBtn.style.backgroundColor = "var(--primary)";
+    }
+</script>
 </body>
 </html>
