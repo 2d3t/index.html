@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 Крипте-Котик v4 (агрессивный приём)</title>
+    <title>🐱 Крипте-Котик v5 (секундные паузы)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -140,13 +140,20 @@
             flex: 1;
             accent-color: #2b6cb0;
         }
+        .big-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #48bb78;
+            text-align: center;
+            grid-column: span 2;
+        }
     </style>
 </head>
 <body>
 <div class="card">
     <h1>
-        <span>🐱 Крипте-Котик v4</span>
-        <small>агрессивный приём</small>
+        <span>🐱 Крипте-Котик v5</span>
+        <small>секундные паузы</small>
     </h1>
 
     <div class="status-bar">
@@ -169,34 +176,31 @@
 
     <!-- Панель отладки -->
     <div class="debug-panel" id="debugPanel">
-        <div class="item"><span>🎤 Громкость (RMS)</span><span class="value" id="rmsValue">0</span></div>
-        <div class="item"><span>🔊 Последняя пауза</span><span class="value" id="lastPauseValue">—</span></div>
+        <div class="item"><span>🎤 Громкость</span><span class="value" id="rmsValue">0</span></div>
+        <div class="item"><span>⏱️ Текущая пауза</span><span class="value" id="currentPauseValue">0с</span></div>
         <div id="volumeMeter"><div id="volumeFill"></div></div>
         <div class="threshold-slider">
-            <span>🔽 Порог:</span>
+            <span>🔽 Чувствительность:</span>
             <input type="range" id="thresholdSlider" min="5" max="80" value="25">
             <span class="value" id="thresholdValue">25</span>
         </div>
         <div class="item" style="grid-column: span 2;">
-            <span>📦 Буфер пауз:</span>
+            <span>📦 Буфер (секунды):</span>
             <span class="value" id="bufferValue">[]</span>
         </div>
-        <div class="item" style="grid-column: span 2;">
-            <span>⏱️ Время с последнего щелчка:</span>
-            <span class="value" id="timeSinceLastClick">0мс</span>
-        </div>
+        <div class="big-number" id="lastDecodedMessage">⏳ Ждём сигнал...</div>
     </div>
 </div>
 
 <script>
     (function(){
-        // ---------- НАСТРОЙКИ ----------
+        // ---------- НАСТРОЙКИ: СЕКУНДНЫЕ ПАУЗЫ ----------
         const ALPHABET = " АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-        const BASE_PAUSE = 150;
-        const PAUSE_STEP = 50;
-        const MAX_PAUSE = BASE_PAUSE + (ALPHABET.length - 1) * PAUSE_STEP;
-        const END_PAUSE = 2000; // 2 секунды тишины = конец сообщения
-        const CLICK_DURATION = 50;
+        // 1 секунда = пробел, 2 секунды = А, 3 секунды = Б ... 34 секунды = Я
+        const BASE_PAUSE = 1000; // 1 секунда в миллисекундах
+        const PAUSE_STEP = 1000; // шаг 1 секунда
+        const END_PAUSE = 5000;  // 5 секунд тишины = конец сообщения
+        const CLICK_DURATION = 300; // длительность щелчка 300 мс
 
         // DOM
         const chatlog = document.getElementById('chatlog');
@@ -208,9 +212,9 @@
         const statusText = document.getElementById('statusText');
         const deviceIdDisplay = document.getElementById('deviceIdDisplay');
         const rmsValue = document.getElementById('rmsValue');
-        const lastPauseValue = document.getElementById('lastPauseValue');
+        const currentPauseValue = document.getElementById('currentPauseValue');
         const bufferValue = document.getElementById('bufferValue');
-        const timeSinceLastClick = document.getElementById('timeSinceLastClick');
+        const lastDecodedMessage = document.getElementById('lastDecodedMessage');
         const volumeFill = document.getElementById('volumeFill');
         const thresholdSlider = document.getElementById('thresholdSlider');
         const thresholdValue = document.getElementById('thresholdValue');
@@ -223,6 +227,7 @@
         let deviceId = '';
         let debugMode = false;
         let lastClickReceived = 0;
+        let isReceiving = false;
 
         // ---------- AUDIO ----------
         function initAudio() {
@@ -249,7 +254,7 @@
                     mediaStream = stream;
                     const source = audioContext.createMediaStreamSource(stream);
                     analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 256; // меньше = быстрее реакция
+                    analyser.fftSize = 256;
                     analyser.smoothingTimeConstant = 0.1;
                     source.connect(analyser);
                     dataArray = new Uint8Array(analyser.fftSize);
@@ -262,7 +267,7 @@
                 });
         }
 
-        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ (АГРЕССИВНОЕ) ----------
+        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ ----------
         let listening = false;
         let currentThreshold = 25;
 
@@ -285,7 +290,7 @@
                 }
                 const rms = Math.sqrt(sum / dataArray.length) * 100;
                 
-                // Обновляем отладку
+                // Обновляем индикатор громкости
                 rmsValue.textContent = Math.round(rms);
                 const percent = Math.min(rms * 2, 100);
                 volumeFill.style.width = percent + '%';
@@ -297,29 +302,29 @@
 
                 const now = performance.now();
 
-                // Обновляем таймер тишины
-                if (lastClickTime > 0) {
+                // Проверяем тишину (если приём идёт)
+                if (lastClickTime > 0 && isReceiving) {
                     const silence = now - lastClickTime;
-                    timeSinceLastClick.textContent = silence.toFixed(0) + 'мс';
+                    const seconds = (silence / 1000).toFixed(1);
+                    currentPauseValue.textContent = seconds + 'с';
                     
-                    // Если тишина больше END_PAUSE — принудительно завершаем приём
+                    // Если тишина больше END_PAUSE — завершаем приём
                     if (silence > END_PAUSE && receiveBuffer.length > 0) {
-                        if (debugMode) addMessage('⏰ Таймаут тишины, завершаем приём', 'debug');
+                        if (debugMode) addMessage('⏰ Таймаут ' + seconds + 'с, завершаем', 'debug');
                         finishReceiving();
                         requestAnimationFrame(check);
                         return;
                     }
                 }
 
-                // АГРЕССИВНОЕ ДЕТЕКТИРОВАНИЕ: любой пик выше порога
+                // Детектируем щелчок (любой звук выше порога)
                 if (rms > currentThreshold) {
-                    // Игнорируем свой сигнал (по времени)
-                    if (now - lastSendTime < 150) {
+                    // Игнорируем свой сигнал
+                    if (now - lastSendTime < 500) {
                         requestAnimationFrame(check);
                         return;
                     }
                     
-                    // СЧИТАЕМ ЩЕЛЧОМ! БЕЗ ЗАЩИТЫ ОТ ДРЕБЕЗГА!
                     handleClick(now);
                 }
 
@@ -330,34 +335,42 @@
 
         // ---------- ОБРАБОТКА ЩЕЛЧКА ----------
         function handleClick(now) {
-            // Просто считаем щелчком — никакой защиты от дребезга!
+            // Защита от дребезга (но с учётом секундных пауз)
+            if (now - lastClickReceived < 200) return;
+            lastClickReceived = now;
+
             if (debugMode) {
-                addMessage(`🔊 Щелчок в ${now.toFixed(0)}`, 'debug');
+                addMessage(`🔊 Щелчок в ${new Date().toLocaleTimeString()}`, 'debug');
             }
 
             if (lastClickTime === 0) {
                 // Начало сообщения
                 lastClickTime = now;
                 receiveBuffer = [];
+                isReceiving = true;
                 if (receiveTimer) {
                     clearTimeout(receiveTimer);
                     receiveTimer = null;
                 }
                 if (debugMode) addMessage('📦 Начало приёма', 'debug');
+                lastDecodedMessage.textContent = '⏳ Приём...';
                 return;
             }
 
-            // Вычисляем паузу
-            const pause = now - lastClickTime;
+            // Вычисляем паузу в секундах
+            const pauseMs = now - lastClickTime;
+            const pauseSec = pauseMs / 1000;
             lastClickTime = now;
 
-            // Сохраняем паузу, даже если она очень маленькая
-            receiveBuffer.push(pause);
-            lastPauseValue.textContent = pause.toFixed(0) + 'мс';
-            bufferValue.textContent = '[' + receiveBuffer.map(p => p.toFixed(0)).join(', ') + ']';
+            // Сохраняем паузу (в миллисекундах для точности)
+            receiveBuffer.push(pauseMs);
+            
+            // Обновляем отладку
+            currentPauseValue.textContent = pauseSec.toFixed(1) + 'с';
+            bufferValue.textContent = '[' + receiveBuffer.map(p => (p/1000).toFixed(1)).join('с, ') + 'с]';
 
             if (debugMode) {
-                addMessage(`⏱️ Пауза: ${pause.toFixed(0)}мс`, 'debug');
+                addMessage(`⏱️ Пауза: ${pauseSec.toFixed(1)}с`, 'debug');
             }
 
             // Сбрасываем таймер тишины
@@ -375,34 +388,42 @@
             }
             
             if (receiveBuffer.length === 0) {
+                isReceiving = false;
                 lastClickTime = 0;
-                if (debugMode) addMessage('📭 Пустой буфер, ничего не декодируем', 'debug');
+                if (debugMode) addMessage('📭 Пустой буфер', 'debug');
+                lastDecodedMessage.textContent = '⏳ Ждём сигнал...';
                 return;
             }
 
-            // Декодируем
+            // Декодируем паузы в буквы
             let message = '';
             for (let p of receiveBuffer) {
-                let index = Math.round((p - BASE_PAUSE) / PAUSE_STEP);
+                // Переводим миллисекунды в секунды и округляем до целого
+                let seconds = Math.round(p / 1000);
+                // 1 секунда = пробел (индекс 0), 2 секунды = А (индекс 1) и т.д.
+                let index = seconds - 1;
                 if (index < 0) index = 0;
                 if (index >= ALPHABET.length) index = ALPHABET.length - 1;
                 message += ALPHABET[index];
             }
 
             if (debugMode) {
-                addMessage(`📝 Расшифровано: "${message}" (буфер: ${receiveBuffer.length} пауз)`, 'debug');
+                addMessage(`📝 Расшифровано: "${message}" (${receiveBuffer.length} пауз)`, 'debug');
             }
+
+            // Показываем на большой панели
+            lastDecodedMessage.textContent = '📩 ' + message;
 
             if (message.trim().length > 0) {
                 addMessage(message, 'in');
             }
 
             // Сброс
+            isReceiving = false;
             lastClickTime = 0;
             receiveBuffer = [];
-            lastPauseValue.textContent = '—';
+            currentPauseValue.textContent = '0с';
             bufferValue.textContent = '[]';
-            timeSinceLastClick.textContent = '0мс';
         }
 
         // ---------- ОТПРАВКА ----------
@@ -421,16 +442,20 @@
                 return;
             }
 
+            // Кодируем: пробел = 1с, А = 2с, Б = 3с ...
             const pauses = [];
             for (let ch of filtered) {
-                pauses.push(BASE_PAUSE + ALPHABET.indexOf(ch) * PAUSE_STEP);
+                const idx = ALPHABET.indexOf(ch);
+                const pauseMs = (idx + 1) * 1000; // +1 потому что пробел = 1с
+                pauses.push(pauseMs);
             }
 
             addMessage(filtered, 'out');
+            lastDecodedMessage.textContent = '📤 ' + filtered;
             playClicks(pauses);
         }
 
-        // ---------- ВОСПРОИЗВЕДЕНИЕ (ПРЯМОУГОЛЬНЫЙ СИГНАЛ) ----------
+        // ---------- ВОСПРОИЗВЕДЕНИЕ ----------
         function playClicks(pauses) {
             if (isSending) return;
             isSending = true;
@@ -440,12 +465,11 @@
 
             function playNext() {
                 if (index >= pauses.length) {
-                    // После последнего щелчка ждём END_PAUSE и завершаем
                     setTimeout(() => finishSend(), END_PAUSE);
                     return;
                 }
 
-                // Используем прямоугольный сигнал (резкий, легко детектировать)
+                // Длинный щелчок (300 мс), чтобы точно детектировать
                 playClick(CLICK_DURATION);
                 lastSendTime = performance.now();
 
@@ -472,12 +496,11 @@
         function playClick(duration) {
             if (!audioContext) return;
             try {
-                // Прямоугольный сигнал даёт резкий щелчок
                 const bufferSize = audioContext.sampleRate * duration / 1000;
                 const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.sin(2 * Math.PI * 1800 * i / audioContext.sampleRate) * 0.8;
+                    data[i] = Math.sin(2 * Math.PI * 800 * i / audioContext.sampleRate) * 0.9;
                 }
                 const source = audioContext.createBufferSource();
                 source.buffer = buffer;
@@ -511,7 +534,7 @@
         }
 
         function testConnection() {
-            addSystemMessage('🔊 Тест (ПРИВ)');
+            addSystemMessage('🔊 Тест (ПРИВ) — паузы 2с, 3с, 1с, 3с');
             sendMessage('ПРИВ');
         }
 
@@ -537,9 +560,9 @@
         });
 
         window.addEventListener('load', () => {
-            addSystemMessage('🐱 Крипте-Котик v4 — агрессивный приём');
-            addSystemMessage('💡 Теперь ЛЮБОЙ звук выше порога считается щелчком');
-            addSystemMessage('📊 Следи за буфером пауз — он должен заполняться');
+            addSystemMessage('🐱 Крипте-Котик v5 — секундные паузы');
+            addSystemMessage('💡 1с = пробел, 2с = А, 3с = Б ... 34с = Я');
+            addSystemMessage('📢 Говори громко, щелчки должны быть слышны!');
         });
     })();
 </script>
