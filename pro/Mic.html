@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 Крипте-Котик v2 (фикс приёма)</title>
+    <title>🐱 Крипте-Котик v3 (отладка)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -18,7 +18,7 @@
             padding: 16px;
         }
         .card {
-            max-width: 500px;
+            max-width: 600px;
             width: 100%;
             background: #1a202c;
             border-radius: 36px;
@@ -37,18 +37,8 @@
             margin: 12px 0 20px 0;
             font-size: 14px;
             border: 1px solid #2d3748;
+            flex-wrap: wrap;
         }
-        .badge {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 10px;
-            margin-right: 6px;
-        }
-        .badge.green { background: #48bb78; box-shadow: 0 0 6px #48bb78; }
-        .badge.red { background: #fc8181; box-shadow: 0 0 6px #fc8181; }
-        .badge.yellow { background: #ecc94b; box-shadow: 0 0 6px #ecc94b; }
-
         #chatlog {
             background: #0f141e;
             border-radius: 24px;
@@ -72,6 +62,7 @@
         .msg.out { background: #2b6cb0; align-self: flex-end; }
         .msg.in { background: #2d3748; align-self: flex-start; }
         .msg.sys { background: transparent; color: #a0aec0; font-size: 13px; align-self: center; }
+        .msg.debug { background: #2d3748; color: #ecc94b; font-size: 12px; align-self: center; font-family: monospace; }
 
         .input-area {
             display: flex;
@@ -105,34 +96,33 @@
         button.secondary { background: #2d3748; }
         button.secondary:active { background: #1a202c; }
 
-        .microphone-indicator {
-            display: flex;
-            justify-content: center;
-            gap: 14px;
-            font-size: 13px;
-            color: #a0aec0;
+        .debug-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: #0f141e;
+            border-radius: 16px;
+            padding: 12px;
             margin-top: 12px;
-            flex-wrap: wrap;
+            border: 1px solid #2d3748;
+            font-size: 13px;
         }
-        .microphone-indicator span { display: flex; align-items: center; gap: 4px; }
-        .dot {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 12px;
-            background: #4a5568;
-            transition: 0.15s;
+        .debug-panel .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .dot.active { background: #48bb78; box-shadow: 0 0 10px #48bb78; }
-        .dot.speaking { background: #ecc94b; box-shadow: 0 0 10px #ecc94b; }
+        .debug-panel .value {
+            font-family: monospace;
+            color: #ecc94b;
+        }
         #volumeMeter {
-            width: 80px;
-            height: 8px;
+            width: 100%;
+            height: 10px;
             background: #2d3748;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
-            display: inline-block;
-            vertical-align: middle;
+            grid-column: span 2;
         }
         #volumeFill {
             height: 100%;
@@ -140,13 +130,23 @@
             background: #48bb78;
             transition: width 0.05s;
         }
+        .threshold-slider {
+            grid-column: span 2;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .threshold-slider input {
+            flex: 1;
+            accent-color: #2b6cb0;
+        }
     </style>
 </head>
 <body>
 <div class="card">
     <h1>
-        <span>🐱 Крипте-Котик v2</span>
-        <small>фикс приёма</small>
+        <span>🐱 Крипте-Котик v3</span>
+        <small>отладка</small>
     </h1>
 
     <div class="status-bar">
@@ -163,14 +163,24 @@
 
     <div style="display: flex; gap: 10px; margin-bottom: 6px;">
         <button id="clearBtn" class="secondary" style="flex:1;">🗑 Очистить</button>
-        <button id="testBtn" class="secondary" style="flex:1;">🔊 Тест связи</button>
+        <button id="testBtn" class="secondary" style="flex:1;">🔊 Тест (ПРИВ)</button>
+        <button id="debugBtn" class="secondary" style="flex:1;">🐞 Отладка</button>
     </div>
 
-    <div class="microphone-indicator">
-        <span>🎤 <span class="dot" id="micDot"></span> микрофон</span>
-        <span>🔊 <span class="dot" id="speakerDot"></span> динамик</span>
-        <span>📊 громкость: <span id="volumeMeter"><span id="volumeFill"></span></span></span>
-        <span id="lastSignal" style="font-size:12px;">⏱️ —</span>
+    <!-- Панель отладки -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="item"><span>🎤 Громкость (RMS)</span><span class="value" id="rmsValue">0</span></div>
+        <div class="item"><span>🔊 Последняя пауза</span><span class="value" id="lastPauseValue">—</span></div>
+        <div id="volumeMeter"><div id="volumeFill"></div></div>
+        <div class="threshold-slider">
+            <span>🔽 Порог:</span>
+            <input type="range" id="thresholdSlider" min="10" max="100" value="55">
+            <span class="value" id="thresholdValue">55</span>
+        </div>
+        <div class="item" style="grid-column: span 2;">
+            <span>📦 Буфер пауз:</span>
+            <span class="value" id="bufferValue">[]</span>
+        </div>
     </div>
 </div>
 
@@ -178,11 +188,11 @@
     (function(){
         // ---------- НАСТРОЙКИ ----------
         const ALPHABET = " АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-        const BASE_PAUSE = 150;   // +50 мс на букву
+        const BASE_PAUSE = 150;
         const PAUSE_STEP = 50;
         const MAX_PAUSE = BASE_PAUSE + (ALPHABET.length - 1) * PAUSE_STEP;
-        const END_PAUSE = MAX_PAUSE + 400; // 2050 мс
-        const CLICK_DURATION = 60; // чуть длиннее
+        const END_PAUSE = MAX_PAUSE + 400;
+        const CLICK_DURATION = 80; // увеличенная длительность
 
         // DOM
         const chatlog = document.getElementById('chatlog');
@@ -190,20 +200,23 @@
         const sendBtn = document.getElementById('sendBtn');
         const clearBtn = document.getElementById('clearBtn');
         const testBtn = document.getElementById('testBtn');
+        const debugBtn = document.getElementById('debugBtn');
         const statusText = document.getElementById('statusText');
         const deviceIdDisplay = document.getElementById('deviceIdDisplay');
-        const micDot = document.getElementById('micDot');
-        const speakerDot = document.getElementById('speakerDot');
-        const lastSignal = document.getElementById('lastSignal');
+        const rmsValue = document.getElementById('rmsValue');
+        const lastPauseValue = document.getElementById('lastPauseValue');
+        const bufferValue = document.getElementById('bufferValue');
         const volumeFill = document.getElementById('volumeFill');
+        const thresholdSlider = document.getElementById('thresholdSlider');
+        const thresholdValue = document.getElementById('thresholdValue');
 
-        // Глобальные
         let audioContext = null;
         let isSending = false;
         let receiveBuffer = [];
         let receiveTimer = null;
         let lastClickTime = 0;
         let deviceId = '';
+        let debugMode = false;
 
         // ---------- AUDIO ----------
         function initAudio() {
@@ -212,14 +225,13 @@
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 deviceId = Math.random().toString(36).substring(2, 6).toUpperCase();
                 deviceIdDisplay.textContent = deviceId;
-                statusText.innerHTML = '🟢 Готов';
                 startMicrophone();
             } catch(e) {
                 statusText.innerHTML = '🔴 Ошибка Web Audio';
             }
         }
 
-        // ---------- МИКРОФОН (всегда слушает) ----------
+        // ---------- МИКРОФОН ----------
         let mediaStream = null;
         let analyser = null;
         let dataArray = null;
@@ -236,19 +248,22 @@
                     source.connect(analyser);
                     dataArray = new Uint8Array(analyser.fftSize);
                     micActive = true;
-                    micDot.className = 'dot active';
                     statusText.innerHTML = '🟢 Микрофон активен';
                     listenLoop();
                 })
                 .catch(err => {
-                    micDot.className = 'dot';
                     statusText.innerHTML = '🔴 Нет доступа к микрофону';
                 });
         }
 
         // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ ----------
         let listening = false;
-        const THRESHOLD = 65; // чуть ниже для чувствительности
+        let currentThreshold = 55;
+
+        thresholdSlider.addEventListener('input', () => {
+            currentThreshold = parseInt(thresholdSlider.value);
+            thresholdValue.textContent = currentThreshold;
+        });
 
         function listenLoop() {
             if (!analyser || !micActive) return;
@@ -263,10 +278,12 @@
                     sum += val * val;
                 }
                 const rms = Math.sqrt(sum / dataArray.length) * 100;
-                // Показываем громкость
-                const percent = Math.min(rms * 1.5, 100);
+                
+                // Обновляем отладку
+                rmsValue.textContent = Math.round(rms);
+                const percent = Math.min(rms * 2, 100);
                 volumeFill.style.width = percent + '%';
-                if (percent > 20) {
+                if (percent > 30) {
                     volumeFill.style.background = '#ecc94b';
                 } else {
                     volumeFill.style.background = '#48bb78';
@@ -274,12 +291,10 @@
 
                 const now = performance.now();
 
-                // Если громкость выше порога — это щелчок
-                if (rms > THRESHOLD) {
-                    // Игнорируем, если это наш собственный сигнал (но проверяем по времени)
-                    const timeSinceLastSend = now - lastSendTime;
-                    if (timeSinceLastSend < 150) {
-                        // Скорее всего эхо — игнорируем
+                // Если громкость выше порога
+                if (rms > currentThreshold) {
+                    // Игнорируем свой сигнал
+                    if (now - lastSendTime < 200) {
                         requestAnimationFrame(check);
                         return;
                     }
@@ -296,14 +311,14 @@
         let lastClickReceived = 0;
 
         function handleClick(now) {
-            if (now - lastClickReceived < 70) return; // антидребезг
+            if (now - lastClickReceived < 70) return;
             lastClickReceived = now;
 
-            // Логируем в консоль для отладки
-            console.log('Щелчок в', now);
+            if (debugMode) {
+                addMessage(`🔊 Щелчок в ${now.toFixed(0)}`, 'debug');
+            }
 
             if (lastClickTime === 0) {
-                // Начало сообщения
                 lastClickTime = now;
                 receiveBuffer = [];
                 if (receiveTimer) {
@@ -313,6 +328,7 @@
                 receiveTimer = setTimeout(() => {
                     finishReceiving();
                 }, END_PAUSE);
+                if (debugMode) addMessage('📦 Начало приёма', 'debug');
                 return;
             }
 
@@ -325,7 +341,12 @@
             }
 
             receiveBuffer.push(pause);
-            lastSignal.textContent = `⏱️ ${pause.toFixed(0)}мс`;
+            lastPauseValue.textContent = pause.toFixed(0) + 'мс';
+            bufferValue.textContent = '[' + receiveBuffer.map(p => p.toFixed(0)).join(', ') + ']';
+
+            if (debugMode) {
+                addMessage(`⏱️ Пауза: ${pause.toFixed(0)}мс`, 'debug');
+            }
 
             if (receiveTimer) {
                 clearTimeout(receiveTimer);
@@ -342,7 +363,6 @@
                 receiveTimer = null;
             }
             if (receiveBuffer.length === 0) {
-                isReceiving = false;
                 lastClickTime = 0;
                 return;
             }
@@ -355,14 +375,18 @@
                 message += ALPHABET[index];
             }
 
+            if (debugMode) {
+                addMessage(`📝 Расшифровано: "${message}"`, 'debug');
+            }
+
             if (message.trim().length > 0) {
                 addMessage(message, 'in');
             }
 
-            isReceiving = false;
             lastClickTime = 0;
             receiveBuffer = [];
-            lastSignal.textContent = '⏱️ —';
+            lastPauseValue.textContent = '—';
+            bufferValue.textContent = '[]';
         }
 
         // ---------- ОТПРАВКА ----------
@@ -394,7 +418,6 @@
         function playClicks(pauses) {
             if (isSending) return;
             isSending = true;
-            speakerDot.className = 'dot speaking';
             statusText.innerHTML = '🔊 Передача...';
 
             let index = 0;
@@ -405,8 +428,7 @@
                     return;
                 }
 
-                // Громкий писк
-                playClick(CLICK_DURATION, 1800); // частота 1800 Гц
+                playClick(CLICK_DURATION, 1800);
                 lastSendTime = performance.now();
 
                 const delay = pauses[index];
@@ -416,7 +438,6 @@
                 }, delay);
             }
 
-            // Первый щелчок сразу
             playClick(CLICK_DURATION, 1800);
             lastSendTime = performance.now();
             setTimeout(() => {
@@ -436,7 +457,7 @@
                 const gain = audioContext.createGain();
                 osc.type = 'sine';
                 osc.frequency.value = freq || 1500;
-                gain.gain.value = 0.8; // громче
+                gain.gain.value = 1.0; // максимальная громкость
                 osc.connect(gain);
                 gain.connect(audioContext.destination);
                 osc.start();
@@ -446,7 +467,6 @@
 
         function finishSend() {
             isSending = false;
-            speakerDot.className = 'dot';
             statusText.innerHTML = '🟢 Готов';
         }
 
@@ -467,8 +487,8 @@
         }
 
         function testConnection() {
-            addSystemMessage('🔊 Тест (ПРИВЕТ)');
-            sendMessage('ПРИВЕТ');
+            addSystemMessage('🔊 Тест (ПРИВ)');
+            sendMessage('ПРИВ');
         }
 
         // ---------- СОБЫТИЯ ----------
@@ -479,6 +499,11 @@
         textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
         clearBtn.addEventListener('click', () => { chatlog.innerHTML = ''; });
         testBtn.addEventListener('click', testConnection);
+        debugBtn.addEventListener('click', () => {
+            debugMode = !debugMode;
+            debugBtn.textContent = debugMode ? '🔍 Отладка ВКЛ' : '🐞 Отладка';
+            addSystemMessage(debugMode ? '🐞 Режим отладки включён' : '🐞 Отладка выключена');
+        });
 
         document.body.addEventListener('click', () => {
             if (!audioContext) {
@@ -488,8 +513,9 @@
         });
 
         window.addEventListener('load', () => {
-            addSystemMessage('🐱 Крипте-Котик v2. Нажми на страницу, чтобы включить.');
-            addSystemMessage('📢 Говори громко, слушай внимательно!');
+            addSystemMessage('🐱 Крипте-Котик v3 с отладкой');
+            addSystemMessage('💡 Включи отладку, чтобы видеть каждый щелчок');
+            addSystemMessage('📊 Следи за громкостью — она должна быть > порога');
         });
     })();
 </script>
