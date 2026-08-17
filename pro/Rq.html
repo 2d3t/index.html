@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аудио → Чанки 2KB → QR + Сканер и сборка</title>
+    <!-- Подключаем PDF.js для работы с PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f5f7fc;
+            padding: 24px;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 28px;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            border: 1px solid #e9eef4;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        h1 small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #64748b;
+            margin-left: 8px;
+        }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px 24px;
+            margin: 18px 0 10px;
+        }
+        .file-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .btn:hover { background: #0f172a; transform: scale(0.97); }
+        .btn-outline {
+            background: transparent;
+            color: #1e293b;
+            border: 1.5px solid #cbd5e1;
+            box-shadow: none;
+        }
+        .btn-outline:hover { background: #f1f5f9; border-color: #94a3b8; }
+        .btn-primary { background: #2563eb; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success { background: #059669; }
+        .btn-success:hover { background: #047857; }
+        .btn-warning { background: #d97706; }
+        .btn-warning:hover { background: #b45309; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-purple { background: #7c3aed; }
+        .btn-purple:hover { background: #6d28d9; }
+        
+        .info-badge {
+            background: #eef2ff;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            color: #4338ca;
+        }
+        .chunk-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 28px;
+            margin: 12px 0 8px;
+        }
+        .stat-item {
+            background: #f8fafc;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            border: 1px solid #e2e8f0;
+        }
+        .qr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            margin: 20px 0 10px;
+            background: #fafcfd;
+            padding: 16px;
+            border-radius: 20px;
+            border: 1px dashed #d0d9e8;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .qr-item {
+            background: white;
+            border-radius: 16px;
+            padding: 8px 8px 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            text-align: center;
+            border: 1px solid #e9eef4;
+        }
+        .qr-item img { 
+            width: 100%; 
+            max-width: 120px; 
+            height: auto; 
+            image-rendering: pixelated;
+        }
+        .qr-item .label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #334155;
+            margin-top: 4px;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* Сканер */
+        #scannerContainer {
+            width: 100%;
+            max-width: 480px;
+            margin: 16px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+        }
+        .progress-bar-wrap {
+            width: 100%;
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #2563eb;
+            transition: width 0.3s ease;
+        }
+        .scanned-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .scanned-chip {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        /* Стили печати - теперь 3 колонки для более крупных QR */
+        .print-page {
+            display: none;
+            background: white;
+            padding: 20px;
+        }
+        .print-page h3 {
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: #0f172a;
+            text-align: center;
+            font-size: 18px;
+        }
+        .print-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* было 4, теперь 3 */
+            gap: 24px 20px; /* чуть больше отступы */
+            justify-items: center;
+            padding: 10px;
+        }
+        .print-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px 8px 10px; /* больше внутренних отступов */
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            max-width: 180px; /* шире, чтобы QR был крупнее */
+        }
+        .print-item img { 
+            width: 100%; 
+            max-width: 150px; /* было 120px */
+            height: auto; 
+            image-rendering: pixelated;
+        }
+        .print-item .pnum {
+            font-size: 14px; /* крупнее номер */
+            font-weight: 600;
+            color: #1e293b;
+            background: #f1f5f9;
+            padding: 4px 16px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-top: 6px;
+        }
+        .print-footer {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+            text-align: center;
+        }
+        
+        @media print {
+            body { background: white; padding: 0.4in; margin: 0; }
+            .no-print { display: none !important; }
+            .print-page { display: block !important; padding: 0; margin: 0; }
+            .print-grid { gap: 20px 18px; padding: 0; }
+            .print-item { border-color: #d0d7e6; box-shadow: none; max-width: 200px; }
+            .print-item img { max-width: 160px; }
+            .print-page h3 { font-size: 16px; margin-bottom: 12px; }
+            .print-footer { margin-top: 16px; font-size: 11px; }
+        }
+
+        .restore-area {
+            margin-top: 28px;
+            border-top: 2px dashed #dce3ed;
+            padding-top: 28px;
+        }
+        audio { width: 100%; max-width: 400px; margin: 12px 0; }
+        .status {
+            padding: 6px 16px;
+            border-radius: 20px;
+            background: #f1f5f9;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        .flex { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .pdf-upload-area {
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 2px dashed #cbd5e1;
+            margin: 12px 0;
+        }
+        #pdfStatus {
+            font-size: 14px;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС ГЕНЕРАТОРА -->
+    <div class="card no-print">
+        <h1>🎧 Аудио → QR-чанки <small>по 2 КБ + печать A4</small></h1>
+        <div class="flex-row">
+            <div class="file-input-wrap">
+                <input type="file" id="audioFileInput" accept="audio/*" style="max-width: 260px;">
+                <button class="btn btn-primary" id="processBtn">🔨 Разбить и создать QR</button>
+            </div>
+            <span class="info-badge" id="fileInfo">Файл не выбран</span>
+        </div>
+        <div class="chunk-stats">
+            <span class="stat-item">📦 Чанков: <strong id="chunkCount">0</strong></span>
+            <span class="stat-item">📄 Размер чанка: <strong>2 КБ</strong></span>
+        </div>
+    </div>
+
+    <!-- QR-сетка -->
+    <div class="card no-print" id="qrPreviewCard">
+        <div class="flex" style="justify-content: space-between;">
+            <h3>🧩 Сгенерированные QR-коды</h3>
+            <button class="btn btn-outline" id="printBtn">🖨️ Печать A4</button>
+        </div>
+        <div id="qrGridContainer" class="qr-grid">
+            <div style="padding: 20px; color: #94a3b8;">Здесь появятся QR-коды после обработки файла</div>
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА ДЛЯ ПЕЧАТИ -->
+    <div class="print-page" id="printPage">
+        <h3>📄 QR-чанки аудио (2 КБ) — порядок по номерам</h3>
+        <div id="printGridContainer" class="print-grid"></div>
+        <div class="print-footer">
+            ⚡ Сборка: сканируйте кодеки по порядку или в произвольной последовательности
+        </div>
+    </div>
+
+    <!-- МОДУЛЬ СКАНИРОВАНИЯ И СБОРКИ -->
+    <div class="card restore-area no-print" id="restoreCard">
+        <h3>📷 Сканирование с бумаги и сборка аудио</h3>
+        <p style="font-size: 14px; color: #64748b; margin-top: 4px;"> Наводите камеру на QR-коды с распечатки по очереди. Порядок сканирования не важен — программа сама расставит чанки по номерам.</p>
+
+        <!-- НОВЫЙ БЛОК: ЗАГРУЗКА PDF ДЛЯ РАСШИФРОВКИ -->
+        <div class="pdf-upload-area">
+            <div class="flex" style="justify-content: space-between;">
+                <span style="font-weight: 500;">📄 Или загрузите PDF с QR-кодами:</span>
+                <div class="file-input-wrap">
+                    <input type="file" id="pdfFileInput" accept=".pdf" style="max-width: 200px;">
+                    <button class="btn btn-purple" id="processPdfBtn">🔍 Расшифровать PDF</button>
+                </div>
+            </div>
+            <div id="pdfStatus" style="margin-top: 8px;">PDF не загружен</div>
+        </div>
+
+        <div class="flex-row">
+            <button class="btn btn-success" id="startScanBtn">📷 Включить камеру</button>
+            <button class="btn btn-danger" id="stopScanBtn" style="display: none;">⏹️ Остановить камеру</button>
+            <button class="btn btn-warning" id="clearScanBtn">🗑️ Сбросить сканы</button>
+            <span id="scanStatus" class="status">Сканер выключен</span>
+        </div>
+
+        <!-- Видеопоток сканера -->
+        <div id="scannerContainer" style="display: none;">
+            <div id="reader"></div>
+        </div>
+
+        <!-- Индикатор прогресса -->
+        <div style="margin-top: 16px;">
+            <div class="flex" style="justify-content: space-between; font-size: 14px;">
+                <span>Прогресс сборки: <strong id="scannedCountText">0</strong> чанков</span>
+                <span id="scanPercent">0%</span>
+            </div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+
+        <!-- Список уже отсканированных блоков -->
+        <div class="scanned-list" id="scannedChipsContainer"></div>
+
+        <!-- Аудиоплеер для готового результата -->
+        <div id="audioPlayerArea" class="flex" style="margin-top: 20px;">
+            <audio id="audioPlayer" controls style="display: none;"></audio>
+            <span id="downloadInfo" style="font-size: 14px; color: #475569;"></span>
+        </div>
+    </div>
+</div>
+
+<!-- Внешние библиотеки: Генератор QR и Сканер QR -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+    (function() {
+        // Настройки PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        let originalFile = null;
+        let generatedChunks = [];
+        let qrImageData = [];
+        const CHUNK_SIZE = 2048;
+
+        // Хранилище отсканированных чанков: { index: Uint8Array }
+        let scannedMap = new Map();
+        let html5QrCode = null;
+        let isScanning = false;
+
+        // DOM элементы
+        const fileInput = document.getElementById('audioFileInput');
+        const processBtn = document.getElementById('processBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const chunkCountSpan = document.getElementById('chunkCount');
+        const qrGridContainer = document.getElementById('qrGridContainer');
+        const printGridContainer = document.getElementById('printGridContainer');
+        const printPage = document.getElementById('printPage');
+        const printBtn = document.getElementById('printBtn');
+        
+        // DOM Сканера
+        const startScanBtn = document.getElementById('startScanBtn');
+        const stopScanBtn = document.getElementById('stopScanBtn');
+        const clearScanBtn = document.getElementById('clearScanBtn');
+        const scanStatus = document.getElementById('scanStatus');
+        const scannerContainer = document.getElementById('scannerContainer');
+        const progressBar = document.getElementById('progressBar');
+        const scannedCountText = document.getElementById('scannedCountText');
+        const scanPercent = document.getElementById('scanPercent');
+        const scannedChipsContainer = document.getElementById('scannedChipsContainer');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const downloadInfo = document.getElementById('downloadInfo');
+
+        // DOM для PDF
+        const pdfFileInput = document.getElementById('pdfFileInput');
+        const processPdfBtn = document.getElementById('processPdfBtn');
+        const pdfStatus = document.getElementById('pdfStatus');
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' Б';
+            if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' КБ';
+            return (bytes/1048576).toFixed(2) + ' МБ';
+        }
+
+        /* ==========================================================
+           ГЕНЕРАЦИЯ И РАЗБИЕНИЕ
+        ========================================================== */
+        function generateQRDataURL(dataArray, index) {
+            let binary = '';
+            for (let i = 0; i < dataArray.length; i++) {
+                binary += String.fromCharCode(dataArray[i]);
+            }
+            const base64 = btoa(binary);
+            const payload = `AUDIO_CHUNK|${index}|${base64}`;
+            
+            const container = document.createElement('div');
+            new QRCode(container, {
+                text: payload,
+                width: 150,
+                height: 150,
+                colorDark: '#1a1a2e',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.L
+            });
+            const canvas = container.querySelector('canvas');
+            if (!canvas) throw new Error('Ошибка генерации QR');
+            return canvas.toDataURL('image/png');
+        }
+
+        function processFile(file) {
+            originalFile = file;
+            fileInfo.textContent = `Файл: ${file.name} (${formatSize(file.size)})`;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const buffer = e.target.result;
+                const data = new Uint8Array(buffer);
+                const totalChunks = Math.ceil(data.length / CHUNK_SIZE);
+                generatedChunks = [];
+                qrImageData = [];
+
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, data.length);
+                    generatedChunks.push(data.slice(start, end));
+                }
+                chunkCountSpan.textContent = generatedChunks.length;
+
+                qrGridContainer.innerHTML = '<div style="padding:12px;color:#2563eb;">⏳ Генерация QR-кодов...</div>';
+
+                setTimeout(() => {
+                    try {
+                        for (let i = 0; i < generatedChunks.length; i++) {
+                            const dataUrl = generateQRDataURL(generatedChunks[i], i);
+                            qrImageData.push({ index: i, dataUrl });
+                        }
+                        renderQRGrid();
+                        renderPrintGrid();
+                    } catch (err) {
+                        alert('Ошибка при генерации QR: ' + err.message);
+                    }
+                }, 50);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderQRGrid() {
+            qrGridContainer.innerHTML = '';
+            for (let item of qrImageData) {
+                const div = document.createElement('div');
+                div.className = 'qr-item';
+                div.innerHTML = `<img src="${item.dataUrl}" alt="Чанк ${item.index}"><div class="label">#${item.index+1}</div>`;
+                qrGridContainer.appendChild(div);
+            }
+        }
+
+        function renderPrintGrid() {
+            printGridContainer.innerHTML = '';
+            for (let item of qrImageData) {
+                const div = document.createElement('div');
+                div.className = 'print-item';
+                div.innerHTML = `<img src="${item.dataUrl}" alt="Чанк ${item.index}"><div class="pnum">#${item.index+1}</div>`;
+                printGridContainer.appendChild(div);
+            }
+        }
+
+        /* ==========================================================
+           СКАНИРОВАНИЕ И ОБРАТНАЯ СБОРКА
+        ========================================================== */
+        function startScanner() {
+            if (isScanning) return;
+            
+            scannerContainer.style.display = 'block';
+            scanStatus.textContent = '🎥 Поиск камеры...';
+
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                onQrCodeScanned
+            ).then(() => {
+                isScanning = true;
+                startScanBtn.style.display = 'none';
+                stopScanBtn.style.display = 'inline-flex';
+                scanStatus.textContent = '🟢 Камера активна. Наведите на QR';
+            }).catch(err => {
+                scanStatus.textContent = '❌ Ошибка доступа к камере';
+                scannerContainer.style.display = 'none';
+                alert('Не удалось открыть камеру: ' + err);
+            });
+        }
+
+        function stopScanner() {
+            if (!html5QrCode || !isScanning) return;
+            html5QrCode.stop().then(() => {
+                isScanning = false;
+                scannerContainer.style.display = 'none';
+                startScanBtn.style.display = 'inline-flex';
+                stopScanBtn.style.display = 'none';
+                scanStatus.textContent = '⏹️ Сканер остановлен';
+            }).catch(err => console.error(err));
+        }
+
+        function onQrCodeScanned(decodedText) {
+            if (!decodedText.startsWith("AUDIO_CHUNK|")) return;
+
+            const parts = decodedText.split("|");
+            if (parts.length !== 3) return;
+
+            const index = parseInt(parts[1], 10);
+            const base64Data = parts[2];
+
+            if (scannedMap.has(index)) return; // Уже сканировали этот кусок
+
+            // Декодируем base64 обратно в бинарные данные
+            try {
+                const binaryString = atob(base64Data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+
+                scannedMap.set(index, bytes);
+                
+                // Виброотклик при успешном считывании (на смартфонах)
+                if (navigator.vibrate) navigator.vibrate(100);
+
+                updateScanUI();
+                checkAndAssembleAudio();
+            } catch (e) {
+                console.error("Ошибка декодирования чанка", e);
+            }
+        }
+
+        function updateScanUI() {
+            const count = scannedMap.size;
+            scannedCountText.textContent = count;
+
+            // Если создавали QR на этой же странице, рассчитываем % от общего числа
+            const targetTotal = generatedChunks.length > 0 ? generatedChunks.length : 0;
+            if (targetTotal > 0) {
+                const percent = Math.round((count / targetTotal) * 100);
+                progressBar.style.width = percent + '%';
+                scanPercent.textContent = percent + '%';
+            } else {
+                progressBar.style.width = '100%';
+                scanPercent.textContent = 'Авто';
+            }
+
+            // Отрисовка бейджиков с отсканированными номерами
+            scannedChipsContainer.innerHTML = '';
+            const sortedKeys = Array.from(scannedMap.keys()).sort((a, b) => a - b);
+            
+            for (let idx of sortedKeys) {
+                const chip = document.createElement('span');
+                chip.className = 'scanned-chip';
+                chip.textContent = `Чанк #${idx + 1}`;
+                scannedChipsContainer.appendChild(chip);
+            }
+        }
+
+        function checkAndAssembleAudio() {
+            if (scannedMap.size === 0) return;
+
+            // Сортируем индексы
+            const sortedKeys = Array.from(scannedMap.keys()).sort((a, b) => a - b);
+
+            // Проверяем непрерывность цепочки от 0 до N
+            let isComplete = true;
+            if (generatedChunks.length > 0 && scannedMap.size !== generatedChunks.length) {
+                isComplete = false;
+            } else {
+                for (let i = 0; i < sortedKeys.length; i++) {
+                    if (sortedKeys[i] !== i) {
+                        isComplete = false; 
+                        break;
+                    }
+                }
+            }
+
+            // Автосборка при получении всех частей
+            if (isComplete) {
+                assembleAudio(sortedKeys);
+            }
+        }
+
+        function assembleAudio(sortedKeys) {
+            let totalLen = 0;
+            for (let idx of sortedKeys) {
+                totalLen += scannedMap.get(idx).length;
+            }
+
+            const fullData = new Uint8Array(totalLen);
+            let offset = 0;
+            for (let idx of sortedKeys) {
+                const chunk = scannedMap.get(idx);
+                fullData.set(chunk, offset);
+                offset += chunk.length;
+            }
+
+            const blob = new Blob([fullData], { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
+            
+            audioPlayer.src = url;
+            audioPlayer.style.display = 'block';
+            downloadInfo.innerHTML = `<a href="${url}" download="assembled_audio.mp3" class="btn btn-outline" style="font-size:13px;">⬇️ Скачать аудио (${formatSize(totalLen)})</a>`;
+            
+            scanStatus.textContent = `🎉 Успешно собрано! ${formatSize(totalLen)}`;
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        }
+
+        function clearScannedData() {
+            scannedMap.clear();
+            updateScanUI();
+            progressBar.style.width = '0%';
+            scanPercent.textContent = '0%';
+            audioPlayer.style.display = 'none';
+            audioPlayer.src = '';
+            downloadInfo.textContent = '';
+            scanStatus.textContent = isScanning ? '🟢 Камера активна. Наведите на QR' : 'Сканер выключен';
+        }
+
+        /* ==========================================================
+           ОБРАБОТКА PDF: извлечение QR-кодов и сборка
+        ========================================================== */
+        async function processPdfFile(file) {
+            if (!file) {
+                pdfStatus.textContent = '❌ Файл не выбран';
+                return;
+            }
+            pdfStatus.textContent = '⏳ Чтение PDF...';
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const numPages = pdf.numPages;
+                let decodedCount = 0;
+                let errors = 0;
+
+                pdfStatus.textContent = `📄 PDF загружен (${numPages} стр.). Распознавание...`;
+
+                for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 2.5 }); // увеличили масштаб для лучшего распознавания
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    // Конвертируем canvas в dataURL и сканируем
+                    const dataUrl = canvas.toDataURL('image/png');
+                    
+                    // Используем временный сканер
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.display = 'none';
+                    document.body.appendChild(tempDiv);
+                    
+                    const tempReader = new Html5Qrcode(tempDiv.id || 'temp-reader');
+                    try {
+                        const decodedTexts = await tempReader.scanFile(dataUrl, /* showImage= */ false);
+                        const texts = Array.isArray(decodedTexts) ? decodedTexts : [decodedTexts];
+                        for (let text of texts) {
+                            if (text && text.startsWith('AUDIO_CHUNK|')) {
+                                const parts = text.split('|');
+                                if (parts.length === 3) {
+                                    const idx = parseInt(parts[1], 10);
+                                    const base64Data = parts[2];
+                                    if (!scannedMap.has(idx)) {
+                                        const binaryString = atob(base64Data);
+                                        const bytes = new Uint8Array(binaryString.length);
+                                        for (let i = 0; i < binaryString.length; i++) {
+                                            bytes[i] = binaryString.charCodeAt(i);
+                                        }
+                                        scannedMap.set(idx, bytes);
+                                        decodedCount++;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (scanErr) {
+                        errors++;
+                    } finally {
+                        document.body.removeChild(tempDiv);
+                    }
+                }
+
+                pdfStatus.textContent = `✅ Распознано ${decodedCount} QR-кодов из PDF (ошибок: ${errors})`;
+                updateScanUI();
+                checkAndAssembleAudio();
+                
+                if (decodedCount === 0) {
+                    pdfStatus.textContent = '⚠️ QR-коды не найдены в PDF. Попробуйте распечатать с меньшим количеством кодов на странице.';
+                }
+            } catch (err) {
+                console.error('Ошибка обработки PDF:', err);
+                pdfStatus.textContent = '❌ Ошибка при обработке PDF: ' + err.message;
+            }
+        }
+
+        /* ==========================================================
+           СОБЫТИЯ И КНОПКИ
+        ========================================================== */
+        printBtn.addEventListener('click', () => window.print());
+
+        processBtn.addEventListener('click', () => {
+            if (fileInput.files.length === 0) {
+                alert('Выберите аудиофайл');
+                return;
+            }
+            processFile(fileInput.files[0]);
+        });
+
+        startScanBtn.addEventListener('click', startScanner);
+        stopScanBtn.addEventListener('click', stopScanner);
+        clearScanBtn.addEventListener('click', clearScannedData);
+
+        // Обработка PDF
+        processPdfBtn.addEventListener('click', () => {
+            if (pdfFileInput.files.length === 0) {
+                alert('Выберите PDF-файл с QR-кодами');
+                return;
+            }
+            if (scannedMap.size > 0) {
+                if (!confirm('При загрузке нового PDF текущие сканы будут сброшены. Продолжить?')) return;
+                clearScannedData();
+            }
+            processPdfFile(pdfFileInput.files[0]);
+        });
+
+        printPage.style.display = 'block'; 
+
+        pdfStatus.textContent = 'PDF не загружен';
+    })();
+</script>
+</body>
+</html>
