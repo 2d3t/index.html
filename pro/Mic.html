@@ -3,568 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 Крипте-Котик v5 (секундные паузы)</title>
+    <title>Ультразвуковой модем</title>
     <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', system-ui;
-            background: #0b0e14;
-            color: #e0e7f0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 16px;
-        }
-        .card {
-            max-width: 600px;
-            width: 100%;
-            background: #1a202c;
-            border-radius: 36px;
-            padding: 24px 20px 30px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.8);
-            border: 1px solid #2d3748;
-        }
-        h1 { display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 24px; margin: 0 0 6px 0; }
-        h1 small { font-size: 14px; font-weight: 400; color: #a0aec0; margin-left: auto; }
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            background: #0f141e;
-            padding: 10px 16px;
-            border-radius: 60px;
-            margin: 12px 0 20px 0;
-            font-size: 14px;
-            border: 1px solid #2d3748;
-            flex-wrap: wrap;
-        }
-        #chatlog {
-            background: #0f141e;
-            border-radius: 24px;
-            padding: 16px;
-            height: 280px;
-            overflow-y: auto;
-            margin-bottom: 16px;
-            border: 1px solid #2d3748;
-            font-size: 16px;
-            line-height: 1.7;
-            display: flex;
-            flex-direction: column;
-        }
-        .msg {
-            padding: 6px 12px;
-            border-radius: 20px;
-            max-width: 85%;
-            margin-bottom: 6px;
-            word-break: break-word;
-        }
-        .msg.out { background: #2b6cb0; align-self: flex-end; }
-        .msg.in { background: #2d3748; align-self: flex-start; }
-        .msg.sys { background: transparent; color: #a0aec0; font-size: 13px; align-self: center; }
-        .msg.debug { background: #2d3748; color: #ecc94b; font-size: 12px; align-self: center; font-family: monospace; }
-
-        .input-area {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-        #textInput {
-            flex: 1;
-            background: #0f141e;
-            border: 1px solid #2d3748;
-            border-radius: 60px;
-            padding: 12px 18px;
-            color: #e0e7f0;
-            font-size: 16px;
-            outline: none;
-        }
-        #textInput:focus { border-color: #4a90e2; }
-        button {
-            background: #2b6cb0;
-            border: none;
-            border-radius: 60px;
-            padding: 0 24px;
-            font-weight: 600;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-        button:active { transform: scale(0.94); background: #1a4f8b; }
-        button.secondary { background: #2d3748; }
-        button.secondary:active { background: #1a202c; }
-
-        .debug-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            background: #0f141e;
-            border-radius: 16px;
-            padding: 12px;
-            margin-top: 12px;
-            border: 1px solid #2d3748;
-            font-size: 13px;
-        }
-        .debug-panel .item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .debug-panel .value {
-            font-family: monospace;
-            color: #ecc94b;
-        }
-        #volumeMeter {
-            width: 100%;
-            height: 10px;
-            background: #2d3748;
-            border-radius: 10px;
-            overflow: hidden;
-            grid-column: span 2;
-        }
-        #volumeFill {
-            height: 100%;
-            width: 0%;
-            background: #48bb78;
-            transition: width 0.05s;
-        }
-        .threshold-slider {
-            grid-column: span 2;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .threshold-slider input {
-            flex: 1;
-            accent-color: #2b6cb0;
-        }
-        .big-number {
-            font-size: 28px;
-            font-weight: bold;
-            color: #48bb78;
-            text-align: center;
-            grid-column: span 2;
-        }
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; text-align: center; }
+        button { background: #00adb5; border: none; color: white; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; margin: 10px; }
+        button:active { background: #007a80; }
+        input { padding: 10px; font-size: 16px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #333; background: #222; color: white; }
+        .box { background: #1e1e1e; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 400px; border: 1px solid #333; }
+        #log { font-family: monospace; color: #888; font-size: 12px; max-height: 100px; overflow-y: auto; text-align: left; background: #000; padding: 10px; border-radius: 5px; }
+        #output { font-size: 24px; font-weight: bold; color: #00adb5; margin-top: 10px; }
     </style>
 </head>
 <body>
-<div class="card">
-    <h1>
-        <span>🐱 Крипте-Котик v5</span>
-        <small>секундные паузы</small>
-    </h1>
 
-    <div class="status-bar">
-        <span id="statusText">🟡 Инициализация...</span>
-        <span id="peerId">📡 ID: <span id="deviceIdDisplay">—</span></span>
+    <h1>Ultrasonic Comm</h1>
+    <button id="initBtn">1. Включить звук / микрофон</button>
+
+    <div class="box">
+        <h3>Передатчик (Tx)</h3>
+        <input type="text" id="textInput" value="HELLO" placeholder="Текст (A-Z)">
+        <br>
+        <button id="sendBtn" disabled>Отправить импульсы</button>
     </div>
 
-    <div id="chatlog"></div>
-
-    <div class="input-area">
-        <input type="text" id="textInput" placeholder="Введи сообщение..." maxlength="30">
-        <button id="sendBtn">📤 Отправить</button>
+    <div class="box">
+        <h3>Приемник (Rx)</h3>
+        <div>Получено:</div>
+        <div id="output">...</div>
     </div>
 
-    <div style="display: flex; gap: 10px; margin-bottom: 6px;">
-        <button id="clearBtn" class="secondary" style="flex:1;">🗑 Очистить</button>
-        <button id="testBtn" class="secondary" style="flex:1;">🔊 Тест (ПРИВ)</button>
-        <button id="debugBtn" class="secondary" style="flex:1;">🐞 Отладка</button>
+    <div class="box">
+        <h3>Технический лог</h3>
+        <div id="log"></div>
     </div>
-
-    <!-- Панель отладки -->
-    <div class="debug-panel" id="debugPanel">
-        <div class="item"><span>🎤 Громкость</span><span class="value" id="rmsValue">0</span></div>
-        <div class="item"><span>⏱️ Текущая пауза</span><span class="value" id="currentPauseValue">0с</span></div>
-        <div id="volumeMeter"><div id="volumeFill"></div></div>
-        <div class="threshold-slider">
-            <span>🔽 Чувствительность:</span>
-            <input type="range" id="thresholdSlider" min="5" max="80" value="25">
-            <span class="value" id="thresholdValue">25</span>
-        </div>
-        <div class="item" style="grid-column: span 2;">
-            <span>📦 Буфер (секунды):</span>
-            <span class="value" id="bufferValue">[]</span>
-        </div>
-        <div class="big-number" id="lastDecodedMessage">⏳ Ждём сигнал...</div>
-    </div>
-</div>
 
 <script>
-    (function(){
-        // ---------- НАСТРОЙКИ: СЕКУНДНЫЕ ПАУЗЫ ----------
-        const ALPHABET = " АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-        // 1 секунда = пробел, 2 секунды = А, 3 секунды = Б ... 34 секунды = Я
-        const BASE_PAUSE = 1000; // 1 секунда в миллисекундах
-        const PAUSE_STEP = 1000; // шаг 1 секунда
-        const END_PAUSE = 5000;  // 5 секунд тишины = конец сообщения
-        const CLICK_DURATION = 300; // длительность щелчка 300 мс
+    // Алфавит и кодирование пауз (в секундах)
+    // Шаг паузы: Каждая следующая буква увеличивает паузу на 0.2 сек.
+    const ALPHABET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const BASE_PAUSE = 0.3; // Минимальная пауза (для пробела)
+    const STEP = 0.15;      // Шаг для каждой следующей буквы
+    const FREQUENCY = 18500; // Частота ультразвука (Гц)
+    const PULSE_DURATION = 0.05; // Длительность щелчка (50 мс)
 
-        // DOM
-        const chatlog = document.getElementById('chatlog');
-        const textInput = document.getElementById('textInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const testBtn = document.getElementById('testBtn');
-        const debugBtn = document.getElementById('debugBtn');
-        const statusText = document.getElementById('statusText');
-        const deviceIdDisplay = document.getElementById('deviceIdDisplay');
-        const rmsValue = document.getElementById('rmsValue');
-        const currentPauseValue = document.getElementById('currentPauseValue');
-        const bufferValue = document.getElementById('bufferValue');
-        const lastDecodedMessage = document.getElementById('lastDecodedMessage');
-        const volumeFill = document.getElementById('volumeFill');
-        const thresholdSlider = document.getElementById('thresholdSlider');
-        const thresholdValue = document.getElementById('thresholdValue');
+    let audioCtx = null;
+    let analyser = null;
+    let isListening = false;
 
-        let audioContext = null;
-        let isSending = false;
-        let receiveBuffer = [];
-        let receiveTimer = null;
-        let lastClickTime = 0;
-        let deviceId = '';
-        let debugMode = false;
-        let lastClickReceived = 0;
-        let isReceiving = false;
+    // Логирование на экран
+    function log(msg) {
+        const logDiv = document.getElementById('log');
+        logDiv.innerHTML += msg + '<br>';
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
 
-        // ---------- AUDIO ----------
-        function initAudio() {
-            if (audioContext) return;
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                deviceId = Math.random().toString(36).substring(2, 6).toUpperCase();
-                deviceIdDisplay.textContent = deviceId;
-                startMicrophone();
-            } catch(e) {
-                statusText.innerHTML = '🔴 Ошибка Web Audio';
-            }
-        }
-
-        // ---------- МИКРОФОН ----------
-        let mediaStream = null;
-        let analyser = null;
-        let dataArray = null;
-        let micActive = false;
-
-        function startMicrophone() {
-            navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-                .then(stream => {
-                    mediaStream = stream;
-                    const source = audioContext.createMediaStreamSource(stream);
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 256;
-                    analyser.smoothingTimeConstant = 0.1;
-                    source.connect(analyser);
-                    dataArray = new Uint8Array(analyser.fftSize);
-                    micActive = true;
-                    statusText.innerHTML = '🟢 Микрофон активен';
-                    listenLoop();
-                })
-                .catch(err => {
-                    statusText.innerHTML = '🔴 Нет доступа к микрофону';
-                });
-        }
-
-        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ ----------
-        let listening = false;
-        let currentThreshold = 25;
-
-        thresholdSlider.addEventListener('input', () => {
-            currentThreshold = parseInt(thresholdSlider.value);
-            thresholdValue.textContent = currentThreshold;
-        });
-
-        function listenLoop() {
-            if (!analyser || !micActive) return;
-            listening = true;
-
-            function check() {
-                if (!listening || !analyser) return;
-                analyser.getByteTimeDomainData(dataArray);
-                let sum = 0;
-                for (let i = 0; i < dataArray.length; i++) {
-                    const val = (dataArray[i] - 128) / 128;
-                    sum += val * val;
-                }
-                const rms = Math.sqrt(sum / dataArray.length) * 100;
-                
-                // Обновляем индикатор громкости
-                rmsValue.textContent = Math.round(rms);
-                const percent = Math.min(rms * 2, 100);
-                volumeFill.style.width = percent + '%';
-                if (percent > 20) {
-                    volumeFill.style.background = '#ecc94b';
-                } else {
-                    volumeFill.style.background = '#48bb78';
-                }
-
-                const now = performance.now();
-
-                // Проверяем тишину (если приём идёт)
-                if (lastClickTime > 0 && isReceiving) {
-                    const silence = now - lastClickTime;
-                    const seconds = (silence / 1000).toFixed(1);
-                    currentPauseValue.textContent = seconds + 'с';
-                    
-                    // Если тишина больше END_PAUSE — завершаем приём
-                    if (silence > END_PAUSE && receiveBuffer.length > 0) {
-                        if (debugMode) addMessage('⏰ Таймаут ' + seconds + 'с, завершаем', 'debug');
-                        finishReceiving();
-                        requestAnimationFrame(check);
-                        return;
-                    }
-                }
-
-                // Детектируем щелчок (любой звук выше порога)
-                if (rms > currentThreshold) {
-                    // Игнорируем свой сигнал
-                    if (now - lastSendTime < 500) {
-                        requestAnimationFrame(check);
-                        return;
-                    }
-                    
-                    handleClick(now);
-                }
-
-                requestAnimationFrame(check);
-            }
-            check();
-        }
-
-        // ---------- ОБРАБОТКА ЩЕЛЧКА ----------
-        function handleClick(now) {
-            // Защита от дребезга (но с учётом секундных пауз)
-            if (now - lastClickReceived < 200) return;
-            lastClickReceived = now;
-
-            if (debugMode) {
-                addMessage(`🔊 Щелчок в ${new Date().toLocaleTimeString()}`, 'debug');
-            }
-
-            if (lastClickTime === 0) {
-                // Начало сообщения
-                lastClickTime = now;
-                receiveBuffer = [];
-                isReceiving = true;
-                if (receiveTimer) {
-                    clearTimeout(receiveTimer);
-                    receiveTimer = null;
-                }
-                if (debugMode) addMessage('📦 Начало приёма', 'debug');
-                lastDecodedMessage.textContent = '⏳ Приём...';
-                return;
-            }
-
-            // Вычисляем паузу в секундах
-            const pauseMs = now - lastClickTime;
-            const pauseSec = pauseMs / 1000;
-            lastClickTime = now;
-
-            // Сохраняем паузу (в миллисекундах для точности)
-            receiveBuffer.push(pauseMs);
+    // Инициализация AudioContext по нажатию кнопки (требование безопасности браузеров)
+    document.getElementById('initBtn').addEventListener('click', async () => {
+        if (audioCtx) return;
+        
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('initBtn').innerText = "Звук готов";
+            document.getElementById('initBtn').style.background = "#28a745";
             
-            // Обновляем отладку
-            currentPauseValue.textContent = pauseSec.toFixed(1) + 'с';
-            bufferValue.textContent = '[' + receiveBuffer.map(p => (p/1000).toFixed(1)).join('с, ') + 'с]';
-
-            if (debugMode) {
-                addMessage(`⏱️ Пауза: ${pauseSec.toFixed(1)}с`, 'debug');
-            }
-
-            // Сбрасываем таймер тишины
-            if (receiveTimer) {
-                clearTimeout(receiveTimer);
-                receiveTimer = null;
-            }
+            // Запуск приемника (микрофон)
+            await initReceiver();
+        } catch (e) {
+            alert("Не удалось активировать аудио: " + e);
         }
+    });
 
-        // ---------- ЗАВЕРШЕНИЕ ПРИЁМА ----------
-        function finishReceiving() {
-            if (receiveTimer) {
-                clearTimeout(receiveTimer);
-                receiveTimer = null;
+    // --- ПЕРЕДАТЧИК (Генерация ультразвуковых импульсов) ---
+    function sendClick(time) {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(FREQUENCY, time);
+        
+        // Экспоненциальное затухание помогает уменьшить щелчок по корпусу телефона
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(1, time + 0.005); 
+        gainNode.gain.setValueAtTime(1, time + PULSE_DURATION - 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, time + PULSE_DURATION);
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        osc.start(time);
+        osc.stop(time + PULSE_DURATION);
+    }
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+        const text = document.getElementById('textInput').value.toUpperCase();
+        let currentTime = audioCtx.currentTime + 0.1;
+        
+        log(`Отправка: "${text}"`);
+        
+        // Стартовый импульс (синхронизация)
+        sendClick(currentTime);
+        log(`[Tx] Стартовый импульс в ${currentTime.toFixed(3)}`);
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const index = ALPHABET.indexOf(char);
+            if (index === -1) continue; // Игнорируем неизвестные символы
+            
+            // Вычисляем паузу для этой буквы
+            const pauseDuration = BASE_PAUSE + (index * STEP);
+            
+            // Время следующего щелчка = текущее время + длительность импульса + пауза
+            currentTime += PULSE_DURATION + pauseDuration;
+            sendClick(currentTime);
+            
+            log(`[Tx] Буква '${char}' (пауза ${pauseDuration.toFixed(2)}с) -> Импульс в ${currentTime.toFixed(3)}`);
+        }
+    });
+
+    // --- ПРИЕМНИК (Детектор частоты и декодер) ---
+    async function initReceiver() {
+        try {
+            // ОТКЛЮЧАЕМ встроенные фильтры телефона, иначе они вырежут ультразвук как шум
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                }
+            });
+
+            const source = audioCtx.createMediaStreamSource(stream);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 2048; // Размер окна преобразования Фурье
+            source.connect(analyser);
+            
+            isListening = true;
+            log("[Rx] Микрофон слушает. Фильтры отключены.");
+            detectPulse();
+        } catch (err) {
+            log("[Rx] Ошибка доступа к микрофону: " + err);
+        }
+    }
+
+    let lastPulseTime = 0;
+    let blankingPeriod = false;
+    const THRESHOLD = 40; // Чувствительность (подбирается экспериментально от 10 до 100)
+
+    function detectPulse() {
+        if (!isListening) return;
+        requestAnimationFrame(detectPulse);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+
+        // Находим нужный индекс в массиве частот
+        // Частота одного шага (bin) = SampleRate / fftSize
+        const sampleRate = audioCtx.sampleRate;
+        const binIndex = Math.round((FREQUENCY * analyser.fftSize) / sampleRate);
+        
+        const volumeAtFrequency = dataArray[binIndex];
+
+        // Если зафиксирован пик и мы не в "слепом окне" (резонанс)
+        if (volumeAtFrequency > THRESHOLD && !blankingPeriod) {
+            const now = audioCtx.currentTime;
+            
+            // Включаем "слепое окно" на 150мс, чтобы проигнорировать эхо
+            blankingPeriod = true;
+            setTimeout(() => { blankingPeriod = false; }, 150);
+
+            log(`[Rx] Пик обнаружен! Мощность: ${volumeAtFrequency}. Время: ${now.toFixed(3)}`);
+
+            if (lastPulseTime > 0) {
+                // Вычисляем чистую паузу между импульсами
+                const measuredPause = now - lastPulseTime - PULSE_DURATION;
+                decodePause(measuredPause);
+            } else {
+                log("[Rx] Это стартовый импульс. Начинаю отсчет времени.");
+                document.getElementById('output').innerText = ""; 
             }
             
-            if (receiveBuffer.length === 0) {
-                isReceiving = false;
-                lastClickTime = 0;
-                if (debugMode) addMessage('📭 Пустой буфер', 'debug');
-                lastDecodedMessage.textContent = '⏳ Ждём сигнал...';
-                return;
+            lastPulseTime = now;
+        }
+    }
+
+    function decodePause(pause) {
+        log(`[Rx] Замеренная пауза: ${pause.toFixed(3)} сек`);
+        
+        // Ищем к какому индексу алфавита ближе всего наша пауза
+        let bestIndex = -1;
+        let minDiff = Infinity;
+        
+        for (let i = 0; i < ALPHABET.length; i++) {
+            const expectedPause = BASE_PAUSE + (i * STEP);
+            const diff = Math.abs(pause - expectedPause);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestIndex = i;
             }
-
-            // Декодируем паузы в буквы
-            let message = '';
-            for (let p of receiveBuffer) {
-                // Переводим миллисекунды в секунды и округляем до целого
-                let seconds = Math.round(p / 1000);
-                // 1 секунда = пробел (индекс 0), 2 секунды = А (индекс 1) и т.д.
-                let index = seconds - 1;
-                if (index < 0) index = 0;
-                if (index >= ALPHABET.length) index = ALPHABET.length - 1;
-                message += ALPHABET[index];
-            }
-
-            if (debugMode) {
-                addMessage(`📝 Расшифровано: "${message}" (${receiveBuffer.length} пауз)`, 'debug');
-            }
-
-            // Показываем на большой панели
-            lastDecodedMessage.textContent = '📩 ' + message;
-
-            if (message.trim().length > 0) {
-                addMessage(message, 'in');
-            }
-
-            // Сброс
-            isReceiving = false;
-            lastClickTime = 0;
-            receiveBuffer = [];
-            currentPauseValue.textContent = '0с';
-            bufferValue.textContent = '[]';
         }
 
-        // ---------- ОТПРАВКА ----------
-        let lastSendTime = 0;
-
-        function sendMessage(text) {
-            if (isSending) return;
-            if (!audioContext) { initAudio(); return; }
-            text = text.toUpperCase();
-            let filtered = '';
-            for (let ch of text) {
-                if (ALPHABET.includes(ch)) filtered += ch;
-            }
-            if (!filtered) {
-                addMessage('⚠️ Только кириллица', 'sys');
-                return;
-            }
-
-            // Кодируем: пробел = 1с, А = 2с, Б = 3с ...
-            const pauses = [];
-            for (let ch of filtered) {
-                const idx = ALPHABET.indexOf(ch);
-                const pauseMs = (idx + 1) * 1000; // +1 потому что пробел = 1с
-                pauses.push(pauseMs);
-            }
-
-            addMessage(filtered, 'out');
-            lastDecodedMessage.textContent = '📤 ' + filtered;
-            playClicks(pauses);
+        // Если погрешность слишком большая (больше половины шага), возможно это левый шум
+        if (minDiff > STEP * 0.6) {
+            log(`[Rx] Ошибка: Пауза не распознана (ошибка ${minDiff.toFixed(3)})`);
+            return;
         }
 
-        // ---------- ВОСПРОИЗВЕДЕНИЕ ----------
-        function playClicks(pauses) {
-            if (isSending) return;
-            isSending = true;
-            statusText.innerHTML = '🔊 Передача...';
-
-            let index = 0;
-
-            function playNext() {
-                if (index >= pauses.length) {
-                    setTimeout(() => finishSend(), END_PAUSE);
-                    return;
-                }
-
-                // Длинный щелчок (300 мс), чтобы точно детектировать
-                playClick(CLICK_DURATION);
-                lastSendTime = performance.now();
-
-                const delay = pauses[index];
-                index++;
-                setTimeout(() => {
-                    playNext();
-                }, delay);
-            }
-
-            // Первый щелчок
-            playClick(CLICK_DURATION);
-            lastSendTime = performance.now();
-            setTimeout(() => {
-                index = 1;
-                if (pauses.length > 1) {
-                    playNext();
-                } else {
-                    setTimeout(() => finishSend(), END_PAUSE);
-                }
-            }, pauses[0] || 0);
-        }
-
-        function playClick(duration) {
-            if (!audioContext) return;
-            try {
-                const bufferSize = audioContext.sampleRate * duration / 1000;
-                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.sin(2 * Math.PI * 800 * i / audioContext.sampleRate) * 0.9;
-                }
-                const source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                const gain = audioContext.createGain();
-                gain.gain.value = 1.0;
-                source.connect(gain);
-                gain.connect(audioContext.destination);
-                source.start();
-            } catch(e) {}
-        }
-
-        function finishSend() {
-            isSending = false;
-            statusText.innerHTML = '🟢 Готов';
-        }
-
-        // ---------- ЧАТ ----------
-        function addMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`;
-            div.textContent = text;
-            chatlog.appendChild(div);
-            chatlog.scrollTop = chatlog.scrollHeight;
-        }
-        function addSystemMessage(text) {
-            const div = document.createElement('div');
-            div.className = 'msg sys';
-            div.textContent = text;
-            chatlog.appendChild(div);
-            chatlog.scrollTop = chatlog.scrollHeight;
-        }
-
-        function testConnection() {
-            addSystemMessage('🔊 Тест (ПРИВ) — паузы 2с, 3с, 1с, 3с');
-            sendMessage('ПРИВ');
-        }
-
-        // ---------- СОБЫТИЯ ----------
-        sendBtn.addEventListener('click', () => {
-            const text = textInput.value.trim();
-            if (text) { sendMessage(text); textInput.value = ''; }
-        });
-        textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
-        clearBtn.addEventListener('click', () => { chatlog.innerHTML = ''; });
-        testBtn.addEventListener('click', testConnection);
-        debugBtn.addEventListener('click', () => {
-            debugMode = !debugMode;
-            debugBtn.textContent = debugMode ? '🔍 Отладка ВКЛ' : '🐞 Отладка';
-            addSystemMessage(debugMode ? '🐞 Режим отладки включён' : '🐞 Отладка выключена');
-        });
-
-        document.body.addEventListener('click', () => {
-            if (!audioContext) {
-                initAudio();
-                addSystemMessage('🎤 Микрофон активирован');
-            }
-        });
-
-        window.addEventListener('load', () => {
-            addSystemMessage('🐱 Крипте-Котик v5 — секундные паузы');
-            addSystemMessage('💡 1с = пробел, 2с = А, 3с = Б ... 34с = Я');
-            addSystemMessage('📢 Говори громко, щелчки должны быть слышны!');
-        });
-    })();
+        const detectedChar = ALPHABET[bestIndex];
+        log(`[Rx] Распознан символ: '${detectedChar}' (ошибка: ${minDiff.toFixed(3)}с)`);
+        document.getElementById('output').innerText += detectedChar;
+    }
 </script>
 </body>
 </html>
