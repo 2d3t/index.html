@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐱 Крипте-Котик: Акустический чат</title>
+    <title>🐱 Крипте-Котик v2 (фикс приёма)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -26,20 +26,8 @@
             box-shadow: 0 12px 40px rgba(0,0,0,0.8);
             border: 1px solid #2d3748;
         }
-        h1 {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            font-size: 24px;
-            margin: 0 0 6px 0;
-        }
-        h1 small {
-            font-size: 14px;
-            font-weight: 400;
-            color: #a0aec0;
-            margin-left: auto;
-        }
+        h1 { display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 24px; margin: 0 0 6px 0; }
+        h1 small { font-size: 14px; font-weight: 400; color: #a0aec0; margin-left: auto; }
         .status-bar {
             display: flex;
             justify-content: space-between;
@@ -124,6 +112,7 @@
             font-size: 13px;
             color: #a0aec0;
             margin-top: 12px;
+            flex-wrap: wrap;
         }
         .microphone-indicator span { display: flex; align-items: center; gap: 4px; }
         .dot {
@@ -136,13 +125,28 @@
         }
         .dot.active { background: #48bb78; box-shadow: 0 0 10px #48bb78; }
         .dot.speaking { background: #ecc94b; box-shadow: 0 0 10px #ecc94b; }
+        #volumeMeter {
+            width: 80px;
+            height: 8px;
+            background: #2d3748;
+            border-radius: 8px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        #volumeFill {
+            height: 100%;
+            width: 0%;
+            background: #48bb78;
+            transition: width 0.05s;
+        }
     </style>
 </head>
 <body>
 <div class="card">
     <h1>
-        <span>🐱 Крипте-Котик</span>
-        <small>акустический чат</small>
+        <span>🐱 Крипте-Котик v2</span>
+        <small>фикс приёма</small>
     </h1>
 
     <div class="status-bar">
@@ -165,6 +169,7 @@
     <div class="microphone-indicator">
         <span>🎤 <span class="dot" id="micDot"></span> микрофон</span>
         <span>🔊 <span class="dot" id="speakerDot"></span> динамик</span>
+        <span>📊 громкость: <span id="volumeMeter"><span id="volumeFill"></span></span></span>
         <span id="lastSignal" style="font-size:12px;">⏱️ —</span>
     </div>
 </div>
@@ -173,18 +178,13 @@
     (function(){
         // ---------- НАСТРОЙКИ ----------
         const ALPHABET = " АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
-        // паузы в миллисекундах: пробел = 100, А = 150, Б = 200 ... Я = 1750
-        const BASE_PAUSE = 100; 
+        const BASE_PAUSE = 150;   // +50 мс на букву
         const PAUSE_STEP = 50;
-        const MAX_PAUSE = BASE_PAUSE + (ALPHABET.length - 1) * PAUSE_STEP; // 1750 мс
+        const MAX_PAUSE = BASE_PAUSE + (ALPHABET.length - 1) * PAUSE_STEP;
+        const END_PAUSE = MAX_PAUSE + 400; // 2050 мс
+        const CLICK_DURATION = 60; // чуть длиннее
 
-        // Время "молчания" = конец сообщения (дольше любой буквы)
-        const END_PAUSE = MAX_PAUSE + 300; // 2050 мс
-
-        // Длительность самого щелчка (чтобы не занимал время паузы)
-        const CLICK_DURATION = 40; // 40 мс
-
-        // DOM-элементы
+        // DOM
         const chatlog = document.getElementById('chatlog');
         const textInput = document.getElementById('textInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -195,36 +195,31 @@
         const micDot = document.getElementById('micDot');
         const speakerDot = document.getElementById('speakerDot');
         const lastSignal = document.getElementById('lastSignal');
+        const volumeFill = document.getElementById('volumeFill');
 
-        // ---------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
+        // Глобальные
         let audioContext = null;
-        let isSending = false;          // флаг: идёт передача (блокируем повтор)
-        let isReceiving = false;        // флаг: идёт приём сообщения
-        let receiveBuffer = [];         // массив пауз между щелчками
-        let receiveTimer = null;        // таймер для END_PAUSE (конец сообщения)
-        let lastClickTime = 0;          // время последнего принятого щелчка
+        let isSending = false;
+        let receiveBuffer = [];
+        let receiveTimer = null;
+        let lastClickTime = 0;
         let deviceId = '';
 
-        // Для подавления эха: блокируем микрофон на время воспроизведения
-        let micMuteTimeout = null;
-
-        // ---------- ИНИЦИАЛИЗАЦИЯ AUDIO ----------
+        // ---------- AUDIO ----------
         function initAudio() {
             if (audioContext) return;
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 deviceId = Math.random().toString(36).substring(2, 6).toUpperCase();
                 deviceIdDisplay.textContent = deviceId;
-                statusText.innerHTML = '🟢 Готов к приёму/передаче';
-                // Запрашиваем разрешение микрофона
+                statusText.innerHTML = '🟢 Готов';
                 startMicrophone();
             } catch(e) {
-                statusText.innerHTML = '🔴 Ошибка: браузер не поддерживает Web Audio';
-                console.error(e);
+                statusText.innerHTML = '🔴 Ошибка Web Audio';
             }
         }
 
-        // ---------- МИКРОФОН ----------
+        // ---------- МИКРОФОН (всегда слушает) ----------
         let mediaStream = null;
         let analyser = null;
         let dataArray = null;
@@ -237,53 +232,58 @@
                     const source = audioContext.createMediaStreamSource(stream);
                     analyser = audioContext.createAnalyser();
                     analyser.fftSize = 512;
-                    analyser.smoothingTimeConstant = 0.3;
+                    analyser.smoothingTimeConstant = 0.2;
                     source.connect(analyser);
                     dataArray = new Uint8Array(analyser.fftSize);
                     micActive = true;
                     micDot.className = 'dot active';
-                    statusText.innerHTML = '🟢 Микрофон активен, слушаем...';
-                    // Запускаем анализ
+                    statusText.innerHTML = '🟢 Микрофон активен';
                     listenLoop();
                 })
                 .catch(err => {
-                    console.error('Ошибка доступа к микрофону:', err);
                     micDot.className = 'dot';
                     statusText.innerHTML = '🔴 Нет доступа к микрофону';
                 });
         }
 
-        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ (анализ громкости) ----------
+        // ---------- ОБНАРУЖЕНИЕ ЩЕЛЧКОВ ----------
         let listening = false;
+        const THRESHOLD = 65; // чуть ниже для чувствительности
 
         function listenLoop() {
             if (!analyser || !micActive) return;
             listening = true;
-            const threshold = 70; // порог громкости (0-255)
 
             function check() {
                 if (!listening || !analyser) return;
                 analyser.getByteTimeDomainData(dataArray);
-                // Вычисляем RMS (среднеквадратичную громкость)
                 let sum = 0;
                 for (let i = 0; i < dataArray.length; i++) {
                     const val = (dataArray[i] - 128) / 128;
                     sum += val * val;
                 }
                 const rms = Math.sqrt(sum / dataArray.length) * 100;
+                // Показываем громкость
+                const percent = Math.min(rms * 1.5, 100);
+                volumeFill.style.width = percent + '%';
+                if (percent > 20) {
+                    volumeFill.style.background = '#ecc94b';
+                } else {
+                    volumeFill.style.background = '#48bb78';
+                }
+
                 const now = performance.now();
 
-                // Если громкость > порога и мы не в режиме отправки (чтобы не ловить свой сигнал)
-                if (rms > threshold && !isSending) {
-                    // Проверяем, что это не эхо от нашего динамика (если недавно играли звук)
+                // Если громкость выше порога — это щелчок
+                if (rms > THRESHOLD) {
+                    // Игнорируем, если это наш собственный сигнал (но проверяем по времени)
                     const timeSinceLastSend = now - lastSendTime;
-                    if (timeSinceLastSend < 200) {
-                        // Скорее всего эхо, игнорируем
+                    if (timeSinceLastSend < 150) {
+                        // Скорее всего эхо — игнорируем
                         requestAnimationFrame(check);
                         return;
                     }
-
-                    // Обнаружен щелчок!
+                    // Обрабатываем щелчок
                     handleClick(now);
                 }
 
@@ -292,58 +292,50 @@
             check();
         }
 
-        // ---------- ОБРАБОТКА ПРИНЯТОГО ЩЕЛЧКА ----------
+        // ---------- ОБРАБОТКА ЩЕЛЧКА ----------
         let lastClickReceived = 0;
 
         function handleClick(now) {
-            // Защита от ложных срабатываний (дребезг)
-            if (now - lastClickReceived < 80) return; 
+            if (now - lastClickReceived < 70) return; // антидребезг
             lastClickReceived = now;
 
+            // Логируем в консоль для отладки
+            console.log('Щелчок в', now);
+
             if (lastClickTime === 0) {
-                // Первый щелчок — начало сообщения
+                // Начало сообщения
                 lastClickTime = now;
                 receiveBuffer = [];
-                isReceiving = true;
-                // Сбрасываем таймер конца сообщения
                 if (receiveTimer) {
                     clearTimeout(receiveTimer);
                     receiveTimer = null;
                 }
-                // Устанавливаем таймер на окончание сообщения
                 receiveTimer = setTimeout(() => {
                     finishReceiving();
                 }, END_PAUSE);
                 return;
             }
 
-            // Вычисляем паузу между щелчками
             const pause = now - lastClickTime;
             lastClickTime = now;
 
-            // Если пауза слишком большая (возможно, конец сообщения)
             if (pause > END_PAUSE) {
-                // Это конец сообщения
                 finishReceiving();
                 return;
             }
 
-            // Сохраняем паузу в буфер
             receiveBuffer.push(pause);
+            lastSignal.textContent = `⏱️ ${pause.toFixed(0)}мс`;
 
-            // Сбрасываем таймер конца сообщения (перезапускаем)
             if (receiveTimer) {
                 clearTimeout(receiveTimer);
                 receiveTimer = setTimeout(() => {
                     finishReceiving();
                 }, END_PAUSE);
             }
-
-            // Обновляем индикатор
-            lastSignal.textContent = `⏱️ ${pause.toFixed(0)}мс`;
         }
 
-        // ---------- ЗАВЕРШЕНИЕ ПРИЁМА СООБЩЕНИЯ ----------
+        // ---------- ЗАВЕРШЕНИЕ ПРИЁМА ----------
         function finishReceiving() {
             if (receiveTimer) {
                 clearTimeout(receiveTimer);
@@ -355,160 +347,110 @@
                 return;
             }
 
-            // Расшифровываем паузы в текст
             let message = '';
             for (let p of receiveBuffer) {
-                // Ищем ближайшую букву по таблице
                 let index = Math.round((p - BASE_PAUSE) / PAUSE_STEP);
                 if (index < 0) index = 0;
                 if (index >= ALPHABET.length) index = ALPHABET.length - 1;
                 message += ALPHABET[index];
             }
 
-            // Добавляем в чат
             if (message.trim().length > 0) {
                 addMessage(message, 'in');
             }
 
-            // Сброс
             isReceiving = false;
             lastClickTime = 0;
             receiveBuffer = [];
             lastSignal.textContent = '⏱️ —';
         }
 
-        // ---------- ОТПРАВКА СООБЩЕНИЯ (кодирование) ----------
+        // ---------- ОТПРАВКА ----------
         let lastSendTime = 0;
 
         function sendMessage(text) {
             if (isSending) return;
-            if (!audioContext) {
-                initAudio();
-                return;
-            }
-            if (text.length === 0) return;
-
-            // Переводим текст в верхний регистр
+            if (!audioContext) { initAudio(); return; }
             text = text.toUpperCase();
-            // Убираем символы не из алфавита
             let filtered = '';
             for (let ch of text) {
                 if (ALPHABET.includes(ch)) filtered += ch;
             }
-            if (filtered.length === 0) {
-                addMessage('⚠️ Только кириллица или пробел', 'sys');
+            if (!filtered) {
+                addMessage('⚠️ Только кириллица', 'sys');
                 return;
             }
 
-            // Строим массив пауз
             const pauses = [];
             for (let ch of filtered) {
-                const idx = ALPHABET.indexOf(ch);
-                const pause = BASE_PAUSE + idx * PAUSE_STEP;
-                pauses.push(pause);
+                pauses.push(BASE_PAUSE + ALPHABET.indexOf(ch) * PAUSE_STEP);
             }
 
-            // Добавляем своё сообщение в чат
             addMessage(filtered, 'out');
-
-            // Запускаем воспроизведение
             playClicks(pauses);
         }
 
-        // ---------- ВОСПРОИЗВЕДЕНИЕ ЩЕЛЧКОВ ----------
+        // ---------- ВОСПРОИЗВЕДЕНИЕ ----------
         function playClicks(pauses) {
             if (isSending) return;
             isSending = true;
             speakerDot.className = 'dot speaking';
             statusText.innerHTML = '🔊 Передача...';
 
-            // Блокируем микрофон на время передачи, чтобы не ловить себя
-            if (micMuteTimeout) clearTimeout(micMuteTimeout);
-            // Временно отключаем анализ (ставим флаг)
-            micDot.className = 'dot';
-            // (Анализ продолжает работать, но мы игнорируем сигналы из-за isSending)
-
             let index = 0;
-            let currentPause = pauses[index] || 0;
 
             function playNext() {
                 if (index >= pauses.length) {
-                    // Все паузы сыграны — конец
-                    finishSend();
+                    setTimeout(() => finishSend(), END_PAUSE);
                     return;
                 }
 
-                // Воспроизводим щелчок
-                playClick(CLICK_DURATION);
+                // Громкий писк
+                playClick(CLICK_DURATION, 1800); // частота 1800 Гц
                 lastSendTime = performance.now();
 
-                // Ждём паузу и переходим к следующему щелчку
-                const delay = currentPause;
+                const delay = pauses[index];
                 index++;
-                if (index < pauses.length) {
-                    currentPause = pauses[index];
-                } else {
-                    // После последнего щелчка ждём END_PAUSE, затем завершаем
-                    setTimeout(() => {
-                        finishSend();
-                    }, END_PAUSE);
-                    return;
-                }
-
-                // Ставим таймер на следующий щелчок
                 setTimeout(() => {
                     playNext();
                 }, delay);
             }
 
-            // Стартуем с первой паузой (после первого щелчка)
-            // Сразу играем первый щелчок и потом ждём паузу
-            playClick(CLICK_DURATION);
+            // Первый щелчок сразу
+            playClick(CLICK_DURATION, 1800);
             lastSendTime = performance.now();
-            // Ждём первую паузу, затем играем второй щелчок и т.д.
-            const firstPause = pauses[0] || 0;
             setTimeout(() => {
                 index = 1;
                 if (pauses.length > 1) {
-                    currentPause = pauses[1];
                     playNext();
                 } else {
-                    // Если только одна буква
-                    setTimeout(() => {
-                        finishSend();
-                    }, END_PAUSE);
+                    setTimeout(() => finishSend(), END_PAUSE);
                 }
-            }, firstPause);
+            }, pauses[0] || 0);
         }
 
-        function playClick(duration) {
+        function playClick(duration, freq) {
             if (!audioContext) return;
             try {
                 const osc = audioContext.createOscillator();
                 const gain = audioContext.createGain();
                 osc.type = 'sine';
-                osc.frequency.value = 1500; // высокий тон, чтобы отличать от шума
-                gain.gain.value = 0.4;
+                osc.frequency.value = freq || 1500;
+                gain.gain.value = 0.8; // громче
                 osc.connect(gain);
                 gain.connect(audioContext.destination);
                 osc.start();
-                setTimeout(() => {
-                    osc.stop();
-                }, duration);
-            } catch(e) {
-                console.warn('Ошибка воспроизведения:', e);
-            }
+                setTimeout(() => { osc.stop(); }, duration);
+            } catch(e) {}
         }
 
         function finishSend() {
             isSending = false;
             speakerDot.className = 'dot';
-            statusText.innerHTML = '🟢 Готов к приёму/передаче';
-            // Разблокируем микрофон
-            micDot.className = 'dot active';
+            statusText.innerHTML = '🟢 Готов';
         }
 
-        // ---------- ЧАТ (отображение) ----------
+        // ---------- ЧАТ ----------
         function addMessage(text, type) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
@@ -516,7 +458,6 @@
             chatlog.appendChild(div);
             chatlog.scrollTop = chatlog.scrollHeight;
         }
-
         function addSystemMessage(text) {
             const div = document.createElement('div');
             div.className = 'msg sys';
@@ -525,64 +466,31 @@
             chatlog.scrollTop = chatlog.scrollHeight;
         }
 
-        // ---------- ТЕСТ СВЯЗИ ----------
         function testConnection() {
-            addSystemMessage('🔊 Тестовый сигнал (ПРИВЕТ)');
+            addSystemMessage('🔊 Тест (ПРИВЕТ)');
             sendMessage('ПРИВЕТ');
         }
 
-        // ---------- СОБЫТИЯ КНОПОК ----------
+        // ---------- СОБЫТИЯ ----------
         sendBtn.addEventListener('click', () => {
             const text = textInput.value.trim();
-            if (text) {
-                sendMessage(text);
-                textInput.value = '';
-            }
+            if (text) { sendMessage(text); textInput.value = ''; }
         });
-
-        textInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                sendBtn.click();
-            }
-        });
-
-        clearBtn.addEventListener('click', () => {
-            chatlog.innerHTML = '';
-        });
-
+        textInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendBtn.click(); });
+        clearBtn.addEventListener('click', () => { chatlog.innerHTML = ''; });
         testBtn.addEventListener('click', testConnection);
 
-        // ---------- СТАРТ ----------
-        // По клику на страницу инициализируем аудио (политика автозапуска)
-        document.addEventListener('click', () => {
-            if (!audioContext) {
-                initAudio();
-            }
-        }, { once: false });
-
-        // Автоинициализация при загрузке (если разрешено)
-        window.addEventListener('load', () => {
-            // Показываем статус
-            statusText.innerHTML = '🟡 Нажмите на страницу для активации';
-            addSystemMessage('🐱 Крипте-Котик готов. Нажми на страницу, чтобы включить микрофон.');
-            addSystemMessage('💡 Отправляй сообщения, они передаются звуком!');
-            // Попытка инициализации без клика (не всегда работает)
-            setTimeout(() => {
-                if (!audioContext) {
-                    // Не инициализируем, ждём клик
-                }
-            }, 100);
-        });
-
-        // Обработчик клика для инициализации
         document.body.addEventListener('click', () => {
             if (!audioContext) {
                 initAudio();
-                addSystemMessage('🎤 Микрофон активирован, можно общаться!');
+                addSystemMessage('🎤 Микрофон активирован');
             }
         });
 
-        // Предотвращаем автоматическую отправку при вводе
+        window.addEventListener('load', () => {
+            addSystemMessage('🐱 Крипте-Котик v2. Нажми на страницу, чтобы включить.');
+            addSystemMessage('📢 Говори громко, слушай внимательно!');
+        });
     })();
 </script>
 </body>
