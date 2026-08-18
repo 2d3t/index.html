@@ -249,6 +249,7 @@
             gap: 10px;
             margin-bottom: 15px;
             min-height: 40px;
+            flex-wrap: wrap;
         }
         
         .part-badge {
@@ -281,9 +282,9 @@
         }
         
         .qr-display {
-            background: #f8f9fa;
+            background: #ffffff;
             border-radius: 15px;
-            padding: 20px;
+            padding: 25px;
             text-align: center;
             min-height: 350px;
             display: flex;
@@ -294,6 +295,7 @@
             transition: all 0.3s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            border: 2px solid #e0e0e0;
         }
         
         .qr-display.clickable {
@@ -301,8 +303,8 @@
         }
         
         .qr-display.clickable:hover {
-            background: #f0f0f0;
-            transform: scale(1.02);
+            background: #fafafa;
+            transform: scale(1.01);
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
         }
         
@@ -313,10 +315,11 @@
         .qr-code-container {
             position: relative;
             display: inline-block;
-            padding: 10px;
-            background: white;
+            padding: 20px;
+            background: #ffffff;
             border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: 1px solid #f0f0f0;
         }
         
         .qr-code-container img,
@@ -326,11 +329,12 @@
             height: auto;
             border-radius: 5px;
             pointer-events: none;
+            background: #ffffff;
         }
         
         .click-hint {
             margin-top: 15px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(106, 17, 203, 0.9);
             color: white;
             padding: 8px 20px;
             border-radius: 20px;
@@ -341,8 +345,8 @@
         }
         
         @keyframes pulse-hint {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
         }
         
         .progress-bar {
@@ -694,7 +698,7 @@
     <span>К списку программ</span>
 </button>
 
-<Br><Br>
+<br><br>
 
 <details>
     <summary style="cursor: pointer; padding: 12px 20px; background: linear-gradient(to right, #3498db, #2980b9); color: white; border-radius: 10px; font-weight: 600; display: inline-block; user-select: none;">
@@ -703,7 +707,7 @@
     <img src="https://2d3t.github.io/index.html/icons/qrtr.png" alt="QR-код" style="margin-top: 10px; max-width: 250px; height: auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
 </details>
 
-<Br>
+<br>
 
     <div class="container">
         <!-- Левая колонка - Отправитель -->
@@ -1271,14 +1275,23 @@
                 qrContainer.className = 'qr-code-container';
                 container.appendChild(qrContainer);
                 
+                // Создаем QR-код с белым фоном
                 currentQR = new QRCode(qrContainer, {
                     text: qrString,
                     width: 280,
                     height: 280,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.L
+                    correctLevel: QRCode.CorrectLevel.H // Высокий уровень коррекции для надежности
                 });
+                
+                // Дополнительно убеждаемся, что фон белый
+                const canvas = qrContainer.querySelector('canvas');
+                if (canvas) {
+                    // Убеждаемся что canvas на белом фоне
+                    canvas.style.backgroundColor = '#ffffff';
+                    canvas.style.padding = '0px';
+                }
                 
                 if (currentTransferMode === 'manual') {
                     const clickHint = document.createElement('div');
@@ -1314,7 +1327,9 @@
                         text: JSON.stringify(smallerData),
                         width: 280,
                         height: 280,
-                        correctLevel: QRCode.CorrectLevel.L
+                        colorDark: "#000000",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
                     });
                 }
             }
@@ -1538,24 +1553,24 @@
                 
                 let code = null;
                 
-                // Попытка 1
+                // Попытка 1 - стандартное сканирование
                 code = jsQR(imageData.data, canvas.width, canvas.height, {
                     inversionAttempts: "dontInvert",
                 });
                 
-                // Попытка 2
+                // Попытка 2 - с инверсией
                 if (!code) {
                     code = jsQR(imageData.data, canvas.width, canvas.height, {
                         inversionAttempts: "attemptBoth",
                     });
                 }
                 
-                // Попытка 3 - уменьшенное изображение
-                if (!code) {
+                // Попытка 3 - уменьшенное изображение для лучшего распознавания
+                if (!code && canvas.width > 400) {
                     const scaledCanvas = document.createElement('canvas');
-                    const scaleFactor = 0.75;
-                    scaledCanvas.width = canvas.width * scaleFactor;
-                    scaledCanvas.height = canvas.height * scaleFactor;
+                    const scaleFactor = 0.6;
+                    scaledCanvas.width = Math.floor(canvas.width * scaleFactor);
+                    scaledCanvas.height = Math.floor(canvas.height * scaleFactor);
                     const scaledCtx = scaledCanvas.getContext('2d');
                     scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
                     
