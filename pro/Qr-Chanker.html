@@ -281,10 +281,11 @@
             gap: 5px;
         }
         
+        /* ГЛАВНОЕ ИЗМЕНЕНИЕ - полностью белый фон для QR-кода */
         .qr-display {
-            background: #ffffff;
+            background: #ffffff !important;
             border-radius: 15px;
-            padding: 25px;
+            padding: 30px 20px;
             text-align: center;
             min-height: 350px;
             display: flex;
@@ -295,7 +296,8 @@
             transition: all 0.3s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-            border: 2px solid #e0e0e0;
+            border: 3px solid #e0e0e0;
+            box-shadow: inset 0 0 0 1px #ffffff, 0 5px 20px rgba(0,0,0,0.1);
         }
         
         .qr-display.clickable {
@@ -303,33 +305,37 @@
         }
         
         .qr-display.clickable:hover {
-            background: #fafafa;
+            background: #fafafa !important;
             transform: scale(1.01);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
         }
         
         .qr-display.clickable:active {
             transform: scale(0.98);
         }
         
+        /* Контейнер для QR-кода - строго белый */
         .qr-code-container {
             position: relative;
             display: inline-block;
-            padding: 20px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            border: 1px solid #f0f0f0;
+            padding: 25px;
+            background: #ffffff !important;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 2px solid #f0f0f0;
         }
         
+        /* Сам QR-код */
         .qr-code-container img,
         .qr-code-container canvas {
             display: block;
             max-width: 280px;
-            height: auto;
+            width: 280px;
+            height: 280px;
             border-radius: 5px;
             pointer-events: none;
-            background: #ffffff;
+            background: #ffffff !important;
+            margin: 0 auto;
         }
         
         .click-hint {
@@ -657,14 +663,6 @@
             min-width: 120px;
         }
         
-        .btn-camera {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-        }
-        
-        .btn-stop-camera {
-            background: linear-gradient(135deg, #636e72, #2d3436);
-        }
-        
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -681,7 +679,9 @@
             
             .qr-code-container img,
             .qr-code-container canvas {
-                max-width: 220px;
+                max-width: 200px !important;
+                width: 200px !important;
+                height: 200px !important;
             }
             
             .scanner-overlay {
@@ -1275,24 +1275,25 @@
                 qrContainer.className = 'qr-code-container';
                 container.appendChild(qrContainer);
                 
-                // Создаем QR-код с белым фоном
+                // Создаем QR-код с четкими параметрами
                 currentQR = new QRCode(qrContainer, {
                     text: qrString,
                     width: 280,
                     height: 280,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H // Высокий уровень коррекции для надежности
+                    correctLevel: QRCode.CorrectLevel.H
                 });
                 
-                // Дополнительно убеждаемся, что фон белый
+                // Принудительно устанавливаем белый фон для canvas
                 const canvas = qrContainer.querySelector('canvas');
                 if (canvas) {
-                    // Убеждаемся что canvas на белом фоне
                     canvas.style.backgroundColor = '#ffffff';
-                    canvas.style.padding = '0px';
+                    canvas.style.display = 'block';
+                    canvas.style.margin = '0 auto';
                 }
                 
+                // Добавляем подсказку для ручного режима
                 if (currentTransferMode === 'manual') {
                     const clickHint = document.createElement('div');
                     clickHint.className = 'click-hint';
@@ -1307,31 +1308,6 @@
             } catch (error) {
                 console.error('Ошибка создания QR-кода:', error);
                 addLog('Ошибка создания QR-кода: ' + error.message, 'error');
-                
-                if (qrString.length > 500) {
-                    addLog('Данные слишком большие, уменьшаем размер...', 'warning');
-                    const smallerData = {
-                        part: qrData.part,
-                        total: qrData.total,
-                        data: qrData.data ? qrData.data.substring(0, 400) : ''
-                    };
-                    if (qrData.metadata) {
-                        smallerData.metadata = qrData.metadata;
-                    }
-                    
-                    const qrContainer = document.createElement('div');
-                    qrContainer.className = 'qr-code-container';
-                    container.appendChild(qrContainer);
-                    
-                    currentQR = new QRCode(qrContainer, {
-                        text: JSON.stringify(smallerData),
-                        width: 280,
-                        height: 280,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                }
             }
         }
         
@@ -1405,7 +1381,7 @@
             addLog('Передача остановлена', 'info');
         }
         
-        // ============== НОВЫЙ РАБОЧИЙ СКАНЕР ==============
+        // ============== СКАНЕР ==============
         
         // Запуск сканера
         async function startScanner() {
@@ -1417,7 +1393,6 @@
             const status = document.getElementById('scanner-status');
             const overlay = document.getElementById('scanner-overlay');
             
-            // Проверяем загрузку jsQR
             if (typeof jsQR === 'undefined') {
                 addLog('Ошибка: библиотека jsQR не загружена', 'error');
                 showToast('Ошибка загрузки библиотеки', 'error');
@@ -1425,7 +1400,6 @@
             }
             
             try {
-                // Запрашиваем доступ к камере
                 scannerStream = await navigator.mediaDevices.getUserMedia({
                     video: { 
                         facingMode: 'environment',
@@ -1437,18 +1411,15 @@
                 video.srcObject = scannerStream;
                 await video.play();
                 
-                // Показываем контейнер с камерой
                 scannerView.classList.add('active');
                 scanHint.classList.add('active');
                 status.textContent = '🔍 Сканирование...';
                 status.className = 'scanner-status active scanning';
                 overlay.className = 'scanner-overlay scanning';
                 
-                // Переключаем кнопки
                 btnStart.disabled = true;
                 btnStop.disabled = false;
                 
-                // Показываем настройки скорости
                 document.getElementById('scan-speed-control').style.display = 'flex';
                 
                 scannerActive = true;
@@ -1456,7 +1427,6 @@
                 lastDecodedData = '';
                 isProcessing = false;
                 
-                // Сбрасываем состояние получения
                 receivedParts.clear();
                 expectedTotalParts = 0;
                 document.getElementById('received-parts').textContent = '0';
@@ -1468,7 +1438,6 @@
                 addLog('Камера запущена, сканирование начато', 'info');
                 showToast('Камера запущена', 'success');
                 
-                // Запускаем сканирование
                 scanFromCamera();
                 
             } catch (error) {
@@ -1479,7 +1448,6 @@
                 status.textContent = '❌ Ошибка доступа к камере';
                 status.className = 'scanner-status active error';
                 
-                // Возвращаем кнопки в исходное состояние
                 btnStart.disabled = false;
                 btnStop.disabled = true;
             }
@@ -1503,7 +1471,6 @@
             const video = document.getElementById('scanner-video');
             video.srcObject = null;
             
-            // Скрываем контейнер с камерой
             document.getElementById('scanner-view').classList.remove('active');
             document.getElementById('scanner-status').className = 'scanner-status';
             document.getElementById('scanner-status').textContent = '';
@@ -1511,7 +1478,6 @@
             document.getElementById('scan-speed-control').style.display = 'none';
             document.getElementById('scanner-overlay').className = 'scanner-overlay';
             
-            // Переключаем кнопки
             document.getElementById('scanner-btn').disabled = false;
             document.getElementById('scanner-stop-btn').disabled = true;
             
@@ -1538,7 +1504,6 @@
             const ctx = canvas.getContext('2d');
             
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Обновляем статус каждые 30 попыток
                 if (scanAttempts % 30 === 0) {
                     const status = document.getElementById('scanner-status');
                     status.textContent = `🔍 Сканирование... (попытка ${scanAttempts})`;
@@ -1553,50 +1518,28 @@
                 
                 let code = null;
                 
-                // Попытка 1 - стандартное сканирование
                 code = jsQR(imageData.data, canvas.width, canvas.height, {
                     inversionAttempts: "dontInvert",
                 });
                 
-                // Попытка 2 - с инверсией
                 if (!code) {
                     code = jsQR(imageData.data, canvas.width, canvas.height, {
                         inversionAttempts: "attemptBoth",
                     });
                 }
                 
-                // Попытка 3 - уменьшенное изображение для лучшего распознавания
-                if (!code && canvas.width > 400) {
-                    const scaledCanvas = document.createElement('canvas');
-                    const scaleFactor = 0.6;
-                    scaledCanvas.width = Math.floor(canvas.width * scaleFactor);
-                    scaledCanvas.height = Math.floor(canvas.height * scaleFactor);
-                    const scaledCtx = scaledCanvas.getContext('2d');
-                    scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
-                    
-                    const scaledImageData = scaledCtx.getImageData(0, 0, scaledCanvas.width, scaledCanvas.height);
-                    code = jsQR(scaledImageData.data, scaledCanvas.width, scaledCanvas.height, {
-                        inversionAttempts: "attemptBoth",
-                    });
-                }
-                
-                // Если найден QR-код
                 if (code && code.data) {
-                    // Проверяем, что это не дубликат
                     if (code.data !== lastDecodedData) {
                         isProcessing = true;
                         lastDecodedData = code.data;
                         
-                        // Обновляем оверлей
                         const overlay = document.getElementById('scanner-overlay');
                         overlay.className = 'scanner-overlay success';
                         
-                        // Обновляем статус
                         const status = document.getElementById('scanner-status');
                         status.textContent = '✅ QR-код распознан!';
                         status.className = 'scanner-status active success';
                         
-                        // Вибросигнал
                         if (navigator.vibrate) {
                             navigator.vibrate(200);
                         }
@@ -1604,10 +1547,8 @@
                         addLog('QR-код распознан!', 'success');
                         showToast('QR-код успешно распознан!', 'success');
                         
-                        // Обрабатываем данные
                         processQRData(code.data);
                         
-                        // Сбрасываем флаг через 1.5 секунды
                         setTimeout(() => {
                             isProcessing = false;
                             overlay.className = 'scanner-overlay scanning';
@@ -1630,7 +1571,6 @@
             try {
                 const qrData = JSON.parse(data);
                 
-                // Игнорируем повторные части (для циклического режима)
                 if (qrData.part === 0) {
                     if (expectedTotalParts !== qrData.total) {
                         expectedTotalParts = qrData.total;
@@ -1701,7 +1641,6 @@
         }
         
         function completeReception() {
-            // Останавливаем сканер
             stopScanner();
             
             const sortedParts = Array.from(receivedParts.entries())
@@ -1743,7 +1682,6 @@
             
             if (!files.length) return;
             
-            // Проверяем загрузку jsQR
             if (typeof jsQR === 'undefined') {
                 addLog('Ошибка: библиотека jsQR не загружена', 'error');
                 showToast('Ошибка загрузки библиотеки', 'error');
@@ -1789,7 +1727,6 @@
                 showToast(`Получено ${receivedParts.size} из ${expectedTotalParts} частей`, 'error');
             }
             
-            // Сбрасываем input для возможности повторной загрузки
             document.getElementById('qr-files').value = '';
         }
         
@@ -1924,7 +1861,6 @@
             addLog('Система готова к работе', 'info');
             addLog('Выберите режим передачи: автоматический, циклический или ручной', 'info');
             
-            // Проверяем поддержку камеры
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 addLog('Ваш браузер не поддерживает доступ к камере', 'warning');
                 addLog('Вы можете использовать загрузку QR-кодов с диска', 'info');
