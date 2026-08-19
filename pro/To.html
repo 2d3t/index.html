@@ -2,525 +2,552 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор QR-кодов (с продолжением)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>QR-Генератор (пошаговый)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            background: #0a0e17;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
+            display: flex;
             justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            text-align: center;
+        .container {
+            max-width: 450px;
             width: 100%;
-            max-width: 420px;
+            background: #111827;
+            border-radius: 32px;
+            padding: 28px 24px;
+            border: 1px solid #1f2937;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
         }
         h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 1.6em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #00ffaa;
+            margin-bottom: 8px;
+            text-align: center;
         }
-        .input-group {
-            margin-bottom: 15px;
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #1f2937;
+            padding-bottom: 16px;
+        }
+        label {
+            display: block;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
         }
         textarea {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
+            background: #0f172a;
+            border: 1px solid #2d3a4e;
+            border-radius: 20px;
+            padding: 16px;
+            color: #e2e8f0;
+            font-size: 15px;
             resize: vertical;
-            min-height: 100px;
+            min-height: 120px;
             font-family: inherit;
-            transition: all 0.3s;
+            transition: border 0.2s;
         }
         textarea:focus {
             outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            border-color: #00ffaa;
         }
-        .settings {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            align-items: center;
-            justify-content: center;
-        }
-        .settings label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 14px;
-            color: #2c3e50;
-        }
-        .settings input[type="number"] {
-            width: 70px;
-            padding: 8px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        .settings input[type="number"]:focus {
-            outline: none;
-            border-color: #3498db;
-        }
-        .buttons {
-            display: flex;
-            gap: 10px;
+        .char-counter {
+            text-align: right;
+            font-size: 13px;
+            color: #5b6e8c;
+            margin-top: 6px;
             margin-bottom: 20px;
-            flex-wrap: wrap;
         }
-        button {
-            flex: 1;
-            padding: 15px;
+        .btn {
+            width: 100%;
             border: none;
-            border-radius: 10px;
+            border-radius: 40px;
+            padding: 14px;
+            font-weight: 700;
             font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: transform 0.1s ease, opacity 0.2s;
+            margin-bottom: 12px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; pointer-events: none; }
+        .btn-primary {
+            background: linear-gradient(135deg, #00ffaa, #00a8ff);
+            color: #000;
+        }
+        .btn-secondary {
+            background: #1e293b;
+            border: 1px solid #2d3a4e;
+            color: #e2e8f0;
+        }
+        .btn-secondary:hover { background: #2d3a4e; border-color: #00ffaa; }
+        .btn-success {
+            background: #00cc88;
+            color: #000;
+        }
+        .btn-danger {
+            background: #ff4444;
+            color: #fff;
+        }
+        .btn-group {
             display: flex;
+            gap: 10px;
+        }
+        .btn-group .btn { flex: 1; }
+        .qr-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            margin-top: 16px;
+        }
+        .qr-item {
+            background: #0f172a;
+            border-radius: 24px;
+            padding: 20px;
+            border: 1px solid #1f2937;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
             gap: 8px;
-            min-width: 100px;
+            animation: fadeIn 0.3s ease-in;
         }
-        .generate-btn {
-            background: linear-gradient(to right, #2ecc71, #1abc9c);
-            color: white;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
         }
-        .generate-btn:hover {
-            background: linear-gradient(to right, #27ae60, #16a085);
-            transform: translateY(-2px);
+        .part-label {
+            font-size: 13px;
+            color: #94a3b8;
+            background: #1e293b;
+            padding: 2px 12px;
+            border-radius: 40px;
+            margin-bottom: 4px;
         }
-        .download-btn {
-            background: linear-gradient(to right, #3498db, #2980b9);
-            color: white;
-        }
-        .download-btn:hover {
-            background: linear-gradient(to right, #2980b9, #1c5988);
-            transform: translateY(-2px);
-        }
-        .download-btn:disabled {
-            background: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .clear-btn {
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-            color: white;
-        }
-        .clear-btn:hover {
-            background: linear-gradient(to right, #c0392b, #a93226);
-            transform: translateY(-2px);
-        }
-        #qrcodes-container {
+        .qrcode-container {
             display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin: 15px 0;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 5px;
-        }
-        .qrcode-item {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            border: 1px solid #e0e0e0;
+            min-height: 50px;
         }
-        .qrcode-item .part-label {
-            font-size: 12px;
-            color: #7f8c8d;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        .qrcode-item canvas,
-        .qrcode-item img {
+        .qrcode-container canvas {
             max-width: 100%;
             height: auto;
-            border-radius: 5px;
+            border-radius: 8px;
         }
-        .qrcode-item .qr-text-preview {
-            font-size: 12px;
-            color: #95a5a6;
-            margin-top: 5px;
-            word-break: break-all;
-            max-width: 100%;
-            background: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-        .empty-state {
-            color: #bdc3c7;
-            padding: 30px 0;
-        }
-        .info-text {
-            font-size: 14px;
-            color: #7f8c8d;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            font-size: 14px;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-        .stats span {
-            background: #f0f0f0;
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-        .instructions {
+        .btn-download-part {
+            background: #1e293b;
+            border: 1px solid #2d3a4e;
+            border-radius: 40px;
+            padding: 8px 16px;
+            color: #e2e8f0;
+            font-weight: 500;
             font-size: 13px;
-            color: #7f8c8d;
-            margin-top: 15px;
-            line-height: 1.5;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .icon {
-            font-size: 1.2em;
+        .btn-download-part:hover { background: #2d3a4e; border-color: #00ffaa; }
+        .btn-download-all {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid #2d3a4e;
+            border-radius: 40px;
+            padding: 14px;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 16px;
         }
-        .status-badge {
-            display: inline-block;
-            padding: 3px 10px;
+        .btn-download-all:hover { background: #2d3a4e; border-color: #00ffaa; }
+        .empty-state { color: #4a5a70; font-size: 14px; text-align: center; padding: 30px 0; }
+        .error-msg {
+            background: #450a0a;
+            border-left: 4px solid #ef4444;
+            padding: 10px 14px;
             border-radius: 12px;
+            margin-bottom: 16px;
+            color: #fca5a5;
+            font-size: 14px;
+            display: none;
+        }
+        .settings-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .settings-row label { margin-bottom: 0; font-size: 14px; color: #94a3b8; }
+        .settings-row select {
+            background: #0f172a;
+            border: 1px solid #2d3a4e;
+            border-radius: 40px;
+            padding: 8px 16px;
+            color: #e2e8f0;
+            font-size: 14px;
+            flex: 1;
+        }
+        .level-info {
             font-size: 12px;
-            background: #e8f5e9;
-            color: #2e7d32;
+            color: #4a5a70;
+            text-align: center;
+            margin-top: 14px;
+            border-top: 1px solid #1f2937;
+            padding-top: 14px;
+        }
+        .level-info span { color: #00ffaa; }
+        .progress-info {
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .progress-info .count {
+            color: #00ffaa;
+            font-weight: 600;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 20px 16px; }
+            h1 { font-size: 24px; }
+            textarea { min-height: 100px; font-size: 14px; }
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1><span class="icon">📱</span> QR-генератор <span style="font-size:0.5em;color:#7f8c8d;">(с продолжением)</span></h1>
-        
-        <div class="input-group">
-            <textarea id="qr-text" placeholder="Введите длинный текст или ссылку... Он автоматически разобьётся на несколько QR-кодов, если не поместится в один" autocomplete="off"></textarea>
-        </div>
-        
-        <div class="settings">
-            <label>
-                📏 Макс. символов:
-                <input type="number" id="max-chars" value="1200" min="100" max="2950" step="10">
-            </label>
-            <label>
-                <input type="checkbox" id="auto-generate" checked> Авто
-            </label>
-        </div>
-        
-        <div class="buttons">
-            <button class="generate-btn" onclick="generateQRs()">
-                <span class="icon">⚡</span> Создать
-            </button>
-            <button class="download-btn" id="download-btn" onclick="downloadAllQRs()" disabled>
-                <span class="icon">💾</span> Скачать всё
-            </button>
-            <button class="clear-btn" onclick="clearAll()">
-                <span class="icon">🗑</span> Очистить
-            </button>
-        </div>
-        
-        <div class="stats" id="stats" style="display:none;">
-            <span>📄 Частей: <b id="parts-count">0</b></span>
-            <span>📝 Всего символов: <b id="total-chars">0</b></span>
-        </div>
-        
-        <div id="qrcodes-container">
-            <div class="empty-state">📷 QR-коды появятся здесь</div>
-        </div>
-        
-        <div class="info-text" id="info-text">
-            💡 При сканировании QR-коды нужно сканировать <strong>по порядку</strong> (часть 1, часть 2...)
-        </div>
-        
-        <div class="instructions">
-            <p><strong>Как работает:</strong></p>
-            <p>1. Введите длинный текст<br>
-               2. При создании текст разбивается на части<br>
-               3. Каждая часть сохраняется в отдельный QR-код<br>
-               4. При сканировании по порядку текст собирается автоматически</p>
-        </div>
+<div class="container">
+    <h1>📱 QR-Генератор</h1>
+    <div class="subtitle">Пошаговое создание QR-кодов</div>
+
+    <label for="textInput">Введите текст:</label>
+    <textarea id="textInput" placeholder="Ваш текст..."></textarea>
+    <div class="char-counter" id="charCounter">
+        0 символов, <span id="partsCount">0</span> частей
     </div>
 
-    <script>
-        let qrInstances = [];
-        let currentParts = [];
+    <div class="settings-row">
+        <label for="sizeSelect">Размер QR:</label>
+        <select id="sizeSelect">
+            <option value="150">Маленький (150px)</option>
+            <option value="200" selected>Средний (200px)</option>
+            <option value="300">Большой (300px)</option>
+        </select>
+    </div>
 
-        // Максимальная ёмкость QR-кода (версия 40, уровень H - ~2953 байт)
-        // Используем консервативное значение в символах (для кириллицы меньше)
-        const MAX_QR_CAPACITY = 2500; // примерно
+    <div class="btn-group">
+        <button class="btn btn-primary" id="prepareBtn">📋 Подготовить части</button>
+        <button class="btn btn-secondary" id="resetBtn" disabled>🔄 Сброс</button>
+    </div>
 
-        function generateQRs() {
-            const input = document.getElementById('qr-text');
-            const maxChars = parseInt(document.getElementById('max-chars').value) || 1200;
-            const container = document.getElementById('qrcodes-container');
-            const downloadBtn = document.getElementById('download-btn');
-            const stats = document.getElementById('stats');
-            
-            const text = input.value.trim();
-            
-            if (!text) {
-                alert('Пожалуйста, введите текст или ссылку.');
-                return;
-            }
+    <div id="progressPanel" class="progress-info" style="display:none;">
+        <span>Часть <span id="currentPart">0</span> / <span id="totalParts">0</span></span>
+        <span class="count" id="statusText">Ожидание</span>
+    </div>
 
-            // Очищаем контейнер
-            container.innerHTML = '';
-            qrInstances = [];
-            currentParts = [];
+    <button class="btn btn-success" id="nextBtn" disabled style="font-size:18px;">▶️ Создать следующую часть</button>
 
-            // Разбиваем текст на части
-            const parts = splitText(text, maxChars);
-            currentParts = parts;
-            
-            if (parts.length === 0) {
-                container.innerHTML = '<div class="empty-state">❌ Не удалось разбить текст</div>';
-                return;
-            }
+    <div class="error-msg" id="errorMsg">⚠️ Ошибка</div>
 
-            // Показываем статистику
-            stats.style.display = 'flex';
-            document.getElementById('parts-count').textContent = parts.length;
-            document.getElementById('total-chars').textContent = text.length;
+    <div id="qrGrid" class="qr-grid">
+        <div class="empty-state">📦 Разбей текст на части и создавай QR-коды по одному</div>
+    </div>
 
-            // Создаём QR-код для каждой части
-            parts.forEach((part, index) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'qrcode-item';
-                
-                const label = document.createElement('div');
-                label.className = 'part-label';
-                const partNumber = index + 1;
-                const total = parts.length;
-                const isLast = index === parts.length - 1;
-                
-                // Добавляем маркер продолжения
-                let qrText = part;
-                if (total > 1) {
-                    // Добавляем специальный маркер для сканера: [часть/всего]
-                    // Это поможет приложениям понять, что текст состоит из нескольких частей
-                    qrText = `[${partNumber}/${total}] ${part}`;
+    <div class="level-info">🔒 Уровень коррекции: <span>L</span> (7%) — максимальная ёмкость</div>
+</div>
+
+<script>
+    (function() {
+        const textInput = document.getElementById('textInput');
+        const nextBtn = document.getElementById('nextBtn');
+        const prepareBtn = document.getElementById('prepareBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const qrGrid = document.getElementById('qrGrid');
+        const errorMsg = document.getElementById('errorMsg');
+        const charCounter = document.getElementById('charCounter');
+        const partsCount = document.getElementById('partsCount');
+        const currentPartSpan = document.getElementById('currentPart');
+        const totalPartsSpan = document.getElementById('totalParts');
+        const statusText = document.getElementById('statusText');
+        const progressPanel = document.getElementById('progressPanel');
+        const sizeSelect = document.getElementById('sizeSelect');
+
+        const MAX_CHARS_PER_QR = 130;
+        let chunks = [];
+        let currentIndex = 0;
+        let isGenerating = false;
+
+        function updateCounter() {
+            const len = textInput.value.length;
+            const parts = Math.ceil(len / MAX_CHARS_PER_QR);
+            partsCount.textContent = parts;
+            charCounter.innerHTML = `${len} символов, <span id="partsCount">${parts}</span> частей`;
+        }
+        textInput.addEventListener('input', updateCounter);
+
+        function splitTextIntoChunks(text) {
+            const result = [];
+            let i = 0;
+            while (i < text.length) {
+                let end = Math.min(i + MAX_CHARS_PER_QR, text.length);
+                if (end < text.length) {
+                    let lastSpace = text.lastIndexOf(' ', end);
+                    if (lastSpace > i) end = lastSpace;
                 }
-                
-                label.textContent = `📄 Часть ${partNumber} из ${total}${isLast ? ' (последняя)' : ''}`;
-                
-                const qrDiv = document.createElement('div');
-                qrDiv.id = `qr-${index}`;
-                
-                const preview = document.createElement('div');
-                preview.className = 'qr-text-preview';
-                const previewText = part.length > 50 ? part.substring(0, 50) + '...' : part;
-                preview.textContent = `📝 ${previewText}`;
-                
-                itemDiv.appendChild(label);
-                itemDiv.appendChild(qrDiv);
-                itemDiv.appendChild(preview);
-                container.appendChild(itemDiv);
-                
-                // Создаём QR-код
-                const qr = new QRCode(qrDiv, {
-                    text: qrText,
-                    width: 180,
-                    height: 180,
-                    colorDark: "#2c3e50",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H // Высокий уровень коррекции
-                });
-                
-                qrInstances.push(qr);
-            });
-
-            // Активируем кнопку скачивания
-            downloadBtn.disabled = false;
-            
-            // Показываем информацию
-            const infoText = document.getElementById('info-text');
-            if (parts.length > 1) {
-                infoText.innerHTML = `💡 Текст разбит на <strong>${parts.length}</strong> частей. При сканировании используйте приложение, которое умеет объединять QR-коды с маркерами <strong>[часть/всего]</strong>.`;
-            } else {
-                infoText.innerHTML = '💡 Текст поместился в один QR-код.';
+                result.push(text.slice(i, end));
+                i = end + 1;
             }
+            return result;
         }
 
-        function splitText(text, maxLength) {
-            if (text.length <= maxLength) {
-                return [text];
-            }
-            
-            const parts = [];
-            let remaining = text;
-            
-            // Пытаемся разбить по словам
-            while (remaining.length > 0) {
-                let chunk;
-                if (remaining.length <= maxLength) {
-                    chunk = remaining;
-                    remaining = '';
-                } else {
-                    // Ищем место для разрыва (по пробелу или знаку препинания)
-                    let splitIndex = remaining.lastIndexOf(' ', maxLength);
-                    if (splitIndex === -1 || splitIndex < maxLength * 0.7) {
-                        // Если не нашли хорошее место для разрыва, ищем по знакам препинания
-                        const punctuation = ['.', ',', ';', ':', '!', '?', '\n'];
-                        let bestIndex = -1;
-                        for (const p of punctuation) {
-                            const idx = remaining.lastIndexOf(p, maxLength);
-                            if (idx > bestIndex) {
-                                bestIndex = idx + 1; // включаем знак препинания
-                            }
-                        }
-                        if (bestIndex > maxLength * 0.5) {
-                            splitIndex = bestIndex;
-                        } else {
-                            // Просто режем по maxLength
-                            splitIndex = maxLength;
-                        }
-                    }
-                    
-                    chunk = remaining.substring(0, splitIndex);
-                    remaining = remaining.substring(splitIndex).trim();
-                }
-                
-                if (chunk.trim()) {
-                    parts.push(chunk.trim());
-                }
-            }
-            
-            return parts;
-        }
-
-        function downloadAllQRs() {
-            if (qrInstances.length === 0) {
-                alert('Сначала создайте QR-коды!');
-                return;
-            }
-
-            const container = document.getElementById('qrcodes-container');
-            const items = container.querySelectorAll('.qrcode-item');
-            
-            // Скачиваем каждый QR-код по отдельности
-            items.forEach((item, index) => {
-                const canvas = item.querySelector('canvas');
-                const img = item.querySelector('img');
-                let imageUrl;
-                
-                if (canvas) {
-                    imageUrl = canvas.toDataURL('image/png');
-                } else if (img) {
-                    imageUrl = img.src;
-                } else {
+        // Надёжное ожидание появления canvas с MutationObserver
+        function waitForCanvas(container, timeoutMs = 5000) {
+            return new Promise((resolve, reject) => {
+                // Проверяем сразу
+                const canvas = container.querySelector('canvas');
+                if (canvas && canvas.width > 0 && canvas.height > 0) {
+                    resolve();
                     return;
                 }
 
-                setTimeout(() => {
-                    const link = document.createElement('a');
-                    link.href = imageUrl;
-                    link.download = `qr-part-${index + 1}-of-${items.length}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }, index * 300); // Небольшая задержка между скачиваниями
-            });
-
-            showToast(`Скачивание ${items.length} QR-кодов начато...`);
-        }
-
-        function clearAll() {
-            const container = document.getElementById('qrcodes-container');
-            container.innerHTML = '<div class="empty-state">📷 QR-коды появятся здесь</div>';
-            document.getElementById('download-btn').disabled = true;
-            document.getElementById('stats').style.display = 'none';
-            qrInstances = [];
-            currentParts = [];
-            document.getElementById('info-text').innerHTML = '💡 При сканировании QR-коды нужно сканировать <strong>по порядку</strong> (часть 1, часть 2...)';
-        }
-
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0,0,0,0.8);
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 14px;
-                z-index: 1000;
-                animation: fadeIn 0.3s ease;
-                max-width: 90%;
-                text-align: center;
-            `;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.5s';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
-        }
-
-        // Автогенерация при вводе
-        document.getElementById('qr-text').addEventListener('input', function() {
-            if (document.getElementById('auto-generate').checked) {
-                clearTimeout(this._timer);
-                this._timer = setTimeout(() => {
-                    if (this.value.trim().length > 0) {
-                        generateQRs();
+                const observer = new MutationObserver(() => {
+                    const c = container.querySelector('canvas');
+                    if (c && c.width > 0 && c.height > 0) {
+                        observer.disconnect();
+                        resolve();
                     }
-                }, 800);
-            }
-        });
+                });
 
-        // Генерация по Ctrl+Enter
-        document.getElementById('qr-text').addEventListener('keydown', function(event) {
-            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
-                generateQRs();
-            }
-        });
+                observer.observe(container, { childList: true, subtree: true });
 
-        // Автофокус
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('qr-text').focus();
-        });
+                // Таймаут
+                const timeout = setTimeout(() => {
+                    observer.disconnect();
+                    reject(new Error('Timeout'));
+                }, timeoutMs);
 
-        // Добавляем стили для анимации
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-                to { opacity: 1; transform: translateX(-50%) translateY(0); }
+                // Проверка через интервал на случай, если MutationObserver не сработал
+                const interval = setInterval(() => {
+                    const c = container.querySelector('canvas');
+                    if (c && c.width > 0 && c.height > 0) {
+                        clearInterval(interval);
+                        clearTimeout(timeout);
+                        observer.disconnect();
+                        resolve();
+                    }
+                }, 100);
+            });
+        }
+
+        function createQR(container, text, size) {
+            return new Promise((resolve, reject) => {
+                try {
+                    container.innerHTML = '';
+                    new QRCode(container, {
+                        text: text,
+                        width: size,
+                        height: size,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.L
+                    });
+                    waitForCanvas(container).then(resolve).catch(reject);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }
+
+        function downloadPart(index) {
+            const container = document.getElementById(`qr-${index}`);
+            if (!container) return;
+            const canvas = container.querySelector('canvas');
+            if (!canvas) return alert('QR-код ещё не создан');
+            const link = document.createElement('a');
+            link.download = `qr_part_${index + 1}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function updateUI() {
+            const total = chunks.length;
+            totalPartsSpan.textContent = total;
+            currentPartSpan.textContent = Math.min(currentIndex + 1, total);
+            progressPanel.style.display = total > 0 ? 'flex' : 'none';
+            
+            if (currentIndex >= total && total > 0) {
+                statusText.textContent = '✅ Готово!';
+                nextBtn.disabled = true;
+                nextBtn.textContent = '✅ Все части созданы';
+            } else {
+                statusText.textContent = `Ожидание (${currentIndex + 1}/${total})`;
+                nextBtn.disabled = false;
+                nextBtn.textContent = `▶️ Создать часть ${currentIndex + 1}`;
             }
-        `;
-        document.head.appendChild(style);
-    </script>
+            
+            resetBtn.disabled = total === 0;
+        }
+
+        function prepareChunks() {
+            const text = textInput.value.trim();
+            errorMsg.style.display = 'none';
+            
+            if (!text) {
+                errorMsg.textContent = '⚠️ Введите текст';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            chunks = splitTextIntoChunks(text);
+            if (chunks.length > 10) {
+                errorMsg.textContent = `⚠️ Слишком много частей (${chunks.length}). Максимум 10.`;
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            qrGrid.innerHTML = '';
+            currentIndex = 0;
+            
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.textContent = `📦 Готово ${chunks.length} частей. Нажми «Создать следующую часть»`;
+            qrGrid.appendChild(empty);
+            
+            updateUI();
+            prepareBtn.disabled = true;
+        }
+
+        function downloadAll() {
+            const containers = qrGrid.querySelectorAll('.qrcode-container');
+            if (!containers.length) return;
+            if (typeof JSZip === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = () => downloadAllZip(containers);
+                document.head.appendChild(script);
+                return;
+            }
+            downloadAllZip(containers);
+        }
+
+        function downloadAllZip(containers) {
+            const zip = new JSZip();
+            containers.forEach((c, i) => {
+                const canvas = c.querySelector('canvas');
+                if (canvas) {
+                    zip.file(`qr_part_${i+1}.png`, canvas.toDataURL('image/png').split(',')[1], { base64: true });
+                }
+            });
+            zip.generateAsync({ type: 'blob' }).then(blob => {
+                const link = document.createElement('a');
+                link.download = `qr_codes.zip`;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+                URL.revokeObjectURL(link.href);
+            });
+        }
+
+        async function createNextQR() {
+            if (isGenerating) return;
+            if (currentIndex >= chunks.length) {
+                alert('Все части уже созданы');
+                return;
+            }
+            
+            isGenerating = true;
+            nextBtn.disabled = true;
+            nextBtn.textContent = '⏳ Создание...';
+            statusText.textContent = 'Создание...';
+            
+            const size = parseInt(sizeSelect.value, 10);
+            const chunk = chunks[currentIndex];
+            
+            const empty = qrGrid.querySelector('.empty-state');
+            if (empty) empty.remove();
+            
+            const item = document.createElement('div');
+            item.className = 'qr-item';
+            item.id = `qr-item-${currentIndex}`;
+
+            const label = document.createElement('div');
+            label.className = 'part-label';
+            label.textContent = chunks.length === 1 ? '📄 Весь текст' : `📄 Часть ${currentIndex + 1} / ${chunks.length}`;
+            item.appendChild(label);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'qrcode-container';
+            wrapper.id = `qr-${currentIndex}`;
+            item.appendChild(wrapper);
+
+            const btn = document.createElement('button');
+            btn.className = 'btn-download-part';
+            btn.textContent = `💾 Скачать часть ${currentIndex + 1}`;
+            btn.addEventListener('click', () => downloadPart(currentIndex));
+            item.appendChild(btn);
+
+            qrGrid.appendChild(item);
+
+            try {
+                await createQR(wrapper, chunk, size);
+                currentIndex++;
+                updateUI();
+                
+                if (currentIndex >= chunks.length) {
+                    const allBtn = document.createElement('button');
+                    allBtn.className = 'btn-download-all';
+                    allBtn.textContent = '📦 Скачать все части (ZIP)';
+                    allBtn.addEventListener('click', downloadAll);
+                    qrGrid.appendChild(allBtn);
+                }
+            } catch (e) {
+                console.error(e);
+                wrapper.innerHTML = `<span style="color:#ef4444;">❌ Ошибка</span>`;
+                statusText.textContent = '❌ Ошибка';
+            }
+            
+            isGenerating = false;
+            if (currentIndex >= chunks.length) {
+                nextBtn.disabled = true;
+                nextBtn.textContent = '✅ Готово';
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.textContent = `▶️ Создать часть ${currentIndex + 1}`;
+                statusText.textContent = `Ожидание (${currentIndex + 1}/${chunks.length})`;
+            }
+        }
+
+        function resetAll() {
+            chunks = [];
+            currentIndex = 0;
+            qrGrid.innerHTML = `<div class="empty-state">📦 Разбей текст на части и создавай QR-коды по одному</div>`;
+            progressPanel.style.display = 'none';
+            nextBtn.disabled = true;
+            nextBtn.textContent = '▶️ Создать следующую часть';
+            prepareBtn.disabled = false;
+            resetBtn.disabled = true;
+            errorMsg.style.display = 'none';
+        }
+
+        prepareBtn.addEventListener('click', prepareChunks);
+        resetBtn.addEventListener('click', resetAll);
+        nextBtn.addEventListener('click', createNextQR);
+
+        updateCounter();
+    })();
+</script>
 </body>
 </html>
