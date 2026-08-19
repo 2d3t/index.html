@@ -1,1871 +1,2119 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Transfer - Циклическая передача файлов</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        :root {
-            --primary: #6a11cb;
-            --secondary: #2575fc;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --dark: #2c3e50;
-            --light: #ecf0f1;
-            --warning: #f39c12;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        h1, h2 {
-            color: var(--dark);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        h1 { font-size: 2em; }
-        h2 { font-size: 1.4em; margin-top: 20px; }
-        
-        .mode-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .mode-btn {
-            flex: 1;
-            min-width: 100px;
-            padding: 12px;
-            border: 2px solid #ddd;
-            background: white;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .mode-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        
-        .transfer-mode-selector {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-        
-        .transfer-mode-btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            background: #f8f9fa;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9em;
-            font-weight: 600;
-            text-align: center;
-        }
-        
-        .transfer-mode-btn.active {
-            background: var(--secondary);
-            color: white;
-            border-color: var(--secondary);
-        }
-        
-        .transfer-mode-btn.manual-active {
-            background: var(--warning);
-            color: white;
-            border-color: var(--warning);
-        }
-        
-        .transfer-mode-btn.cyclic-active {
-            background: #e74c3c;
-            color: white;
-            border-color: #e74c3c;
-        }
-        
-        .file-upload {
-            border: 2px dashed #ddd;
-            border-radius: 15px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
-        }
-        
-        .file-upload:hover {
-            border-color: var(--primary);
-            background: #f8f9fa;
-        }
-        
-        .file-upload.dragover {
-            border-color: var(--success);
-            background: #f0fff4;
-        }
-        
-        textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 14px;
-            font-family: monospace;
-            resize: vertical;
-            margin-bottom: 20px;
-        }
-        
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-        
-        button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-        }
-        
-        .btn-success {
-            background: linear-gradient(to right, #2ecc71, #1abc9c);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-        }
-        
-        .btn-warning {
-            background: linear-gradient(to right, #f39c12, #e67e22);
-        }
-        
-        .btn-info {
-            background: linear-gradient(to right, #3498db, #2980b9);
-        }
-        
-        .btn-secondary {
-            background: linear-gradient(to right, #95a5a6, #7f8c8d);
-        }
-        
-        .btn-camera {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-        }
-        
-        .btn-stop-camera {
-            background: linear-gradient(135deg, #636e72, #2d3436);
-        }
-        
-        .nav-controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-        
-        .nav-btn {
-            min-width: 50px;
-            padding: 10px 15px;
-            font-size: 1.2em;
-            justify-content: center;
-        }
-        
-        .qr-wrapper {
-            position: relative;
-            width: 100%;
-        }
-        
-        .qr-header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            min-height: 40px;
-            flex-wrap: wrap;
-        }
-        
-        .part-badge {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 1em;
-            font-weight: bold;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            white-space: nowrap;
-            letter-spacing: 1px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .cycle-badge {
-            background: var(--danger);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: bold;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        /* ГЛАВНОЕ ИЗМЕНЕНИЕ - полностью белый фон для QR-кода */
-        .qr-display {
-            background: #ffffff !important;
-            border-radius: 15px;
-            padding: 30px 20px;
-            text-align: center;
-            min-height: 350px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            border: 3px solid #e0e0e0;
-            box-shadow: inset 0 0 0 1px #ffffff, 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .qr-display.clickable {
-            cursor: pointer;
-        }
-        
-        .qr-display.clickable:hover {
-            background: #fafafa !important;
-            transform: scale(1.01);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-        }
-        
-        .qr-display.clickable:active {
-            transform: scale(0.98);
-        }
-        
-        /* Контейнер для QR-кода - строго белый */
-        .qr-code-container {
-            position: relative;
-            display: inline-block;
-            padding: 25px;
-            background: #ffffff !important;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-            border: 2px solid #f0f0f0;
-        }
-        
-        /* Сам QR-код */
-        .qr-code-container img,
-        .qr-code-container canvas {
-            display: block;
-            max-width: 280px;
-            width: 280px;
-            height: 280px;
-            border-radius: 5px;
-            pointer-events: none;
-            background: #ffffff !important;
-            margin: 0 auto;
-        }
-        
-        .click-hint {
-            margin-top: 15px;
-            background: rgba(106, 17, 203, 0.9);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            pointer-events: none;
-            animation: pulse-hint 2s infinite;
-            display: inline-block;
-        }
-        
-        @keyframes pulse-hint {
-            0%, 100% { opacity: 0.7; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.05); }
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #ecf0f1;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(to right, var(--success), #1abc9c);
-            transition: width 0.3s;
-            border-radius: 10px;
-            width: 0%;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .stat-item {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: var(--primary);
-        }
-        
-        .stat-label {
-            font-size: 0.8em;
-            color: #7f8c8d;
-        }
-        
-        .speed-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .speed-control input[type="range"] {
-            flex: 1;
-        }
-        
-        .scanner-view {
-            width: 100%;
-            max-width: 400px;
-            margin: 20px auto;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-            display: none;
-            background: #000;
-        }
-        
-        .scanner-view.active {
-            display: block;
-        }
-        
-        .scanner-view video {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        .scanner-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 200px;
-            height: 200px;
-            border: 3px solid var(--success);
-            border-radius: 10px;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-        
-        .scanner-overlay.scanning {
-            border-color: #00c6ff;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-            animation: pulse 2s infinite;
-        }
-        
-        .scanner-overlay.success {
-            border-color: #00ff00;
-            box-shadow: 0 0 0 9999px rgba(0, 255, 0, 0.3);
-            animation: successPulse 0.5s ease 3;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { 
-                border-color: #00c6ff;
-                box-shadow: 0 0 0 9999px rgba(0, 198, 255, 0.1);
-            }
-            50% { 
-                border-color: #4fc3f7;
-                box-shadow: 0 0 0 9999px rgba(0, 198, 255, 0.3);
-            }
-        }
-        
-        @keyframes successPulse {
-            0%, 100% {
-                border-color: #00ff00;
-                box-shadow: 0 0 0 9999px rgba(0, 255, 0, 0.3);
-            }
-            50% {
-                border-color: #00ff00;
-                box-shadow: 0 0 0 9999px rgba(0, 255, 0, 0.5);
-            }
-        }
-        
-        .scanner-status {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            padding: 8px;
-            border-radius: 8px;
-            display: none;
-        }
-        
-        .scanner-status.active {
-            display: block;
-        }
-        
-        .scanner-status.scanning {
-            background: rgba(0, 198, 255, 0.2);
-            color: #00c6ff;
-        }
-        
-        .scanner-status.success {
-            background: rgba(0, 255, 0, 0.2);
-            color: #00ff00;
-        }
-        
-        .scanner-status.error {
-            background: rgba(255, 0, 0, 0.2);
-            color: #ff4444;
-        }
-        
-        .scan-hint {
-            text-align: center;
-            font-size: 0.8rem;
-            color: #ffd54f;
-            margin-top: 5px;
-            display: none;
-        }
-        
-        .scan-hint.active {
-            display: block;
-        }
-        
-        .received-parts-grid {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 5px;
-            margin: 10px 0;
-        }
-        
-        .received-part {
-            aspect-ratio: 1;
-            background: #ecf0f1;
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7em;
-            font-weight: bold;
-            color: #7f8c8d;
-        }
-        
-        .received-part.received {
-            background: var(--success);
-            color: white;
-        }
-        
-        .log {
-            background: #2c3e50;
-            color: #ecf0f1;
-            border-radius: 10px;
-            padding: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-            margin-top: 20px;
-        }
-        
-        .log-entry {
-            margin: 5px 0;
-            padding: 5px;
-            border-left: 3px solid var(--success);
-            padding-left: 10px;
-        }
-        
-        .log-entry.error {
-            border-left-color: var(--danger);
-            color: #e74c3c;
-        }
-        
-        .log-entry.info {
-            border-left-color: var(--secondary);
-            color: #74b9ff;
-        }
-        
-        .log-entry.warning {
-            border-left-color: var(--warning);
-            color: #f39c12;
-        }
-        
-        .log-entry.success {
-            border-left-color: var(--success);
-            color: #2ecc71;
-        }
-        
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: bold;
-            z-index: 1000;
-            animation: slideDown 0.3s ease;
-            background: rgba(0,0,0,0.8);
-        }
-        
-        .toast.success {
-            background: #4caf50;
-        }
-        
-        .toast.error {
-            background: #f44336;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -20px);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }
-        }
-        
-        .keyboard-hint {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            display: none;
-            z-index: 1000;
-        }
-        
-        .keyboard-hint.show {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, 20px); }
-            to { opacity: 1; transform: translate(-50%, 0); }
-        }
-        
-        .scan-speed-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 10px 0;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .scan-speed-control input[type="range"] {
-            flex: 1;
-        }
-        
-        .camera-controls {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-        
-        .camera-controls button {
-            flex: 1;
-            min-width: 120px;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-            
-            .transfer-mode-btn {
-                min-width: 100px;
-                font-size: 0.8em;
-            }
-            
-            .received-parts-grid {
-                grid-template-columns: repeat(8, 1fr);
-            }
-            
-            .qr-code-container img,
-            .qr-code-container canvas {
-                max-width: 200px !important;
-                width: 200px !important;
-                height: 200px !important;
-            }
-            
-            .scanner-overlay {
-                width: 150px;
-                height: 150px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,
+               initial-scale=1.0,
+               maximum-scale=1.0,
+               user-scalable=no">
+
+<title>QR Text Transfer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    margin: 0;
+    background: #f1f2f4;
+    color: #222;
+    font-family: Arial, sans-serif;
+}
+
+.app {
+    max-width: 650px;
+    margin: auto;
+    padding: 12px;
+}
+
+h1 {
+    text-align: center;
+    margin: 5px 0 15px;
+    font-size: 24px;
+}
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.tab {
+    flex: 1;
+    padding: 13px 5px;
+    border: 0;
+    border-radius: 10px;
+    background: #ddd;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.tab.active {
+    background: #111;
+    color: white;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.card {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+
+textarea {
+    width: 100%;
+    min-height: 190px;
+    resize: vertical;
+    padding: 13px;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.45;
+    outline: none;
+}
+
+textarea:focus {
+    border-color: #333;
+}
+
+button {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 13px;
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.primary {
+    background: #111;
+    color: white;
+}
+
+.secondary {
+    background: #ddd;
+}
+
+.danger {
+    background: #eee;
+}
+
+.info {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.center {
+    text-align: center;
+}
+
+.qr-item {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+
+.qr-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.qr-image {
+    width: 100%;
+    max-width: 430px;
+    height: auto;
+    image-rendering: pixelated;
+}
+
+.qr-meta {
+    margin-top: 8px;
+    color: #666;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.progress {
+    height: 12px;
+    background: #e5e5e5;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #111;
+    transition: width .25s;
+}
+
+#reader {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.status {
+    text-align: center;
+    padding: 10px;
+    font-weight: bold;
+}
+
+.ok {
+    color: #16833b;
+}
+
+.error {
+    color: #b00020;
+}
+
+.warning {
+    color: #a05a00;
+}
+
+.parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.part {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.part.received {
+    background: #222;
+    color: white;
+}
+
+.part.missing {
+    background: #eee;
+    color: #888;
+}
+
+.small {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.hash {
+    font-family: monospace;
+    font-size: 12px;
+    word-break: break-all;
+    background: #f5f5f5;
+    padding: 8px;
+    border-radius: 7px;
+    margin-top: 6px;
+}
+
+.hidden {
+    display: none;
+}
+
+</style>
 </head>
+
 <body>
 
-<button onclick="window.location.href='https://2d3t.github.io/index.html/'" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); transition: all 0.3s; margin: 10px;">
-    <span style="font-size: 1.5em;">🏠</span>
-    <span>К списку программ</span>
+<div class="app">
+
+<h1>📦 QR Text Transfer</h1>
+
+<div class="tabs">
+
+<button
+    id="tabGenerator"
+    class="tab active"
+    onclick="showPage('generator')">
+    📤 Генератор
 </button>
 
-<br><br>
+<button
+    id="tabScanner"
+    class="tab"
+    onclick="showPage('scanner')">
+    📷 Сборщик
+</button>
 
-<details>
-    <summary style="cursor: pointer; padding: 12px 20px; background: linear-gradient(to right, #3498db, #2980b9); color: white; border-radius: 10px; font-weight: 600; display: inline-block; user-select: none;">
-        🔗 QR-код приложения
-    </summary>
-    <img src="https://2d3t.github.io/index.html/icons/qrtr.png" alt="QR-код" style="margin-top: 10px; max-width: 250px; height: auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
-</details>
+</div>
 
-<br>
 
-    <div class="container">
-        <!-- Левая колонка - Отправитель -->
-        <div class="card">
-            <h1>📤 Отправитель</h1>
-            
-            <div class="mode-selector">
-                <button class="mode-btn active" onclick="setMode('text')">📝 Текст</button>
-                <button class="mode-btn" onclick="setMode('file')">📁 Файл</button>
-            </div>
-            
-            <div id="text-input">
-                <textarea id="input-text" placeholder="Введите текст для передачи..."></textarea>
-            </div>
-            
-            <div id="file-input" style="display: none;">
-                <div class="file-upload" id="file-drop" onclick="document.getElementById('file').click()">
-                    <p>📁 Нажмите или перетащите файл сюда</p>
-                    <p style="font-size: 0.8em; color: #7f8c8d;">Максимальный размер: 10 МБ</p>
-                </div>
-                <input type="file" id="file" style="display: none;" onchange="handleFileSelect(event)">
-            </div>
-            
-            <div class="controls">
-                <button class="btn-primary" onclick="generateTransfer()" id="generate-btn">
-                    ⚡ Сгенерировать
-                </button>
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="font-weight: 600; color: var(--dark); display: block; margin-bottom: 10px;">
-                    🔄 Режим передачи:
-                </label>
-                <div class="transfer-mode-selector">
-                    <button class="transfer-mode-btn active" onclick="setTransferMode('auto')" id="mode-auto">
-                        🤖 Автоматический
-                    </button>
-                    <button class="transfer-mode-btn" onclick="setTransferMode('cyclic')" id="mode-cyclic">
-                        🔄 Циклический
-                    </button>
-                    <button class="transfer-mode-btn" onclick="setTransferMode('manual')" id="mode-manual">
-                        👆 Ручной
-                    </button>
-                </div>
-            </div>
-            
-            <div class="nav-controls" id="nav-controls" style="display: none;">
-                <button class="btn-secondary nav-btn" onclick="navigateQR('first')" title="Первый">
-                    ⏮️
-                </button>
-                <button class="btn-secondary nav-btn" onclick="navigateQR('prev')" title="Предыдущий">
-                    ◀️
-                </button>
-                <button class="btn-primary nav-btn" onclick="navigateQR('next')" title="Следующий" id="next-btn">
-                    ▶️
-                </button>
-                <button class="btn-secondary nav-btn" onclick="navigateQR('last')" title="Последний">
-                    ⏭️
-                </button>
-            </div>
-            
-            <div class="controls" id="transfer-controls" style="display: none;">
-                <button class="btn-success" onclick="startTransfer()" id="start-btn">
-                    ▶️ Начать
-                </button>
-                <button class="btn-warning" onclick="pauseTransfer()" id="pause-btn" disabled>
-                    ⏸️ Пауза
-                </button>
-                <button class="btn-danger" onclick="stopTransfer()" id="stop-btn" disabled>
-                    ⏹️ Стоп
-                </button>
-            </div>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-value" id="total-parts">0</div>
-                    <div class="stat-label">Всего частей</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="current-part">0</div>
-                    <div class="stat-label">Текущая часть</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="data-size">0 KB</div>
-                    <div class="stat-label">Размер данных</div>
-                </div>
-            </div>
-            
-            <div class="speed-control" id="speed-control" style="display: none;">
-                <span>🐢</span>
-                <input type="range" id="speed" min="100" max="2000" value="500" step="100">
-                <span>🐇</span>
-                <span id="speed-value">500 мс</span>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            
-            <div class="qr-wrapper">
-                <div class="qr-header" id="qr-header">
-                </div>
-                
-                <div class="qr-display" id="qr-display" onclick="handleQRClick()">
-                    <p style="color: #bdc3c7;">QR-код появится здесь</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Правая колонка - Получатель -->
-        <div class="card">
-            <h1>📥 Получатель</h1>
-            
-            <div class="camera-controls">
-                <button class="btn-camera" onclick="startScanner()" id="scanner-btn">
-                    📷 Сканировать
-                </button>
-                <button class="btn-stop-camera" onclick="stopScanner()" id="scanner-stop-btn" disabled>
-                    ⏹️ Остановить
-                </button>
-                <button class="btn-info" onclick="uploadQRCodes()">
-                    📁 Загрузить QR-коды
-                </button>
-                <input type="file" id="qr-files" accept="image/*" multiple style="display: none;" onchange="decodeUploadedQRCodes()">
-            </div>
-            
-            <div class="scanner-view" id="scanner-view">
-                <video id="scanner-video" playsinline></video>
-                <div class="scanner-overlay scanning" id="scanner-overlay"></div>
-            </div>
-            
-            <div class="scanner-status" id="scanner-status">🔍 Сканирование...</div>
-            <div class="scan-hint" id="scan-hint">Наведите камеру на QR-код. Он может быть не по центру и на расстоянии</div>
-            
-            <!-- Настройка скорости сканирования -->
-            <div class="scan-speed-control" id="scan-speed-control" style="display: none;">
-                <span>🔍 Скорость сканирования:</span>
-                <input type="range" id="scan-speed" min="100" max="2000" value="100" step="50">
-                <span id="scan-speed-value">100 мс</span>
-            </div>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-value" id="received-parts">0</div>
-                    <div class="stat-label">Получено частей</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="expected-parts">0</div>
-                    <div class="stat-label">Ожидается частей</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="received-size">0 KB</div>
-                    <div class="stat-label">Получено данных</div>
-                </div>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill" id="receive-progress" style="background: linear-gradient(to right, #3498db, #2980b9);"></div>
-            </div>
-            
-            <div id="parts-visualization" style="display: none;">
-                <h3 style="font-size: 0.9em; margin-bottom: 10px;">Полученные части:</h3>
-                <div class="received-parts-grid" id="received-parts-grid"></div>
-            </div>
-            
-            <div id="received-content" style="margin-top: 20px;">
-                <h2>📄 Полученные данные</h2>
-                <textarea id="received-text" readonly placeholder="Здесь появится полученный текст..." style="min-height: 100px;"></textarea>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn-primary" onclick="copyReceived()">📋 Копировать</button>
-                    <button class="btn-success" onclick="downloadReceived()">💾 Скачать файл</button>
-                </div>
-            </div>
-            
-            <div class="log" id="log">
-                <div class="log-entry info">Система готова к работе</div>
-            </div>
-        </div>
+<!-- =====================================================
+     ГЕНЕРАТОР
+===================================================== -->
+
+<div id="generator" class="page active">
+
+<div class="card">
+
+<textarea
+    id="sourceText"
+    placeholder="Введите или вставьте сюда текст..."></textarea>
+
+<button
+    class="primary"
+    onclick="generateQRs()">
+    Создать QR-коды
+</button>
+
+<button
+    class="secondary"
+    onclick="clearGenerator()">
+    Очистить
+</button>
+
+</div>
+
+
+<div
+    id="generatorInfo"
+    class="card info">
+
+Введите текст и нажмите
+«Создать QR-коды».
+
+</div>
+
+
+<div id="qrOutput"></div>
+
+</div>
+
+
+
+<!-- =====================================================
+     СБОРЩИК
+===================================================== -->
+
+<div id="scanner" class="page">
+
+<div class="card">
+
+<div id="reader"></div>
+
+<button
+    id="startCameraButton"
+    class="primary"
+    onclick="startScanner()">
+    📷 Запустить камеру
+</button>
+
+<button
+    class="secondary"
+    onclick="stopScanner()">
+    ⏹ Остановить камеру
+</button>
+
+<div id="scanStatus" class="status">
+    Камера не запущена
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div>
+    Получено:
+    <b id="receivedCount">0</b>
+    /
+    <b id="totalCount">?</b>
+</div>
+
+<div class="progress">
+    <div
+        id="scanProgress"
+        class="progress-bar">
     </div>
-    
-    <div class="keyboard-hint" id="keyboard-hint">
-        Нажмите на QR-код или используйте стрелки ← → для навигации
-    </div>
+</div>
 
-    <canvas id="canvas" style="display: none;"></canvas>
+<div
+    id="scanProgressText"
+    class="small"
+    style="margin-top:8px;">
+    Отсканируйте первый QR-код.
+</div>
 
-    <script>
-        // Глобальные переменные
-        let transferData = [];
-        let currentPartIndex = 0;
-        let transferInterval = null;
-        let isTransferring = false;
-        let receivedParts = new Map();
-        let expectedTotalParts = 0;
-        let receivedFileData = null;
-        let currentMode = 'text';
-        let currentTransferMode = 'auto';
-        let currentQR = null;
-        let isGenerated = false;
-        let cycleCount = 0;
-        
-        // Переменные для сканера
-        let scannerActive = false;
-        let scannerStream = null;
-        let scannerAnimationId = null;
-        let lastScanTime = 0;
-        let scanAttempts = 0;
-        let lastDecodedData = '';
-        let isProcessing = false;
-        
-        // Константы
-        const CHUNK_SIZE = 1000;
-        
-        // Настройка скорости передачи
-        document.getElementById('speed').addEventListener('input', function() {
-            document.getElementById('speed-value').textContent = this.value + ' мс';
-        });
-        
-        // Настройка скорости сканирования
-        document.getElementById('scan-speed').addEventListener('input', function() {
-            document.getElementById('scan-speed-value').textContent = this.value + ' мс';
-        });
-        
-        // Функция для показа всплывающего уведомления
-        function showToast(message, type) {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 2500);
+<div
+    id="partsList"
+    class="parts">
+</div>
+
+</div>
+
+
+<div class="card">
+
+<b>Восстановленный текст</b>
+
+<textarea
+    id="resultText"
+    readonly
+    placeholder="После получения всех частей здесь появится исходный текст..."></textarea>
+
+<button
+    class="secondary"
+    onclick="copyResult()">
+    📋 Копировать
+</button>
+
+<button
+    class="secondary"
+    onclick="saveResult()">
+    💾 Сохранить TXT
+</button>
+
+<button
+    class="danger"
+    onclick="clearScanner()">
+    🗑 Очистить сборщик
+</button>
+
+</div>
+
+
+<div
+    id="verification"
+    class="card info hidden">
+
+<b>Проверка целостности</b>
+
+<div id="verificationText"></div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   ОБЩИЕ НАСТРОЙКИ
+========================================================= */
+
+const QR_ERROR_LEVEL = "M";
+
+let scanner = null;
+
+let scannerRunning = false;
+
+let lastScanText = "";
+
+let lastScanTime = 0;
+
+
+/* =========================================================
+   ГЕНЕРАТОР
+========================================================= */
+
+function utf8Bytes(text) {
+
+    return new TextEncoder().encode(text);
+
+}
+
+
+function utf8Length(text) {
+
+    return utf8Bytes(text).length;
+
+}
+
+
+/*
+    Проверяем, способен ли QR-код вместить
+    данный текст.
+*/
+
+function canFitQR(text) {
+
+    try {
+
+        const qr =
+            qrcode(0, QR_ERROR_LEVEL);
+
+        qr.addData(text);
+
+        qr.make();
+
+        return true;
+
+    } catch (e) {
+
+        return false;
+
+    }
+
+}
+
+
+/*
+    Unicode-разбиение.
+
+    Array.from() позволяет не разрывать
+    обычные Unicode-символы и emoji.
+*/
+
+function unicodeChars(text) {
+
+    return Array.from(text);
+
+}
+
+
+/*
+    Находим максимально большой кусок,
+    который помещается в QR.
+
+    Используем бинарный поиск.
+*/
+
+function findLargestChunk(chars, start) {
+
+    let low = 1;
+
+    let high =
+        chars.length - start;
+
+    let best = 0;
+
+
+    while (low <= high) {
+
+        const middle =
+            Math.floor((low + high) / 2);
+
+        const candidate =
+            chars
+                .slice(
+                    start,
+                    start + middle
+                )
+                .join("");
+
+
+        if (canFitQR(candidate)) {
+
+            best = middle;
+
+            low = middle + 1;
+
+        } else {
+
+            high = middle - 1;
+
         }
-        
-        // Переключение режима (текст/файл)
-        function setMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            
-            if (mode === 'text') {
-                document.querySelectorAll('.mode-btn')[0].classList.add('active');
-                document.getElementById('text-input').style.display = 'block';
-                document.getElementById('file-input').style.display = 'none';
-            } else {
-                document.querySelectorAll('.mode-btn')[1].classList.add('active');
-                document.getElementById('text-input').style.display = 'none';
-                document.getElementById('file-input').style.display = 'block';
-            }
-            
-            resetTransfer();
+
+    }
+
+
+    return best;
+
+}
+
+
+/*
+    Разбиваем исходный текст.
+
+    Сначала делаем временные части.
+*/
+
+function splitRawText(text) {
+
+    const chars =
+        unicodeChars(text);
+
+    const result = [];
+
+    let position = 0;
+
+
+    while (
+        position <
+        chars.length
+    ) {
+
+        const count =
+            findLargestChunk(
+                chars,
+                position
+            );
+
+
+        if (count <= 0) {
+
+            throw new Error(
+                "Не удалось создать QR-код."
+            );
+
         }
-        
-        // Переключение режима передачи
-        function setTransferMode(mode) {
-            currentTransferMode = mode;
-            
-            document.querySelectorAll('.transfer-mode-btn').forEach(btn => {
-                btn.classList.remove('active', 'manual-active', 'cyclic-active');
-            });
-            
-            const qrDisplay = document.getElementById('qr-display');
-            
-            if (mode === 'auto') {
-                document.getElementById('mode-auto').classList.add('active');
-                document.getElementById('speed-control').style.display = 'flex';
-                document.getElementById('transfer-controls').style.display = 'flex';
-                document.getElementById('nav-controls').style.display = 'none';
-                qrDisplay.classList.remove('clickable');
-            } else if (mode === 'cyclic') {
-                document.getElementById('mode-cyclic').classList.add('cyclic-active');
-                document.getElementById('speed-control').style.display = 'flex';
-                document.getElementById('transfer-controls').style.display = 'flex';
-                document.getElementById('nav-controls').style.display = 'none';
-                qrDisplay.classList.remove('clickable');
-                
-                addLog('Циклический режим: QR-коды будут повторяться по кругу', 'info');
-            } else if (mode === 'manual') {
-                document.getElementById('mode-manual').classList.add('manual-active');
-                document.getElementById('speed-control').style.display = 'none';
-                document.getElementById('transfer-controls').style.display = 'none';
-                document.getElementById('nav-controls').style.display = 'flex';
-                qrDisplay.classList.add('clickable');
-                
-                showKeyboardHint();
-            }
-            
-            addLog(`Режим передачи: ${mode}`, 'info');
-        }
-        
-        function showKeyboardHint() {
-            const hint = document.getElementById('keyboard-hint');
-            hint.classList.add('show');
-            setTimeout(() => {
-                hint.classList.remove('show');
-            }, 3000);
-        }
-        
-        // Обработка клика по QR-коду
-        function handleQRClick() {
-            if (!isGenerated || transferData.length === 0) return;
-            
-            if (currentTransferMode === 'manual') {
-                navigateQR('next');
-            }
-        }
-        
-        // Навигация по QR-кодам
-        function navigateQR(direction) {
-            if (!isGenerated || transferData.length === 0) {
-                alert('Сначала сгенерируйте QR-коды');
-                return;
-            }
-            
-            switch(direction) {
-                case 'first':
-                    currentPartIndex = 0;
-                    break;
-                case 'prev':
-                    if (currentPartIndex > 0) currentPartIndex--;
-                    break;
-                case 'next':
-                    if (currentPartIndex < transferData.length - 1) {
-                        currentPartIndex++;
+
+
+        const part =
+            chars
+                .slice(
+                    position,
+                    position + count
+                )
+                .join("");
+
+
+        result.push(part);
+
+        position += count;
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   SHA-256
+========================================================= */
+
+async function sha256(text) {
+
+    const data =
+        new TextEncoder()
+            .encode(text);
+
+    const hash =
+        await crypto.subtle.digest(
+            "SHA-256",
+            data
+        );
+
+    return Array
+        .from(new Uint8Array(hash))
+        .map(
+            b =>
+                b
+                    .toString(16)
+                    .padStart(2, "0")
+        )
+        .join("");
+
+}
+
+
+/* =========================================================
+   ФОРМАТ QR
+
+   Внутри каждого QR:
+
+   QRTX
+   Версия формата
+   ID документа
+   Номер части
+   Всего частей
+   SHA-256
+   Данные
+
+========================================================= */
+
+function createPacket(
+    documentId,
+    partNumber,
+    totalParts,
+    hash,
+    data
+) {
+
+    return [
+        "QRTX",
+        "1",
+        documentId,
+        String(partNumber),
+        String(totalParts),
+        hash,
+        data
+    ].join("|");
+
+}
+
+
+/*
+    Разделитель между служебной частью
+    и данными — специальный маркер.
+
+    Он крайне маловероятно встретится
+    в обычном тексте.
+*/
+
+const DATA_SEPARATOR =
+    "<<<QRTX_DATA>>>";
+
+
+function createPacketSafe(
+    documentId,
+    partNumber,
+    totalParts,
+    hash,
+    data
+) {
+
+    return [
+        "QRTX",
+        "1",
+        documentId,
+        String(partNumber),
+        String(totalParts),
+        hash,
+        DATA_SEPARATOR,
+        data
+    ].join("|");
+
+}
+
+
+/* =========================================================
+   ГЕНЕРАЦИЯ
+========================================================= */
+
+async function generateQRs() {
+
+    const text =
+        document.getElementById(
+            "sourceText"
+        ).value;
+
+
+    const info =
+        document.getElementById(
+            "generatorInfo"
+        );
+
+    const output =
+        document.getElementById(
+            "qrOutput"
+        );
+
+
+    output.innerHTML = "";
+
+
+    if (text.length === 0) {
+
+        info.innerHTML =
+            "Введите текст.";
+
+        return;
+
+    }
+
+
+    info.innerHTML =
+        "⏳ Анализирую вместимость QR-кодов...";
+
+
+    try {
+
+        /*
+            Получаем SHA-256 исходного текста.
+        */
+
+        const hash =
+            await sha256(text);
+
+
+        /*
+            ID документа.
+
+            Он нужен, чтобы сборщик понимал,
+            что разные QR относятся к одному
+            набору.
+        */
+
+        const documentId =
+            crypto.randomUUID
+                ? crypto.randomUUID()
+                : Date.now().toString(36);
+
+
+        /*
+            ВАЖНО:
+
+            Нельзя просто разбить исходный текст
+            и добавить служебную информацию.
+
+            Служебная информация тоже занимает
+            место в QR.
+
+            Поэтому сначала определяем размер
+            с учётом будущего заголовка.
+
+            Используем итерационный подход.
+        */
+
+        let rawParts = [];
+
+        let chars =
+            unicodeChars(text);
+
+        let position = 0;
+
+
+        /*
+            Временно предполагаем количество частей.
+
+            Затем уточняем.
+        */
+
+        let estimatedTotal = 1;
+
+
+        for (let iteration = 0;
+             iteration < 10;
+             iteration++) {
+
+            rawParts = [];
+
+            position = 0;
+
+
+            while (
+                position <
+                chars.length
+            ) {
+
+                /*
+                    Номер части пока неизвестен,
+                    поэтому берём максимально
+                    возможный номер по длине.
+                */
+
+                const headerExample =
+                    createPacketSafe(
+                        documentId,
+                        estimatedTotal,
+                        estimatedTotal,
+                        hash,
+                        ""
+                    );
+
+
+                /*
+                    Находим максимальный кусок,
+                    добавляя служебный заголовок.
+                */
+
+                let low = 1;
+
+                let high =
+                    chars.length - position;
+
+                let best = 0;
+
+
+                while (low <= high) {
+
+                    const middle =
+                        Math.floor(
+                            (low + high) / 2
+                        );
+
+
+                    const candidate =
+                        chars
+                            .slice(
+                                position,
+                                position + middle
+                            )
+                            .join("");
+
+
+                    const packet =
+                        createPacketSafe(
+                            documentId,
+                            rawParts.length + 1,
+                            estimatedTotal,
+                            hash,
+                            candidate
+                        );
+
+
+                    if (canFitQR(packet)) {
+
+                        best = middle;
+
+                        low =
+                            middle + 1;
+
                     } else {
-                        if (currentTransferMode === 'cyclic') {
-                            currentPartIndex = 0;
-                            cycleCount++;
-                            addLog(`Цикл ${cycleCount} завершен, начинаем заново`, 'info');
-                        } else {
-                            addLog('Достигнут последний QR-код', 'warning');
-                            return;
-                        }
+
+                        high =
+                            middle - 1;
+
                     }
-                    break;
-                case 'last':
-                    currentPartIndex = transferData.length - 1;
-                    break;
-            }
-            
-            showQRCode(currentPartIndex);
-        }
-        
-        // Обработка клавиатуры
-        document.addEventListener('keydown', function(event) {
-            if (!isGenerated || currentTransferMode !== 'manual') return;
-            
-            switch(event.key) {
-                case 'ArrowLeft':
-                    event.preventDefault();
-                    navigateQR('prev');
-                    break;
-                case 'ArrowRight':
-                    event.preventDefault();
-                    navigateQR('next');
-                    break;
-                case 'ArrowUp':
-                    event.preventDefault();
-                    navigateQR('first');
-                    break;
-                case 'ArrowDown':
-                    event.preventDefault();
-                    navigateQR('last');
-                    break;
-                case 'Enter':
-                case ' ':
-                    event.preventDefault();
-                    navigateQR('next');
-                    break;
-            }
-        });
-        
-        // Обработка свайпов
-        let touchStartX = 0;
-        let touchEndX = 0;
-        
-        document.getElementById('qr-display').addEventListener('touchstart', function(e) {
-            touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-        
-        document.getElementById('qr-display').addEventListener('touchend', function(e) {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        }, { passive: true });
-        
-        function handleSwipe() {
-            if (!isGenerated || currentTransferMode !== 'manual') return;
-            
-            const swipeThreshold = 50;
-            const swipeDistance = touchEndX - touchStartX;
-            
-            if (Math.abs(swipeDistance) > swipeThreshold) {
-                if (swipeDistance > 0) {
-                    navigateQR('prev');
-                } else {
-                    navigateQR('next');
+
                 }
+
+
+                if (best <= 0) {
+
+                    throw new Error(
+                        "Даже минимальная часть не помещается в QR."
+                    );
+
+                }
+
+
+                rawParts.push(
+                    chars
+                        .slice(
+                            position,
+                            position + best
+                        )
+                        .join("")
+                );
+
+
+                position += best;
+
             }
+
+
+            if (
+                rawParts.length ===
+                estimatedTotal
+            ) {
+
+                break;
+
+            }
+
+
+            estimatedTotal =
+                rawParts.length;
+
         }
-        
-        // Обработка файла
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    window.selectedFile = {
-                        name: file.name,
-                        type: file.type,
-                        data: e.target.result,
-                        size: file.size
+
+
+        const totalParts =
+            rawParts.length;
+
+
+        /*
+            Создаём QR-коды.
+        */
+
+        info.innerHTML =
+            "Символов: <b>" +
+            text.length +
+            "</b><br>" +
+
+            "UTF-8: <b>" +
+            utf8Length(text) +
+            " байт</b><br>" +
+
+            "QR-кодов: <b>" +
+            totalParts +
+            "</b><br><br>" +
+
+            "Контрольная сумма SHA-256:<br>" +
+
+            "<div class='hash'>" +
+            hash +
+            "</div>";
+
+
+        rawParts.forEach(
+            (part, index) => {
+
+                const packet =
+                    createPacketSafe(
+                        documentId,
+                        index + 1,
+                        totalParts,
+                        hash,
+                        part
+                    );
+
+
+                const qr =
+                    qrcode(
+                        0,
+                        QR_ERROR_LEVEL
+                    );
+
+
+                qr.addData(packet);
+
+                qr.make();
+
+
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+                item.className =
+                    "qr-item";
+
+
+                const title =
+                    document.createElement(
+                        "div"
+                    );
+
+                title.className =
+                    "qr-title";
+
+                title.textContent =
+                    "QR " +
+                    (index + 1) +
+                    " / " +
+                    totalParts;
+
+
+                item.appendChild(title);
+
+
+                const img =
+                    document.createElement(
+                        "img"
+                    );
+
+                img.className =
+                    "qr-image";
+
+                img.src =
+                    qr.createDataURL(
+                        7,
+                        12
+                    );
+
+
+                item.appendChild(img);
+
+
+                const meta =
+                    document.createElement(
+                        "div"
+                    );
+
+                meta.className =
+                    "qr-meta";
+
+                meta.innerHTML =
+                    "Данные части: " +
+                    part.length +
+                    " символов · " +
+                    utf8Length(part) +
+                    " байт";
+
+
+                item.appendChild(meta);
+
+
+                const download =
+                    document.createElement(
+                        "button"
+                    );
+
+                download.className =
+                    "secondary";
+
+                download.textContent =
+                    "💾 Скачать PNG";
+
+
+                download.onclick =
+                    () => {
+
+                        downloadImage(
+                            img.src,
+                            "QR_" +
+                            (index + 1) +
+                            "_of_" +
+                            totalParts +
+                            ".png"
+                        );
+
                     };
-                    addLog(`Файл загружен: ${file.name} (${formatSize(file.size)})`, 'info');
-                };
-                reader.readAsDataURL(file);
+
+
+                item.appendChild(download);
+
+
+                output.appendChild(item);
+
             }
-        }
-        
-        // Drag and drop
-        const fileDrop = document.getElementById('file-drop');
-        fileDrop.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileDrop.classList.add('dragover');
-        });
-        
-        fileDrop.addEventListener('dragleave', () => {
-            fileDrop.classList.remove('dragover');
-        });
-        
-        fileDrop.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileDrop.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    window.selectedFile = {
-                        name: file.name,
-                        type: file.type,
-                        data: e.target.result,
-                        size: file.size
-                    };
-                    addLog(`Файл загружен: ${file.name} (${formatSize(file.size)})`, 'info');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Генерация данных
-        function generateTransfer() {
-            resetTransfer();
-            
-            let dataToTransfer = '';
-            let metadata = {};
-            
-            if (currentMode === 'text') {
-                const text = document.getElementById('input-text').value.trim();
-                if (!text) {
-                    alert('Введите текст для передачи');
-                    return;
-                }
-                dataToTransfer = text;
-                metadata = { type: 'text' };
-            } else {
-                if (!window.selectedFile) {
-                    alert('Выберите файл для передачи');
-                    return;
-                }
-                dataToTransfer = window.selectedFile.data;
-                metadata = {
-                    type: 'file',
-                    name: window.selectedFile.name,
-                    mimeType: window.selectedFile.type,
-                    size: window.selectedFile.size
-                };
-            }
-            
-            const chunks = splitData(dataToTransfer, CHUNK_SIZE);
-            
-            transferData = [];
-            transferData.push({
-                part: 0,
-                total: chunks.length,
-                metadata: metadata,
-                data: ''
-            });
-            
-            chunks.forEach((chunk, index) => {
-                transferData.push({
-                    part: index + 1,
-                    total: chunks.length,
-                    data: chunk
-                });
-            });
-            
-            document.getElementById('total-parts').textContent = transferData.length;
-            document.getElementById('data-size').textContent = formatSize(dataToTransfer.length);
-            
-            isGenerated = true;
-            cycleCount = 0;
-            currentPartIndex = 0;
-            
-            showQRCode(0);
-            
-            if (currentTransferMode === 'auto' || currentTransferMode === 'cyclic') {
-                document.getElementById('transfer-controls').style.display = 'flex';
-                document.getElementById('start-btn').disabled = false;
-            } else if (currentTransferMode === 'manual') {
-                document.getElementById('nav-controls').style.display = 'flex';
-                document.getElementById('qr-display').classList.add('clickable');
-            }
-            
-            document.getElementById('generate-btn').disabled = true;
-            
-            addLog(`Сгенерировано ${transferData.length} QR-кодов`, 'info');
-            
-            if (currentTransferMode === 'cyclic') {
-                addLog('Циклический режим: коды будут повторяться для надежности', 'info');
-            } else if (currentTransferMode === 'manual') {
-                addLog('Нажимайте на QR-код для перехода к следующему', 'info');
-                showKeyboardHint();
-            }
-        }
-        
-        function splitData(data, chunkSize) {
-            const chunks = [];
-            for (let i = 0; i < data.length; i += chunkSize) {
-                chunks.push(data.substring(i, i + chunkSize));
-            }
-            return chunks;
-        }
-        
-        // Показ QR-кода
-        function showQRCode(index) {
-            const container = document.getElementById('qr-display');
-            const header = document.getElementById('qr-header');
-            
-            container.innerHTML = '';
-            header.innerHTML = '';
-            
-            if (index >= transferData.length) return;
-            
-            const qrData = transferData[index];
-            
-            if (currentTransferMode === 'cyclic') {
-                qrData.cycle = cycleCount;
-            }
-            
-            const qrString = JSON.stringify(qrData);
-            
-            const partBadge = document.createElement('div');
-            partBadge.className = 'part-badge';
-            partBadge.textContent = `📄 ${index + 1} / ${transferData.length}`;
-            header.appendChild(partBadge);
-            
-            if (currentTransferMode === 'cyclic') {
-                const cycleBadge = document.createElement('div');
-                cycleBadge.className = 'cycle-badge';
-                cycleBadge.textContent = `🔄 Цикл ${cycleCount}`;
-                header.appendChild(cycleBadge);
-            }
-            
-            try {
-                const qrContainer = document.createElement('div');
-                qrContainer.className = 'qr-code-container';
-                container.appendChild(qrContainer);
-                
-                // Создаем QR-код с четкими параметрами
-                currentQR = new QRCode(qrContainer, {
-                    text: qrString,
-                    width: 280,
-                    height: 280,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-                
-                // Принудительно устанавливаем белый фон для canvas
-                const canvas = qrContainer.querySelector('canvas');
-                if (canvas) {
-                    canvas.style.backgroundColor = '#ffffff';
-                    canvas.style.display = 'block';
-                    canvas.style.margin = '0 auto';
-                }
-                
-                // Добавляем подсказку для ручного режима
-                if (currentTransferMode === 'manual') {
-                    const clickHint = document.createElement('div');
-                    clickHint.className = 'click-hint';
-                    clickHint.textContent = '👆 Нажмите для следующего';
-                    container.appendChild(clickHint);
-                }
-                
-                document.getElementById('current-part').textContent = index + 1;
-                const progress = ((index + 1) / transferData.length) * 100;
-                document.getElementById('progress-fill').style.width = progress + '%';
-                
-            } catch (error) {
-                console.error('Ошибка создания QR-кода:', error);
-                addLog('Ошибка создания QR-кода: ' + error.message, 'error');
-            }
-        }
-        
-        // Управление передачей
-        function startTransfer() {
-            if (isTransferring) return;
-            
-            isTransferring = true;
-            currentPartIndex = 0;
-            cycleCount = 0;
-            
-            const speed = parseInt(document.getElementById('speed').value);
-            
-            transferInterval = setInterval(() => {
-                if (currentPartIndex >= transferData.length) {
-                    if (currentTransferMode === 'cyclic') {
-                        currentPartIndex = 0;
-                        cycleCount++;
-                        addLog(`Цикл ${cycleCount} завершен, повторяем...`, 'info');
-                    } else {
-                        stopTransfer();
-                        addLog('Передача завершена!', 'info');
-                        return;
+        );
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        info.innerHTML =
+            "<span class='error'>" +
+            "Ошибка: " +
+            error.message +
+            "</span>";
+
+    }
+
+}
+
+
+/* =========================================================
+   СКАЧИВАНИЕ QR
+========================================================= */
+
+function downloadImage(
+    dataURL,
+    filename
+) {
+
+    const a =
+        document.createElement("a");
+
+    a.href = dataURL;
+
+    a.download = filename;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+}
+
+
+/* =========================================================
+   ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+========================================================= */
+
+function showPage(page) {
+
+    document
+        .getElementById("generator")
+        .classList.remove("active");
+
+    document
+        .getElementById("scanner")
+        .classList.remove("active");
+
+
+    document
+        .getElementById("tabGenerator")
+        .classList.remove("active");
+
+    document
+        .getElementById("tabScanner")
+        .classList.remove("active");
+
+
+    if (page === "generator") {
+
+        document
+            .getElementById("generator")
+            .classList.add("active");
+
+        document
+            .getElementById("tabGenerator")
+            .classList.add("active");
+
+    } else {
+
+        document
+            .getElementById("scanner")
+            .classList.add("active");
+
+        document
+            .getElementById("tabScanner")
+            .classList.add("active");
+
+    }
+
+}
+
+
+/* =========================================================
+   СБОРЩИК
+========================================================= */
+
+
+/*
+    Здесь части хранятся по номеру:
+
+    receivedParts[1]
+    receivedParts[2]
+    receivedParts[3]
+
+    Поэтому порядок сканирования значения
+    НЕ имеет.
+*/
+
+let receivedParts = {};
+
+let scanTotal = null;
+
+let scanHash = null;
+
+let scanDocumentId = null;
+
+
+/* =========================================================
+   ЗАПУСК СКАНЕРА
+========================================================= */
+
+async function startScanner() {
+
+    if (scannerRunning) {
+        return;
+    }
+
+
+    const status =
+        document.getElementById(
+            "scanStatus"
+        );
+
+
+    status.textContent =
+        "Запрашиваю камеру...";
+
+
+    try {
+
+        scanner =
+            new Html5Qrcode(
+                "reader"
+            );
+
+
+        await scanner.start(
+
+            {
+                facingMode:
+                    "environment"
+            },
+
+            {
+                fps: 10,
+
+                qrbox:
+                    function(
+                        width,
+                        height
+                    ) {
+
+                        const size =
+                            Math.min(
+                                width,
+                                height
+                            ) * 0.75;
+
+                        return {
+                            width: size,
+                            height: size
+                        };
+
                     }
-                }
-                
-                showQRCode(currentPartIndex);
-                
-                if (currentPartIndex % 10 === 0) {
-                    addLog(`Показан QR-код ${currentPartIndex + 1} из ${transferData.length}`, 'info');
-                }
-                
-                currentPartIndex++;
-            }, speed);
-            
-            document.getElementById('start-btn').disabled = true;
-            document.getElementById('pause-btn').disabled = false;
-            document.getElementById('stop-btn').disabled = false;
-            
-            const modeText = currentTransferMode === 'cyclic' ? 'циклическая' : 'автоматическая';
-            addLog(`Начата ${modeText} передача данных`, 'info');
-        }
-        
-        function pauseTransfer() {
-            if (!isTransferring) return;
-            
-            clearInterval(transferInterval);
-            isTransferring = false;
-            
-            document.getElementById('start-btn').disabled = false;
-            document.getElementById('pause-btn').disabled = true;
-            
-            addLog('Передача приостановлена', 'info');
-        }
-        
-        function stopTransfer() {
-            clearInterval(transferInterval);
-            isTransferring = false;
-            currentPartIndex = 0;
-            cycleCount = 0;
-            
-            document.getElementById('start-btn').disabled = false;
-            document.getElementById('pause-btn').disabled = true;
-            document.getElementById('stop-btn').disabled = true;
-            
-            document.getElementById('progress-fill').style.width = '0%';
-            document.getElementById('current-part').textContent = '0';
-            
-            showQRCode(0);
-            
-            addLog('Передача остановлена', 'info');
-        }
-        
-        // ============== СКАНЕР ==============
-        
-        // Запуск сканера
-        async function startScanner() {
-            const video = document.getElementById('scanner-video');
-            const scannerView = document.getElementById('scanner-view');
-            const btnStart = document.getElementById('scanner-btn');
-            const btnStop = document.getElementById('scanner-stop-btn');
-            const scanHint = document.getElementById('scan-hint');
-            const status = document.getElementById('scanner-status');
-            const overlay = document.getElementById('scanner-overlay');
-            
-            if (typeof jsQR === 'undefined') {
-                addLog('Ошибка: библиотека jsQR не загружена', 'error');
-                showToast('Ошибка загрузки библиотеки', 'error');
-                return;
+
+            },
+
+            onScanSuccess,
+
+            function(error) {
+                // Обычная ситуация:
+                // QR не распознан в текущем кадре.
             }
-            
-            try {
-                scannerStream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: 'environment',
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    }
-                });
-                
-                video.srcObject = scannerStream;
-                await video.play();
-                
-                scannerView.classList.add('active');
-                scanHint.classList.add('active');
-                status.textContent = '🔍 Сканирование...';
-                status.className = 'scanner-status active scanning';
-                overlay.className = 'scanner-overlay scanning';
-                
-                btnStart.disabled = true;
-                btnStop.disabled = false;
-                
-                document.getElementById('scan-speed-control').style.display = 'flex';
-                
-                scannerActive = true;
-                scanAttempts = 0;
-                lastDecodedData = '';
-                isProcessing = false;
-                
-                receivedParts.clear();
-                expectedTotalParts = 0;
-                document.getElementById('received-parts').textContent = '0';
-                document.getElementById('expected-parts').textContent = '0';
-                document.getElementById('received-size').textContent = '0 KB';
-                document.getElementById('receive-progress').style.width = '0%';
-                document.getElementById('parts-visualization').style.display = 'none';
-                
-                addLog('Камера запущена, сканирование начато', 'info');
-                showToast('Камера запущена', 'success');
-                
-                scanFromCamera();
-                
-            } catch (error) {
-                console.error('Ошибка доступа к камере:', error);
-                addLog('Ошибка доступа к камере: ' + error.message, 'error');
-                showToast('Не удалось получить доступ к камере', 'error');
-                
-                status.textContent = '❌ Ошибка доступа к камере';
-                status.className = 'scanner-status active error';
-                
-                btnStart.disabled = false;
-                btnStop.disabled = true;
-            }
+
+        );
+
+
+        scannerRunning = true;
+
+
+        status.innerHTML =
+            "<span class='ok'>" +
+            "📷 Камера работает. " +
+            "Наведите её на QR." +
+            "</span>";
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        status.innerHTML =
+            "<span class='error'>" +
+            "Не удалось запустить камеру.<br>" +
+            "Проверьте разрешение браузера." +
+            "</span>";
+
+    }
+
+}
+
+
+/* =========================================================
+   ОСТАНОВКА
+========================================================= */
+
+async function stopScanner() {
+
+    if (
+        scanner &&
+        scannerRunning
+    ) {
+
+        try {
+
+            await scanner.stop();
+
+        } catch (e) {
+
+            console.log(e);
+
         }
-        
-        // Остановка камеры
-        function stopScanner() {
-            scannerActive = false;
-            isProcessing = false;
-            
-            if (scannerAnimationId) {
-                cancelAnimationFrame(scannerAnimationId);
-                scannerAnimationId = null;
-            }
-            
-            if (scannerStream) {
-                scannerStream.getTracks().forEach(track => track.stop());
-                scannerStream = null;
-            }
-            
-            const video = document.getElementById('scanner-video');
-            video.srcObject = null;
-            
-            document.getElementById('scanner-view').classList.remove('active');
-            document.getElementById('scanner-status').className = 'scanner-status';
-            document.getElementById('scanner-status').textContent = '';
-            document.getElementById('scan-hint').classList.remove('active');
-            document.getElementById('scan-speed-control').style.display = 'none';
-            document.getElementById('scanner-overlay').className = 'scanner-overlay';
-            
-            document.getElementById('scanner-btn').disabled = false;
-            document.getElementById('scanner-stop-btn').disabled = true;
-            
-            addLog('Сканер остановлен', 'info');
-            showToast('Камера остановлена', 'error');
+
+    }
+
+
+    scannerRunning = false;
+
+
+    document.getElementById(
+        "scanStatus"
+    ).textContent =
+        "Камера остановлена.";
+
+}
+
+
+/* =========================================================
+   ПОЛУЧЕН QR
+========================================================= */
+
+function onScanSuccess(
+    decodedText
+) {
+
+    const now =
+        Date.now();
+
+
+    /*
+        Один QR может быть распознан
+        камерой много раз подряд.
+    */
+
+    if (
+        decodedText === lastScanText &&
+        now - lastScanTime < 2500
+    ) {
+
+        return;
+
+    }
+
+
+    lastScanText =
+        decodedText;
+
+    lastScanTime =
+        now;
+
+
+    processPacket(
+        decodedText
+    );
+
+}
+
+
+/* =========================================================
+   РАЗБОР QR
+========================================================= */
+
+function processPacket(packet) {
+
+    /*
+        Формат:
+
+        QRTX
+        1
+        documentId
+        part
+        total
+        hash
+        <<<QRTX_DATA>>>
+        data
+    */
+
+    if (
+        !packet.startsWith(
+            "QRTX|"
+        )
+    ) {
+
+        setScanStatus(
+            "Это не QR от этого генератора.",
+            "warning"
+        );
+
+        return;
+
+    }
+
+
+    const separatorIndex =
+        packet.indexOf(
+            "|" + DATA_SEPARATOR + "|"
+        );
+
+
+    if (separatorIndex < 0) {
+
+        setScanStatus(
+            "Повреждённый формат QR.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const header =
+        packet.substring(
+            0,
+            separatorIndex
+        );
+
+
+    const data =
+        packet.substring(
+            separatorIndex +
+            DATA_SEPARATOR.length +
+            2
+        );
+
+
+    const fields =
+        header.split("|");
+
+
+    if (
+        fields.length < 6
+    ) {
+
+        setScanStatus(
+            "Неверный QR.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    const format =
+        fields[0];
+
+    const version =
+        fields[1];
+
+    const documentId =
+        fields[2];
+
+    const partNumber =
+        Number(fields[3]);
+
+    const total =
+        Number(fields[4]);
+
+    const hash =
+        fields[5];
+
+
+    if (
+        format !== "QRTX" ||
+        version !== "1"
+    ) {
+
+        setScanStatus(
+            "Неподдерживаемый формат QR.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !Number.isInteger(partNumber) ||
+        !Number.isInteger(total) ||
+        partNumber < 1 ||
+        partNumber > total
+    ) {
+
+        setScanStatus(
+            "Неверный номер части.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    /*
+        Первый QR определяет документ.
+    */
+
+    if (
+        scanDocumentId === null
+    ) {
+
+        scanDocumentId =
+            documentId;
+
+        scanTotal =
+            total;
+
+        scanHash =
+            hash;
+
+    } else {
+
+        /*
+            Защита от случайного смешивания
+            двух разных наборов QR.
+        */
+
+        if (
+            documentId !==
+            scanDocumentId
+        ) {
+
+            setScanStatus(
+                "⚠️ Это QR от другого документа.",
+                "warning"
+            );
+
+            return;
+
         }
-        
-        // Сканирование с камеры
-        function scanFromCamera() {
-            if (!scannerActive || isProcessing) return;
-            
-            const now = Date.now();
-            const scanSpeed = parseInt(document.getElementById('scan-speed').value);
-            
-            if (now - lastScanTime < scanSpeed) {
-                scannerAnimationId = requestAnimationFrame(scanFromCamera);
-                return;
-            }
-            lastScanTime = now;
-            scanAttempts++;
-            
-            const video = document.getElementById('scanner-video');
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                if (scanAttempts % 30 === 0) {
-                    const status = document.getElementById('scanner-status');
-                    status.textContent = `🔍 Сканирование... (попытка ${scanAttempts})`;
-                    status.className = 'scanner-status active scanning';
-                }
-                
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                
-                let code = null;
-                
-                code = jsQR(imageData.data, canvas.width, canvas.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                
-                if (!code) {
-                    code = jsQR(imageData.data, canvas.width, canvas.height, {
-                        inversionAttempts: "attemptBoth",
-                    });
-                }
-                
-                if (code && code.data) {
-                    if (code.data !== lastDecodedData) {
-                        isProcessing = true;
-                        lastDecodedData = code.data;
-                        
-                        const overlay = document.getElementById('scanner-overlay');
-                        overlay.className = 'scanner-overlay success';
-                        
-                        const status = document.getElementById('scanner-status');
-                        status.textContent = '✅ QR-код распознан!';
-                        status.className = 'scanner-status active success';
-                        
-                        if (navigator.vibrate) {
-                            navigator.vibrate(200);
-                        }
-                        
-                        addLog('QR-код распознан!', 'success');
-                        showToast('QR-код успешно распознан!', 'success');
-                        
-                        processQRData(code.data);
-                        
-                        setTimeout(() => {
-                            isProcessing = false;
-                            overlay.className = 'scanner-overlay scanning';
-                            
-                            if (scannerActive) {
-                                const status = document.getElementById('scanner-status');
-                                status.textContent = '🔍 Сканирование...';
-                                status.className = 'scanner-status active scanning';
-                            }
-                        }, 1500);
-                    }
-                }
-            }
-            
-            scannerAnimationId = requestAnimationFrame(scanFromCamera);
+
+
+        if (
+            total !==
+            scanTotal
+        ) {
+
+            setScanStatus(
+                "⚠️ Количество частей не совпадает.",
+                "warning"
+            );
+
+            return;
+
         }
-        
-        // Обработка данных QR-кода
-        function processQRData(data) {
-            try {
-                const qrData = JSON.parse(data);
-                
-                if (qrData.part === 0) {
-                    if (expectedTotalParts !== qrData.total) {
-                        expectedTotalParts = qrData.total;
-                        document.getElementById('expected-parts').textContent = expectedTotalParts;
-                        
-                        if (qrData.metadata) {
-                            window.receivedMetadata = qrData.metadata;
-                            const typeText = qrData.metadata.type === 'file' ? 
-                                `Файл: ${qrData.metadata.name}` : 
-                                'Текстовые данные';
-                            addLog(`Получены метаданные: ${typeText}`, 'info');
-                            addLog(`Ожидается ${expectedTotalParts} частей данных`, 'info');
-                            
-                            createPartsVisualization(expectedTotalParts);
-                        }
-                    }
-                } else if (!receivedParts.has(qrData.part)) {
-                    receivedParts.set(qrData.part, qrData.data);
-                    
-                    const receivedCount = receivedParts.size;
-                    document.getElementById('received-parts').textContent = receivedCount;
-                    
-                    if (expectedTotalParts > 0) {
-                        const progress = (receivedCount / expectedTotalParts) * 100;
-                        document.getElementById('receive-progress').style.width = progress + '%';
-                    }
-                    
-                    updatePartsVisualization(qrData.part);
-                    
-                    let totalSize = 0;
-                    receivedParts.forEach(value => totalSize += value.length);
-                    document.getElementById('received-size').textContent = formatSize(totalSize);
-                    
-                    if (receivedCount % 5 === 0 || receivedCount === expectedTotalParts) {
-                        const missingCount = expectedTotalParts - receivedCount;
-                        const missingText = missingCount > 0 ? ` (осталось ${missingCount})` : '';
-                        addLog(`Получено ${receivedCount} из ${expectedTotalParts} частей${missingText}`, 'info');
-                    }
-                    
-                    if (expectedTotalParts > 0 && receivedCount >= expectedTotalParts) {
-                        completeReception();
-                    }
-                }
-            } catch (error) {
-                console.log('Не удалось распарсить QR-данные:', data.substring(0, 50));
+
+
+        if (
+            hash !==
+            scanHash
+        ) {
+
+            setScanStatus(
+                "⚠️ Контрольная сумма не совпадает.",
+                "warning"
+            );
+
+            return;
+
+        }
+
+    }
+
+
+    /*
+        Проверяем дубликат.
+    */
+
+    if (
+        receivedParts[partNumber] !==
+        undefined
+    ) {
+
+        setScanStatus(
+            "QR " +
+            partNumber +
+            " уже получен.",
+            "warning"
+        );
+
+        return;
+
+    }
+
+
+    /*
+        Сохраняем по номеру.
+
+        Поэтому порядок сканирования
+        совершенно не важен.
+    */
+
+    receivedParts[partNumber] =
+        data;
+
+
+    updateScannerInterface();
+
+
+    setScanStatus(
+        "✓ Получен QR " +
+        partNumber +
+        " / " +
+        total,
+        "ok"
+    );
+
+
+    /*
+        Проверяем, все ли части получены.
+    */
+
+    if (
+        Object.keys(receivedParts)
+            .length === scanTotal
+    ) {
+
+        assembleText();
+
+    }
+
+}
+
+
+/* =========================================================
+   ОБНОВЛЕНИЕ СБОРЩИКА
+========================================================= */
+
+function updateScannerInterface() {
+
+    const received =
+        Object.keys(
+            receivedParts
+        ).length;
+
+
+    document.getElementById(
+        "receivedCount"
+    ).textContent =
+        received;
+
+
+    document.getElementById(
+        "totalCount"
+    ).textContent =
+        scanTotal || "?";
+
+
+    let percent = 0;
+
+
+    if (scanTotal) {
+
+        percent =
+            received /
+            scanTotal *
+            100;
+
+    }
+
+
+    document.getElementById(
+        "scanProgress"
+    ).style.width =
+        percent + "%";
+
+
+    document.getElementById(
+        "scanProgressText"
+    ).textContent =
+        scanTotal
+            ? (
+                received +
+                " из " +
+                scanTotal +
+                " частей"
+              )
+            : "Ожидание QR";
+
+
+    /*
+        Номера всех частей
+    */
+
+    const list =
+        document.getElementById(
+            "partsList"
+        );
+
+
+    list.innerHTML = "";
+
+
+    if (!scanTotal) {
+        return;
+    }
+
+
+    for (
+        let i = 1;
+        i <= scanTotal;
+        i++
+    ) {
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+
+        if (
+            receivedParts[i] !==
+            undefined
+        ) {
+
+            div.className =
+                "part received";
+
+            div.textContent =
+                i;
+
+        } else {
+
+            div.className =
+                "part missing";
+
+            div.textContent =
+                i;
+
+        }
+
+
+        list.appendChild(div);
+
+    }
+
+}
+
+
+/* =========================================================
+   СБОРКА ТЕКСТА
+========================================================= */
+
+async function assembleText() {
+
+    let text = "";
+
+
+    /*
+        Строго от 1 до N.
+    */
+
+    for (
+        let i = 1;
+        i <= scanTotal;
+        i++
+    ) {
+
+        if (
+            receivedParts[i] ===
+            undefined
+        ) {
+
+            return;
+
+        }
+
+
+        text +=
+            receivedParts[i];
+
+    }
+
+
+    document.getElementById(
+        "resultText"
+    ).value =
+        text;
+
+
+    /*
+        Проверяем SHA-256.
+    */
+
+    const calculatedHash =
+        await sha256(text);
+
+
+    const verification =
+        document.getElementById(
+            "verification"
+        );
+
+
+    const verificationText =
+        document.getElementById(
+            "verificationText"
+        );
+
+
+    verification.classList.remove(
+        "hidden"
+    );
+
+
+    if (
+        calculatedHash ===
+        scanHash
+    ) {
+
+        verificationText.innerHTML =
+            "<p class='ok'>" +
+            "✅ Текст восстановлен полностью." +
+            "</p>" +
+
+            "<p>" +
+            "Все " +
+            scanTotal +
+            " частей получены." +
+            "</p>" +
+
+            "<p>" +
+            "<b>SHA-256 совпадает.</b>" +
+            "</p>" +
+
+            "<div class='hash'>" +
+            calculatedHash +
+            "</div>";
+
+        document.getElementById(
+            "scanStatus"
+        ).innerHTML =
+            "<span class='ok'>" +
+            "🎉 ГОТОВО! Текст восстановлен без изменений." +
+            "</span>";
+
+    } else {
+
+        verificationText.innerHTML =
+            "<p class='error'>" +
+            "❌ Ошибка проверки!" +
+            "</p>" +
+
+            "<p>" +
+            "Контрольная сумма восстановленного " +
+            "текста не совпадает." +
+            "</p>" +
+
+            "<div class='hash'>" +
+            "Ожидалось:<br>" +
+            scanHash +
+            "</div>" +
+
+            "<div class='hash'>" +
+            "Получено:<br>" +
+            calculatedHash +
+            "</div>";
+
+    }
+
+}
+
+
+/* =========================================================
+   СТАТУС
+========================================================= */
+
+function setScanStatus(
+    text,
+    type
+) {
+
+    const status =
+        document.getElementById(
+            "scanStatus"
+        );
+
+
+    status.textContent =
+        text;
+
+
+    status.className =
+        "status " +
+        type;
+
+}
+
+
+/* =========================================================
+   КОПИРОВАНИЕ
+========================================================= */
+
+async function copyResult() {
+
+    const text =
+        document.getElementById(
+            "resultText"
+        ).value;
+
+
+    if (!text) {
+        return;
+    }
+
+
+    try {
+
+        await navigator.clipboard.writeText(
+            text
+        );
+
+
+        setScanStatus(
+            "✓ Текст скопирован.",
+            "ok"
+        );
+
+    } catch (e) {
+
+        const textarea =
+            document.getElementById(
+                "resultText"
+            );
+
+
+        textarea.removeAttribute(
+            "readonly"
+        );
+
+        textarea.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+        textarea.setAttribute(
+            "readonly",
+            true
+        );
+
+
+        setScanStatus(
+            "✓ Текст скопирован.",
+            "ok"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   СОХРАНЕНИЕ TXT
+========================================================= */
+
+function saveResult() {
+
+    const text =
+        document.getElementById(
+            "resultText"
+        ).value;
+
+
+    if (!text) {
+        return;
+    }
+
+
+    const blob =
+        new Blob(
+            [text],
+            {
+                type:
+                    "text/plain;charset=utf-8"
             }
-        }
-        
-        function createPartsVisualization(totalParts) {
-            const grid = document.getElementById('received-parts-grid');
-            grid.innerHTML = '';
-            
-            for (let i = 1; i <= totalParts; i++) {
-                const part = document.createElement('div');
-                part.className = 'received-part';
-                part.id = `part-${i}`;
-                part.textContent = i;
-                grid.appendChild(part);
-            }
-            document.getElementById('parts-visualization').style.display = 'block';
-        }
-        
-        function updatePartsVisualization(partNumber) {
-            const part = document.getElementById(`part-${partNumber}`);
-            if (part) {
-                part.classList.add('received');
-            }
-        }
-        
-        function completeReception() {
-            stopScanner();
-            
-            const sortedParts = Array.from(receivedParts.entries())
-                .sort((a, b) => a[0] - b[0])
-                .map(entry => entry[1]);
-            
-            const fullData = sortedParts.join('');
-            
-            if (window.receivedMetadata && window.receivedMetadata.type === 'file') {
-                receivedFileData = {
-                    data: fullData,
-                    name: window.receivedMetadata.name,
-                    type: window.receivedMetadata.mimeType
-                };
-                
-                document.getElementById('received-text').value = 
-                    `Файл получен: ${window.receivedMetadata.name}\n` +
-                    `Размер: ${formatSize(window.receivedMetadata.size || fullData.length)}`;
-            } else {
-                document.getElementById('received-text').value = fullData;
-            }
-            
-            addLog('✅ Все данные успешно получены!', 'success');
-            addLog(`Получено частей: ${receivedParts.size}, размер: ${formatSize(fullData.length)}`, 'info');
-            showToast('Все данные успешно получены!', 'success');
-            
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100, 50, 200]);
-            }
-        }
-        
-        // Загрузка QR-кодов с диска
-        function uploadQRCodes() {
-            document.getElementById('qr-files').click();
-        }
-        
-        async function decodeUploadedQRCodes() {
-            const files = document.getElementById('qr-files').files;
-            
-            if (!files.length) return;
-            
-            if (typeof jsQR === 'undefined') {
-                addLog('Ошибка: библиотека jsQR не загружена', 'error');
-                showToast('Ошибка загрузки библиотеки', 'error');
-                return;
-            }
-            
-            receivedParts.clear();
-            expectedTotalParts = 0;
-            
-            addLog(`Загружено ${files.length} файлов для декодирования`, 'info');
-            showToast(`Обработка ${files.length} файлов...`, 'success');
-            
-            for (let file of files) {
-                try {
-                    const imageData = await readImageFile(file);
-                    
-                    let code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
-                    
-                    if (!code) {
-                        code = jsQR(imageData.data, imageData.width, imageData.height, {
-                            inversionAttempts: "attemptBoth",
-                        });
-                    }
-                    
-                    if (code && code.data) {
-                        processQRData(code.data);
-                    } else {
-                        addLog(`QR-код не найден в файле: ${file.name}`, 'warning');
-                    }
-                } catch (error) {
-                    console.error('Ошибка при декодировании файла:', error);
-                    addLog(`Ошибка при декодировании: ${file.name}`, 'error');
-                }
-            }
-            
-            if (expectedTotalParts > 0 && receivedParts.size >= expectedTotalParts) {
-                completeReception();
-            } else if (expectedTotalParts > 0) {
-                const missingCount = expectedTotalParts - receivedParts.size;
-                addLog(`Получено ${receivedParts.size} из ${expectedTotalParts} частей (не хватает ${missingCount})`, 'warning');
-                showToast(`Получено ${receivedParts.size} из ${expectedTotalParts} частей`, 'error');
-            }
-            
-            document.getElementById('qr-files').value = '';
-        }
-        
-        function readImageFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        resolve({
-                            data: imageData.data,
-                            width: canvas.width,
-                            height: canvas.height
-                        });
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-        
-        // Вспомогательные функции
-        function formatSize(bytes) {
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-        }
-        
-        function addLog(message, type = 'info') {
-            const log = document.getElementById('log');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry ' + type;
-            entry.textContent = new Date().toLocaleTimeString() + ' - ' + message;
-            log.appendChild(entry);
-            log.scrollTop = log.scrollHeight;
-        }
-        
-        function resetTransfer() {
-            transferData = [];
-            currentPartIndex = 0;
-            isTransferring = false;
-            isGenerated = false;
-            cycleCount = 0;
-            clearInterval(transferInterval);
-            
-            document.getElementById('generate-btn').disabled = false;
-            document.getElementById('start-btn').disabled = true;
-            document.getElementById('pause-btn').disabled = true;
-            document.getElementById('stop-btn').disabled = true;
-            
-            document.getElementById('total-parts').textContent = '0';
-            document.getElementById('current-part').textContent = '0';
-            document.getElementById('progress-fill').style.width = '0%';
-            document.getElementById('data-size').textContent = '0 KB';
-            
-            document.getElementById('qr-display').innerHTML = '<p style="color: #bdc3c7;">QR-код появится здесь</p>';
-            document.getElementById('qr-header').innerHTML = '';
-            
-            document.getElementById('transfer-controls').style.display = 'none';
-            document.getElementById('nav-controls').style.display = 'none';
-            document.getElementById('parts-visualization').style.display = 'none';
-        }
-        
-        function copyReceived() {
-            const text = document.getElementById('received-text').value;
-            if (!text) {
-                alert('Нет данных для копирования');
-                return;
-            }
-            
-            navigator.clipboard.writeText(text).then(() => {
-                addLog('Текст скопирован в буфер обмена', 'info');
-                showToast('Текст скопирован!', 'success');
-            }).catch(() => {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                addLog('Текст скопирован в буфер обмена', 'info');
-                showToast('Текст скопирован!', 'success');
-            });
-        }
-        
-        function downloadReceived() {
-            if (receivedFileData) {
-                const link = document.createElement('a');
-                link.href = receivedFileData.data;
-                link.download = receivedFileData.name;
-                link.click();
-                addLog('Файл скачан: ' + receivedFileData.name, 'info');
-                showToast('Файл скачан', 'success');
-            } else {
-                const text = document.getElementById('received-text').value;
-                if (text) {
-                    const blob = new Blob([text], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'received-data.txt';
-                    link.click();
-                    addLog('Текст скачан как файл', 'info');
-                    showToast('Текст скачан', 'success');
-                } else {
-                    alert('Нет данных для скачивания');
-                }
-            }
-        }
-        
-        // Проверка загрузки jsQR
-        function checkJsQR() {
-            if (typeof jsQR === 'undefined') {
-                addLog('Ошибка: библиотека jsQR не загружена. Проверьте подключение к интернету.', 'error');
-                addLog('Попробуйте обновить страницу', 'warning');
-                return false;
-            }
-            return true;
-        }
-        
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            checkJsQR();
-            addLog('Система готова к работе', 'info');
-            addLog('Выберите режим передачи: автоматический, циклический или ручной', 'info');
-            
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                addLog('Ваш браузер не поддерживает доступ к камере', 'warning');
-                addLog('Вы можете использовать загрузку QR-кодов с диска', 'info');
-            }
-        });
-    </script>
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const a =
+        document.createElement(
+            "a"
+        );
+
+
+    a.href =
+        url;
+
+    a.download =
+        "recovered_text.txt";
+
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+
+/* =========================================================
+   ОЧИСТКА ГЕНЕРАТОРА
+========================================================= */
+
+function clearGenerator() {
+
+    document.getElementById(
+        "sourceText"
+    ).value = "";
+
+
+    document.getElementById(
+        "generatorInfo"
+    ).innerHTML =
+        "Введите текст и нажмите «Создать QR-коды».";
+
+
+    document.getElementById(
+        "qrOutput"
+    ).innerHTML = "";
+
+}
+
+
+/* =========================================================
+   ОЧИСТКА СБОРЩИКА
+========================================================= */
+
+async function clearScanner() {
+
+    await stopScanner();
+
+
+    receivedParts = {};
+
+    scanTotal = null;
+
+    scanHash = null;
+
+    scanDocumentId = null;
+
+    lastScanText = "";
+
+    lastScanTime = 0;
+
+
+    document.getElementById(
+        "receivedCount"
+    ).textContent =
+        "0";
+
+
+    document.getElementById(
+        "totalCount"
+    ).textContent =
+        "?";
+
+
+    document.getElementById(
+        "scanProgress"
+    ).style.width =
+        "0%";
+
+
+    document.getElementById(
+        "scanProgressText"
+    ).textContent =
+        "Отсканируйте первый QR-код.";
+
+
+    document.getElementById(
+        "partsList"
+    ).innerHTML = "";
+
+
+    document.getElementById(
+        "resultText"
+    ).value = "";
+
+
+    document.getElementById(
+        "verification"
+    ).classList.add(
+        "hidden"
+    );
+
+
+    setScanStatus(
+        "Сборщик очищен.",
+        ""
+    );
+
+}
+
+</script>
+
 </body>
 </html>
