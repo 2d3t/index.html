@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR → Текст (с паузой)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      margin-top: 0;
+    }
+    .card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .btn-group button {
+      flex: 1;
+      min-width: 100px;
+    }
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      color: #fff;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+    }
+    button:active {
+      transform: scale(0.96);
+    }
+    button:disabled {
+      opacity: 0.5;
+      transform: none;
+      pointer-events: none;
+    }
+    .btn-stop-camera {
+      background: linear-gradient(135deg, #636e72, #2d3436);
+    }
+    .btn-copy {
+      background: linear-gradient(135deg, #8a2be2, #4b0082);
+    }
+    .btn-clear {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+    .btn-visit {
+      background: linear-gradient(135deg, #00b09b, #96c93d);
+    }
+    .btn-append {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+    }
+    .btn-resume {
+      background: linear-gradient(135deg, #00e676, #00c853);
+      display: none;
+    }
+    .btn-resume.visible {
+      display: block;
+    }
+    input[type="file"] {
+      width: 100%;
+      margin: 8px 0 10px 0;
+      padding: 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      color: #ddd;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      margin: 12px 0 10px 0;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      resize: vertical;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-family: inherit;
+    }
+    textarea::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+    .link-box {
+      margin: 10px 0 12px 0;
+      padding: 12px;
+      background: rgba(0, 200, 83, 0.15);
+      border-radius: 12px;
+      border: 1px solid rgba(0, 200, 83, 0.3);
+    }
+    .link-box h3 {
+      margin: 0 0 8px 0;
+      font-size: 1rem;
+      color: #81c784;
+    }
+    .link-box a {
+      color: #4fc3f7;
+      text-decoration: none;
+      word-break: break-all;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .link-box a:hover {
+      text-decoration: underline;
+    }
+    .hint {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .camera-container {
+      position: relative;
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+      background: #000;
+    }
+    .camera-container.active {
+      display: block;
+    }
+    #video {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      display: block;
+    }
+    .camera-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: 80%;
+      border: 3px solid #00c6ff;
+      border-radius: 12px;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      animation: pulse 2s infinite;
+    }
+    .camera-overlay.scanning {
+      border-color: #00c6ff;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    }
+    .camera-overlay.success {
+      border-color: #00ff00;
+      box-shadow: 0 0 0 9999px rgba(0, 255, 0, 0.3);
+      animation: successPulse 0.5s ease 3;
+    }
+    .camera-overlay.paused {
+      border-color: #ffd54f;
+      box-shadow: 0 0 0 9999px rgba(255, 213, 79, 0.15);
+      animation: none;
+    }
+    @keyframes pulse {
+      0%, 100% { border-color: #00c6ff; }
+      50% { border-color: #4fc3f7; }
+    }
+    @keyframes successPulse {
+      0%, 100% { border-color: #00ff00; box-shadow: 0 0 0 9999px rgba(0, 255, 0, 0.3); }
+      50% { border-color: #00ff00; box-shadow: 0 0 0 9999px rgba(0, 255, 0, 0.5); }
+    }
+    .status {
+      text-align: center;
+      margin-top: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      display: none;
+      padding: 8px;
+      border-radius: 8px;
+    }
+    .status.active {
+      display: block;
+    }
+    .status.scanning {
+      background: rgba(0, 198, 255, 0.2);
+      color: #81d4fa;
+    }
+    .status.success {
+      background: rgba(0, 255, 0, 0.2);
+      color: #81c784;
+    }
+    .status.error {
+      background: rgba(255, 0, 0, 0.2);
+      color: #ef9a9a;
+    }
+    .status.paused {
+      background: rgba(255, 213, 79, 0.2);
+      color: #ffd54f;
+    }
+    .scan-hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #ffd54f;
+      margin-top: 4px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar.active {
+      display: block;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00c6ff, #0072ff);
+      border-radius: 2px;
+      animation: progress 1.8s infinite;
+    }
+    @keyframes progress {
+      0% { width: 0%; }
+      50% { width: 100%; }
+      100% { width: 0%; }
+    }
+    canvas {
+      display: none;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      z-index: 1000;
+      animation: slideDown 0.3s ease;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(4px);
+      text-align: center;
+      max-width: 90%;
+    }
+    .toast.success { border-left: 4px solid #4caf50; }
+    .toast.error { border-left: 4px solid #f44336; }
+    .toast.info { border-left: 4px solid #2196f3; }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translate(-50%, -20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    .flex-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .flex-row button {
+      flex: 1;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(0,198,255,0.2);
+      padding: 2px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>📷 QR → Текст <span style="font-size:0.9rem;font-weight:400;">(с паузой)</span></h1>
+    <div class="card">
+      <div class="btn-group">
+        <button id="btnStartCamera" onclick="startCamera()">📷 Сканировать</button>
+        <button class="btn-stop-camera" id="btnStopCamera" onclick="stopCamera()" style="display:none;">⏹ Остановить</button>
+        <button class="btn-resume" id="btnResume" onclick="resumeScanning()">▶ Продолжить</button>
+      </div>
+
+      <div class="camera-container" id="cameraContainer">
+        <video id="video" autoplay playsinline></video>
+        <div class="camera-overlay scanning" id="cameraOverlay"></div>
+      </div>
+
+      <div class="status scanning" id="status" style="display:none;">🔍 Сканирование...</div>
+      <div class="progress-bar" id="progressBar"><div class="progress-bar-fill"></div></div>
+      <div class="scan-hint" id="scanHint" style="display:none;">Наведите камеру на QR-код</div>
+
+      <input type="file" accept="image/*" id="fileInput" />
+
+      <textarea id="result" placeholder="Здесь будет накопленный текст из QR-кодов"></textarea>
+
+      <div class="link-box hidden" id="linkBox">
+        <h3>🔗 Найдена ссылка:</h3>
+        <a id="detectedLink" href="#" target="_blank"></a>
+        <button class="btn-visit" onclick="visitLink()">🌐 Посетить сайт</button>
+      </div>
+
+      <div class="flex-row">
+        <button class="btn-copy" onclick="copyText()">📋 Копировать всё</button>
+        <button class="btn-clear" onclick="clearText()">🗑 Очистить</button>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn-append" onclick="appendFromFile()" style="width:100%;">➕ Добавить из файла (к текущему)</button>
+      </div>
+    </div>
+    <div class="hint">После каждого QR-кода сканирование автоматически приостанавливается</div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+  <script>
+    // --- состояние ---
+    let detectedUrl = '';
+    let streaming = false;
+    let paused = false;
+    let videoStream = null;
+    let animationId = null;
+    let lastScanTime = 0;
+    const SCAN_INTERVAL = 120;
+    let scanAttempts = 0;
+    let lastResult = null;
+    let isProcessing = false;
+    let accumulatedText = '';
+
+    // --- DOM ---
+    const resultEl = document.getElementById('result');
+    const linkBox = document.getElementById('linkBox');
+    const detectedLinkEl = document.getElementById('detectedLink');
+    const statusEl = document.getElementById('status');
+    const overlayEl = document.getElementById('cameraOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const scanHint = document.getElementById('scanHint');
+    const cameraContainer = document.getElementById('cameraContainer');
+    const video = document.getElementById('video');
+    const btnStart = document.getElementById('btnStartCamera');
+    const btnStop = document.getElementById('btnStopCamera');
+    const btnResume = document.getElementById('btnResume');
+
+    // --- вспомогательные ---
+    function showToast(msg, type = 'info') {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2200);
+    }
+
+    function updateStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = `status ${type} active`;
+      statusEl.style.display = 'block';
+    }
+
+    function updateOverlay(type) {
+      overlayEl.className = `camera-overlay ${type}`;
+    }
+
+    function toggleProgress(show) {
+      progressBar.classList.toggle('active', show);
+      progressBar.style.display = show ? 'block' : 'none';
+    }
+
+    function appendText(newText) {
+      if (!newText) return;
+      if (accumulatedText.length > 0) {
+        accumulatedText += '\n---\n';
+      }
+      accumulatedText += newText;
+      resultEl.value = accumulatedText;
+    }
+
+    function clearText() {
+      accumulatedText = '';
+      resultEl.value = '';
+      linkBox.classList.add('hidden');
+      detectedUrl = '';
+      showToast('Текст очищен', 'info');
+    }
+
+    function handleQRResult(data) {
+      appendText(data);
+      
+      detectedUrl = '';
+      linkBox.classList.add('hidden');
+      if (isValidUrl(data)) {
+        try {
+          let url = data;
+          if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+          }
+          detectedUrl = url;
+          detectedLinkEl.textContent = url;
+          detectedLinkEl.href = url;
+          linkBox.classList.remove('hidden');
+        } catch (_) {}
+      }
+      
+      showToast('✅ QR добавлен в текст', 'success');
+      if (navigator.vibrate) navigator.vibrate(100);
+    }
+
+    // --- пауза и возобновление ---
+    function pauseScanning() {
+      paused = true;
+      updateStatus('⏸ На паузе. Нажмите "Продолжить"', 'paused');
+      updateOverlay('paused');
+      toggleProgress(false);
+      scanHint.textContent = 'Сканирование приостановлено. Нажмите "Продолжить" для сканирования следующего кода';
+      btnResume.classList.add('visible');
+      showToast('⏸ Сканирование на паузе', 'info');
+    }
+
+    function resumeScanning() {
+      if (!streaming) {
+        showToast('Сначала запустите камеру', 'error');
+        return;
+      }
+      paused = false;
+      isProcessing = false;
+      lastResult = null; // сбрасываем, чтобы можно было сканировать тот же код снова
+      updateStatus('🔍 Сканирование...', 'scanning');
+      updateOverlay('scanning');
+      toggleProgress(true);
+      scanHint.textContent = 'Наведите камеру на QR-код';
+      btnResume.classList.remove('visible');
+      showToast('▶ Сканирование продолжено', 'success');
+    }
+
+    // --- камера ---
+    async function startCamera() {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        video.srcObject = videoStream;
+        await video.play();
+        cameraContainer.classList.add('active');
+        updateStatus('🔍 Сканирование...', 'scanning');
+        toggleProgress(true);
+        updateOverlay('scanning');
+        scanHint.style.display = 'block';
+        scanHint.textContent = 'Наведите камеру на QR-код';
+        btnStart.style.display = 'none';
+        btnStop.style.display = 'block';
+        btnResume.classList.remove('visible');
+        streaming = true;
+        paused = false;
+        scanAttempts = 0;
+        lastResult = null;
+        isProcessing = false;
+        scanFromCamera();
+        showToast('Камера запущена', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Ошибка доступа к камере', 'error');
+        updateStatus('❌ Ошибка камеры', 'error');
+        btnStart.style.display = 'block';
+        btnStop.style.display = 'none';
+      }
+    }
+
+    function stopCamera() {
+      streaming = false;
+      paused = false;
+      if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+      if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+      video.srcObject = null;
+      cameraContainer.classList.remove('active');
+      statusEl.style.display = 'none';
+      scanHint.style.display = 'none';
+      toggleProgress(false);
+      btnStart.style.display = 'block';
+      btnStop.style.display = 'none';
+      btnResume.classList.remove('visible');
+      isProcessing = false;
+      showToast('Камера остановлена', 'error');
+    }
+
+    function scanFromCamera() {
+      if (!streaming || paused || isProcessing) {
+        animationId = requestAnimationFrame(scanFromCamera);
+        return;
+      }
+      const now = Date.now();
+      if (now - lastScanTime < SCAN_INTERVAL) {
+        animationId = requestAnimationFrame(scanFromCamera);
+        return;
+      }
+      lastScanTime = now;
+      scanAttempts++;
+
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: "dontInvert" });
+        if (!code) code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: "attemptBoth" });
+        if (!code) {
+          const sc = document.createElement('canvas');
+          const sf = 0.7;
+          sc.width = canvas.width * sf;
+          sc.height = canvas.height * sf;
+          const sctx = sc.getContext('2d');
+          sctx.drawImage(canvas, 0, 0, sc.width, sc.height);
+          const si = sctx.getImageData(0, 0, sc.width, sc.height);
+          code = jsQR(si.data, sc.width, sc.height, { inversionAttempts: "attemptBoth" });
+        }
+
+        if (code && code.data) {
+          // Найден QR-код - ставим на паузу и обрабатываем
+          isProcessing = true;
+          lastResult = code.data;
+          updateOverlay('success');
+          updateStatus('✅ QR распознан!', 'success');
+          toggleProgress(false);
+          handleQRResult(code.data);
+          
+          // Ставим на паузу после обработки
+          setTimeout(() => {
+            if (streaming) {
+              pauseScanning();
+              isProcessing = false;
+            }
+          }, 800);
+        } else {
+          if (scanAttempts % 40 === 0) {
+            updateStatus(`🔍 Ищем QR... (${scanAttempts})`, 'scanning');
+          }
+        }
+      }
+      animationId = requestAnimationFrame(scanFromCamera);
+    }
+
+    // --- файлы ---
+    function decodeQRFromFile(mode = 'replace') {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      if (!file) { showToast('Выберите изображение', 'error'); return; }
+
+      updateStatus('📁 Обработка...', 'scanning');
+      toggleProgress(true);
+
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      img.onload = function() {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: "dontInvert" });
+        if (!code) code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: "attemptBoth" });
+        toggleProgress(false);
+
+        if (code) {
+          if (mode === 'append') {
+            appendText(code.data);
+            showToast('✅ Добавлено из файла', 'success');
+          } else {
+            accumulatedText = code.data;
+            resultEl.value = accumulatedText;
+            showToast('✅ Текст заменён', 'success');
+          }
+          detectedUrl = '';
+          linkBox.classList.add('hidden');
+          if (isValidUrl(code.data)) {
+            try {
+              let url = code.data;
+              if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+              detectedUrl = url;
+              detectedLinkEl.textContent = url;
+              detectedLinkEl.href = url;
+              linkBox.classList.remove('hidden');
+            } catch (_) {}
+          }
+          updateStatus('✅ Готово', 'success');
+          if (navigator.vibrate) navigator.vibrate(100);
+        } else {
+          showToast('QR-код не распознан', 'error');
+          updateStatus('❌ Не распознан', 'error');
+          if (navigator.vibrate) navigator.vibrate([100,50,100]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function appendFromFile() {
+      decodeQRFromFile('append');
+    }
+
+    // --- остальное ---
+    function isValidUrl(str) {
+      try {
+        const p = /^(https?:\/\/)?((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|((\d{1,3}\.){3}\d{1,3}))(:\d+)?(\/[-a-z\d%_.~+]*)*(\?[;&a-z\d%_.~+=-]*)?(#[-a-z\d_]*)?$/i;
+        if (str.includes('.') && (str.includes('http') || str.includes('www.') || /^[a-zA-Z0-9]+\.[a-zA-Z]{2,}/.test(str))) {
+          return p.test(str);
+        }
+        return false;
+      } catch (_) { return false; }
+    }
+
+    function visitLink() {
+      if (detectedUrl) window.open(detectedUrl, '_blank');
+      else showToast('Ссылка не найдена', 'error');
+    }
+
+    function copyText() {
+      const val = resultEl.value;
+      if (!val) { showToast('Нет текста для копирования', 'error'); return; }
+      navigator.clipboard.writeText(val).then(() => {
+        showToast('Текст скопирован!', 'success');
+      }).catch(() => {
+        resultEl.select();
+        document.execCommand('copy');
+        showToast('Текст скопирован!', 'success');
+      });
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function() {
+      decodeQRFromFile('replace');
+    });
+  </script>
+</body>
+</html>
