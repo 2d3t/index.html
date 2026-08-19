@@ -1,143 +1,646 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Генератор и Сканер</title>
-    <!-- Надежные CDN-библиотеки -->
-    <script src="https://cloudflare.com"></script>
-    <script src="https://unpkg.com"></script>
-    <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 15px; background: #f9f9f9; }
-        .section { background: white; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        h2 { margin-top: 0; color: #333; font-size: 1.2rem; }
-        input[type="text"], input[type="file"], button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border-radius: 4px; border: 1px solid #ccc; font-size: 1rem; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0056b3; }
-        #qrcode { margin: 15px 0; display: flex; justify-content: center; min-height: 200px; }
-        #reader { width: 100%; background: #000; border-radius: 4px; margin-top: 10px; }
-        .result { font-weight: bold; color: #28a745; margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 4px; word-break: break-all; display: none; }
-        .error { color: #dc3545; background: #fde8e8; }
-        label { font-size: 0.9rem; color: #666; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Генератор QR-кодов</title>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+
+<style>
+    * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        margin: 0;
+        background: #f2f3f5;
+        font-family: Arial, sans-serif;
+        color: #222;
+    }
+
+    .app {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 15px;
+    }
+
+    h1 {
+        text-align: center;
+        margin: 5px 0 15px;
+        font-size: 24px;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 180px;
+        resize: vertical;
+        border: 1px solid #bbb;
+        border-radius: 12px;
+        padding: 14px;
+        font-size: 16px;
+        line-height: 1.45;
+        background: white;
+        outline: none;
+    }
+
+    textarea:focus {
+        border-color: #555;
+    }
+
+    .buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+    }
+
+    button {
+        flex: 1;
+        border: 0;
+        border-radius: 10px;
+        padding: 14px 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .generate {
+        background: #111;
+        color: white;
+    }
+
+    .clear {
+        background: #ddd;
+        color: #222;
+    }
+
+    .info {
+        margin-top: 12px;
+        padding: 10px;
+        background: white;
+        border-radius: 10px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .qr-list {
+        margin-top: 15px;
+    }
+
+    .qr-item {
+        background: white;
+        border-radius: 14px;
+        padding: 15px;
+        margin-bottom: 15px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .qr-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 12px;
+    }
+
+    .qr-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .qr-container img {
+        display: block;
+        width: min(100%, 420px);
+        height: auto;
+        image-rendering: pixelated;
+    }
+
+    .qr-info {
+        margin-top: 10px;
+        color: #666;
+        font-size: 13px;
+        word-break: break-word;
+    }
+
+    .download {
+        margin-top: 10px;
+        width: 100%;
+        background: #e8e8e8;
+        color: #222;
+    }
+
+    .warning {
+        color: #a33;
+        font-weight: bold;
+    }
+
+    .empty {
+        text-align: center;
+        color: #777;
+        padding: 25px 5px;
+    }
+</style>
 </head>
+
 <body>
 
-    <!-- БЛОК 1: ГЕНЕРАЦИЯ -->
-    <div class="section">
-        <h2>1. Создать QR-код</h2>
-        <input type="text" id="text-input" placeholder="Введите текст или ссылку" value="Привет!">
-        <button onclick="generateQR()">Сгенерировать код</button>
-        <div id="qrcode"></div>
+<div class="app">
+
+    <h1>QR Генератор</h1>
+
+    <textarea
+        id="text"
+        placeholder="Введите или вставьте текст здесь..."></textarea>
+
+    <div class="buttons">
+        <button class="generate" onclick="generateQR()">Создать QR</button>
+        <button class="clear" onclick="clearAll()">Очистить</button>
     </div>
 
-    <!-- БЛОК 2: СКАНИРОВАНИЕ ИЗ ФАЙЛА -->
-    <div class="section">
-        <h2>2. Сканировать картинку (Файл)</h2>
-        <label for="qr-file">Выберите изображение с QR-кодом:</label>
-        <input type="file" id="qr-file" accept="image/*">
+    <div class="info" id="info">
+        Введите текст и нажмите «Создать QR».
     </div>
 
-    <!-- БЛОК 3: СКАНИРОВАНИЕ КАМЕРОЙ -->
-    <div class="section">
-        <h2>3. Сканировать через камеру</h2>
-        <button id="start-camera-btn" onclick="toggleCamera()">Включить камеру</button>
-        <div id="reader"></div>
+    <div class="qr-list" id="qrList">
+        <div class="empty">
+            QR-коды появятся здесь
+        </div>
     </div>
 
-    <!-- ОБЩИЙ РЕЗУЛЬТАТ СКАНИРОВАНИЯ -->
-    <div class="section" id="result-box" style="display:none;">
-        <label>Результат распознавания:</label>
-        <div class="result" id="scan-result"></div>
-    </div>
+</div>
 
-    <script>
-        // Инициализация генератора
-        const qrContainer = document.getElementById("qrcode");
-        const qrcode = new QRCode(qrContainer, { width: 200, height: 200 });
-        
-        function generateQR() {
-            const text = document.getElementById("text-input").value;
-            if (!text.trim()) {
-                alert("Пожалуйста, введите текст");
-                return;
-            }
-            qrcode.clear();
-            qrcode.makeCode(text);
+<script>
+
+/*
+    ============================================================
+    ОСНОВНЫЕ НАСТРОЙКИ
+    ============================================================
+*/
+
+/*
+    Уровень коррекции ошибок:
+
+    L = примерно 7%
+    M = примерно 15%
+    Q = примерно 25%
+    H = примерно 30%
+
+    M — хороший компромисс для обычного использования.
+*/
+const ERROR_LEVEL = 'M';
+
+
+/*
+    Максимальный размер QR-кода.
+
+    QR-код имеет версии от 1 до 40.
+    0 означает: библиотека сама выбирает максимальную
+    подходящую версию.
+*/
+const QR_TYPE = 0;
+
+
+/*
+    ============================================================
+    ПОДСЧЁТ БАЙТОВ
+    ============================================================
+
+    Это важно.
+
+    Один русский символ занимает несколько байт в UTF-8.
+    Также считаются:
+    - пробелы
+    - табы
+    - переносы строк
+    - emoji
+    - zero-width символы
+    - другие Unicode-символы
+
+    Поэтому нельзя просто считать text.length.
+*/
+
+function utf8Length(text) {
+    return new TextEncoder().encode(text).length;
+}
+
+
+/*
+    Разбиваем текст не по UTF-16 кодовым единицам,
+    а по Unicode-символам.
+
+    Благодаря этому emoji и другие символы,
+    состоящие из surrogate pair, не будут разорваны.
+*/
+function splitUnicode(text) {
+    return Array.from(text);
+}
+
+
+/*
+    ============================================================
+    ПРОВЕРКА: ПОМЕСТИТСЯ ЛИ ТЕКСТ В QR
+    ============================================================
+*/
+
+function canFit(text) {
+
+    try {
+
+        const qr = qrcode(QR_TYPE, ERROR_LEVEL);
+
+        /*
+            addData() работает с реальным содержимым текста.
+            Никакие символы здесь не удаляются и не заменяются.
+        */
+        qr.addData(text);
+
+        qr.make();
+
+        return true;
+
+    } catch (e) {
+
+        return false;
+
+    }
+}
+
+
+/*
+    ============================================================
+    ПОИСК МАКСИМАЛЬНОГО КУСКА
+    ============================================================
+
+    Используется бинарный поиск.
+
+    Например:
+
+    Большой текст
+       ↓
+    пробуем половину
+       ↓
+    помещается?
+       ↓
+    увеличиваем / уменьшаем
+       ↓
+    находим максимально возможный кусок
+*/
+
+function getLargestChunk(chars, startIndex) {
+
+    let left = 1;
+    let right = chars.length - startIndex;
+
+    let best = 0;
+
+    while (left <= right) {
+
+        const middle = Math.floor((left + right) / 2);
+
+        const candidate =
+            chars.slice(
+                startIndex,
+                startIndex + middle
+            ).join('');
+
+        if (canFit(candidate)) {
+
+            best = middle;
+            left = middle + 1;
+
+        } else {
+
+            right = middle - 1;
+
         }
-        // Генерируем QR сразу при открытии
-        generateQR();
+    }
 
-        // Общие элементы вывода результата
-        const resultBox = document.getElementById("result-box");
-        const resultDiv = document.getElementById("scan-result");
+    return best;
+}
 
-        function showResult(text, isError = false) {
-            resultBox.style.display = "block";
-            resultDiv.style.display = "block";
-            if (isError) {
-                resultDiv.classList.add("error");
-                resultDiv.innerText = text;
-            } else {
-                resultDiv.classList.remove("error");
-                resultDiv.innerText = text;
-            }
+
+/*
+    ============================================================
+    РАЗБИЕНИЕ ТЕКСТА НА QR
+    ============================================================
+*/
+
+function splitTextForQR(text) {
+
+    const chars = splitUnicode(text);
+
+    const parts = [];
+
+    let position = 0;
+
+    while (position < chars.length) {
+
+        const count = getLargestChunk(chars, position);
+
+        /*
+            Теоретически такого быть не должно,
+            если библиотека способна создать хотя бы
+            QR с одним символом.
+        */
+        if (count <= 0) {
+
+            throw new Error(
+                "Не удалось поместить символ в QR-код."
+            );
         }
 
-        // --- СКАНЕР ИЗ ФАЙЛА ---
-        const fileScanner = new Html5Qrcode("reader");
-        const fileInput = document.getElementById('qr-file');
+        const part =
+            chars.slice(
+                position,
+                position + count
+            ).join('');
 
-        fileInput.addEventListener('change', e => {
-            if (e.target.files.length === 0) return;
-            const imageFile = e.target.files[0];
-            
-            fileScanner.scanFile(imageFile, true)
-                .then(decodedText => {
-                    showResult(decodedText, false);
-                })
-                .catch(err => {
-                    showResult("Ошибка: Не удалось найти или считать QR-код на этом изображении.", true);
-                });
+        parts.push(part);
+
+        position += count;
+    }
+
+    return parts;
+}
+
+
+/*
+    ============================================================
+    СОЗДАНИЕ PNG
+    ============================================================
+*/
+
+function createQRImage(text) {
+
+    const qr = qrcode(QR_TYPE, ERROR_LEVEL);
+
+    qr.addData(text);
+    qr.make();
+
+    /*
+        cellSize = размер одного квадратика QR
+        margin = белое поле вокруг
+    */
+
+    return qr.createDataURL(7, 12);
+}
+
+
+/*
+    ============================================================
+    ГЕНЕРАЦИЯ ВСЕХ QR
+    ============================================================
+*/
+
+function generateQR() {
+
+    const text = document.getElementById('text').value;
+
+    const list = document.getElementById('qrList');
+    const info = document.getElementById('info');
+
+    list.innerHTML = '';
+
+    if (text.length === 0) {
+
+        info.innerHTML =
+            'Введите текст и нажмите «Создать QR».';
+
+        list.innerHTML =
+            '<div class="empty">Нет текста</div>';
+
+        return;
+    }
+
+    try {
+
+        /*
+            Получаем реальные байты UTF-8.
+        */
+        const bytes = utf8Length(text);
+
+        /*
+            Делим текст на максимально возможные части.
+        */
+        const parts = splitTextForQR(text);
+
+        info.innerHTML =
+            'Символов: <b>' +
+            text.length +
+            '</b><br>' +
+
+            'Байт UTF-8: <b>' +
+            bytes +
+            '</b><br>' +
+
+            'QR-кодов: <b>' +
+            parts.length +
+            '</b>';
+
+        /*
+            Создаём каждый QR.
+        */
+
+        parts.forEach((part, index) => {
+
+            const item =
+                document.createElement('div');
+
+            item.className = 'qr-item';
+
+            const title =
+                document.createElement('div');
+
+            title.className = 'qr-title';
+
+            title.textContent =
+                'QR-код ' +
+                (index + 1) +
+                ' / ' +
+                parts.length;
+
+            item.appendChild(title);
+
+
+            /*
+                Сам QR
+            */
+
+            const qrContainer =
+                document.createElement('div');
+
+            qrContainer.className =
+                'qr-container';
+
+            const img =
+                document.createElement('img');
+
+            img.src =
+                createQRImage(part);
+
+            img.alt =
+                'QR-код ' + (index + 1);
+
+            qrContainer.appendChild(img);
+
+            item.appendChild(qrContainer);
+
+
+            /*
+                Информация о текущей части
+            */
+
+            const qrInfo =
+                document.createElement('div');
+
+            qrInfo.className = 'qr-info';
+
+            qrInfo.innerHTML =
+                'Символов: <b>' +
+                part.length +
+                '</b> · ' +
+
+                'UTF-8: <b>' +
+                utf8Length(part) +
+                ' байт</b>';
+
+            item.appendChild(qrInfo);
+
+
+            /*
+                Кнопка скачивания
+            */
+
+            const download =
+                document.createElement('button');
+
+            download.className =
+                'download';
+
+            download.textContent =
+                'Скачать PNG';
+
+            download.onclick =
+                function () {
+
+                    downloadImage(
+                        img.src,
+                        'QR_' +
+                        String(index + 1) +
+                        '_of_' +
+                        parts.length +
+                        '.png'
+                    );
+
+                };
+
+            item.appendChild(download);
+
+
+            list.appendChild(item);
+
         });
 
-        // --- СКАНЕР ЧЕРЕЗ КАМЕРУ ---
-        let html5QrCodeScanner = null;
-        let isCameraOn = false;
-        const cameraBtn = document.getElementById("start-camera-btn");
+        /*
+            Прокручиваем страницу к QR-кодам.
+        */
 
-        function toggleCamera() {
-            if (!isCameraOn) {
-                cameraBtn.innerText = "Выключить камеру";
-                cameraBtn.style.background = "#6c757d";
-                isCameraOn = true;
-                
-                // Создаем полноценный сканер с интерфейсом выбора камер
-                html5QrCodeScanner = new Html5QrcodeScanner("reader", { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 },
-                    rememberLastUsedCamera: true
-                }, false);
-                
-                html5QrCodeScanner.render(
-                    (decodedText) => {
-                        showResult(decodedText, false);
-                        toggleCamera(); // Выключаем камеру после успешного сканирования
-                    },
-                    (error) => {
-                        // Ошибки поиска кадров в потоке игнорируем, чтобы не спамить
-                    }
-                );
-            } else {
-                cameraBtn.innerText = "Включить камеру";
-                cameraBtn.style.background = "#007bff";
-                isCameraOn = false;
-                
-                if (html5QrCodeScanner) {
-                    html5QrCodeScanner.clear().catch(err => console.error(err));
-                }
-            }
+        setTimeout(() => {
+
+            list.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+
+        }, 100);
+
+    } catch (error) {
+
+        console.error(error);
+
+        info.innerHTML =
+            '<span class="warning">' +
+            'Ошибка при создании QR-кодов: ' +
+            error.message +
+            '</span>';
+
+    }
+}
+
+
+/*
+    ============================================================
+    СКАЧИВАНИЕ PNG
+    ============================================================
+*/
+
+function downloadImage(dataURL, filename) {
+
+    const a =
+        document.createElement('a');
+
+    a.href = dataURL;
+
+    a.download = filename;
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+}
+
+
+/*
+    ============================================================
+    ОЧИСТКА
+    ============================================================
+*/
+
+function clearAll() {
+
+    document.getElementById('text').value = '';
+
+    document.getElementById('info').innerHTML =
+        'Введите текст и нажмите «Создать QR».';
+
+    document.getElementById('qrList').innerHTML =
+        '<div class="empty">' +
+        'QR-коды появятся здесь' +
+        '</div>';
+}
+
+
+/*
+    ============================================================
+    CTRL + ENTER / ENTER
+    ============================================================
+*/
+
+document.getElementById('text').addEventListener(
+    'keydown',
+    function(event) {
+
+        /*
+            На компьютере Ctrl+Enter создаёт QR.
+            На телефоне Enter остаётся обычным переносом строки.
+        */
+
+        if (event.ctrlKey && event.key === 'Enter') {
+
+            event.preventDefault();
+
+            generateQR();
         }
-    </script>
+    }
+);
+
+</script>
+
 </body>
 </html>
