@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ультразвуковой модем — тональный</title>
+    <title>Ультразвуковой модем — улучшенный синхронизация</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; text-align: center; }
         button { background: #00adb5; border: none; color: white; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; margin: 10px; transition: 0.2s; }
@@ -11,36 +11,37 @@
         button:active { background: #007a80; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         input { padding: 10px; font-size: 16px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #333; background: #222; color: white; }
-        .box { background: #1e1e1e; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 450px; border: 1px solid #333; }
+        .box { background: #1e1e1e; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 500px; border: 1px solid #333; }
         #log { font-family: monospace; color: #888; font-size: 12px; max-height: 150px; overflow-y: auto; text-align: left; background: #000; padding: 10px; border-radius: 5px; }
         #output { font-size: 28px; font-weight: bold; color: #00adb5; margin-top: 10px; min-height: 45px; letter-spacing: 2px; }
         .status { color: #aaa; font-size: 13px; margin-top: 5px; }
         .freq-badge { display: inline-block; background: #2a2a2a; padding: 2px 10px; border-radius: 12px; margin: 2px; font-size: 11px; color: #00adb5; }
         #progress { width: 100%; height: 4px; background: #333; border-radius: 2px; margin: 10px 0; overflow: hidden; }
         #progress-bar { height: 100%; width: 0%; background: #00adb5; transition: width 0.1s; }
+        .synced { color: #4caf50; font-weight: bold; }
+        .waiting { color: #ff9800; }
     </style>
 </head>
 <body>
 
-    <h1>🔊 Ultrasonic Tone Modem</h1>
+    <h1>🔊 Ultrasonic Modem v2</h1>
     <button id="initBtn">🎤 Включить звук / микрофон</button>
 
     <div class="box">
         <h3>📤 Передатчик (Tx)</h3>
         <input type="text" id="textInput" value="HELLO WORLD" placeholder="Текст (A-Z, пробел)">
         <br>
-        <button id="sendBtn" disabled>📡 Отправить тонами</button>
+        <button id="sendBtn" disabled>📡 Отправить</button>
         <div id="progress"><div id="progress-bar"></div></div>
         <div class="status">
-            <span>Частоты: </span>
-            <span class="freq-badge">A=17.0кГц</span>
-            <span class="freq-badge">Z=20.5кГц</span>
-            <span class="freq-badge">шаг=135Гц</span>
+            <span>Синхросигнал: 16.5 кГц (100 мс) + 19.5 кГц (100 мс)</span><br>
+            <span>Тоны: 17.0–20.5 кГц (120 мс) · Пауза: 80 мс · Защита: 60 мс</span>
         </div>
     </div>
 
     <div class="box">
         <h3>📥 Приемник (Rx)</h3>
+        <div>Статус: <span id="rxStatus" class="waiting">ожидание сигнала</span></div>
         <div>Получено:</div>
         <div id="output">⏳ ожидание...</div>
     </div>
@@ -52,17 +53,22 @@
 
 <script>
     // ============================================================
-    //  ТОНАЛЬНОЕ КОДИРОВАНИЕ
-    //  Каждая буква → своя частота в ультразвуковом диапазоне
+    //  НАСТРОЙКИ С УВЕЛИЧЕННЫМИ ИНТЕРВАЛАМИ
     // ============================================================
     const ALPHABET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const BASE_FREQ = 17000;        // 17 кГц — буква 'A'
-    const FREQ_STEP = 135;          // шаг 135 Гц на букву
-    const TONE_DURATION = 0.08;     // длительность тона 80 мс
-    const SILENCE_GAP = 0.04;       // пауза между тонами 40 мс (для разделения)
+    const BASE_FREQ = 17000;          // 17 кГц — буква 'A'
+    const FREQ_STEP = 130;            // шаг 130 Гц на букву
+    const TONE_DURATION = 0.12;       // 120 мс — длительность тона
+    const SILENCE_GAP = 0.08;         // 80 мс — пауза между тонами
+    const GUARD_INTERVAL = 0.06;      // 60 мс — дополнительная защита
 
-    // Время на один символ (тон + пауза)
-    const SYMBOL_TIME = TONE_DURATION + SILENCE_GAP;
+    // Время на один символ (тон + пауза + защита)
+    const SYMBOL_TIME = TONE_DURATION + SILENCE_GAP + GUARD_INTERVAL;
+
+    // Частоты синхронизации
+    const SYNC_FREQ_1 = 16500;        // первый синхросигнал
+    const SYNC_FREQ_2 = 19500;        // второй синхросигнал
+    const SYNC_DURATION = 0.10;       // 100 мс каждый
 
     let audioCtx = null;
     let analyser = null;
@@ -79,6 +85,13 @@
     // ---- Прогресс-бар ----
     function setProgress(pct) {
         document.getElementById('progress-bar').style.width = Math.min(100, pct) + '%';
+    }
+
+    // ---- Статус приемника ----
+    function setRxStatus(text, isSynced = false) {
+        const el = document.getElementById('rxStatus');
+        el.textContent = text;
+        el.className = isSynced ? 'synced' : 'waiting';
     }
 
     // ---- Инициализация ----
@@ -98,18 +111,18 @@
     });
 
     // ============================================================
-    //  ПЕРЕДАТЧИК — генерация тоновых посылок
+    //  ПЕРЕДАТЧИК
     // ============================================================
-    function playTone(frequency, startTime, duration) {
+    function playTone(frequency, startTime, duration, volume = 0.7) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(frequency, startTime);
 
-        // Плавное включение/выключение (убирает щелчки)
+        // Плавное включение/выключение
         gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.7, startTime + 0.005);
-        gain.gain.setValueAtTime(0.7, startTime + duration - 0.005);
+        gain.gain.linearRampToValueAtTime(volume, startTime + 0.008);
+        gain.gain.setValueAtTime(volume, startTime + duration - 0.008);
         gain.gain.linearRampToValueAtTime(0, startTime + duration);
 
         osc.connect(gain);
@@ -139,56 +152,61 @@
 
         log(`📤 Начало передачи: "${text}" (${text.length} символов)`);
 
-        let startTime = audioCtx.currentTime + 0.15;
-        const totalDuration = text.length * SYMBOL_TIME + 0.2;
+        let startTime = audioCtx.currentTime + 0.2;
+        const totalDuration = text.length * SYMBOL_TIME + 0.8;
 
-        // ---- СТАРТОВЫЙ СИГНАЛ (синхронизация) ----
-        // Короткий импульс на частоте 19 кГц (маркер начала)
-        playTone(19000, startTime, 0.06);
-        log(`[Tx] 🟢 Стартовый маркер (19кГц) в ${startTime.toFixed(3)}`);
-        startTime += 0.15; // пауза после старта
+        // ============================================
+        //  СИНХРОНИЗАЦИОННАЯ ПОСЫЛКА (преамбула)
+        // ============================================
+        // 1-й синхротон: 16.5 кГц
+        playTone(SYNC_FREQ_1, startTime, SYNC_DURATION);
+        log(`[Tx] 🔵 СИНХРО-1: ${SYNC_FREQ_1/1000}кГц в ${startTime.toFixed(3)}`);
+        startTime += SYNC_DURATION + 0.05; // пауза 50 мс
 
-        // ---- ПЕРЕДАЧА СИМВОЛОВ ----
+        // 2-й синхротон: 19.5 кГц
+        playTone(SYNC_FREQ_2, startTime, SYNC_DURATION);
+        log(`[Tx] 🔵 СИНХРО-2: ${SYNC_FREQ_2/1000}кГц в ${startTime.toFixed(3)}`);
+        startTime += SYNC_DURATION + 0.15; // пауза 150 мс перед данными
+
+        // ============================================
+        //  ПЕРЕДАЧА ДАННЫХ
+        // ============================================
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
             const freq = getFrequency(char);
             if (freq === null) {
-                log(`⚠️ Символ '${char}' пропущен (не в алфавите)`);
+                log(`⚠️ Символ '${char}' пропущен`);
                 startTime += SYMBOL_TIME;
                 continue;
             }
 
-            // Время начала тона
             const toneStart = startTime;
             playTone(freq, toneStart, TONE_DURATION);
 
-            const freqKHz = (freq / 1000).toFixed(1);
+            const freqKHz = (freq / 1000).toFixed(2);
             log(`[Tx] '${char}' → ${freqKHz}кГц в ${toneStart.toFixed(3)}`);
 
-            // Сдвигаем время на длительность символа
             startTime += SYMBOL_TIME;
-
-            // Обновляем прогресс
-            const progress = ((i + 1) / text.length) * 100;
-            setProgress(progress);
+            setProgress(((i + 1) / text.length) * 100);
         }
 
-        // ---- ЗАВЕРШАЮЩИЙ МАРКЕР ----
-        playTone(19500, startTime, 0.06);
-        log(`[Tx] 🔴 Финишный маркер (19.5кГц) в ${startTime.toFixed(3)}`);
+        // ============================================
+        //  ЗАВЕРШАЮЩИЙ МАРКЕР (опционально)
+        // ============================================
+        playTone(SYNC_FREQ_2 + 200, startTime, 0.06);
+        log(`[Tx] 🔴 Финиш в ${startTime.toFixed(3)}`);
 
-        // Восстанавливаем кнопку через пару секунд
         setTimeout(() => {
             isSending = false;
             document.getElementById('sendBtn').disabled = false;
-            document.getElementById('sendBtn').innerText = "📡 Отправить тонами";
+            document.getElementById('sendBtn').innerText = "📡 Отправить";
             setProgress(0);
             log("✅ Передача завершена");
         }, (totalDuration + 0.5) * 1000);
     });
 
     // ============================================================
-    //  ПРИЕМНИК — детектирование тонов по частоте
+    //  ПРИЕМНИК
     // ============================================================
     async function initReceiver() {
         try {
@@ -202,31 +220,34 @@
 
             const source = audioCtx.createMediaStreamSource(stream);
             analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 4096;        // больше разрешение по частоте
-            analyser.smoothingTimeConstant = 0.8;
+            analyser.fftSize = 4096;
+            analyser.smoothingTimeConstant = 0.85;
             source.connect(analyser);
 
             isListening = true;
-            log("[Rx] 🎤 Микрофон активен, фильтры отключены");
+            log("[Rx] 🎤 Микрофон активен");
             log(`[Rx] Разрешение: ~${(audioCtx.sampleRate / analyser.fftSize).toFixed(1)} Гц/бин`);
 
-            // Запускаем детектор
             detectTones();
         } catch (err) {
             log("[Rx] ❌ Ошибка микрофона: " + err);
+            setRxStatus("❌ ошибка микрофона");
         }
     }
 
-    // ---- Детектор тонов ----
+    // ============================================================
+    //  ДЕТЕКТОР С УЛУЧШЕННОЙ СИНХРОНИЗАЦИЕЙ
+    // ============================================================
     let lastDetectedTime = 0;
     let decodingBuffer = "";
     let isReceiving = false;
+    let syncDetected = false;
     let receiveTimeout = null;
+    let symbolCount = 0;
 
-    // Частоты для стартового и финишного маркеров
-    const START_FREQ = 19000;
-    const STOP_FREQ = 19500;
-    const FREQ_TOLERANCE = 80; // Гц
+    // Допуски
+    const FREQ_TOLERANCE = 70; // Гц
+    const MIN_SIGNAL = 28;
 
     function detectTones() {
         if (!isListening) return;
@@ -250,52 +271,92 @@
             }
         }
 
-        // Если сигнал слишком слабый — игнорируем
-        if (maxPower < 25) {
-            // Сбрасываем прием, если долго тишина
-            if (isReceiving && (now - lastDetectedTime > 1.5)) {
+        if (maxPower < MIN_SIGNAL) {
+            // Таймаут приема
+            if (isReceiving && (now - lastDetectedTime > 2.0)) {
                 isReceiving = false;
+                syncDetected = false;
                 if (decodingBuffer.length > 0) {
-                    log(`[Rx] ⏹️ Прием завершен (таймаут). Получено: "${decodingBuffer}"`);
+                    log(`[Rx] ⏹️ Таймаут. Получено: "${decodingBuffer}"`);
+                    document.getElementById('output').innerText = decodingBuffer;
                 }
                 decodingBuffer = "";
+                setRxStatus("ожидание сигнала", false);
             }
             return;
         }
 
-        // Частота доминирующего бина
         const freq = (maxIndex * sampleRate) / fftSize;
+        const freqKHz = (freq / 1000).toFixed(2);
 
-        // ---- Обработка маркеров ----
-        if (Math.abs(freq - START_FREQ) < FREQ_TOLERANCE && maxPower > 30) {
-            if (!isReceiving) {
-                isReceiving = true;
-                decodingBuffer = "";
-                document.getElementById('output').innerText = "";
-                log(`[Rx] 🟢 СТАРТ ПРИЕМА (частота ${freq.toFixed(0)} Гц)`);
+        // ============================================
+        //  ОБНАРУЖЕНИЕ СИНХРОСИГНАЛА
+        // ============================================
+        if (!syncDetected) {
+            // Ищем первый синхротон (16.5 кГц)
+            if (Math.abs(freq - SYNC_FREQ_1) < FREQ_TOLERANCE && maxPower > 35) {
+                log(`[Rx] 🔵 СИНХРО-1 обнаружен: ${freqKHz}кГц (${maxPower})`);
+                syncDetected = true;
+                // Ждем второй синхротон с небольшой задержкой
+                setTimeout(() => {
+                    if (!syncDetected) {
+                        syncDetected = false;
+                        log("[Rx] ⚠️ Таймаут ожидания СИНХРО-2");
+                        setRxStatus("ошибка синхронизации", false);
+                    }
+                }, 300);
+                return;
             }
-            lastDetectedTime = now;
+
+            // Если нашли второй без первого — игнорируем
+            if (Math.abs(freq - SYNC_FREQ_2) < FREQ_TOLERANCE) {
+                // Может быть просто шум
+                return;
+            }
             return;
         }
 
-        if (Math.abs(freq - STOP_FREQ) < FREQ_TOLERANCE && maxPower > 30 && isReceiving) {
-            log(`[Rx] 🔴 ФИНИШ (${freq.toFixed(0)} Гц). Итог: "${decodingBuffer}"`);
-            isReceiving = false;
-            if (decodingBuffer.length > 0) {
-                document.getElementById('output').innerText = decodingBuffer;
-            }
+        // ============================================
+        //  ПОИСК ВТОРОГО СИНХРОСИГНАЛА
+        // ============================================
+        if (Math.abs(freq - SYNC_FREQ_2) < FREQ_TOLERANCE && maxPower > 35) {
+            log(`[Rx] 🔵 СИНХРО-2 обнаружен: ${freqKHz}кГц (${maxPower})`);
+            // Начинаем прием
+            isReceiving = true;
+            decodingBuffer = "";
+            symbolCount = 0;
+            document.getElementById('output').innerText = "";
+            setRxStatus("🔴 прием данных...", true);
             lastDetectedTime = now;
+
+            // Сбрасываем флаг синхронизации, чтобы не ловить повторно
+            syncDetected = false;
             return;
         }
 
-        // ---- Если мы в режиме приема — декодируем символ ----
+        // ============================================
+        //  ДЕКОДИРОВАНИЕ СИМВОЛОВ
+        // ============================================
         if (isReceiving && maxPower > 30) {
-            // Проверяем, что прошло достаточно времени с последнего тона
-            if (now - lastDetectedTime < SYMBOL_TIME * 0.3) {
-                return; // защита от множественных срабатываний
+            // Защита от множественных срабатываний на одном тоне
+            if (now - lastDetectedTime < SYMBOL_TIME * 0.4) {
+                return;
             }
 
-            // Находим ближайший символ по частоте
+            // Проверяем, не финишный ли это маркер
+            if (Math.abs(freq - (SYNC_FREQ_2 + 200)) < FREQ_TOLERANCE) {
+                log(`[Rx] 🔴 ФИНИШ обнаружен: ${freqKHz}кГц`);
+                isReceiving = false;
+                if (decodingBuffer.length > 0) {
+                    document.getElementById('output').innerText = decodingBuffer;
+                    log(`[Rx] ✅ ИТОГ: "${decodingBuffer}" (${decodingBuffer.length} символов)`);
+                    setRxStatus("✅ прием завершен", true);
+                }
+                lastDetectedTime = now;
+                return;
+            }
+
+            // Ищем ближайший символ по частоте
             let bestChar = null;
             let bestDiff = Infinity;
 
@@ -308,39 +369,50 @@
                 }
             }
 
-            // Проверяем, что частота достаточно близка к ожидаемой
             if (bestDiff < FREQ_TOLERANCE && bestChar !== null) {
-                const freqKHz = (freq / 1000).toFixed(1);
                 log(`[Rx] 🎵 '${bestChar}' (${freqKHz}кГц, погр.${bestDiff.toFixed(0)}Гц)`);
                 decodingBuffer += bestChar;
                 document.getElementById('output').innerText = decodingBuffer;
+                symbolCount++;
                 lastDetectedTime = now;
             } else {
-                // Если частота не распознана, но это не маркер — возможно шум
+                // Неизвестная частота в диапазоне ультразвука
                 if (freq > 16000 && freq < 22000) {
-                    log(`[Rx] ❓ Неизвестный тон: ${freq.toFixed(0)} Гц (${maxPower})`);
+                    log(`[Rx] ❓ Неизвестный тон: ${freqKHz}кГц (${maxPower})`);
+                    // Возможно, это синхросигнал, который мы пропустили
+                    if (Math.abs(freq - SYNC_FREQ_1) < FREQ_TOLERANCE ||
+                        Math.abs(freq - SYNC_FREQ_2) < FREQ_TOLERANCE) {
+                        log("[Rx] 🔄 Обнаружен синхросигнал во время приема — сброс");
+                        isReceiving = false;
+                        syncDetected = false;
+                        decodingBuffer = "";
+                        setRxStatus("ожидание сигнала", false);
+                    }
                 }
                 lastDetectedTime = now;
             }
         }
     }
 
-    // ---- Доп. функция: сброс приема ----
+    // ---- Сброс приемника ----
     function resetReceiver() {
         isReceiving = false;
+        syncDetected = false;
         decodingBuffer = "";
         document.getElementById('output').innerText = "⏳ ожидание...";
+        setRxStatus("ожидание сигнала", false);
         log("[Rx] 🔄 Прием сброшен");
     }
 
-    // Обработчик клавиши Enter для отправки
+    // ---- Клавиша Enter ----
     document.getElementById('textInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             document.getElementById('sendBtn').click();
         }
     });
 
-    log("🚀 Модем загружен. Нажмите 'Включить звук' для старта.");
+    log("🚀 Модем v2 загружен. Нажмите 'Включить звук' для старта.");
+    setRxStatus("ожидание сигнала", false);
 </script>
 </body>
 </html>
