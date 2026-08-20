@@ -1,13 +1,10 @@
-<html>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-
-<title>QR Сборщик текста</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QR Text Transfer</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
@@ -18,30 +15,152 @@
 
 body {
     margin: 0;
-    background: #f2f3f5;
-    font-family: Arial, sans-serif;
+    background: #f1f2f4;
     color: #222;
+    font-family: Arial, sans-serif;
 }
 
 .app {
-    width: 100%;
-    max-width: 600px;
+    max-width: 650px;
     margin: auto;
-    padding: 15px;
+    padding: 12px;
 }
 
 h1 {
     text-align: center;
-    font-size: 24px;
     margin: 5px 0 15px;
+    font-size: 24px;
+}
+
+.tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.tab {
+    flex: 1;
+    padding: 13px 5px;
+    border: 0;
+    border-radius: 10px;
+    background: #ddd;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.tab.active {
+    background: #111;
+    color: white;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
 }
 
 .card {
     background: white;
     border-radius: 14px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+
+textarea {
+    width: 100%;
+    min-height: 190px;
+    resize: vertical;
+    padding: 13px;
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.45;
+    outline: none;
+}
+
+textarea:focus {
+    border-color: #333;
+}
+
+button {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 13px;
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.primary {
+    background: #111;
+    color: white;
+}
+
+.secondary {
+    background: #ddd;
+}
+
+.danger {
+    background: #eee;
+}
+
+.info {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.center {
+    text-align: center;
+}
+
+.qr-item {
+    background: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+
+.qr-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.qr-image {
+    width: 100%;
+    max-width: 430px;
+    height: auto;
+    image-rendering: pixelated;
+}
+
+.qr-meta {
+    margin-top: 8px;
+    color: #666;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.progress {
+    height: 12px;
+    background: #e5e5e5;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #111;
+    transition: width .25s;
 }
 
 #reader {
@@ -52,662 +171,773 @@ h1 {
 
 .status {
     text-align: center;
-    padding: 12px;
-    font-size: 16px;
+    padding: 10px;
     font-weight: bold;
-}
-
-button {
-    width: 100%;
-    border: 0;
-    border-radius: 10px;
-    padding: 14px;
-    margin-top: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.start {
-    background: #111;
-    color: white;
-}
-
-.copy {
-    background: #ddd;
-}
-
-.save {
-    background: #ddd;
-}
-
-.clear {
-    background: #eee;
-}
-
-textarea {
-    width: 100%;
-    min-height: 180px;
-    resize: vertical;
-    border: 1px solid #bbb;
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 15px;
-    line-height: 1.45;
-    background: #fafafa;
-}
-
-.progress {
-    margin-top: 10px;
-    background: #eee;
-    border-radius: 10px;
-    height: 12px;
-    overflow: hidden;
-}
-
-.progress-bar {
-    height: 100%;
-    width: 0%;
-    background: #111;
-    transition: width .3s;
-}
-
-.small {
-    color: #666;
-    font-size: 13px;
-    line-height: 1.4;
 }
 
 .ok {
     color: #16833b;
 }
 
-.warning {
-    color: #a33;
+.error {
+    color: #b00020;
 }
 
-.qr-list {
+.warning {
+    color: #a05a00;
+}
+
+.parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     margin-top: 10px;
 }
 
-.qr-row {
+.part {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px;
-    border-bottom: 1px solid #eee;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 13px;
 }
 
-.qr-number {
-    width: 45px;
+.part.received {
+    background: #222;
+    color: white;
+}
+
+.part.missing {
+    background: #eee;
+    color: #888;
+}
+
+.small {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.hash {
+    font-family: monospace;
+    font-size: 12px;
+    word-break: break-all;
+    background: #f5f5f5;
+    padding: 8px;
+    border-radius: 7px;
+    margin-top: 6px;
+}
+
+.hidden {
+    display: none;
+}
+
+.qr-size-selector {
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.qr-size-selector label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #666;
     font-weight: bold;
 }
 
-.qr-size {
-    color: #666;
-    font-size: 13px;
+.qr-size-selector select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #bbb;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
 }
+
 </style>
 </head>
-
 <body>
 
 <div class="app">
+<h1>📦 QR Text Transfer</h1>
 
-<h1>📷 QR Сборщик текста</h1>
+<div class="tabs">
+<button id="tabGenerator" class="tab active" onclick="showPage('generator')">📤 Генератор</button>
+<button id="tabScanner" class="tab" onclick="showPage('scanner')">📷 Сборщик</button>
+</div>
+
+<!-- =====================================================
+     ГЕНЕРАТОР
+===================================================== -->
+<div id="generator" class="page active">
+<div class="card">
+<textarea id="sourceText" placeholder="Введите или вставьте сюда текст..."></textarea>
+
+<div class="qr-size-selector">
+    <label>Размер QR-кода:</label>
+    <select id="qrSize">
+        <option value="small">Маленький (легче сканировать)</option>
+        <option value="medium" selected>Средний (рекомендуется)</option>
+        <option value="large">Большой (для длинных текстов)</option>
+    </select>
+</div>
+
+<button class="primary" onclick="generateQRs()">Создать QR-коды</button>
+<button class="secondary" onclick="clearGenerator()">Очистить</button>
+</div>
+
+<div id="generatorInfo" class="card info">
+Введите текст и нажмите «Создать QR-коды».
+</div>
+
+<div id="qrOutput"></div>
+</div>
+
+<!-- =====================================================
+     СБОРЩИК
+===================================================== -->
+<div id="scanner" class="page">
+<div class="card">
+<div id="reader"></div>
+
+<button id="startCameraButton" class="primary" onclick="startScanner()">📷 Запустить камеру</button>
+<button class="secondary" onclick="stopScanner()">⏹ Остановить камеру</button>
+
+<div id="scanStatus" class="status">Камера не запущена</div>
+</div>
 
 <div class="card">
-
-    <div id="reader"></div>
-
-    <button class="start" onclick="startScanner()">
-        📷 Запустить камеру
-    </button>
-
-    <div class="status" id="status">
-        Камера не запущена
-    </div>
-
+<div>
+    Получено: <b id="receivedCount">0</b> / <b id="totalCount">?</b>
 </div>
 
+<div class="progress">
+    <div id="scanProgress" class="progress-bar"></div>
+</div>
+
+<div id="scanProgressText" class="small" style="margin-top:8px;">
+    Отсканируйте первый QR-код.
+</div>
+
+<div id="partsList" class="parts"></div>
+</div>
 
 <div class="card">
+<b>Восстановленный текст</b>
 
-    <div>
-        Принято QR-кодов:
-        <b id="count">0</b>
-    </div>
+<textarea id="resultText" readonly placeholder="После получения всех частей здесь появится исходный текст..."></textarea>
 
-    <div class="progress">
-        <div class="progress-bar" id="progress"></div>
-    </div>
-
-    <div class="small" id="progressText">
-        Сканируйте первый QR-код
-    </div>
-
+<button class="secondary" onclick="copyResult()">📋 Копировать</button>
+<button class="secondary" onclick="saveResult()">💾 Сохранить TXT</button>
+<button class="danger" onclick="clearScanner()">🗑 Очистить сборщик</button>
 </div>
 
-
-<div class="card">
-
-    <b>Порядок QR-кодов</b>
-
-    <div class="qr-list" id="qrList">
-        <div class="small">
-            Пока ничего не отсканировано.
-        </div>
-    </div>
-
+<div id="verification" class="card info hidden">
+<b>Проверка целостности</b>
+<div id="verificationText"></div>
 </div>
-
-
-<div class="card">
-
-    <b>Собранный текст</b>
-
-    <textarea
-        id="result"
-        placeholder="Здесь появится восстановленный текст..."
-        readonly></textarea>
-
-    <button class="copy" onclick="copyText()">
-        📋 Копировать текст
-    </button>
-
-    <button class="save" onclick="saveText()">
-        💾 Сохранить TXT
-    </button>
-
-    <button class="clear" onclick="clearAll()">
-        🗑 Очистить всё
-    </button>
-
 </div>
 
 </div>
-
 
 <script>
+/* =========================================================
+   ОБЩИЕ НАСТРОЙКИ
+========================================================= */
 
-/*
-============================================================
-НАСТРОЙКИ
-============================================================
-*/
+// Уровень коррекции ошибок L (7%) для максимальной вместимости
+const QR_ERROR_LEVEL = "L";
 
+// Размеры QR-кодов для разных режимов
+const QR_SIZES = {
+    small: {
+        cellSize: 4,
+        margin: 8,
+        maxChars: 500
+    },
+    medium: {
+        cellSize: 6,
+        margin: 10,
+        maxChars: 1000
+    },
+    large: {
+        cellSize: 8,
+        margin: 12,
+        maxChars: 1800
+    }
+};
 
 let scanner = null;
+let scannerRunning = false;
+let lastScanText = "";
+let lastScanTime = 0;
 
-let scanning = false;
+/* =========================================================
+   ГЕНЕРАТОР
+========================================================= */
 
+function utf8Bytes(text) {
+    return new TextEncoder().encode(text);
+}
 
-/*
-    Здесь хранятся все отсканированные QR.
+function utf8Length(text) {
+    return utf8Bytes(text).length;
+}
 
-    Каждый QR получает порядковый номер
-    в момент сканирования.
-*/
-let parts = [];
+function canFitQR(text) {
+    try {
+        const qr = qrcode(0, QR_ERROR_LEVEL);
+        qr.addData(text);
+        qr.make();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
 
+function unicodeChars(text) {
+    return Array.from(text);
+}
 
-/*
-    Чтобы один и тот же QR не добавлялся
-    много раз, пока камера продолжает его видеть.
-*/
-let lastDecoded = "";
+/* =========================================================
+   SHA-256
+========================================================= */
 
-let lastDecodedTime = 0;
+async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+}
 
+/* =========================================================
+   ФОРМАТ QR
+========================================================= */
 
-/*
-============================================================
-ЗАПУСК КАМЕРЫ
-============================================================
-*/
+const DATA_SEPARATOR = "<<<QRTX_DATA>>>";
 
-async function startScanner() {
+function createPacketSafe(documentId, partNumber, totalParts, hash, data) {
+    return [
+        "QRTX",
+        "1",
+        documentId,
+        String(partNumber),
+        String(totalParts),
+        hash,
+        DATA_SEPARATOR,
+        data
+    ].join("|");
+}
 
-    if (scanning) {
+/* =========================================================
+   ГЕНЕРАЦИЯ QR-КОДОВ
+========================================================= */
+
+async function generateQRs() {
+    const text = document.getElementById("sourceText").value;
+    const info = document.getElementById("generatorInfo");
+    const output = document.getElementById("qrOutput");
+    const qrSizeMode = document.getElementById("qrSize").value;
+    const qrSizeConfig = QR_SIZES[qrSizeMode];
+    
+    output.innerHTML = "";
+
+    if (text.length === 0) {
+        info.innerHTML = "Введите текст.";
         return;
     }
 
-    const status =
-        document.getElementById("status");
-
-    status.textContent =
-        "Запрашиваю доступ к камере...";
+    info.innerHTML = "⏳ Анализирую вместимость QR-кодов...";
 
     try {
+        const hash = await sha256(text);
+        const documentId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
+        
+        let rawParts = [];
+        let chars = unicodeChars(text);
+        let position = 0;
+        let estimatedTotal = 1;
 
-        scanner =
-            new Html5Qrcode("reader");
+        // Итерационный подбор размера частей
+        for (let iteration = 0; iteration < 10; iteration++) {
+            rawParts = [];
+            position = 0;
 
-        await scanner.start(
+            while (position < chars.length) {
+                const maxPartSize = Math.min(
+                    chars.length - position,
+                    qrSizeConfig.maxChars
+                );
 
-            {
-                facingMode: "environment"
-            },
+                let low = 1;
+                let high = maxPartSize;
+                let best = 0;
 
-            {
-                fps: 10,
+                while (low <= high) {
+                    const middle = Math.floor((low + high) / 2);
+                    const candidate = chars.slice(position, position + middle).join("");
+                    const packet = createPacketSafe(
+                        documentId,
+                        rawParts.length + 1,
+                        estimatedTotal,
+                        hash,
+                        candidate
+                    );
 
-                qrbox: function(viewfinderWidth, viewfinderHeight) {
+                    if (canFitQR(packet)) {
+                        best = middle;
+                        low = middle + 1;
+                    } else {
+                        high = middle - 1;
+                    }
+                }
 
-                    const size =
-                        Math.min(
-                            viewfinderWidth,
-                            viewfinderHeight
-                        ) * 0.75;
+                if (best <= 0) {
+                    if (high < 1) {
+                        throw new Error("Текст слишком длинный для QR-кодов. Попробуйте выбрать больший размер QR.");
+                    }
+                    best = 1;
+                }
 
-                    return {
-                        width: size,
-                        height: size
-                    };
-                },
+                rawParts.push(chars.slice(position, position + best).join(""));
+                position += best;
+            }
 
-                aspectRatio: 1.0
+            if (rawParts.length === estimatedTotal) {
+                break;
+            }
+            estimatedTotal = rawParts.length;
+        }
 
-            },
+        const totalParts = rawParts.length;
 
-            onScanSuccess,
+        info.innerHTML = 
+            "Символов: <b>" + text.length + "</b><br>" +
+            "UTF-8: <b>" + utf8Length(text) + " байт</b><br>" +
+            "QR-кодов: <b>" + totalParts + "</b><br>" +
+            "Размер QR: <b>" + qrSizeMode + "</b><br><br>" +
+            "Контрольная сумма SHA-256:<br>" +
+            "<div class='hash'>" + hash + "</div>";
 
-            onScanFailure
+        rawParts.forEach((part, index) => {
+            const packet = createPacketSafe(
+                documentId,
+                index + 1,
+                totalParts,
+                hash,
+                part
+            );
 
-        );
+            const qr = qrcode(0, QR_ERROR_LEVEL);
+            qr.addData(packet);
+            qr.make();
 
-        scanning = true;
+            const item = document.createElement("div");
+            item.className = "qr-item";
 
-        status.textContent =
-            "📷 Наведите камеру на QR-код";
+            const title = document.createElement("div");
+            title.className = "qr-title";
+            title.textContent = "QR " + (index + 1) + " / " + totalParts;
+            item.appendChild(title);
+
+            const img = document.createElement("img");
+            img.className = "qr-image";
+            img.src = qr.createDataURL(qrSizeConfig.cellSize, qrSizeConfig.margin);
+            item.appendChild(img);
+
+            const meta = document.createElement("div");
+            meta.className = "qr-meta";
+            meta.innerHTML = 
+                "Данные части: " + part.length + " символов · " + 
+                utf8Length(part) + " байт<br>" +
+                "Вместимость QR: до " + qrSizeConfig.maxChars + " символов";
+            item.appendChild(meta);
+
+            const download = document.createElement("button");
+            download.className = "secondary";
+            download.textContent = "💾 Скачать PNG";
+            download.onclick = () => {
+                downloadImage(img.src, "QR_" + (index + 1) + "_of_" + totalParts + ".png");
+            };
+            item.appendChild(download);
+
+            output.appendChild(item);
+        });
 
     } catch (error) {
-
         console.error(error);
-
-        status.innerHTML =
-            '<span class="warning">' +
-            'Не удалось запустить камеру.<br>' +
-            'Разрешите доступ к камере браузеру.' +
-            '</span>';
-
+        info.innerHTML = "<span class='error'>Ошибка: " + error.message + "</span>";
     }
 }
 
+/* =========================================================
+   СКАЧИВАНИЕ QR
+========================================================= */
 
-/*
-============================================================
-ОБРАБОТКА УСПЕШНОГО СКАНИРОВАНИЯ
-============================================================
-*/
+function downloadImage(dataURL, filename) {
+    const a = document.createElement("a");
+    a.href = dataURL;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
 
-function onScanSuccess(decodedText, decodedResult) {
+/* =========================================================
+   ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
+========================================================= */
 
-    const now = Date.now();
+function showPage(page) {
+    document.getElementById("generator").classList.remove("active");
+    document.getElementById("scanner").classList.remove("active");
+    document.getElementById("tabGenerator").classList.remove("active");
+    document.getElementById("tabScanner").classList.remove("active");
 
+    if (page === "generator") {
+        document.getElementById("generator").classList.add("active");
+        document.getElementById("tabGenerator").classList.add("active");
+        stopScanner(); // Останавливаем камеру при переключении
+    } else {
+        document.getElementById("scanner").classList.add("active");
+        document.getElementById("tabScanner").classList.add("active");
+    }
+}
 
-    /*
-        Если камера видит тот же QR несколько раз
-        подряд — игнорируем повтор.
-    */
+/* =========================================================
+   СБОРЩИК
+========================================================= */
 
-    if (
-        decodedText === lastDecoded &&
-        now - lastDecodedTime < 2500
-    ) {
+let receivedParts = {};
+let scanTotal = null;
+let scanHash = null;
+let scanDocumentId = null;
+
+/* =========================================================
+   ЗАПУСК СКАНЕРА
+========================================================= */
+
+async function startScanner() {
+    if (scannerRunning) {
         return;
     }
 
+    const status = document.getElementById("scanStatus");
+    status.textContent = "Запрашиваю камеру...";
 
-    lastDecoded = decodedText;
+    try {
+        scanner = new Html5Qrcode("reader");
+        
+        await scanner.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: function(width, height) {
+                    const size = Math.min(width, height) * 0.75;
+                    return { width: size, height: size };
+                }
+            },
+            onScanSuccess,
+            function(error) {
+                // Обычная ситуация: QR не распознан в текущем кадре
+            }
+        );
 
-    lastDecodedTime = now;
-
-
-    addPart(decodedText);
+        scannerRunning = true;
+        status.innerHTML = "<span class='ok'>📷 Камера работает. Наведите её на QR.</span>";
+    } catch (error) {
+        console.error(error);
+        status.innerHTML = "<span class='error'>Не удалось запустить камеру.<br>Проверьте разрешение браузера.</span>";
+    }
 }
 
+/* =========================================================
+   ОСТАНОВКА СКАНЕРА
+========================================================= */
 
-/*
-============================================================
-ОШИБКИ СКАНИРОВАНИЯ
-============================================================
-
-Ошибки здесь нормальны.
-
-Камера постоянно пытается распознать изображение,
-поэтому отсутствие QR в очередном кадре
-не считается ошибкой программы.
-*/
-
-function onScanFailure(error) {
-
-    // Ничего не делаем.
+async function stopScanner() {
+    if (scanner && scannerRunning) {
+        try {
+            await scanner.stop();
+            scanner.clear();
+        } catch (e) {
+            console.log(e);
+        }
+    }
+    
+    scannerRunning = false;
+    document.getElementById("scanStatus").textContent = "Камера остановлена.";
 }
 
+/* =========================================================
+   ПОЛУЧЕН QR
+========================================================= */
 
-/*
-============================================================
-ДОБАВЛЕНИЕ ЧАСТИ
-============================================================
-*/
+function onScanSuccess(decodedText) {
+    const now = Date.now();
+    
+    // Защита от повторного сканирования того же QR
+    if (decodedText === lastScanText && now - lastScanTime < 2500) {
+        return;
+    }
+    
+    lastScanText = decodedText;
+    lastScanTime = now;
+    
+    processPacket(decodedText);
+}
 
-function addPart(text) {
+/* =========================================================
+   РАЗБОР QR
+========================================================= */
 
-    /*
-        Проверяем, не был ли такой текст уже добавлен.
+function processPacket(packet) {
+    if (!packet.startsWith("QRTX|")) {
+        setScanStatus("Это не QR от этого генератора.", "warning");
+        return;
+    }
 
-        Это дополнительная защита от повторного сканирования.
-    */
+    const separatorIndex = packet.indexOf("|" + DATA_SEPARATOR + "|");
+    if (separatorIndex < 0) {
+        setScanStatus("Повреждённый формат QR.", "error");
+        return;
+    }
 
-    for (let i = 0; i < parts.length; i++) {
+    const header = packet.substring(0, separatorIndex);
+    const data = packet.substring(separatorIndex + DATA_SEPARATOR.length + 2);
+    const fields = header.split("|");
 
-        if (parts[i] === text) {
+    if (fields.length < 6) {
+        setScanStatus("Неверный QR.", "error");
+        return;
+    }
 
-            document.getElementById("status").textContent =
-                "Этот QR уже был добавлен.";
+    const format = fields[0];
+    const version = fields[1];
+    const documentId = fields[2];
+    const partNumber = Number(fields[3]);
+    const total = Number(fields[4]);
+    const hash = fields[5];
 
+    if (format !== "QRTX" || version !== "1") {
+        setScanStatus("Неподдерживаемый формат QR.", "error");
+        return;
+    }
+
+    if (!Number.isInteger(partNumber) || !Number.isInteger(total) || 
+        partNumber < 1 || partNumber > total) {
+        setScanStatus("Неверный номер части.", "error");
+        return;
+    }
+
+    // Первый QR определяет документ
+    if (scanDocumentId === null) {
+        scanDocumentId = documentId;
+        scanTotal = total;
+        scanHash = hash;
+    } else {
+        // Проверка на соответствие документа
+        if (documentId !== scanDocumentId) {
+            setScanStatus("⚠️ Это QR от другого документа.", "warning");
+            return;
+        }
+        if (total !== scanTotal) {
+            setScanStatus("⚠️ Количество частей не совпадает.", "warning");
+            return;
+        }
+        if (hash !== scanHash) {
+            setScanStatus("⚠️ Контрольная сумма не совпадает.", "warning");
             return;
         }
     }
 
-
-    /*
-        Добавляем новую часть.
-    */
-
-    parts.push(text);
-
-
-    /*
-        Обновляем интерфейс.
-    */
-
-    updateInterface();
-
-
-    /*
-        Небольшое визуальное подтверждение.
-    */
-
-    document.getElementById("status").innerHTML =
-        '<span class="ok">✓ QR-код №' +
-        parts.length +
-        ' принят</span>';
-}
-
-
-/*
-============================================================
-ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
-============================================================
-*/
-
-function updateInterface() {
-
-    const count =
-        document.getElementById("count");
-
-    const result =
-        document.getElementById("result");
-
-    const qrList =
-        document.getElementById("qrList");
-
-    const progress =
-        document.getElementById("progress");
-
-    const progressText =
-        document.getElementById("progressText");
-
-
-    /*
-        Количество
-    */
-
-    count.textContent =
-        parts.length;
-
-
-    /*
-        Собираем текст строго в порядке сканирования.
-    */
-
-    result.value =
-        parts.join("");
-
-
-    /*
-        Пока неизвестно общее количество QR,
-        поэтому прогресс показываем условно.
-    */
-
-    const percent =
-        Math.min(
-            100,
-            parts.length * 10
-        );
-
-    progress.style.width =
-        percent + "%";
-
-
-    progressText.textContent =
-        "Получено частей: " +
-        parts.length +
-        ". Сканируйте следующий QR-код.";
-
-
-    /*
-        Список полученных QR
-    */
-
-    qrList.innerHTML = "";
-
-
-    parts.forEach(function(part, index) {
-
-        const row =
-            document.createElement("div");
-
-        row.className =
-            "qr-row";
-
-
-        const number =
-            document.createElement("div");
-
-        number.className =
-            "qr-number";
-
-        number.textContent =
-            "#" + (index + 1);
-
-
-        const size =
-            document.createElement("div");
-
-        size.className =
-            "qr-size";
-
-        size.textContent =
-            "символов: " +
-            part.length +
-            ", UTF-8: " +
-            utf8Length(part) +
-            " байт";
-
-
-        row.appendChild(number);
-
-        row.appendChild(size);
-
-        qrList.appendChild(row);
-
-    });
-}
-
-
-/*
-============================================================
-UTF-8
-============================================================
-*/
-
-function utf8Length(text) {
-
-    return new TextEncoder()
-        .encode(text)
-        .length;
-}
-
-
-/*
-============================================================
-КОПИРОВАНИЕ
-============================================================
-*/
-
-async function copyText() {
-
-    const result =
-        document.getElementById("result");
-
-    if (!result.value) {
+    // Проверка на дубликат
+    if (receivedParts[partNumber] !== undefined) {
+        setScanStatus("QR " + partNumber + " уже получен.", "warning");
         return;
     }
+
+    // Сохраняем часть
+    receivedParts[partNumber] = data;
+    updateScannerInterface();
+    setScanStatus("✓ Получен QR " + partNumber + " / " + total, "ok");
+
+    // Проверяем, все ли части получены
+    if (Object.keys(receivedParts).length === scanTotal) {
+        assembleText();
+    }
+}
+
+/* =========================================================
+   ОБНОВЛЕНИЕ ИНТЕРФЕЙСА СБОРЩИКА
+========================================================= */
+
+function updateScannerInterface() {
+    const received = Object.keys(receivedParts).length;
+    
+    document.getElementById("receivedCount").textContent = received;
+    document.getElementById("totalCount").textContent = scanTotal || "?";
+
+    let percent = 0;
+    if (scanTotal) {
+        percent = received / scanTotal * 100;
+    }
+    
+    document.getElementById("scanProgress").style.width = percent + "%";
+    document.getElementById("scanProgressText").textContent = 
+        scanTotal ? (received + " из " + scanTotal + " частей") : "Ожидание QR";
+
+    const list = document.getElementById("partsList");
+    list.innerHTML = "";
+
+    if (!scanTotal) return;
+
+    for (let i = 1; i <= scanTotal; i++) {
+        const div = document.createElement("div");
+        if (receivedParts[i] !== undefined) {
+            div.className = "part received";
+            div.textContent = i;
+        } else {
+            div.className = "part missing";
+            div.textContent = i;
+        }
+        list.appendChild(div);
+    }
+}
+
+/* =========================================================
+   СБОРКА ТЕКСТА
+========================================================= */
+
+async function assembleText() {
+    let text = "";
+    
+    // Собираем текст строго по порядку
+    for (let i = 1; i <= scanTotal; i++) {
+        if (receivedParts[i] === undefined) {
+            return;
+        }
+        text += receivedParts[i];
+    }
+
+    document.getElementById("resultText").value = text;
+
+    // Проверяем SHA-256
+    const calculatedHash = await sha256(text);
+    const verification = document.getElementById("verification");
+    const verificationText = document.getElementById("verificationText");
+    
+    verification.classList.remove("hidden");
+
+    if (calculatedHash === scanHash) {
+        verificationText.innerHTML = 
+            "<p class='ok'>✅ Текст восстановлен полностью.</p>" +
+            "<p>Все " + scanTotal + " частей получены.</p>" +
+            "<p><b>SHA-256 совпадает.</b></p>" +
+            "<div class='hash'>" + calculatedHash + "</div>";
+        
+        document.getElementById("scanStatus").innerHTML = 
+            "<span class='ok'>🎉 ГОТОВО! Текст восстановлен без изменений.</span>";
+    } else {
+        verificationText.innerHTML = 
+            "<p class='error'>❌ Ошибка проверки!</p>" +
+            "<p>Контрольная сумма восстановленного текста не совпадает.</p>" +
+            "<div class='hash'>Ожидалось:<br>" + scanHash + "</div>" +
+            "<div class='hash'>Получено:<br>" + calculatedHash + "</div>";
+    }
+}
+
+/* =========================================================
+   СТАТУС
+========================================================= */
+
+function setScanStatus(text, type) {
+    const status = document.getElementById("scanStatus");
+    status.textContent = text;
+    status.className = "status " + type;
+}
+
+/* =========================================================
+   КОПИРОВАНИЕ
+========================================================= */
+
+async function copyResult() {
+    const text = document.getElementById("resultText").value;
+    if (!text) return;
 
     try {
-
-        await navigator.clipboard.writeText(
-            result.value
-        );
-
-        document.getElementById("status").innerHTML =
-            '<span class="ok">✓ Текст скопирован</span>';
-
-    } catch (error) {
-
-        /*
-            Запасной вариант
-        */
-
-        result.removeAttribute("readonly");
-
-        result.select();
-
+        await navigator.clipboard.writeText(text);
+        setScanStatus("✓ Текст скопирован.", "ok");
+    } catch (e) {
+        const textarea = document.getElementById("resultText");
+        textarea.removeAttribute("readonly");
+        textarea.select();
         document.execCommand("copy");
-
-        result.setAttribute("readonly", true);
-
-        document.getElementById("status").innerHTML =
-            '<span class="ok">✓ Текст скопирован</span>';
+        textarea.setAttribute("readonly", true);
+        setScanStatus("✓ Текст скопирован.", "ok");
     }
 }
 
+/* =========================================================
+   СОХРАНЕНИЕ TXT
+========================================================= */
 
-/*
-============================================================
-СОХРАНЕНИЕ TXT
-============================================================
-*/
+function saveResult() {
+    const text = document.getElementById("resultText").value;
+    if (!text) return;
 
-function saveText() {
-
-    const text =
-        document.getElementById("result").value;
-
-    if (!text) {
-        return;
-    }
-
-    const blob =
-        new Blob(
-            [text],
-            {
-                type: "text/plain;charset=utf-8"
-            }
-        );
-
-    const url =
-        URL.createObjectURL(blob);
-
-    const a =
-        document.createElement("a");
-
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
     a.href = url;
-
-    a.download =
-        "recovered_text.txt";
-
+    a.download = "recovered_text.txt";
     document.body.appendChild(a);
-
     a.click();
-
     document.body.removeChild(a);
-
     URL.revokeObjectURL(url);
 }
 
+/* =========================================================
+   ОЧИСТКА ГЕНЕРАТОРА
+========================================================= */
 
-/*
-============================================================
-ОЧИСТКА
-============================================================
-*/
+function clearGenerator() {
+    document.getElementById("sourceText").value = "";
+    document.getElementById("generatorInfo").innerHTML = 
+        "Введите текст и нажмите «Создать QR-коды».";
+    document.getElementById("qrOutput").innerHTML = "";
+}
 
-async function clearAll() {
+/* =========================================================
+   ОЧИСТКА СБОРЩИКА
+========================================================= */
 
-    /*
-        Если камера работает —
-        сначала выключаем её.
-    */
+async function clearScanner() {
+    await stopScanner();
+    
+    receivedParts = {};
+    scanTotal = null;
+    scanHash = null;
+    scanDocumentId = null;
+    lastScanText = "";
+    lastScanTime = 0;
 
-    if (scanner && scanning) {
-
-        try {
-
-            await scanner.stop();
-
-        } catch (e) {
-
-            console.log(e);
-        }
-
-        scanning = false;
-    }
-
-
-    parts = [];
-
-    lastDecoded = "";
-
-    lastDecodedTime = 0;
-
-
-    document.getElementById("count").textContent =
-        "0";
-
-    document.getElementById("result").value =
-        "";
-
-    document.getElementById("progress").style.width =
-        "0%";
-
-    document.getElementById("progressText").textContent =
-        "Сканируйте первый QR-код";
-
-    document.getElementById("qrList").innerHTML =
-        '<div class="small">' +
-        'Пока ничего не отсканировано.' +
-        '</div>';
-
-    document.getElementById("status").textContent =
-        "Камера не запущена";
+    document.getElementById("receivedCount").textContent = "0";
+    document.getElementById("totalCount").textContent = "?";
+    document.getElementById("scanProgress").style.width = "0%";
+    document.getElementById("scanProgressText").textContent = 
+        "Отсканируйте первый QR-код.";
+    document.getElementById("partsList").innerHTML = "";
+    document.getElementById("resultText").value = "";
+    document.getElementById("verification").classList.add("hidden");
+    
+    setScanStatus("Сборщик очищен.", "");
 }
 
 </script>
-
 </body>
 </html>
-
