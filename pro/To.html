@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QR File Transfer</title>
+<title>QR File Transfer - TXT & MP3</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -35,6 +35,8 @@ button:active { transform: scale(0.97); }
 .danger:hover { background: #fecaca; }
 .success { background: #0f973d; color: white; box-shadow: 0 4px 10px rgba(15,151,61,0.2); }
 .success:hover { background: #0b7e32; }
+.warning-btn { background: #f59e0b; color: white; box-shadow: 0 4px 10px rgba(245,158,11,0.2); }
+.warning-btn:hover { background: #d97706; }
 
 .info { font-size: 14px; line-height: 1.6; padding: 12px 16px; background: #f8fafc; border-radius: 14px; }
 .center { text-align: center; }
@@ -102,6 +104,16 @@ button:active { transform: scale(0.97); }
 .btn-group button { flex: 1; min-width: 100px; }
 
 .badge { display: inline-block; background: #d9e2ef; padding: 2px 12px; border-radius: 30px; font-size: 0.75rem; color: #1e293b; }
+
+/* Аудио плеер */
+.audio-player-container { margin: 12px 0; padding: 12px; background: #f1f5f9; border-radius: 14px; border: 1px solid #e2e8f0; }
+.audio-player-container audio { width: 100%; height: 44px; border-radius: 40px; }
+.audio-player-container .label { font-size: 13px; color: #64748b; margin-bottom: 6px; display: block; }
+
+.file-type-badge { display: inline-block; padding: 4px 14px; border-radius: 30px; font-size: 12px; font-weight: 600; }
+.file-type-txt { background: #dbeafe; color: #1e40af; }
+.file-type-mp3 { background: #fce7f3; color: #9d174d; }
+.file-type-other { background: #e5e7eb; color: #374151; }
 </style>
 </head>
 
@@ -118,15 +130,22 @@ button:active { transform: scale(0.97); }
 <!-- ГЕНЕРАТОР -->
 <div id="generator" class="page active">
     <div class="card">
+        <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+            <div class="file-type-badge file-type-txt">📄 TXT</div>
+            <div class="file-type-badge file-type-mp3">🎵 MP3</div>
+            <div class="file-type-badge file-type-other">📁 Другие</div>
+        </div>
+        
         <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
             <span class="icon">📁</span>
             <div class="text">Нажмите для загрузки файла</div>
-            <div class="subtext">Файл будет преобразован в Base64 и вставлен в поле ниже</div>
+            <div class="subtext">Поддерживаются TXT, MP3 и другие файлы</div>
             <input type="file" id="fileInput" onchange="handleFileUpload(event)">
         </div>
         <div id="fileInfo" class="file-info hidden">
             <div class="filename" id="fileName"></div>
             <div class="filesize" id="fileSize"></div>
+            <div style="margin-top: 6px;" id="fileTypeInfo"></div>
         </div>
         
         <textarea id="sourceText" placeholder="Сюда будет вставлен Base64 из файла или можно ввести текст вручную..."></textarea>
@@ -142,7 +161,7 @@ button:active { transform: scale(0.97); }
             <button class="secondary" onclick="clearGenerator()">🗑 Очистить</button>
         </div>
     </div>
-    <div id="generatorInfo" class="card info">Загрузите файл (он преобразуется в Base64) или введите текст и нажмите «Создать QR-коды».</div>
+    <div id="generatorInfo" class="card info">Загрузите файл (TXT, MP3 или другой) и нажмите «Создать QR-коды».</div>
     <div id="qrOutput"></div>
 </div>
 
@@ -167,10 +186,17 @@ button:active { transform: scale(0.97); }
     <div class="card">
         <b>Восстановленный Base64</b>
         <textarea id="resultText" readonly placeholder="После получения всех частей здесь появится Base64..."></textarea>
+        
+        <!-- Аудио плеер для MP3 -->
+        <div id="audioPlayerContainer" class="audio-player-container hidden">
+            <span class="label">🎵 Аудио превью:</span>
+            <audio controls id="audioPlayer"></audio>
+        </div>
+        
         <div class="btn-group">
             <button class="secondary" onclick="copyResult()">📋 Копировать</button>
             <button class="secondary" onclick="saveResultTxt()">💾 Сохранить TXT</button>
-            <button class="success" onclick="downloadResultFile()">📁 Скачать файл из Base64</button>
+            <button class="success" onclick="downloadResultFile()">📁 Скачать файл</button>
             <button class="danger" onclick="clearScanner()">🗑 Очистить</button>
         </div>
     </div>
@@ -229,8 +255,16 @@ let scanTotal = null;
 let scanHash = null;
 let scanDocumentId = null;
 
+// Информация о файле
+let currentFileInfo = {
+    name: '',
+    size: 0,
+    type: '',
+    base64: ''
+};
+
 /* =========================================================
-   РАБОТА С ФАЙЛАМИ - ПРОСТО КОНВЕРТИРУЕМ В BASE64 И ВСТАВЛЯЕМ В ПОЛЕ
+   РАБОТА С ФАЙЛАМИ
 ========================================================= */
 function handleFileUpload(event) {
     const file = event.target.files[0];
@@ -239,31 +273,54 @@ function handleFileUpload(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            // Получаем ArrayBuffer
             const arrayBuffer = e.target.result;
             const uint8Array = new Uint8Array(arrayBuffer);
             
-            // Преобразуем в Base64
             let binary = '';
             for (let i = 0; i < uint8Array.length; i++) {
                 binary += String.fromCharCode(uint8Array[i]);
             }
             const base64 = btoa(binary);
             
-            // ВСТАВЛЯЕМ BASE64 В ТЕКСТОВОЕ ПОЛЕ
+            // Сохраняем информацию о файле
+            currentFileInfo = {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                base64: base64
+            };
+            
+            // Вставляем Base64 в текстовое поле
             document.getElementById('sourceText').value = base64;
             
-            // Показываем информацию о файле
+            // Определяем тип файла для отображения
+            let typeLabel = 'Другой';
+            let typeClass = 'file-type-other';
+            let icon = '📁';
+            
+            if (file.name.endsWith('.txt') || file.type === 'text/plain') {
+                typeLabel = 'Текстовый файл';
+                typeClass = 'file-type-txt';
+                icon = '📄';
+            } else if (file.name.endsWith('.mp3') || file.type === 'audio/mpeg') {
+                typeLabel = 'MP3 аудио';
+                typeClass = 'file-type-mp3';
+                icon = '🎵';
+            }
+            
+            // Показываем информацию
             const fileInfo = document.getElementById('fileInfo');
             fileInfo.classList.remove('hidden');
-            document.getElementById('fileName').textContent = '📄 ' + file.name;
-            document.getElementById('fileSize').textContent = 'Размер: ' + formatFileSize(file.size) + 
-                                                           ' | Base64: ' + formatFileSize(base64.length) + 
-                                                           ' (' + base64.length + ' симв.)';
+            document.getElementById('fileName').textContent = icon + ' ' + file.name;
+            document.getElementById('fileSize').textContent = 'Размер: ' + formatFileSize(file.size);
+            document.getElementById('fileTypeInfo').innerHTML = 
+                '<span class="file-type-badge ' + typeClass + '">' + typeLabel + '</span> | ' +
+                'Base64: ' + formatFileSize(base64.length) + ' (' + base64.length + ' симв.)';
             
             document.getElementById('generatorInfo').innerHTML = 
                 '<span class="ok">✅ Файл загружен и преобразован в Base64</span><br>' +
                 'Файл: <b>' + file.name + '</b><br>' +
+                'Тип: ' + typeLabel + '<br>' +
                 'Размер: ' + formatFileSize(file.size) + '<br>' +
                 'Base64 длина: <b>' + base64.length + '</b> символов<br>' +
                 '<span class="badge" style="margin-top:6px; display:inline-block;">Base64 вставлен в поле выше</span>';
@@ -366,18 +423,22 @@ async function generateQRs() {
         const hash = await sha256(text);
         const documentId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36);
         
-        // Разбиваем данные
         const chunks = splitData(text, maxBytes);
         const totalParts = chunks.length;
         
         transferQRs = [];
         
+        let fileInfo = '';
+        if (currentFileInfo.name) {
+            fileInfo = '📄 Файл: <b>' + currentFileInfo.name + '</b><br>';
+        }
+        
         info.innerHTML = 
+            fileInfo +
             '📊 Данные: <b>' + text.length + ' символов</b><br>' +
             '🔢 QR-кодов: <b>' + totalParts + '</b><br><br>' +
             '🔐 Контрольная сумма SHA-256:<br><div class="hash">' + hash + '</div>';
         
-        // Создаём QR-коды
         for (let i = 0; i < chunks.length; i++) {
             const packet = createPacket(documentId, i + 1, totalParts, hash, chunks[i]);
             const qr = qrcode(0, QR_ERROR_LEVEL);
@@ -703,12 +764,38 @@ async function assembleData() {
     verification.classList.remove("hidden");
     
     if (calculatedHash === scanHash) {
+        // Проверяем, является ли это MP3 (для аудио плеера)
+        const isMP3 = fullData.length > 0 && /^[A-Za-z0-9+/=]+$/.test(fullData) && 
+                      (fullData.startsWith('ID3') || fullData.startsWith('AAAA'));
+        
+        let audioHTML = '';
+        if (isMP3) {
+            try {
+                const binaryString = atob(fullData);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: 'audio/mpeg' });
+                const url = URL.createObjectURL(blob);
+                
+                document.getElementById('audioPlayer').src = url;
+                document.getElementById('audioPlayerContainer').classList.remove('hidden');
+                audioHTML = '<br><div class="audio-player-container"><span class="label">🎵 Аудио превью:</span><audio controls src="' + url + '"></audio></div>';
+            } catch (e) {
+                console.log('Не удалось создать аудио плеер');
+            }
+        } else {
+            document.getElementById('audioPlayerContainer').classList.add('hidden');
+        }
+        
         verificationText.innerHTML = 
             "<p class='ok'>✅ Данные восстановлены полностью.</p>" +
             "<p>Все " + scanTotal + " частей получены.</p>" +
             "<p><b>SHA-256 совпадает.</b></p>" +
             "<div class='hash'>" + calculatedHash + "</div>" +
-            '<br><p>📁 <b>Это Base64 данные</b> - нажмите "Скачать файл из Base64" для восстановления</p>';
+            '<br><p>📁 <b>Это Base64 данные</b> - нажмите "Скачать файл" для восстановления</p>' +
+            audioHTML;
         
         document.getElementById("scanStatus").innerHTML = "<span class='ok'>🎉 ГОТОВО!</span>";
     } else {
@@ -766,48 +853,56 @@ function downloadResultFile() {
         return;
     }
     
-    // Проверяем, что это Base64
     if (!/^[A-Za-z0-9+/=]+$/.test(base64Text)) {
         setScanStatus("❌ Это не Base64 данные. Невозможно восстановить файл.", "error");
         return;
     }
     
     try {
-        // Декодируем Base64 в бинарные данные (ТОЧНО КАК В АУДИО-КОНВЕРТЕРЕ)
         const binaryString = atob(base64Text);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
         }
         
-        // Определяем расширение файла по заголовку
+        // Определяем тип файла
         let ext = '.bin';
         let mimeType = 'application/octet-stream';
+        let fileName = 'recovered_file';
         
-        // Проверяем первые символы Base64 для определения типа
+        // Проверяем сигнатуры
         const header = base64Text.substring(0, 20);
-        if (header.startsWith('/9j/')) { ext = '.jpg'; mimeType = 'image/jpeg'; }
-        else if (header.startsWith('iVBOR')) { ext = '.png'; mimeType = 'image/png'; }
-        else if (header.startsWith('R0lGOD')) { ext = '.gif'; mimeType = 'image/gif'; }
-        else if (header.startsWith('UEs')) { ext = '.zip'; mimeType = 'application/zip'; }
-        else if (header.startsWith('H4sI')) { ext = '.gz'; mimeType = 'application/gzip'; }
-        else if (header.startsWith('JVBER')) { ext = '.pdf'; mimeType = 'application/pdf'; }
-        else if (header.startsWith('SUkq')) { ext = '.tiff'; mimeType = 'image/tiff'; }
-        else if (header.startsWith('AAAA')) { ext = '.wav'; mimeType = 'audio/wav'; }
-        else if (header.startsWith('ID3')) { ext = '.mp3'; mimeType = 'audio/mpeg'; }
-        else if (header.startsWith('fLaC')) { ext = '.flac'; mimeType = 'audio/flac'; }
+        if (header.startsWith('/9j/')) { ext = '.jpg'; mimeType = 'image/jpeg'; fileName = 'recovered_image'; }
+        else if (header.startsWith('iVBOR')) { ext = '.png'; mimeType = 'image/png'; fileName = 'recovered_image'; }
+        else if (header.startsWith('R0lGOD')) { ext = '.gif'; mimeType = 'image/gif'; fileName = 'recovered_image'; }
+        else if (header.startsWith('UEs')) { ext = '.zip'; mimeType = 'application/zip'; fileName = 'recovered_archive'; }
+        else if (header.startsWith('H4sI')) { ext = '.gz'; mimeType = 'application/gzip'; fileName = 'recovered_archive'; }
+        else if (header.startsWith('JVBER')) { ext = '.pdf'; mimeType = 'application/pdf'; fileName = 'recovered_document'; }
+        else if (header.startsWith('ID3')) { ext = '.mp3'; mimeType = 'audio/mpeg'; fileName = 'recovered_audio'; }
+        else if (header.startsWith('AAAA')) { ext = '.wav'; mimeType = 'audio/wav'; fileName = 'recovered_audio'; }
+        else if (header.startsWith('fLaC')) { ext = '.flac'; mimeType = 'audio/flac'; fileName = 'recovered_audio'; }
+        
+        // Проверяем, не текстовый ли это файл
+        try {
+            const text = new TextDecoder('utf-8').decode(bytes);
+            if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
+                ext = '.txt';
+                mimeType = 'text/plain';
+                fileName = 'recovered_text';
+            }
+        } catch (e) {}
         
         const blob = new Blob([bytes], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "recovered_file" + ext;
+        a.download = fileName + ext;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        setScanStatus("✅ Файл успешно скачан как: recovered_file" + ext, "ok");
+        setScanStatus("✅ Файл скачан как: " + fileName + ext, "ok");
         
     } catch (error) {
         console.error(error);
@@ -820,9 +915,10 @@ function downloadResultFile() {
 ========================================================= */
 function clearGenerator() {
     document.getElementById("sourceText").value = "";
-    document.getElementById("generatorInfo").innerHTML = "Загрузите файл (он преобразуется в Base64) или введите текст и нажмите «Создать QR-коды».";
+    document.getElementById("generatorInfo").innerHTML = "Загрузите файл (TXT, MP3 или другой) и нажмите «Создать QR-коды».";
     document.getElementById("qrOutput").innerHTML = "";
     document.getElementById("fileInfo").classList.add("hidden");
+    currentFileInfo = { name: '', size: 0, type: '', base64: '' };
     transferQRs = [];
     stopTransfer();
     updateTransferUI();
@@ -844,6 +940,8 @@ async function clearScanner() {
     document.getElementById("partsList").innerHTML = "";
     document.getElementById("resultText").value = "";
     document.getElementById("verification").classList.add("hidden");
+    document.getElementById("audioPlayerContainer").classList.add("hidden");
+    document.getElementById('audioPlayer').src = '';
     setScanStatus("Сборщик очищен.", "");
 }
 
