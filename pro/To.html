@@ -559,14 +559,12 @@ let transferRunning = false;
    ГЕНЕРАТОР
 ========================================================= */
 
-// Функция для правильного подсчёта байт в UTF-8
 function utf8Bytes(text) {
-    // Используем TextEncoder для точного подсчета байт в UTF-8
-    return new TextEncoder().encode(text).length;
+    return new TextEncoder().encode(text);
 }
 
 function utf8Length(text) {
-    return utf8Bytes(text);
+    return utf8Bytes(text).length;
 }
 
 function canFitQR(text) {
@@ -733,12 +731,9 @@ async function generateQRs() {
         // Сохраняем QR-коды для передачи
         transferQRs = [];
 
-        // Правильно считаем байты для отображения
-        const totalBytes = utf8Length(text);
-        
         info.innerHTML =
             "Символов: <b>" + text.length + "</b><br>" +
-            "UTF-8: <b>" + totalBytes + " байт</b><br>" +
+            "UTF-8: <b>" + utf8Length(text) + " байт</b><br>" +
             "Максимум в одном QR: <b>" + maxSize + " символов</b><br>" +
             "QR-кодов: <b>" + totalParts + "</b><br><br>" +
             "Контрольная сумма SHA-256:<br>" +
@@ -1118,6 +1113,7 @@ function processPacket(packet) {
         return;
     }
 
+    // Сохраняем данные с правильной кодировкой
     receivedParts[partNumber] = data;
     updateScannerInterface();
 
@@ -1171,7 +1167,10 @@ async function assembleText() {
     let text = "";
 
     for (let i = 1; i <= scanTotal; i++) {
-        if (receivedParts[i] === undefined) return;
+        if (receivedParts[i] === undefined) {
+            setScanStatus("Ошибка: часть " + i + " отсутствует.", "error");
+            return;
+        }
         text += receivedParts[i];
     }
 
