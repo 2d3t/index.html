@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QR File Transfer - Универсальный</title>
+<title>QR File Transfer - Со звуком</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -108,7 +108,6 @@ button:active { transform: scale(0.97); }
 
 .badge { display: inline-block; background: #d9e2ef; padding: 2px 12px; border-radius: 30px; font-size: 0.75rem; color: #1e293b; }
 
-/* Плееры */
 .preview-container { margin: 12px 0; padding: 12px; background: #f1f5f9; border-radius: 14px; border: 1px solid #e2e8f0; }
 .preview-container audio { width: 100%; height: 44px; border-radius: 40px; }
 .preview-container .label { font-size: 13px; color: #64748b; margin-bottom: 6px; display: block; font-weight: 600; }
@@ -127,11 +126,16 @@ button:active { transform: scale(0.97); }
 .mode-text { background: #dbeafe; color: #1e40af; }
 .mode-audio { background: #fce7f3; color: #9d174d; }
 .mode-auto { background: #d1fae5; color: #065f46; }
+
+/* Индикатор звука */
+.sound-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+.sound-active { background: #0f973d; animation: pulse-sound 0.5s ease-in-out 2; }
+@keyframes pulse-sound { 0% { transform: scale(1); } 50% { transform: scale(1.5); } 100% { transform: scale(1); } }
 </style>
 </head>
 
 <body>
-<button onclick="toggleQR()">QR-код - Подключение </button>
+<button onclick="toggleQR()">Подключить устройство по QR-Коду</button>
 
 <div id="qrContainer" style="display:none; margin-top:10px;">
     <img src="https://2d3t.github.io/index.html/icons/qrtr.png"
@@ -145,7 +149,6 @@ function toggleQR() {
     qr.style.display = qr.style.display === 'none' ? 'block' : 'none';
 }
 </script>
-
 
 
 
@@ -181,7 +184,7 @@ function toggleQR() {
             <div style="margin-top: 6px;" id="fileTypeInfo"></div>
         </div>
         
-        <textarea id="sourceText" placeholder="Сюда будет вставлен Base64 из файла или можно ввести текст на английском вручную..."></textarea>
+        <textarea id="sourceText" placeholder="Сюда будет вставлен Base64 из файла или можно ввести текст вручную..."></textarea>
         
         <div class="size-control">
             <label for="maxChunkSize">Байт на QR:</label>
@@ -286,6 +289,80 @@ function toggleQR() {
 
 <script>
 /* =========================================================
+   ЗВУКОВЫЕ СИГНАЛЫ (Web Audio API)
+========================================================= */
+function playBeep(frequency, duration, type = 'sine') {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        
+        // Плавное затухание
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + duration);
+        
+        // Показываем индикатор звука
+        showSoundIndicator();
+        
+    } catch (e) {
+        console.log('Звук не поддерживается в этом браузере');
+    }
+}
+
+function playSuccessBeep() {
+    // Два быстрых сигнала вверх - успех!
+    playBeep(880, 0.15);
+    setTimeout(() => playBeep(1100, 0.2), 180);
+}
+
+function playCompleteBeep() {
+    // Нисходящий сигнал - завершение
+    playBeep(880, 0.1);
+    setTimeout(() => playBeep(660, 0.1), 120);
+    setTimeout(() => playBeep(440, 0.3), 240);
+}
+
+function playErrorBeep() {
+    // Низкий сигнал - ошибка
+    playBeep(300, 0.3, 'sawtooth');
+}
+
+function playStartBeep() {
+    // Короткий сигнал - начало
+    playBeep(600, 0.1);
+    setTimeout(() => playBeep(800, 0.1), 120);
+}
+
+function showSoundIndicator() {
+    const indicator = document.createElement('span');
+    indicator.className = 'sound-indicator sound-active';
+    indicator.style.display = 'inline-block';
+    indicator.style.verticalAlign = 'middle';
+    
+    // Добавляем индикатор рядом со статусом
+    const status = document.getElementById('scanStatus');
+    if (status) {
+        // Удаляем старые индикаторы
+        status.querySelectorAll('.sound-indicator').forEach(el => el.remove());
+        status.prepend(indicator);
+        
+        // Удаляем через 1.5 секунды
+        setTimeout(() => {
+            indicator.remove();
+        }, 1500);
+    }
+}
+
+/* =========================================================
    БАЗОВЫЕ НАСТРОЙКИ
 ========================================================= */
 const QR_ERROR_LEVEL = "M";
@@ -317,7 +394,7 @@ let currentFileInfo = {
 };
 
 let isComplete = false;
-let currentViewMode = 'auto'; // 'auto', 'text', 'audio'
+let currentViewMode = 'auto';
 let lastDecodedData = null;
 
 /* =========================================================
@@ -537,6 +614,9 @@ async function generateQRs() {
             output.appendChild(item);
         }
         
+        // 🔔 ЗВУКОВОЙ СИГНАЛ - QR-коды созданы!
+        playSuccessBeep();
+        
         if (transferQRs.length > 0) {
             updateTransferUI();
             document.getElementById("transferStatus").textContent = "Готово к передаче (" + transferQRs.length + " QR)";
@@ -552,6 +632,7 @@ async function generateQRs() {
     } catch (error) {
         console.error(error);
         info.innerHTML = "<span class='error'>❌ Ошибка: " + error.message + "</span>";
+        playErrorBeep();
     }
 }
 
@@ -647,6 +728,9 @@ function startTransfer() {
     document.getElementById("transferContainer").classList.add("transfer-active");
     document.getElementById("transferStatus").textContent = "▶ Передача запущена...";
     
+    // 🔔 ЗВУКОВОЙ СИГНАЛ - передача началась
+    playStartBeep();
+    
     startTimer();
 }
 
@@ -689,9 +773,13 @@ async function startScanner() {
         scannerRunning = true;
         status.innerHTML = "<span class='ok'>📷 Камера работает. Наведите её на QR.</span>";
         
+        // 🔔 ЗВУКОВОЙ СИГНАЛ - камера запущена
+        playStartBeep();
+        
     } catch (error) {
         console.error(error);
         status.innerHTML = "<span class='error'>Не удалось запустить камеру. Проверьте разрешение.</span>";
+        playErrorBeep();
     }
 }
 
@@ -831,25 +919,20 @@ function decodeBase64Data(base64Text) {
 function detectFileType(bytes) {
     if (!bytes || bytes.length === 0) return 'unknown';
     
-    // Проверяем сигнатуры
     const header = Array.from(bytes.slice(0, 20)).map(b => String.fromCharCode(b)).join('');
     
-    // MP3
     if (header.startsWith('ID3') || (bytes[0] === 0xFF && bytes[1] === 0xFB)) {
         return 'audio';
     }
     
-    // WAV
     if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
         return 'audio';
     }
     
-    // FLAC
     if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43) {
         return 'audio';
     }
     
-    // Проверяем на текст
     try {
         const text = new TextDecoder('utf-8').decode(bytes);
         if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
@@ -883,7 +966,6 @@ function bytesToAudioUrl(bytes) {
 function setViewMode(mode) {
     currentViewMode = mode;
     
-    // Обновляем стили кнопок
     document.getElementById('modeAutoBtn').style.background = '#eef2f6';
     document.getElementById('modeTextBtn').style.background = '#eef2f6';
     document.getElementById('modeAudioBtn').style.background = '#eef2f6';
@@ -896,7 +978,6 @@ function setViewMode(mode) {
         document.getElementById('modeAudioBtn').style.background = '#fce7f3';
     }
     
-    // Применяем режим к текущим данным
     if (lastDecodedData) {
         applyViewMode(mode, lastDecodedData);
     }
@@ -906,7 +987,6 @@ function applyViewMode(mode, bytes) {
     const textContainer = document.getElementById('textPreviewContainer');
     const audioContainer = document.getElementById('audioPreviewContainer');
     
-    // Скрываем все
     textContainer.classList.add('hidden');
     audioContainer.classList.add('hidden');
     
@@ -917,19 +997,16 @@ function applyViewMode(mode, bytes) {
     const fileType = detectFileType(bytes);
     
     if (mode === 'auto') {
-        // Автоматический режим
         if (fileType === 'audio') {
             showAudio(bytes);
         } else if (fileType === 'text') {
             showText(bytes);
         } else {
-            // Показываем как текст, если не удалось определить
             showText(bytes);
         }
     } else if (mode === 'text') {
         showText(bytes);
     } else if (mode === 'audio') {
-        // Пробуем показать как аудио, даже если это не аудио
         showAudio(bytes);
     }
 }
@@ -955,7 +1032,6 @@ function showAudio(bytes) {
         container.classList.remove('hidden');
         document.getElementById('textPreviewContainer').classList.add('hidden');
         
-        // Пробуем воспроизвести автоматически в режиме auto
         if (currentViewMode === 'auto') {
             setTimeout(() => {
                 player.play().catch(e => console.log('Автовоспроизведение заблокировано'));
@@ -998,6 +1074,9 @@ async function assembleData() {
         await stopScanner();
         setScanStatus("✅ Сканирование завершено! Камера остановлена.", "ok");
         
+        // 🔔 ЗВУКОВОЙ СИГНАЛ - сканирование завершено!
+        playCompleteBeep();
+        
         // Декодируем данные
         const bytes = decodeBase64Data(fullData);
         lastDecodedData = bytes;
@@ -1005,13 +1084,11 @@ async function assembleData() {
         if (bytes) {
             const fileType = detectFileType(bytes);
             
-            // Автоматически показываем в зависимости от типа
             if (fileType === 'audio') {
                 setViewMode('auto');
             } else if (fileType === 'text') {
                 setViewMode('auto');
             } else {
-                // Для бинарных файлов показываем как текст
                 setViewMode('text');
             }
         }
@@ -1044,6 +1121,7 @@ async function assembleData() {
             "<p class='error'>❌ Ошибка проверки!</p>" +
             "<div class='hash'>Ожидалось:<br>" + scanHash + "</div>" +
             "<div class='hash'>Получено:<br>" + calculatedHash + "</div>";
+        playErrorBeep();
     }
 }
 
@@ -1121,7 +1199,6 @@ function downloadResultFile() {
         else if (header.startsWith('AAAA')) { ext = '.wav'; mimeType = 'audio/wav'; fileName = 'recovered_audio'; }
         else if (header.startsWith('fLaC')) { ext = '.flac'; mimeType = 'audio/flac'; fileName = 'recovered_audio'; }
         
-        // Проверяем на текст
         try {
             const text = new TextDecoder('utf-8').decode(bytes);
             if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
@@ -1187,7 +1264,6 @@ async function clearScanner() {
     document.getElementById('audioPlayer').src = '';
     document.getElementById('textPreview').textContent = '';
     
-    // Сбрасываем стили кнопок режимов
     document.getElementById('modeAutoBtn').style.background = '#d1fae5';
     document.getElementById('modeTextBtn').style.background = '#eef2f6';
     document.getElementById('modeAudioBtn').style.background = '#eef2f6';
@@ -1217,8 +1293,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     updateTransferUI();
     document.getElementById("transferStopBtn").disabled = true;
-    
-    // Устанавливаем авто-режим по умолчанию
     document.getElementById('modeAutoBtn').style.background = '#d1fae5';
 });
 </script>
