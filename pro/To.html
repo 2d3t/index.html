@@ -561,7 +561,8 @@ let transferRunning = false;
 
 // Функция для правильного подсчёта байт в UTF-8
 function utf8Bytes(text) {
-    return new Blob([text]).size;
+    // Используем TextEncoder для точного подсчета байт в UTF-8
+    return new TextEncoder().encode(text).length;
 }
 
 function utf8Length(text) {
@@ -732,9 +733,12 @@ async function generateQRs() {
         // Сохраняем QR-коды для передачи
         transferQRs = [];
 
+        // Правильно считаем байты для отображения
+        const totalBytes = utf8Length(text);
+        
         info.innerHTML =
             "Символов: <b>" + text.length + "</b><br>" +
-            "UTF-8: <b>" + utf8Length(text) + " байт</b><br>" +
+            "UTF-8: <b>" + totalBytes + " байт</b><br>" +
             "Максимум в одном QR: <b>" + maxSize + " символов</b><br>" +
             "QR-кодов: <b>" + totalParts + "</b><br><br>" +
             "Контрольная сумма SHA-256:<br>" +
