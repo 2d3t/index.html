@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QR File Transfer - Base64</title>
+<title>QR File Transfer</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -101,9 +101,6 @@ button:active { transform: scale(0.97); }
 .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-group button { flex: 1; min-width: 100px; }
 
-.file-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.file-actions button { flex: 1; min-width: 80px; }
-
 .badge { display: inline-block; background: #d9e2ef; padding: 2px 12px; border-radius: 30px; font-size: 0.75rem; color: #1e293b; }
 </style>
 </head>
@@ -124,7 +121,7 @@ button:active { transform: scale(0.97); }
         <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
             <span class="icon">📁</span>
             <div class="text">Нажмите для загрузки файла</div>
-            <div class="subtext">Любой файл (аудио, изображения, документы и т.д.)</div>
+            <div class="subtext">Файл будет преобразован в Base64 и вставлен в поле ниже</div>
             <input type="file" id="fileInput" onchange="handleFileUpload(event)">
         </div>
         <div id="fileInfo" class="file-info hidden">
@@ -132,7 +129,7 @@ button:active { transform: scale(0.97); }
             <div class="filesize" id="fileSize"></div>
         </div>
         
-        <textarea id="sourceText" placeholder="Или введите текст здесь..."></textarea>
+        <textarea id="sourceText" placeholder="Сюда будет вставлен Base64 из файла или можно ввести текст вручную..."></textarea>
         
         <div class="size-control">
             <label for="maxChunkSize">Байт на QR:</label>
@@ -145,7 +142,7 @@ button:active { transform: scale(0.97); }
             <button class="secondary" onclick="clearGenerator()">🗑 Очистить</button>
         </div>
     </div>
-    <div id="generatorInfo" class="card info">Загрузите файл или введите текст и нажмите «Создать QR-коды».</div>
+    <div id="generatorInfo" class="card info">Загрузите файл (он преобразуется в Base64) или введите текст и нажмите «Создать QR-коды».</div>
     <div id="qrOutput"></div>
 </div>
 
@@ -168,12 +165,12 @@ button:active { transform: scale(0.97); }
     </div>
 
     <div class="card">
-        <b>Восстановленные данные</b>
-        <textarea id="resultText" readonly placeholder="После получения всех частей здесь появится результат..."></textarea>
+        <b>Восстановленный Base64</b>
+        <textarea id="resultText" readonly placeholder="После получения всех частей здесь появится Base64..."></textarea>
         <div class="btn-group">
             <button class="secondary" onclick="copyResult()">📋 Копировать</button>
             <button class="secondary" onclick="saveResultTxt()">💾 Сохранить TXT</button>
-            <button class="success" onclick="downloadResultFile()">📁 Скачать файл</button>
+            <button class="success" onclick="downloadResultFile()">📁 Скачать файл из Base64</button>
             <button class="danger" onclick="clearScanner()">🗑 Очистить</button>
         </div>
     </div>
@@ -232,12 +229,8 @@ let scanTotal = null;
 let scanHash = null;
 let scanDocumentId = null;
 
-// Данные файла
-let currentFileData = null;
-let currentFileName = null;
-
 /* =========================================================
-   РАБОТА С ФАЙЛАМИ - ИСПОЛЬЗУЕМ ПРОВЕРЕННЫЙ МЕТОД ИЗ АУДИО-КОНВЕРТЕРА
+   РАБОТА С ФАЙЛАМИ - ПРОСТО КОНВЕРТИРУЕМ В BASE64 И ВСТАВЛЯЕМ В ПОЛЕ
 ========================================================= */
 function handleFileUpload(event) {
     const file = event.target.files[0];
@@ -250,31 +243,30 @@ function handleFileUpload(event) {
             const arrayBuffer = e.target.result;
             const uint8Array = new Uint8Array(arrayBuffer);
             
-            // Преобразуем в Base64 - ТОЧНО ТАК ЖЕ КАК В АУДИО-КОНВЕРТЕРЕ
+            // Преобразуем в Base64
             let binary = '';
             for (let i = 0; i < uint8Array.length; i++) {
                 binary += String.fromCharCode(uint8Array[i]);
             }
             const base64 = btoa(binary);
             
-            currentFileData = base64;
-            currentFileName = file.name;
+            // ВСТАВЛЯЕМ BASE64 В ТЕКСТОВОЕ ПОЛЕ
+            document.getElementById('sourceText').value = base64;
             
             // Показываем информацию о файле
             const fileInfo = document.getElementById('fileInfo');
             fileInfo.classList.remove('hidden');
             document.getElementById('fileName').textContent = '📄 ' + file.name;
             document.getElementById('fileSize').textContent = 'Размер: ' + formatFileSize(file.size) + 
-                                                           ' | Base64: ' + formatFileSize(base64.length);
-            
-            // Вставляем Base64 в текстовое поле
-            document.getElementById('sourceText').value = base64;
+                                                           ' | Base64: ' + formatFileSize(base64.length) + 
+                                                           ' (' + base64.length + ' симв.)';
             
             document.getElementById('generatorInfo').innerHTML = 
-                '<span class="ok">✅ Файл загружен:</span> <b>' + file.name + '</b><br>' +
+                '<span class="ok">✅ Файл загружен и преобразован в Base64</span><br>' +
+                'Файл: <b>' + file.name + '</b><br>' +
                 'Размер: ' + formatFileSize(file.size) + '<br>' +
-                'Base64 длина: ' + base64.length + ' символов<br>' +
-                '<span class="badge" style="margin-top:6px; display:inline-block;">Готов к кодированию в QR</span>';
+                'Base64 длина: <b>' + base64.length + '</b> символов<br>' +
+                '<span class="badge" style="margin-top:6px; display:inline-block;">Base64 вставлен в поле выше</span>';
                 
         } catch (error) {
             console.error(error);
@@ -405,6 +397,8 @@ async function generateQRs() {
             item.className = "qr-item";
             
             const title = document.createElement("div");
+            title.className = "qr-title";
+            title.textContent = "QR " + (i + 1) + " / " + totalParts;
             item.appendChild(title);
             
             const img = document.createElement("img");
@@ -709,21 +703,12 @@ async function assembleData() {
     verification.classList.remove("hidden");
     
     if (calculatedHash === scanHash) {
-        // Проверяем, является ли это Base64 (возможно файл)
-        let isBase64 = false;
-        try {
-            if (fullData.length > 0 && /^[A-Za-z0-9+/=]+$/.test(fullData)) {
-                atob(fullData);
-                isBase64 = true;
-            }
-        } catch (e) {}
-        
         verificationText.innerHTML = 
             "<p class='ok'>✅ Данные восстановлены полностью.</p>" +
             "<p>Все " + scanTotal + " частей получены.</p>" +
             "<p><b>SHA-256 совпадает.</b></p>" +
             "<div class='hash'>" + calculatedHash + "</div>" +
-            (isBase64 ? '<br><p>📁 <b>Это Base64 данные</b> - нажмите "Скачать файл" для восстановления</p>' : '');
+            '<br><p>📁 <b>Это Base64 данные</b> - нажмите "Скачать файл из Base64" для восстановления</p>';
         
         document.getElementById("scanStatus").innerHTML = "<span class='ok'>🎉 ГОТОВО!</span>";
     } else {
@@ -767,7 +752,7 @@ function saveResultTxt() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "recovered_data.txt";
+    a.download = "recovered_base64.txt";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -775,66 +760,59 @@ function saveResultTxt() {
 }
 
 function downloadResultFile() {
-    const text = document.getElementById("resultText").value;
-    if (!text) {
+    const base64Text = document.getElementById("resultText").value;
+    if (!base64Text) {
         setScanStatus("Нет данных для скачивания.", "warning");
         return;
     }
     
-    // Пробуем декодировать как Base64 - ИСПОЛЬЗУЕМ ТОТ ЖЕ МЕТОД, ЧТО И В АУДИО-КОНВЕРТЕРЕ
-    try {
-        if (text.length > 0 && /^[A-Za-z0-9+/=]+$/.test(text)) {
-            const binaryString = atob(text);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            
-            // Определяем расширение файла по заголовку
-            let ext = '.bin';
-            let mimeType = 'application/octet-stream';
-            
-            // Проверяем первые байты для определения типа
-            const header = text.substring(0, 20);
-            if (header.startsWith('/9j/')) { ext = '.jpg'; mimeType = 'image/jpeg'; }
-            else if (header.startsWith('iVBOR')) { ext = '.png'; mimeType = 'image/png'; }
-            else if (header.startsWith('R0lGOD')) { ext = '.gif'; mimeType = 'image/gif'; }
-            else if (header.startsWith('UEs')) { ext = '.zip'; mimeType = 'application/zip'; }
-            else if (header.startsWith('H4sI')) { ext = '.gz'; mimeType = 'application/gzip'; }
-            else if (header.startsWith('JVBER')) { ext = '.pdf'; mimeType = 'application/pdf'; }
-            else if (header.startsWith('SUkq')) { ext = '.tiff'; mimeType = 'image/tiff'; }
-            
-            // Для аудио проверяем по сигнатуре
-            if (header.startsWith('AAAA')) { ext = '.wav'; mimeType = 'audio/wav'; }
-            else if (header.startsWith('ID3')) { ext = '.mp3'; mimeType = 'audio/mpeg'; }
-            
-            const blob = new Blob([bytes], { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "recovered_file" + ext;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            setScanStatus("✓ Файл скачан как: recovered_file" + ext, "ok");
-            return;
-        }
-    } catch (e) {
-        console.log("Не Base64 данные или ошибка декодирования:", e);
+    // Проверяем, что это Base64
+    if (!/^[A-Za-z0-9+/=]+$/.test(base64Text)) {
+        setScanStatus("❌ Это не Base64 данные. Невозможно восстановить файл.", "error");
+        return;
     }
     
-    // Если не Base64 - скачиваем как текст
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "recovered_data.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+        // Декодируем Base64 в бинарные данные (ТОЧНО КАК В АУДИО-КОНВЕРТЕРЕ)
+        const binaryString = atob(base64Text);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Определяем расширение файла по заголовку
+        let ext = '.bin';
+        let mimeType = 'application/octet-stream';
+        
+        // Проверяем первые символы Base64 для определения типа
+        const header = base64Text.substring(0, 20);
+        if (header.startsWith('/9j/')) { ext = '.jpg'; mimeType = 'image/jpeg'; }
+        else if (header.startsWith('iVBOR')) { ext = '.png'; mimeType = 'image/png'; }
+        else if (header.startsWith('R0lGOD')) { ext = '.gif'; mimeType = 'image/gif'; }
+        else if (header.startsWith('UEs')) { ext = '.zip'; mimeType = 'application/zip'; }
+        else if (header.startsWith('H4sI')) { ext = '.gz'; mimeType = 'application/gzip'; }
+        else if (header.startsWith('JVBER')) { ext = '.pdf'; mimeType = 'application/pdf'; }
+        else if (header.startsWith('SUkq')) { ext = '.tiff'; mimeType = 'image/tiff'; }
+        else if (header.startsWith('AAAA')) { ext = '.wav'; mimeType = 'audio/wav'; }
+        else if (header.startsWith('ID3')) { ext = '.mp3'; mimeType = 'audio/mpeg'; }
+        else if (header.startsWith('fLaC')) { ext = '.flac'; mimeType = 'audio/flac'; }
+        
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "recovered_file" + ext;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        setScanStatus("✅ Файл успешно скачан как: recovered_file" + ext, "ok");
+        
+    } catch (error) {
+        console.error(error);
+        setScanStatus("❌ Ошибка декодирования Base64: " + error.message, "error");
+    }
 }
 
 /* =========================================================
@@ -842,11 +820,9 @@ function downloadResultFile() {
 ========================================================= */
 function clearGenerator() {
     document.getElementById("sourceText").value = "";
-    document.getElementById("generatorInfo").innerHTML = "Загрузите файл или введите текст и нажмите «Создать QR-коды».";
+    document.getElementById("generatorInfo").innerHTML = "Загрузите файл (он преобразуется в Base64) или введите текст и нажмите «Создать QR-коды».";
     document.getElementById("qrOutput").innerHTML = "";
     document.getElementById("fileInfo").classList.add("hidden");
-    currentFileData = null;
-    currentFileName = null;
     transferQRs = [];
     stopTransfer();
     updateTransferUI();
@@ -893,16 +869,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     updateTransferUI();
     document.getElementById("transferStopBtn").disabled = true;
-    
-    // Проверяем наличие текста в поле
-    if (document.getElementById('sourceText').value) {
-        updateBase64Length(document.getElementById('sourceText').value);
-    }
 });
-
-function updateBase64Length(text) {
-    // Небольшая функция для отображения длины
-}
 </script>
 </body>
 </html>
