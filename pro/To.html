@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QR File Transfer - Авто</title>
+<title>QR File Transfer - Универсальный</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -37,6 +37,8 @@ button:active { transform: scale(0.97); }
 .success:hover { background: #0b7e32; }
 .warning-btn { background: #f59e0b; color: white; box-shadow: 0 4px 10px rgba(245,158,11,0.2); }
 .warning-btn:hover { background: #d97706; }
+.info-btn { background: #6366f1; color: white; box-shadow: 0 4px 10px rgba(99,102,241,0.2); }
+.info-btn:hover { background: #4f46e5; }
 
 .info { font-size: 14px; line-height: 1.6; padding: 12px 16px; background: #f8fafc; border-radius: 14px; }
 .center { text-align: center; }
@@ -106,10 +108,12 @@ button:active { transform: scale(0.97); }
 
 .badge { display: inline-block; background: #d9e2ef; padding: 2px 12px; border-radius: 30px; font-size: 0.75rem; color: #1e293b; }
 
-/* Аудио плеер и предпросмотр */
-.audio-player-container { margin: 12px 0; padding: 12px; background: #f1f5f9; border-radius: 14px; border: 1px solid #e2e8f0; }
-.audio-player-container audio { width: 100%; height: 44px; border-radius: 40px; }
-.audio-player-container .label { font-size: 13px; color: #64748b; margin-bottom: 6px; display: block; }
+/* Плееры */
+.preview-container { margin: 12px 0; padding: 12px; background: #f1f5f9; border-radius: 14px; border: 1px solid #e2e8f0; }
+.preview-container audio { width: 100%; height: 44px; border-radius: 40px; }
+.preview-container .label { font-size: 13px; color: #64748b; margin-bottom: 6px; display: block; font-weight: 600; }
+
+.text-preview { max-height: 200px; overflow-y: auto; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; }
 
 .file-type-badge { display: inline-block; padding: 4px 14px; border-radius: 30px; font-size: 12px; font-weight: 600; }
 .file-type-txt { background: #dbeafe; color: #1e40af; }
@@ -119,10 +123,10 @@ button:active { transform: scale(0.97); }
 .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .action-buttons button { flex: 1; min-width: 120px; }
 
-.status-badge { display: inline-block; padding: 4px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; }
-.status-badge.success { background: #d1fae5; color: #065f46; }
-.status-badge.running { background: #dbeafe; color: #1e40af; }
-.status-badge.stopped { background: #f3f4f6; color: #374151; }
+.mode-indicator { display: inline-block; padding: 4px 12px; border-radius: 30px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+.mode-text { background: #dbeafe; color: #1e40af; }
+.mode-audio { background: #fce7f3; color: #9d174d; }
+.mode-auto { background: #d1fae5; color: #065f46; }
 </style>
 </head>
 
@@ -196,22 +200,31 @@ button:active { transform: scale(0.97); }
         <b>Восстановленный Base64</b>
         <textarea id="resultText" readonly placeholder="После получения всех частей здесь появится Base64..."></textarea>
         
-        <!-- Аудио плеер для MP3 -->
-        <div id="audioPlayerContainer" class="audio-player-container hidden">
-            <span class="label">🎵 Аудио превью:</span>
-            <audio controls autoplay id="audioPlayer"></audio>
+        <!-- Режимы просмотра -->
+        <div style="margin: 10px 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 14px; font-weight: 600; color: #0f172a;">Режим просмотра:</span>
+            <button class="secondary" onclick="setViewMode('auto')" id="modeAutoBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px; background: #d1fae5; border-color: #065f46;">🔀 Авто</button>
+            <button class="secondary" onclick="setViewMode('text')" id="modeTextBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px;">📄 Текст</button>
+            <button class="secondary" onclick="setViewMode('audio')" id="modeAudioBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px;">🎵 Аудио</button>
         </div>
         
-        <!-- Текстовый предпросмотр -->
-        <div id="textPreviewContainer" class="audio-player-container hidden" style="background: #f8fafc;">
+        <!-- Контейнер для текста -->
+        <div id="textPreviewContainer" class="preview-container hidden">
             <span class="label">📄 Текстовое содержимое:</span>
-            <div id="textPreview" style="max-height: 200px; overflow-y: auto; background: white; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all;"></div>
+            <div id="textPreview" class="text-preview"></div>
+        </div>
+        
+        <!-- Контейнер для аудио -->
+        <div id="audioPreviewContainer" class="preview-container hidden">
+            <span class="label">🎵 Аудио плеер:</span>
+            <audio controls id="audioPlayer"></audio>
+            <div style="margin-top: 8px; font-size: 12px; color: #64748b;">Нажмите ▶ для воспроизведения</div>
         </div>
         
         <div class="action-buttons">
             <button class="success" onclick="downloadResultFile()">📁 Скачать файл</button>
-            <button class="warning-btn" onclick="previewAsText()" id="previewTextBtn">📄 Прочитать как текст</button>
-            <button class="warning-btn" onclick="previewAsAudio()" id="previewAudioBtn">🎵 Слушать как MP3</button>
+            <button class="info-btn" onclick="previewAsText()">📄 Показать как текст</button>
+            <button class="warning-btn" onclick="previewAsAudio()">🎵 Слушать как аудио</button>
         </div>
         
         <div class="btn-group">
@@ -284,7 +297,8 @@ let currentFileInfo = {
 };
 
 let isComplete = false;
-let autoSwitchToTransfer = false;
+let currentViewMode = 'auto'; // 'auto', 'text', 'audio'
+let lastDecodedData = null;
 
 /* =========================================================
    РАБОТА С ФАЙЛАМИ
@@ -507,10 +521,8 @@ async function generateQRs() {
             updateTransferUI();
             document.getElementById("transferStatus").textContent = "Готово к передаче (" + transferQRs.length + " QR)";
             
-            // АВТОМАТИЧЕСКИ ПЕРЕКЛЮЧАЕМСЯ НА ВКЛАДКУ ПЕРЕДАЧИ
             setTimeout(() => {
                 showPage('transfer');
-                // Автоматически запускаем передачу
                 setTimeout(() => {
                     startTransfer();
                 }, 500);
@@ -776,6 +788,173 @@ function updateScannerInterface() {
     }
 }
 
+/* =========================================================
+   ДЕКОДИРОВАНИЕ ДАННЫХ
+========================================================= */
+function decodeBase64Data(base64Text) {
+    if (!base64Text || !/^[A-Za-z0-9+/=]+$/.test(base64Text)) {
+        return null;
+    }
+    
+    try {
+        const binaryString = atob(base64Text);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+    } catch (e) {
+        return null;
+    }
+}
+
+function detectFileType(bytes) {
+    if (!bytes || bytes.length === 0) return 'unknown';
+    
+    // Проверяем сигнатуры
+    const header = Array.from(bytes.slice(0, 20)).map(b => String.fromCharCode(b)).join('');
+    
+    // MP3
+    if (header.startsWith('ID3') || (bytes[0] === 0xFF && bytes[1] === 0xFB)) {
+        return 'audio';
+    }
+    
+    // WAV
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+        return 'audio';
+    }
+    
+    // FLAC
+    if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43) {
+        return 'audio';
+    }
+    
+    // Проверяем на текст
+    try {
+        const text = new TextDecoder('utf-8').decode(bytes);
+        if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
+            return 'text';
+        }
+    } catch (e) {}
+    
+    return 'binary';
+}
+
+function bytesToText(bytes) {
+    try {
+        return new TextDecoder('utf-8').decode(bytes);
+    } catch (e) {
+        return 'Ошибка декодирования текста';
+    }
+}
+
+function bytesToAudioUrl(bytes) {
+    try {
+        const blob = new Blob([bytes], { type: 'audio/mpeg' });
+        return URL.createObjectURL(blob);
+    } catch (e) {
+        return null;
+    }
+}
+
+/* =========================================================
+   УПРАВЛЕНИЕ РЕЖИМАМИ ПРОСМОТРА
+========================================================= */
+function setViewMode(mode) {
+    currentViewMode = mode;
+    
+    // Обновляем стили кнопок
+    document.getElementById('modeAutoBtn').style.background = '#eef2f6';
+    document.getElementById('modeTextBtn').style.background = '#eef2f6';
+    document.getElementById('modeAudioBtn').style.background = '#eef2f6';
+    
+    if (mode === 'auto') {
+        document.getElementById('modeAutoBtn').style.background = '#d1fae5';
+    } else if (mode === 'text') {
+        document.getElementById('modeTextBtn').style.background = '#dbeafe';
+    } else if (mode === 'audio') {
+        document.getElementById('modeAudioBtn').style.background = '#fce7f3';
+    }
+    
+    // Применяем режим к текущим данным
+    if (lastDecodedData) {
+        applyViewMode(mode, lastDecodedData);
+    }
+}
+
+function applyViewMode(mode, bytes) {
+    const textContainer = document.getElementById('textPreviewContainer');
+    const audioContainer = document.getElementById('audioPreviewContainer');
+    
+    // Скрываем все
+    textContainer.classList.add('hidden');
+    audioContainer.classList.add('hidden');
+    
+    if (!bytes || bytes.length === 0) {
+        return;
+    }
+    
+    const fileType = detectFileType(bytes);
+    
+    if (mode === 'auto') {
+        // Автоматический режим
+        if (fileType === 'audio') {
+            showAudio(bytes);
+        } else if (fileType === 'text') {
+            showText(bytes);
+        } else {
+            // Показываем как текст, если не удалось определить
+            showText(bytes);
+        }
+    } else if (mode === 'text') {
+        showText(bytes);
+    } else if (mode === 'audio') {
+        // Пробуем показать как аудио, даже если это не аудио
+        showAudio(bytes);
+    }
+}
+
+function showText(bytes) {
+    const container = document.getElementById('textPreviewContainer');
+    const preview = document.getElementById('textPreview');
+    
+    const text = bytesToText(bytes);
+    preview.textContent = text;
+    container.classList.remove('hidden');
+    
+    document.getElementById('audioPreviewContainer').classList.add('hidden');
+}
+
+function showAudio(bytes) {
+    const container = document.getElementById('audioPreviewContainer');
+    const player = document.getElementById('audioPlayer');
+    
+    const url = bytesToAudioUrl(bytes);
+    if (url) {
+        player.src = url;
+        container.classList.remove('hidden');
+        document.getElementById('textPreviewContainer').classList.add('hidden');
+        
+        // Пробуем воспроизвести автоматически в режиме auto
+        if (currentViewMode === 'auto') {
+            setTimeout(() => {
+                player.play().catch(e => console.log('Автовоспроизведение заблокировано'));
+            }, 300);
+        }
+    }
+}
+
+/* =========================================================
+   ДЕЙСТВИЯ ПРЕДПРОСМОТРА
+========================================================= */
+function previewAsText() {
+    setViewMode('text');
+}
+
+function previewAsAudio() {
+    setViewMode('audio');
+}
+
 async function assembleData() {
     let fullData = "";
     
@@ -795,60 +974,38 @@ async function assembleData() {
     if (calculatedHash === scanHash) {
         isComplete = true;
         
-        // АВТОМАТИЧЕСКИ ОСТАНАВЛИВАЕМ КАМЕРУ
+        // Останавливаем камеру
         await stopScanner();
         setScanStatus("✅ Сканирование завершено! Камера остановлена.", "ok");
         
-        // Проверяем, является ли это MP3
-        const isMP3 = fullData.length > 0 && /^[A-Za-z0-9+/=]+$/.test(fullData) && 
-                      (fullData.startsWith('ID3') || fullData.startsWith('AAAA'));
+        // Декодируем данные
+        const bytes = decodeBase64Data(fullData);
+        lastDecodedData = bytes;
         
-        // Проверяем, является ли это текстом
-        let isText = false;
-        let textContent = '';
-        try {
-            if (/^[A-Za-z0-9+/=]+$/.test(fullData)) {
-                const binaryString = atob(fullData);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                const text = new TextDecoder('utf-8').decode(bytes);
-                if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
-                    isText = true;
-                    textContent = text;
-                }
+        if (bytes) {
+            const fileType = detectFileType(bytes);
+            
+            // Автоматически показываем в зависимости от типа
+            if (fileType === 'audio') {
+                setViewMode('auto');
+            } else if (fileType === 'text') {
+                setViewMode('auto');
+            } else {
+                // Для бинарных файлов показываем как текст
+                setViewMode('text');
             }
-        } catch (e) {}
-        
-        let audioHTML = '';
-        if (isMP3) {
-            try {
-                const binaryString = atob(fullData);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                const blob = new Blob([bytes], { type: 'audio/mpeg' });
-                const url = URL.createObjectURL(blob);
-                
-                document.getElementById('audioPlayer').src = url;
-                document.getElementById('audioPlayerContainer').classList.remove('hidden');
-                audioHTML = '<br><div class="audio-player-container"><span class="label">🎵 Аудио превью (автовоспроизведение):</span><audio controls autoplay src="' + url + '"></audio></div>';
-            } catch (e) {
-                console.log('Не удалось создать аудио плеер');
-            }
-        } else {
-            document.getElementById('audioPlayerContainer').classList.add('hidden');
         }
         
-        let textHTML = '';
-        if (isText && !isMP3) {
-            document.getElementById('textPreviewContainer').classList.remove('hidden');
-            document.getElementById('textPreview').textContent = textContent;
-            textHTML = '<br><div class="audio-player-container" style="background:#f8fafc;"><span class="label">📄 Текстовое содержимое:</span><div style="max-height:200px; overflow-y:auto; background:white; padding:12px; border-radius:10px; border:1px solid #e2e8f0; font-family:monospace; font-size:13px; white-space:pre-wrap; word-break:break-all;">' + textContent + '</div></div>';
-        } else {
-            document.getElementById('textPreviewContainer').classList.add('hidden');
+        let typeInfo = '';
+        if (bytes) {
+            const fileType = detectFileType(bytes);
+            if (fileType === 'audio') {
+                typeInfo = '🎵 <b>Аудиофайл</b> (MP3/WAV) - можно прослушать';
+            } else if (fileType === 'text') {
+                typeInfo = '📄 <b>Текстовый файл</b> - можно прочитать';
+            } else {
+                typeInfo = '📁 <b>Бинарный файл</b> - можно скачать';
+            }
         }
         
         verificationText.innerHTML = 
@@ -856,84 +1013,17 @@ async function assembleData() {
             "<p>Все " + scanTotal + " частей получены.</p>" +
             "<p><b>SHA-256 совпадает.</b></p>" +
             "<div class='hash'>" + calculatedHash + "</div>" +
-            '<br><p>📁 Нажмите "Скачать файл" для восстановления</p>' +
-            audioHTML +
-            textHTML;
+            "<br><p>" + typeInfo + "</p>" +
+            "<p>📁 Нажмите 'Скачать файл' для сохранения</p>" +
+            "<p style='margin-top: 8px;'><span class='badge'>💡 Используйте кнопки 'Показать как текст' или 'Слушать как аудио' для просмотра</span></p>";
         
         document.getElementById("scanStatus").innerHTML = "<span class='ok'>🎉 ГОТОВО! Сканирование завершено.</span>";
-        
-        // Показываем кнопки предпросмотра
-        document.getElementById('previewTextBtn').style.display = isText ? 'inline-block' : 'none';
-        document.getElementById('previewAudioBtn').style.display = isMP3 ? 'inline-block' : 'none';
         
     } else {
         verificationText.innerHTML = 
             "<p class='error'>❌ Ошибка проверки!</p>" +
             "<div class='hash'>Ожидалось:<br>" + scanHash + "</div>" +
             "<div class='hash'>Получено:<br>" + calculatedHash + "</div>";
-    }
-}
-
-/* =========================================================
-   ПРЕДПРОСМОТР
-========================================================= */
-function previewAsText() {
-    const base64Text = document.getElementById("resultText").value;
-    if (!base64Text) {
-        setScanStatus("Нет данных для просмотра.", "warning");
-        return;
-    }
-    
-    try {
-        if (/^[A-Za-z0-9+/=]+$/.test(base64Text)) {
-            const binaryString = atob(base64Text);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            const text = new TextDecoder('utf-8').decode(bytes);
-            
-            document.getElementById('textPreviewContainer').classList.remove('hidden');
-            document.getElementById('textPreview').textContent = text;
-            document.getElementById('audioPlayerContainer').classList.add('hidden');
-            
-            setScanStatus("✅ Текст отображён в предпросмотре", "ok");
-        }
-    } catch (error) {
-        setScanStatus("❌ Ошибка декодирования: " + error.message, "error");
-    }
-}
-
-function previewAsAudio() {
-    const base64Text = document.getElementById("resultText").value;
-    if (!base64Text) {
-        setScanStatus("Нет данных для просмотра.", "warning");
-        return;
-    }
-    
-    try {
-        if (/^[A-Za-z0-9+/=]+$/.test(base64Text)) {
-            const binaryString = atob(base64Text);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: 'audio/mpeg' });
-            const url = URL.createObjectURL(blob);
-            
-            document.getElementById('audioPlayer').src = url;
-            document.getElementById('audioPlayerContainer').classList.remove('hidden');
-            document.getElementById('textPreviewContainer').classList.add('hidden');
-            
-            // Автовоспроизведение
-            setTimeout(() => {
-                document.getElementById('audioPlayer').play();
-            }, 100);
-            
-            setScanStatus("🎵 Аудио загружено и воспроизводится", "ok");
-        }
-    } catch (error) {
-        setScanStatus("❌ Ошибка декодирования аудио: " + error.message, "error");
     }
 }
 
@@ -1011,7 +1101,7 @@ function downloadResultFile() {
         else if (header.startsWith('AAAA')) { ext = '.wav'; mimeType = 'audio/wav'; fileName = 'recovered_audio'; }
         else if (header.startsWith('fLaC')) { ext = '.flac'; mimeType = 'audio/flac'; fileName = 'recovered_audio'; }
         
-        // Проверяем, не текстовый ли это файл
+        // Проверяем на текст
         try {
             const text = new TextDecoder('utf-8').decode(bytes);
             if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
@@ -1062,6 +1152,8 @@ async function clearScanner() {
     lastScanText = "";
     lastScanTime = 0;
     isComplete = false;
+    lastDecodedData = null;
+    currentViewMode = 'auto';
     
     document.getElementById("receivedCount").textContent = "0";
     document.getElementById("totalCount").textContent = "?";
@@ -1070,11 +1162,16 @@ async function clearScanner() {
     document.getElementById("partsList").innerHTML = "";
     document.getElementById("resultText").value = "";
     document.getElementById("verification").classList.add("hidden");
-    document.getElementById("audioPlayerContainer").classList.add("hidden");
     document.getElementById("textPreviewContainer").classList.add("hidden");
+    document.getElementById("audioPreviewContainer").classList.add("hidden");
     document.getElementById('audioPlayer').src = '';
-    document.getElementById('previewTextBtn').style.display = 'none';
-    document.getElementById('previewAudioBtn').style.display = 'none';
+    document.getElementById('textPreview').textContent = '';
+    
+    // Сбрасываем стили кнопок режимов
+    document.getElementById('modeAutoBtn').style.background = '#d1fae5';
+    document.getElementById('modeTextBtn').style.background = '#eef2f6';
+    document.getElementById('modeAudioBtn').style.background = '#eef2f6';
+    
     setScanStatus("Сборщик очищен.", "");
 }
 
@@ -1100,8 +1197,9 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     updateTransferUI();
     document.getElementById("transferStopBtn").disabled = true;
-    document.getElementById('previewTextBtn').style.display = 'none';
-    document.getElementById('previewAudioBtn').style.display = 'none';
+    
+    // Устанавливаем авто-режим по умолчанию
+    document.getElementById('modeAutoBtn').style.background = '#d1fae5';
 });
 </script>
 </body>
