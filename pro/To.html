@@ -44,7 +44,6 @@ h1 {
     display: flex;
     gap: 6px;
     margin-bottom: 12px;
-    flex-wrap: wrap;
 }
 
 .tab {
@@ -55,7 +54,6 @@ h1 {
     background: #ddd;
     font-size: 16px;
     font-weight: bold;
-    min-width: 80px;
 }
 
 .tab.active {
@@ -275,105 +273,6 @@ button {
     color: #666;
 }
 
-/* ===== ПЕРЕДАЧА (СЛАЙД-ШОУ) ===== */
-.transfer-container {
-    background: white;
-    border-radius: 14px;
-    padding: 20px;
-    text-align: center;
-    min-height: 500px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,.07);
-}
-
-.transfer-container .qr-display {
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-.transfer-container .qr-display img {
-    width: 100%;
-    height: auto;
-    image-rendering: pixelated;
-    background: white;
-}
-
-.transfer-container .transfer-info {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 15px;
-    color: #222;
-}
-
-.transfer-container .transfer-counter {
-    font-size: 14px;
-    color: #666;
-    margin-top: 5px;
-}
-
-.transfer-controls {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    flex-wrap: wrap;
-}
-
-.transfer-controls button {
-    flex: 1;
-    min-width: 80px;
-}
-
-.speed-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 15px;
-    padding: 10px;
-    background: #f8f8f8;
-    border-radius: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.speed-control label {
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.speed-control input[type="range"] {
-    flex: 1;
-    min-width: 120px;
-    accent-color: #111;
-}
-
-.speed-control .speed-value {
-    font-weight: bold;
-    font-size: 16px;
-    min-width: 60px;
-    text-align: center;
-}
-
-.transfer-status {
-    margin-top: 10px;
-    font-size: 14px;
-    color: #666;
-}
-
-/* Анимация пульсации для активного режима */
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
-}
-
-.transfer-active .qr-display img {
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
 </style>
 </head>
 
@@ -400,9 +299,7 @@ function toggleQR() {
 <div class="tabs">
     <button id="tabGenerator" class="tab active" onclick="showPage('generator')">📤 Генератор</button>
     <button id="tabScanner" class="tab" onclick="showPage('scanner')">📷 Сборщик</button>
-    <button id="tabTransfer" class="tab" onclick="showPage('transfer')">📺 Передача</button>
 </div>
-
 
 <!-- =====================================================
      ГЕНЕРАТОР
@@ -435,8 +332,6 @@ function toggleQR() {
 
 </div>
 
-
-
 <!-- =====================================================
      СБОРЩИК
 ===================================================== -->
@@ -453,7 +348,6 @@ function toggleQR() {
 <div id="scanStatus" class="status">Камера не запущена</div>
 
 </div>
-
 
 <div class="card">
 
@@ -473,7 +367,6 @@ function toggleQR() {
 
 </div>
 
-
 <div class="card">
 
 <b>Восстановленный текст</b>
@@ -486,7 +379,6 @@ function toggleQR() {
 
 </div>
 
-
 <div id="verification" class="card info hidden">
 
 <b>Проверка целостности</b>
@@ -496,42 +388,6 @@ function toggleQR() {
 </div>
 
 </div>
-
-
-<!-- =====================================================
-     ПЕРЕДАЧА (СЛАЙД-ШОУ)
-===================================================== -->
-
-<div id="transfer" class="page">
-
-<div class="transfer-container" id="transferContainer">
-
-    <div class="qr-display" id="transferDisplay">
-        <img id="transferImage" src="" alt="QR-код">
-    </div>
-
-    <div class="transfer-info" id="transferInfo">Нет QR-кодов</div>
-    <div class="transfer-counter" id="transferCounter">0 / 0</div>
-
-    <div class="transfer-controls">
-        <button class="primary" id="transferStartBtn" onclick="startTransfer()">▶ Старт</button>
-        <button class="secondary" id="transferStopBtn" onclick="stopTransfer()" disabled>⏹ Стоп</button>
-        <button class="secondary" onclick="transferPrev()">◀ Назад</button>
-        <button class="secondary" onclick="transferNext()">Вперед ▶</button>
-    </div>
-
-    <div class="speed-control">
-        <label for="transferSpeed">Скорость:</label>
-        <input type="range" id="transferSpeed" min="0.5" max="5" step="0.1" value="2">
-        <span class="speed-value" id="speedDisplay">2.0 сек</span>
-    </div>
-
-    <div class="transfer-status" id="transferStatus">Ожидание запуска</div>
-
-</div>
-
-</div>
-
 
 </div>
 
@@ -547,13 +403,6 @@ let scanner = null;
 let scannerRunning = false;
 let lastScanText = "";
 let lastScanTime = 0;
-
-// === ПЕРЕМЕННЫЕ ДЛЯ ПЕРЕДАЧИ ===
-let transferQRs = [];
-let transferIndex = 0;
-let transferTimer = null;
-let transferRunning = false;
-
 
 /* =========================================================
    ГЕНЕРАТОР
@@ -621,7 +470,6 @@ function splitRawText(text, maxSize) {
     return result;
 }
 
-
 /* =========================================================
    SHA-256
 ========================================================= */
@@ -631,7 +479,6 @@ async function sha256(text) {
     const hash = await crypto.subtle.digest("SHA-256", data);
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
-
 
 /* =========================================================
    ФОРМАТ QR
@@ -651,7 +498,6 @@ function createPacketSafe(documentId, partNumber, totalParts, hash, data) {
         data
     ].join("|");
 }
-
 
 /* =========================================================
    ГЕНЕРАЦИЯ
@@ -728,9 +574,6 @@ async function generateQRs() {
 
         const totalParts = rawParts.length;
 
-        // Сохраняем QR-коды для передачи
-        transferQRs = [];
-
         info.innerHTML =
             "Символов: <b>" + text.length + "</b><br>" +
             "UTF-8: <b>" + utf8Length(text) + " байт</b><br>" +
@@ -745,17 +588,6 @@ async function generateQRs() {
             qr.addData(packet);
             qr.make();
 
-            const dataURL = qr.createDataURL(7, 12);
-            
-            // Сохраняем для передачи
-            transferQRs.push({
-                dataURL: dataURL,
-                part: index + 1,
-                total: totalParts,
-                size: part.length,
-                bytes: utf8Length(part)
-            });
-
             const item = document.createElement("div");
             item.className = "qr-item";
 
@@ -766,7 +598,7 @@ async function generateQRs() {
 
             const img = document.createElement("img");
             img.className = "qr-image";
-            img.src = dataURL;
+            img.src = qr.createDataURL(7, 12);
             item.appendChild(img);
 
             const meta = document.createElement("div");
@@ -785,152 +617,11 @@ async function generateQRs() {
             output.appendChild(item);
         });
 
-        // Если есть QR-коды, обновляем интерфейс передачи
-        if (transferQRs.length > 0) {
-            updateTransferUI();
-            document.getElementById("transferStatus").textContent = "Готово к передаче (" + transferQRs.length + " QR)";
-        }
-
     } catch (error) {
         console.error(error);
         info.innerHTML = "<span class='error'>Ошибка: " + error.message + "</span>";
     }
 }
-
-
-/* =========================================================
-   ПЕРЕДАЧА (СЛАЙД-ШОУ)
-========================================================= */
-
-function updateTransferUI() {
-    const img = document.getElementById("transferImage");
-    const info = document.getElementById("transferInfo");
-    const counter = document.getElementById("transferCounter");
-
-    if (transferQRs.length === 0) {
-        img.src = "";
-        img.alt = "Нет QR-кодов";
-        info.textContent = "Нет QR-кодов";
-        counter.textContent = "0 / 0";
-        document.getElementById("transferStartBtn").disabled = true;
-        return;
-    }
-
-    if (transferIndex >= transferQRs.length) {
-        transferIndex = 0;
-    }
-
-    const current = transferQRs[transferIndex];
-    img.src = current.dataURL;
-    img.alt = "QR " + current.part + " / " + current.total;
-    info.textContent = "QR " + current.part + " / " + current.total;
-    counter.textContent = current.part + " / " + current.total + "  |  " + current.size + " симв.";
-
-    document.getElementById("transferStartBtn").disabled = false;
-}
-
-function transferNext() {
-    if (transferQRs.length === 0) return;
-    transferIndex = (transferIndex + 1) % transferQRs.length;
-    updateTransferUI();
-    resetTransferTimer();
-}
-
-function transferPrev() {
-    if (transferQRs.length === 0) return;
-    transferIndex = (transferIndex - 1 + transferQRs.length) % transferQRs.length;
-    updateTransferUI();
-    resetTransferTimer();
-}
-
-function getTransferSpeed() {
-    const speed = parseFloat(document.getElementById("transferSpeed").value);
-    document.getElementById("speedDisplay").textContent = speed.toFixed(1) + " сек";
-    return speed * 1000; // в миллисекундах
-}
-
-function resetTransferTimer() {
-    if (transferTimer) {
-        clearTimeout(transferTimer);
-        transferTimer = null;
-    }
-    if (transferRunning) {
-        startTimer();
-    }
-}
-
-function startTimer() {
-    if (transferTimer) {
-        clearTimeout(transferTimer);
-        transferTimer = null;
-    }
-    if (!transferRunning || transferQRs.length === 0) return;
-
-    const speed = getTransferSpeed();
-    transferTimer = setTimeout(() => {
-        if (transferRunning && transferQRs.length > 0) {
-            transferNext();
-        }
-    }, speed);
-}
-
-function startTransfer() {
-    if (transferQRs.length === 0) {
-        document.getElementById("transferStatus").textContent = "❌ Нет QR-кодов. Создайте их в Генераторе.";
-        return;
-    }
-
-    if (transferRunning) return;
-
-    transferRunning = true;
-    transferIndex = 0;
-    updateTransferUI();
-
-    document.getElementById("transferStartBtn").disabled = true;
-    document.getElementById("transferStopBtn").disabled = false;
-    document.getElementById("transferContainer").classList.add("transfer-active");
-
-    document.getElementById("transferStatus").textContent = "▶ Передача запущена...";
-
-    startTimer();
-}
-
-function stopTransfer() {
-    transferRunning = false;
-
-    if (transferTimer) {
-        clearTimeout(transferTimer);
-        transferTimer = null;
-    }
-
-    document.getElementById("transferStartBtn").disabled = false;
-    document.getElementById("transferStopBtn").disabled = true;
-    document.getElementById("transferContainer").classList.remove("transfer-active");
-
-    document.getElementById("transferStatus").textContent = "⏹ Передача остановлена";
-}
-
-// Обновление скорости при изменении ползунка
-document.addEventListener("DOMContentLoaded", function() {
-    const speedSlider = document.getElementById("transferSpeed");
-    speedSlider.addEventListener("input", function() {
-        const val = parseFloat(this.value);
-        document.getElementById("speedDisplay").textContent = val.toFixed(1) + " сек";
-        if (transferRunning) {
-            resetTransferTimer();
-        }
-    });
-});
-
-// Инициализация интерфейса передачи
-function initTransferUI() {
-    updateTransferUI();
-    document.getElementById("transferStopBtn").disabled = true;
-}
-
-// Вызываем при загрузке
-setTimeout(initTransferUI, 100);
-
 
 /* =========================================================
    СКАЧИВАНИЕ QR
@@ -945,7 +636,6 @@ function downloadImage(dataURL, filename) {
     document.body.removeChild(a);
 }
 
-
 /* =========================================================
    ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
 ========================================================= */
@@ -953,25 +643,18 @@ function downloadImage(dataURL, filename) {
 function showPage(page) {
     document.getElementById("generator").classList.remove("active");
     document.getElementById("scanner").classList.remove("active");
-    document.getElementById("transfer").classList.remove("active");
 
     document.getElementById("tabGenerator").classList.remove("active");
     document.getElementById("tabScanner").classList.remove("active");
-    document.getElementById("tabTransfer").classList.remove("active");
 
     if (page === "generator") {
         document.getElementById("generator").classList.add("active");
         document.getElementById("tabGenerator").classList.add("active");
-    } else if (page === "scanner") {
+    } else {
         document.getElementById("scanner").classList.add("active");
         document.getElementById("tabScanner").classList.add("active");
-    } else if (page === "transfer") {
-        document.getElementById("transfer").classList.add("active");
-        document.getElementById("tabTransfer").classList.add("active");
-        updateTransferUI();
     }
 }
-
 
 /* =========================================================
    СБОРЩИК
@@ -981,7 +664,6 @@ let receivedParts = {};
 let scanTotal = null;
 let scanHash = null;
 let scanDocumentId = null;
-
 
 /* =========================================================
    ЗАПУСК СКАНЕРА
@@ -1018,7 +700,6 @@ async function startScanner() {
     }
 }
 
-
 /* =========================================================
    ОСТАНОВКА
 ========================================================= */
@@ -1030,7 +711,6 @@ async function stopScanner() {
     scannerRunning = false;
     document.getElementById("scanStatus").textContent = "Камера остановлена.";
 }
-
 
 /* =========================================================
    ПОЛУЧЕН QR
@@ -1045,7 +725,6 @@ function onScanSuccess(decodedText) {
 
     processPacket(decodedText);
 }
-
 
 /* =========================================================
    РАЗБОР QR
@@ -1113,7 +792,6 @@ function processPacket(packet) {
         return;
     }
 
-    // Сохраняем данные с правильной кодировкой
     receivedParts[partNumber] = data;
     updateScannerInterface();
 
@@ -1123,7 +801,6 @@ function processPacket(packet) {
         assembleText();
     }
 }
-
 
 /* =========================================================
    ОБНОВЛЕНИЕ СБОРЩИКА
@@ -1158,7 +835,6 @@ function updateScannerInterface() {
     }
 }
 
-
 /* =========================================================
    СБОРКА ТЕКСТА
 ========================================================= */
@@ -1168,7 +844,6 @@ async function assembleText() {
 
     for (let i = 1; i <= scanTotal; i++) {
         if (receivedParts[i] === undefined) {
-            setScanStatus("Ошибка: часть " + i + " отсутствует.", "error");
             return;
         }
         text += receivedParts[i];
@@ -1199,7 +874,6 @@ async function assembleText() {
     }
 }
 
-
 /* =========================================================
    СТАТУС
 ========================================================= */
@@ -1209,7 +883,6 @@ function setScanStatus(text, type) {
     status.textContent = text;
     status.className = "status " + type;
 }
-
 
 /* =========================================================
    КОПИРОВАНИЕ
@@ -1232,7 +905,6 @@ async function copyResult() {
     }
 }
 
-
 /* =========================================================
    СОХРАНЕНИЕ TXT
 ========================================================= */
@@ -1252,7 +924,6 @@ function saveResult() {
     URL.revokeObjectURL(url);
 }
 
-
 /* =========================================================
    ОЧИСТКА ГЕНЕРАТОРА
 ========================================================= */
@@ -1261,11 +932,7 @@ function clearGenerator() {
     document.getElementById("sourceText").value = "";
     document.getElementById("generatorInfo").innerHTML = "Введите текст и нажмите «Создать QR-коды».";
     document.getElementById("qrOutput").innerHTML = "";
-    transferQRs = [];
-    stopTransfer();
-    updateTransferUI();
 }
-
 
 /* =========================================================
    ОЧИСТКА СБОРЩИКА
