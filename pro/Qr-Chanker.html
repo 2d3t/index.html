@@ -637,6 +637,42 @@
         padding: 10px;
         font-size: 13px;
     }
+
+    .input-mode-toggle {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+    .input-mode-toggle button {
+        flex: 1;
+        min-width: 100px;
+        margin-top: 0;
+        padding: 10px;
+        font-size: 13px;
+        border-radius: 30px;
+    }
+    .input-mode-toggle .active-mode {
+        background: #3b4de0;
+        color: white;
+        border-color: #3b4de0;
+    }
+    .input-mode-toggle .inactive-mode {
+        background: #eef2f6;
+        color: #1e293b;
+        border: 1px solid #d1d9e6;
+    }
+
+    .text-input-area textarea {
+        font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        min-height: 180px;
+    }
+    .text-input-area .hint {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 6px;
+        font-style: italic;
+    }
 </style>
 </head>
 
@@ -656,10 +692,6 @@ function toggleQR() {
     qr.style.display = qr.style.display === 'none' ? 'block' : 'none';
 }
 </script>
-
-
-
-
 
     <div class="app">
         <h1>📦 QR File Transfer</h1>
@@ -684,19 +716,35 @@ function toggleQR() {
                     <div class="file-type-badge file-type-other">📁 Другие</div>
                 </div>
 
-                <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
-                    <span class="icon">📁</span>
-                    <div class="text">Нажмите для загрузки файла</div>
-                    <div class="subtext">Поддерживаются TXT, MP3 и другие файлы</div>
-                    <input type="file" id="fileInput" onchange="handleFileUpload(event)">
-                </div>
-                <div id="fileInfo" class="file-info hidden">
-                    <div class="filename" id="fileName"></div>
-                    <div class="filesize" id="fileSize"></div>
-                    <div style="margin-top: 6px;" id="fileTypeInfo"></div>
+                <div class="input-mode-toggle">
+                    <button id="modeFileBtn" class="active-mode" onclick="setInputMode('file')">📁 Загрузить файл</button>
+                    <button id="modeTextBtn" class="inactive-mode" onclick="setInputMode('text')">✏️ Ввести текст</button>
                 </div>
 
-                <textarea id="sourceText" placeholder="Сюда будет вставлен Base64 из файла или можно ввести текст вручную..."></textarea>
+                <!-- Режим загрузки файла -->
+                <div id="fileInputArea">
+                    <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
+                        <span class="icon">📁</span>
+                        <div class="text">Нажмите для загрузки файла</div>
+                        <div class="subtext">Поддерживаются TXT, MP3 и другие файлы</div>
+                        <input type="file" id="fileInput" onchange="handleFileUpload(event)">
+                    </div>
+                    <div id="fileInfo" class="file-info hidden">
+                        <div class="filename" id="fileName"></div>
+                        <div class="filesize" id="fileSize"></div>
+                        <div style="margin-top: 6px;" id="fileTypeInfo"></div>
+                    </div>
+                </div>
+
+                <!-- Режим ввода текста (создание TXT файла) -->
+                <div id="textInputArea" class="text-input-area hidden">
+                    <textarea id="textInput" placeholder="Введите любой текст на любом языке..."></textarea>
+                    <div class="hint">💡 Текст будет преобразован в TXT-файл и закодирован в Base64</div>
+                    <button class="primary" onclick="convertTextToFile()" style="margin-top: 8px;">📄 Преобразовать в TXT</button>
+                </div>
+
+                <!-- Скрытый оригинальный textarea оставлен для совместимости -->
+                <textarea id="sourceText" class="hidden" placeholder=""></textarea>
 
                 <div class="size-control">
                     <label for="maxChunkSize">Байт на QR:</label>
@@ -715,7 +763,7 @@ function toggleQR() {
                     <div class="progress-sub" id="progressSub">Подготовка данных</div>
                 </div>
             </div>
-            <div id="generatorInfo" class="card info">Загрузите файл и нажмите «Создать QR-коды».</div>
+            <div id="generatorInfo" class="card info">Загрузите файл или введите текст и нажмите «Создать QR-коды».</div>
             <div id="qrOutput"></div>
         </div>
 
@@ -902,6 +950,109 @@ function toggleQR() {
         let isComplete = false;
         let currentViewMode = 'auto';
         let lastDecodedData = null;
+        let currentInputMode = 'file'; // 'file' или 'text'
+
+        /* =========================================================
+           УПРАВЛЕНИЕ РЕЖИМАМИ ВВОДА
+        ========================================================= */
+        function setInputMode(mode) {
+            currentInputMode = mode;
+
+            const fileBtn = document.getElementById('modeFileBtn');
+            const textBtn = document.getElementById('modeTextBtn');
+            const fileArea = document.getElementById('fileInputArea');
+            const textArea = document.getElementById('textInputArea');
+
+            if (mode === 'file') {
+                fileBtn.className = 'active-mode';
+                textBtn.className = 'inactive-mode';
+                fileArea.classList.remove('hidden');
+                textArea.classList.add('hidden');
+                document.getElementById('generatorInfo').innerHTML = 'Загрузите файл и нажмите «Создать QR-коды».';
+            } else {
+                fileBtn.className = 'inactive-mode';
+                textBtn.className = 'active-mode';
+                fileArea.classList.add('hidden');
+                textArea.classList.remove('hidden');
+                document.getElementById('generatorInfo').innerHTML = 'Введите текст, нажмите «Преобразовать в TXT», затем «Создать QR-коды».';
+            }
+
+            // Очищаем предыдущие данные при переключении
+            document.getElementById('sourceText').value = '';
+            document.getElementById('fileInfo').classList.add('hidden');
+            currentFileInfo = { name: '', size: 0, type: '', base64: '' };
+        }
+
+        function convertTextToFile() {
+            const text = document.getElementById('textInput').value;
+            if (!text) {
+                document.getElementById('generatorInfo').innerHTML = '⚠️ Введите текст для преобразования.';
+                return;
+            }
+
+            try {
+                // Создаем Blob с текстом в UTF-8
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        const uint8Array = new Uint8Array(arrayBuffer);
+                        let binary = '';
+                        for (let i = 0; i < uint8Array.length; i++) {
+                            binary += String.fromCharCode(uint8Array[i]);
+                        }
+                        const base64 = btoa(binary);
+
+                        // Создаем имя файла на основе первых символов текста
+                        let filename = 'text_file.txt';
+                        const firstLine = text.split('\n')[0].trim().slice(0, 30);
+                        if (firstLine) {
+                            const safeName = firstLine.replace(/[^a-zA-Zа-яА-ЯёЁ0-9]/g, '_').slice(0, 30);
+                            if (safeName) filename = safeName + '.txt';
+                        }
+
+                        currentFileInfo = {
+                            name: filename,
+                            size: blob.size,
+                            type: 'text/plain',
+                            base64: base64
+                        };
+
+                        document.getElementById('sourceText').value = base64;
+
+                        const fileInfo = document.getElementById('fileInfo');
+                        fileInfo.classList.remove('hidden');
+                        document.getElementById('fileName').textContent = '📄 ' + filename;
+                        document.getElementById('fileSize').textContent = 'Размер: ' + formatFileSize(blob.size);
+                        document.getElementById('fileTypeInfo').innerHTML =
+                            '<span class="file-type-badge file-type-txt">Текстовый файл</span> | ' +
+                            'Base64: ' + formatFileSize(base64.length) + ' (' + base64.length + ' симв.)<br>' +
+                            '<span style="color:#64748b; font-size:12px;">Текст сохранён в кодировке UTF-8</span>';
+
+                        document.getElementById('generatorInfo').innerHTML =
+                            '<span class="ok">✅ Текст преобразован в TXT-файл</span><br>' +
+                            'Файл: <b>' + filename + '</b><br>' +
+                            'Размер: ' + formatFileSize(blob.size) + '<br>' +
+                            'Base64 длина: <b>' + base64.length + '</b> символов<br>' +
+                            '<span class="badge" style="margin-top:6px; display:inline-block;">Готово! Нажмите "Создать QR-коды"</span>';
+
+                        playSuccessBeep();
+
+                    } catch (error) {
+                        console.error(error);
+                        document.getElementById('generatorInfo').innerHTML =
+                            '<span class="error">❌ Ошибка преобразования: ' + error.message + '</span>';
+                    }
+                };
+                reader.readAsArrayBuffer(blob);
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('generatorInfo').innerHTML =
+                    '<span class="error">❌ Ошибка: ' + error.message + '</span>';
+            }
+        }
 
         /* =========================================================
            ДОПОЛНИТЕЛЬНЫЕ КНОПКИ
@@ -923,7 +1074,7 @@ function toggleQR() {
             alert(
                 '📦 QR File Transfer v1.0\n\n' +
                 'Это приложение позволяет передавать файлы через QR-коды.\n\n' +
-                '🔹 Генератор — загрузите файл или введите текст, создайте набор QR-кодов.\n' +
+                '🔹 Генератор — загрузите файл или введите текст (любой язык), создайте набор QR-кодов.\n' +
                 '🔹 Сборщик — отсканируйте QR-коды камерой, восстановите файл.\n' +
                 '🔹 Передача — автоматический показ QR-кодов на экране.\n\n' +
                 'Файлы кодируются в Base64 и разбиваются на части.\n' +
@@ -1108,7 +1259,11 @@ function toggleQR() {
             output.innerHTML = "";
 
             if (!text) {
-                info.innerHTML = "Загрузите файл или введите текст.";
+                if (currentInputMode === 'text') {
+                    info.innerHTML = "Сначала введите текст и нажмите «Преобразовать в TXT».";
+                } else {
+                    info.innerHTML = "Загрузите файл или введите текст.";
+                }
                 return;
             }
 
@@ -1821,7 +1976,8 @@ function toggleQR() {
         ========================================================= */
         function clearGenerator() {
             document.getElementById("sourceText").value = "";
-            document.getElementById("generatorInfo").innerHTML = "Загрузите файл и нажмите «Создать QR-коды».";
+            document.getElementById("textInput").value = "";
+            document.getElementById("generatorInfo").innerHTML = "Загрузите файл или введите текст и нажмите «Создать QR-коды».";
             document.getElementById("qrOutput").innerHTML = "";
             document.getElementById("fileInfo").classList.add("hidden");
             document.getElementById("progressIndicator").classList.remove('active');
@@ -1886,7 +2042,10 @@ function toggleQR() {
             updateTransferUI();
             document.getElementById("transferStopBtn").disabled = true;
             document.getElementById('modeAutoBtn').style.background = '#d1fae5';
+
+            // Устанавливаем начальный режим
+            setInputMode('file');
         });
     </script>
 </body>
-</html> 
+</html>
