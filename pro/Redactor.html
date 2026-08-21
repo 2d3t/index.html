@@ -74,7 +74,6 @@ textarea{flex:1;outline:none;resize:none;padding:5px;font-family:monospace;font-
 .fullscreen-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;display:none}
 .fullscreen-overlay.active{display:block}
 
-/* Новая кнопка выхода с ручкой */
 .fullscreen-exit-btn {
     position: fixed;
     top: 30px;
@@ -137,7 +136,6 @@ textarea{flex:1;outline:none;resize:none;padding:5px;font-family:monospace;font-
     border-radius: 50%;
     background: rgba(255,255,255,0.7);
 }
-/* Тёмная тема — чуть светлее */
 body.theme-dark .fullscreen-exit-btn {
     background: rgba(30,30,50,0.5);
 }
@@ -220,7 +218,6 @@ onchange="handleFileWithFullscreenRestore(event)">
 <iframe class="preview" id="previewFrame"></iframe>
 
 <div class="fullscreen-overlay" id="fullscreenOverlay">
-  <!-- Новая кнопка: полупрозрачная + ручка для перетаскивания -->
   <button class="fullscreen-exit-btn" id="forceExitFullscreenBtn">
     <span class="exit-label">✕ Выйти из полного экрана</span>
     <span class="drag-handle" id="dragHandle">
@@ -252,6 +249,7 @@ body=document.body;
 
 let history=[],redoStack=[],isFullscreen=false,wasInPreviewBeforeFile=false,fullscreenWasActive=false,lastPreviewUrl=null;
 let searchResults=[],currentResult=-1,lastSearch="";
+let activeLineNumber = null; // Храним активную строку, null = ничего не подсвечено
 
 // --- Перетаскивание кнопки выхода ---
 (function setupDrag() {
@@ -311,7 +309,7 @@ function applyTheme(themeName){
 body.classList.add('theme-'+(['dark','light','green','ocean','graphite'].includes(themeName)?themeName:'dark'));
 localStorage.setItem('klikedit_theme',themeName);
 themeSwitcher.value=themeName;
-highlightActiveLine();
+// Не подсвечиваем строку при смене темы
 }
 
 function initTheme(){
@@ -367,6 +365,8 @@ if(!html)throw new Error('Пустой ответ');
 saveState();
 textarea.value=html;
 updateLineNumbers();
+activeLineNumber = null; // Сбрасываем подсветку
+highlightActiveLine(); // Вызываем без аргумента
 lastSearch='';
 searchResults=[];
 currentResult=-1;
@@ -397,7 +397,7 @@ d.textContent=i;
 lineNumbersDiv.appendChild(d);
 }
 syncScroll();
-highlightActiveLine();
+// Не вызываем highlightActiveLine() здесь, чтобы не сбрасывать подсветку при вводе
 }
 
 function syncScroll(){
@@ -411,13 +411,20 @@ const total=lines.length+Math.ceil(lines.length*.5);
 if(!isNaN(line)&&line>0&&line<=total){
 const h=parseFloat(getComputedStyle(textarea).lineHeight);
 textarea.scrollTop=Math.max(0,(line-1)*h-textarea.clientHeight/2+h/2);
+activeLineNumber = line;
 highlightActiveLine(line);
 }
 }
 
 function highlightActiveLine(line){
-Array.from(lineNumbersDiv.children).forEach((el,i)=>{
-el.classList.toggle('active-line',line&&i===line-1);
+// Если line не передан, просто убираем всю подсветку
+if (line === undefined) {
+    line = null;
+}
+activeLineNumber = line;
+Array.from(lineNumbersDiv.children).forEach((el, i) => {
+    const shouldHighlight = (line !== null && i === line - 1);
+    el.classList.toggle('active-line', shouldHighlight);
 });
 }
 
@@ -435,7 +442,9 @@ copyButton.textContent='Скопировать 📃';
 function clearAll(){
 saveState();
 textarea.value='';
+activeLineNumber = null;
 updateLineNumbers();
+highlightActiveLine(); // Убираем подсветку
 }
 
 function runCode(){
@@ -464,6 +473,7 @@ previewFrame.src='about:blank';
 editorContainer.classList.remove('hidden');
 editorContainer.style.display='flex';
 updateLineNumbers();
+// Не подсвечиваем при возврате в редактор
 window.scrollTo(0,0);
 }
 
@@ -485,7 +495,9 @@ function undo(){
 if(history.length){
 redoStack.push(textarea.value);
 textarea.value=history.pop();
+activeLineNumber = null;
 updateLineNumbers();
+highlightActiveLine(); // Убираем подсветку
 }
 }
 
@@ -493,7 +505,9 @@ function redo(){
 if(redoStack.length){
 history.push(textarea.value);
 textarea.value=redoStack.pop();
+activeLineNumber = null;
 updateLineNumbers();
+highlightActiveLine(); // Убираем подсветку
 }
 }
 
@@ -513,7 +527,9 @@ reader.onload=e=>{
 const content=e.target.result;
 saveState();
 textarea.value=content;
+activeLineNumber = null; // Сбрасываем подсветку
 updateLineNumbers();
+highlightActiveLine(); // Убираем подсветку
 if(wasInPreviewBeforeFile){
 const code=extractHtmlContent(content)||content;
 const url=URL.createObjectURL(new Blob([code],{type:'text/html'}));
@@ -582,6 +598,7 @@ fullscreenFrame.src='about:blank';
 document.removeEventListener('keydown',handleEscapeKey);
 document.removeEventListener('fullscreenchange',handleFullscreenChange);
 window.scrollTo(0,0);
+// Не подсвечиваем при выходе из полноэкранного режима
 updateLineNumbers();
 }
 
@@ -665,7 +682,6 @@ goToLine();
 });
 
 forceExitFullscreenBtn.addEventListener('click', (e) => {
-  // Не перетаскивание, а клик по самой кнопке (или по тексту)
   if (!e.target.closest('.drag-handle')) {
     forceExitFullscreen();
   }
@@ -674,11 +690,16 @@ forceExitFullscreenBtn.addEventListener('click', (e) => {
 window.addEventListener('pageshow',()=>{
 updateLineNumbers();
 syncScroll();
+// Не подсвечиваем при загрузке страницы
+activeLineNumber = null;
 highlightActiveLine();
 });
 
+// Инициализация - без подсветки
 updateLineNumbers();
 textarea.value='';
+activeLineNumber = null;
+highlightActiveLine(); // Убираем подсветку
 updateLineNumbers();
 
 previewFrame.style.display='none';
