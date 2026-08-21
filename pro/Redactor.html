@@ -73,8 +73,84 @@ textarea{flex:1;outline:none;resize:none;padding:5px;font-family:monospace;font-
 .file-input{display:none}
 .fullscreen-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;display:none}
 .fullscreen-overlay.active{display:block}
-.fullscreen-exit-btn{position:fixed;top:30px;right:20px;z-index:10001;padding:12px 18px;border:none;border-radius:8px;cursor:pointer;font-size:16px;font-weight:bold;box-shadow:0 4px 8px rgba(0,0,0,.3)}
-.fullscreen-exit-btn:hover{transform:scale(1.05);transition:transform .2s}
+
+/* Новая кнопка выхода с ручкой */
+.fullscreen-exit-btn {
+    position: fixed;
+    top: 30px;
+    right: 20px;
+    z-index: 10001;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,.3);
+    display: flex;
+    align-items: center;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background 0.2s, transform 0.2s;
+    overflow: hidden;
+    user-select: none;
+}
+.fullscreen-exit-btn:hover {
+    background: rgba(0,0,0,0.6);
+    transform: scale(1.03);
+}
+.fullscreen-exit-btn .exit-label {
+    padding: 12px 18px 12px 16px;
+    color: white;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    white-space: nowrap;
+}
+.fullscreen-exit-btn .drag-handle {
+    width: 18px;
+    height: 100%;
+    min-height: 44px;
+    background: rgba(255,255,255,0.15);
+    border-left: 1px solid rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    transition: background 0.2s;
+    padding: 0 4px;
+}
+.fullscreen-exit-btn .drag-handle:hover {
+    background: rgba(255,255,255,0.25);
+}
+.fullscreen-exit-btn .drag-handle:active {
+    cursor: grabbing;
+}
+.drag-handle-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.drag-handle-dots span {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.7);
+}
+/* Тёмная тема — чуть светлее */
+body.theme-dark .fullscreen-exit-btn {
+    background: rgba(30,30,50,0.5);
+}
+body.theme-dark .fullscreen-exit-btn:hover {
+    background: rgba(30,30,50,0.8);
+}
+body.theme-dark .fullscreen-exit-btn .drag-handle {
+    background: rgba(255,255,255,0.08);
+}
+body.theme-dark .fullscreen-exit-btn .drag-handle:hover {
+    background: rgba(255,255,255,0.18);
+}
+
 .fetch-loading{background:#f0ad4e!important;cursor:wait!important}
 .editor.hidden{display:none}
 .theme-select{background:#555;border:none;border-radius:5px;color:white;padding:6px 8px;font-size:14px;cursor:pointer;font-family:inherit;margin-left:4px;transition:all .2s}
@@ -144,8 +220,16 @@ onchange="handleFileWithFullscreenRestore(event)">
 <iframe class="preview" id="previewFrame"></iframe>
 
 <div class="fullscreen-overlay" id="fullscreenOverlay">
-<button class="fullscreen-exit-btn" id="forceExitFullscreenBtn">✕ Выйти из полного экрана</button>
-<iframe id="fullscreenFrame" style="width:100%;height:100%;border:none"></iframe>
+  <!-- Новая кнопка: полупрозрачная + ручка для перетаскивания -->
+  <button class="fullscreen-exit-btn" id="forceExitFullscreenBtn">
+    <span class="exit-label">✕ Выйти из полного экрана</span>
+    <span class="drag-handle" id="dragHandle">
+      <span class="drag-handle-dots">
+        <span></span><span></span><span></span>
+      </span>
+    </span>
+  </button>
+  <iframe id="fullscreenFrame" style="width:100%;height:100%;border:none"></iframe>
 </div>
 
 <script>
@@ -168,6 +252,59 @@ body=document.body;
 
 let history=[],redoStack=[],isFullscreen=false,wasInPreviewBeforeFile=false,fullscreenWasActive=false,lastPreviewUrl=null;
 let searchResults=[],currentResult=-1,lastSearch="";
+
+// --- Перетаскивание кнопки выхода ---
+(function setupDrag() {
+  const btn = forceExitFullscreenBtn;
+  const handle = document.getElementById('dragHandle');
+  let isDragging = false, startX, startY, startRight, startTop;
+
+  function onStart(e) {
+    const ev = e.touches ? e.touches[0] : e;
+    isDragging = true;
+    const rect = btn.getBoundingClientRect();
+    startX = ev.clientX;
+    startY = ev.clientY;
+    startRight = window.innerWidth - rect.right;
+    startTop = rect.top;
+    btn.style.transition = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd, { passive: false });
+    e.preventDefault && e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!isDragging) return;
+    const ev = e.touches ? e.touches[0] : e;
+    const dx = ev.clientX - startX;
+    const dy = ev.clientY - startY;
+    let newRight = startRight - dx;
+    let newTop = startTop + dy;
+    newRight = Math.max(10, Math.min(window.innerWidth - btn.offsetWidth - 10, newRight));
+    newTop = Math.max(10, Math.min(window.innerHeight - btn.offsetHeight - 10, newTop));
+    btn.style.right = newRight + 'px';
+    btn.style.top = newTop + 'px';
+    btn.style.left = 'auto';
+    btn.style.bottom = 'auto';
+    e.preventDefault && e.preventDefault();
+  }
+
+  function onEnd(e) {
+    if (isDragging) {
+      isDragging = false;
+      btn.style.transition = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+  }
+
+  handle.addEventListener('mousedown', onStart);
+  handle.addEventListener('touchstart', onStart, { passive: false });
+})();
 
 function applyTheme(themeName){
 ['theme-dark','theme-light','theme-green','theme-ocean','theme-graphite'].forEach(t=>body.classList.remove(t));
@@ -527,7 +664,12 @@ goToLine();
 }
 });
 
-forceExitFullscreenBtn.onclick=forceExitFullscreen;
+forceExitFullscreenBtn.addEventListener('click', (e) => {
+  // Не перетаскивание, а клик по самой кнопке (или по тексту)
+  if (!e.target.closest('.drag-handle')) {
+    forceExitFullscreen();
+  }
+});
 
 window.addEventListener('pageshow',()=>{
 updateLineNumbers();
