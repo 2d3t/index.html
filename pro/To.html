@@ -674,20 +674,46 @@
         font-style: italic;
     }
 
-    /* Индикатор уровня звука */
-    .sound-level {
-        width: 100%;
-        height: 20px;
-        background: #e2e8f0;
-        border-radius: 10px;
-        overflow: hidden;
-        margin-top: 10px;
+    /* Стили для просмотра изображений */
+    .image-preview-container {
+        margin: 12px 0;
+        padding: 12px;
+        background: #f1f5f9;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
     }
-    .sound-level-bar {
-        height: 100%;
-        width: 0%;
-        background: linear-gradient(90deg, #3b4de0, #0f973d);
-        transition: width 0.05s;
+    .image-preview-container img {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .image-preview-container .label {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 8px;
+        display: block;
+        font-weight: 600;
+    }
+    .image-preview-container .image-info {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #64748b;
+    }
+    .image-preview-container .image-actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .image-preview-container .image-actions button {
+        flex: 0 1 auto;
+        padding: 6px 16px;
+        margin: 0;
+        font-size: 12px;
+        min-width: auto;
     }
 </style>
 </head>
@@ -742,7 +768,7 @@ function toggleQR() {
                     <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
                         <span class="icon">📁</span>
                         <div class="text">Нажмите для загрузки файла</div>
-                        <div class="subtext">Поддерживаются TXT, MP3 и другие файлы</div>
+                        <div class="subtext">Поддерживаются TXT, MP3, изображения и другие файлы</div>
                         <input type="file" id="fileInput" onchange="handleFileUpload(event)">
                     </div>
                     <div id="fileInfo" class="file-info hidden">
@@ -810,6 +836,7 @@ function toggleQR() {
                     <button class="secondary" onclick="setViewMode('auto')" id="modeAutoBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px; background: #d1fae5; border-color: #065f46;">🔀 Авто</button>
                     <button class="secondary" onclick="setViewMode('text')" id="modeTextBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px;">📄 Текст</button>
                     <button class="secondary" onclick="setViewMode('audio')" id="modeAudioBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px;">🎵 Аудио</button>
+                    <button class="secondary" onclick="setViewMode('image')" id="modeImageBtn" style="flex: 0 1 auto; padding: 6px 16px; margin: 0; font-size: 13px;">🖼️ Изображение</button>
                 </div>
 
                 <div id="textPreviewContainer" class="preview-container hidden">
@@ -826,10 +853,21 @@ function toggleQR() {
                     <div style="margin-top: 8px; font-size: 12px; color: #64748b;">Нажмите ▶ для воспроизведения</div>
                 </div>
 
+                <div id="imagePreviewContainer" class="image-preview-container hidden">
+                    <span class="label">🖼️ Изображение:</span>
+                    <img id="imagePreview" src="" alt="Восстановленное изображение">
+                    <div class="image-info" id="imageInfo"></div>
+                    <div class="image-actions">
+                        <button class="secondary" onclick="downloadImageFromPreview()">💾 Скачать изображение</button>
+                        <button class="secondary" onclick="copyImageToClipboard()">📋 Копировать в буфер</button>
+                    </div>
+                </div>
+
                 <div class="action-buttons">
                     <button class="success" onclick="downloadResultFile()">📁 Скачать файл</button>
                     <button class="info-btn" onclick="previewAsText()">📄 Показать как текст</button>
                     <button class="warning-btn" onclick="previewAsAudio()">🎵 Слушать как аудио</button>
+                    <button class="primary" onclick="previewAsImage()">🖼️ Показать как изображение</button>
                 </div>
 
                 <div class="btn-group">
@@ -861,20 +899,8 @@ function toggleQR() {
                 </div>
                 <div class="speed-control">
                     <label for="transferSpeed">Скорость:</label>
-                    <input type="range" id="transferSpeed" min="0.05" max="3" step="0.05" value="0.3">
-                    <span class="speed-value" id="speedDisplay">0.30 сек</span>
-                </div>
-                <div class="speed-control" style="margin-top:10px;">
-                    <label style="min-width:auto;">🔊 Подтверждение:</label>
-                    <button class="secondary" id="ackMicBtn" onclick="toggleAckMicrophone()" style="width:auto; margin:0; padding:8px 14px;">🎤 Включить микрофон</button>
-                    <span class="speed-value" id="ackStatus" style="font-size:13px; min-width:110px;">выкл.</span>
-                </div>
-                <!-- Индикатор уровня звука -->
-                <div class="sound-level" id="soundLevel">
-                    <div class="sound-level-bar" id="soundLevelBar"></div>
-                </div>
-                <div class="small" style="margin-top:8px; text-align:center;">
-                    В режиме подтверждения принимающее устройство после успешного QR подаёт короткий тон, а передатчик по микрофону переключается только на следующий QR.
+                    <input type="range" id="transferSpeed" min="0.3" max="3" step="0.1" value="0.3">
+                    <span class="speed-value" id="speedDisplay">0.3 сек</span>
                 </div>
                 <div class="transfer-status" id="transferStatus">Ожидание запуска</div>
             </div>
@@ -963,18 +989,6 @@ function toggleQR() {
         let transferTimer = null;
         let transferRunning = false;
 
-        // Акустический обратный канал: приёмник -> передатчик
-        let ackMicEnabled = false;
-        let ackMicStream = null;
-        let ackMicContext = null;
-        let ackMicAnalyser = null;
-        let ackMicFilter = null;
-        let ackMicSource = null;
-        let ackMicFrame = null;
-        let ackLastDetected = 0;
-        let ackNoiseFloor = 0.008;
-        let ackAudioContext = null;
-
         let receivedParts = {};
         let scanTotal = null;
         let scanHash = null;
@@ -990,6 +1004,7 @@ function toggleQR() {
         let isComplete = false;
         let currentViewMode = 'auto';
         let lastDecodedData = null;
+        let lastDecodedBase64 = null;
         let currentInputMode = 'file'; // 'file' или 'text'
 
         /* =========================================================
@@ -1193,6 +1208,10 @@ function toggleQR() {
                         typeLabel = 'MP3 аудио';
                         typeClass = 'file-type-mp3';
                         icon = '🎵';
+                    } else if (file.type.startsWith('image/')) {
+                        typeLabel = 'Изображение';
+                        typeClass = 'file-type-other';
+                        icon = '🖼️';
                     }
 
                     const fileInfo = document.getElementById('fileInfo');
@@ -1463,22 +1482,19 @@ function toggleQR() {
             if (transferQRs.length === 0) return;
             transferIndex = (transferIndex + 1) % transferQRs.length;
             updateTransferUI();
-            if (!ackMicEnabled) resetTransferTimer();
+            resetTransferTimer();
         }
 
         function transferPrev() {
             if (transferQRs.length === 0) return;
             transferIndex = (transferIndex - 1 + transferQRs.length) % transferQRs.length;
             updateTransferUI();
-            if (!ackMicEnabled) resetTransferTimer();
+            resetTransferTimer();
         }
 
         function getTransferSpeed() {
             const speed = parseFloat(document.getElementById("transferSpeed").value);
-            let display;
-            if (speed < 0.1) display = speed.toFixed(2);
-            else display = speed.toFixed(1);
-            document.getElementById("speedDisplay").textContent = display + " сек";
+            document.getElementById("speedDisplay").textContent = speed.toFixed(1) + " сек";
             return speed * 1000;
         }
 
@@ -1487,232 +1503,18 @@ function toggleQR() {
                 clearTimeout(transferTimer);
                 transferTimer = null;
             }
-            if (transferRunning && !ackMicEnabled) startTimer();
+            if (transferRunning) startTimer();
         }
 
         function startTimer() {
             if (transferTimer) clearTimeout(transferTimer);
-            if (!transferRunning || transferQRs.length === 0 || ackMicEnabled) return;
+            if (!transferRunning || transferQRs.length === 0) return;
 
             transferTimer = setTimeout(() => {
-                if (transferRunning && transferQRs.length > 0 && !ackMicEnabled) {
+                if (transferRunning && transferQRs.length > 0) {
                     transferNext();
                 }
             }, getTransferSpeed());
-        }
-
-        /* =========================================================
-           АКУСТИЧЕСКОЕ ПОДТВЕРЖДЕНИЕ (ИСПРАВЛЕННАЯ ВЕРСИЯ)
-        ========================================================= */
-        async function initAckAudioContext() {
-            try {
-                if (!ackAudioContext) {
-                    ackAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (ackAudioContext.state === 'suspended') await ackAudioContext.resume();
-            } catch (e) {
-                console.warn('Не удалось подготовить звук подтверждения', e);
-            }
-        }
-
-        function playAckBeep(partNumber) {
-            try {
-                if (!ackAudioContext) {
-                    ackAudioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                const ctx = ackAudioContext;
-                if (ctx.state === 'suspended') ctx.resume();
-
-                // ИСПРАВЛЕНО: Фиксированная частота 2050 Гц
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = 2050; // ФИКСИРОВАННАЯ ЧАСТОТА
-                gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.005);
-                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15); // УВЕЛИЧЕНА ДЛИТЕЛЬНОСТЬ
-                
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.155);
-                
-                console.log('🔊 ACK сигнал отправлен на частоте 2050 Гц');
-            } catch (e) {
-                console.warn('ACK beep error', e);
-            }
-        }
-
-        async function toggleAckMicrophone() {
-            if (ackMicEnabled) {
-                stopAckMicrophone();
-                return;
-            }
-
-            try {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Этот браузер не поддерживает доступ к микрофону.');
-                }
-
-                ackMicStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
-
-                ackMicContext = new (window.AudioContext || window.webkitAudioContext)();
-                if (ackMicContext.state === 'suspended') await ackMicContext.resume();
-
-                ackMicSource = ackMicContext.createMediaStreamSource(ackMicStream);
-                ackMicFilter = ackMicContext.createBiquadFilter();
-                ackMicFilter.type = 'bandpass';
-                ackMicFilter.frequency.value = 2050;
-                ackMicFilter.Q.value = 2.5;
-
-                ackMicAnalyser = ackMicContext.createAnalyser();
-                ackMicAnalyser.fftSize = 1024;
-                ackMicAnalyser.smoothingTimeConstant = 0.05;
-
-                ackMicSource.connect(ackMicFilter);
-                ackMicFilter.connect(ackMicAnalyser);
-
-                ackMicEnabled = true;
-                ackLastDetected = 0;
-                ackNoiseFloor = 0.008;
-
-                document.getElementById('ackMicBtn').textContent = '🎤 Микрофон включён';
-                document.getElementById('ackMicBtn').className = 'success';
-                document.getElementById('ackStatus').textContent = 'слушаю ACK';
-                document.getElementById('ackStatus').style.color = '#0f973d';
-
-                if (transferRunning) {
-                    if (transferTimer) clearTimeout(transferTimer);
-                    transferTimer = null;
-                    document.getElementById('transferStatus').textContent = '🎤 Жду подтверждение QR ' + (transferIndex + 1);
-                }
-
-                listenForAck();
-            } catch (e) {
-                console.error(e);
-                stopAckMicrophone();
-                alert('Не удалось включить микрофон: ' + e.message);
-            }
-        }
-
-        function stopAckMicrophone() {
-            ackMicEnabled = false;
-            if (ackMicFrame) cancelAnimationFrame(ackMicFrame);
-            ackMicFrame = null;
-
-            if (ackMicStream) ackMicStream.getTracks().forEach(track => track.stop());
-            ackMicStream = null;
-
-            if (ackMicContext) {
-                try { ackMicContext.close(); } catch (e) {}
-            }
-            ackMicContext = null;
-            ackMicAnalyser = null;
-            ackMicFilter = null;
-            ackMicSource = null;
-
-            const btn = document.getElementById('ackMicBtn');
-            if (btn) {
-                btn.textContent = '🎤 Включить микрофон';
-                btn.className = 'secondary';
-            }
-            const status = document.getElementById('ackStatus');
-            if (status) {
-                status.textContent = 'выкл.';
-                status.style.color = '';
-            }
-
-            if (transferRunning) {
-                document.getElementById('transferStatus').textContent = '▶ Передача по таймеру';
-                startTimer();
-            }
-        }
-
-        function listenForAck() {
-            if (!ackMicEnabled || !ackMicAnalyser) return;
-
-            const data = new Float32Array(ackMicAnalyser.fftSize);
-            ackMicAnalyser.getFloatTimeDomainData(data);
-
-            let sum = 0;
-            for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
-            const rms = Math.sqrt(sum / data.length);
-
-            // Анализ спектра
-            const freqData = new Uint8Array(ackMicAnalyser.frequencyBinCount);
-            ackMicAnalyser.getByteFrequencyData(freqData);
-            
-            // Проверяем частоту 2050 Гц
-            const targetFreq = 2050;
-            const bin = Math.round(targetFreq * ackMicContext.sampleRate / ackMicAnalyser.fftSize);
-            let maxEnergy = 0;
-            const startBin = Math.max(0, bin - 5);
-            const endBin = Math.min(freqData.length - 1, bin + 5);
-            for (let k = startBin; k <= endBin; k++) {
-                maxEnergy = Math.max(maxEnergy, freqData[k] || 0);
-            }
-
-            // Динамический порог
-            let noiseFloor = 30;
-            for (let k = 0; k < 20; k++) {
-                noiseFloor = Math.min(noiseFloor, freqData[k] || 0);
-            }
-            const threshold = Math.max(80, noiseFloor * 1.8);
-            
-            const now = performance.now();
-            const timeSinceLast = now - ackLastDetected;
-
-            // Обновляем индикатор уровня звука
-            const soundLevel = document.getElementById('soundLevelBar');
-            if (soundLevel) {
-                const level = Math.min(100, rms * 8000);
-                soundLevel.style.width = level + '%';
-                if (level > 15) {
-                    soundLevel.style.background = 'linear-gradient(90deg, #f59e0b, #0f973d)';
-                } else {
-                    soundLevel.style.background = 'linear-gradient(90deg, #3b4de0, #0f973d)';
-                }
-            }
-
-            // ИСПРАВЛЕНО: Более чувствительное обнаружение
-            if (rms > 0.005 && maxEnergy > threshold && timeSinceLast > 200) {
-                ackLastDetected = now;
-                console.log(`🎯 ACK обнаружен! RMS: ${rms.toFixed(4)}, Энергия: ${maxEnergy}, Порог: ${threshold}`);
-                handleAckReceived();
-            } else {
-                // Отладка - показываем уровень сигнала при достаточной громкости
-                if (rms > 0.002) {
-                    console.log(`📊 Уровень: RMS=${rms.toFixed(4)}, Энергия=${maxEnergy}, Порог=${threshold}`);
-                }
-            }
-
-            ackMicFrame = requestAnimationFrame(listenForAck);
-        }
-
-        function handleAckReceived() {
-            if (!ackMicEnabled || !transferRunning || transferQRs.length === 0) return;
-
-            // Переключаем на следующий QR
-            const nextIndex = (transferIndex + 1) % transferQRs.length;
-            transferIndex = nextIndex;
-            updateTransferUI();
-            document.getElementById('transferStatus').textContent = '✓ ACK получен → QR ' + (transferIndex + 1);
-            
-            // Звуковой сигнал обратной связи
-            playBeep(1000, 0.05);
-
-            // Сразу начинаем ждать следующий ACK
-            setTimeout(() => {
-                if (transferRunning && ackMicEnabled) {
-                    document.getElementById('transferStatus').textContent = '🎤 Жду подтверждение QR ' + (transferIndex + 1);
-                }
-            }, 100);
         }
 
         function startTransfer() {
@@ -1732,13 +1534,7 @@ function toggleQR() {
 
             playStartBeep();
 
-            if (ackMicEnabled) {
-                if (transferTimer) clearTimeout(transferTimer);
-                transferTimer = null;
-                document.getElementById('transferStatus').textContent = '🎤 Жду подтверждение QR 1';
-            } else {
-                startTimer();
-            }
+            startTimer();
         }
 
         function stopTransfer() {
@@ -1762,7 +1558,6 @@ function toggleQR() {
             status.textContent = "Запрашиваю камеру...";
 
             try {
-                await initAckAudioContext();
                 scanner = new Html5Qrcode("reader");
                 await scanner.start({ facingMode: "environment" }, {
                     fps: 15,
@@ -1798,23 +1593,19 @@ function toggleQR() {
 
             lastScanText = decodedText;
             lastScanTime = now;
-            const accepted = processPacket(decodedText);
-            if (accepted) {
-                // Только успешно принятый новый QR подтверждаем звуком.
-                playAckBeep(Number(decodedText.split("|")[3]) || 1);
-            }
+            processPacket(decodedText);
         }
 
         function processPacket(packet) {
             if (!packet.startsWith("QRTX|")) {
                 setScanStatus("Это не QR от этого генератора.", "warning");
-                return false;
+                return;
             }
 
             const separatorIndex = packet.indexOf("|" + DATA_SEPARATOR + "|");
             if (separatorIndex < 0) {
                 setScanStatus("Повреждённый формат QR.", "error");
-                return false;
+                return;
             }
 
             const header = packet.substring(0, separatorIndex);
@@ -1823,7 +1614,7 @@ function toggleQR() {
 
             if (fields.length < 6) {
                 setScanStatus("Неверный QR.", "error");
-                return false;
+                return;
             }
 
             const format = fields[0];
@@ -1835,12 +1626,12 @@ function toggleQR() {
 
             if (format !== "QRTX" || version !== "1") {
                 setScanStatus("Неподдерживаемый формат QR.", "error");
-                return false;
+                return;
             }
 
             if (!Number.isInteger(partNumber) || !Number.isInteger(total) || partNumber < 1 || partNumber > total) {
                 setScanStatus("Неверный номер части.", "error");
-                return false;
+                return;
             }
 
             if (scanDocumentId === null) {
@@ -1850,21 +1641,21 @@ function toggleQR() {
             } else {
                 if (documentId !== scanDocumentId) {
                     setScanStatus("⚠️ Это QR от другого документа.", "warning");
-                    return false;
+                    return;
                 }
                 if (total !== scanTotal) {
                     setScanStatus("⚠️ Количество частей не совпадает.", "warning");
-                    return false;
+                    return;
                 }
                 if (hash !== scanHash) {
                     setScanStatus("⚠️ Контрольная сумма не совпадает.", "warning");
-                    return false;
+                    return;
                 }
             }
 
             if (receivedParts[partNumber] !== undefined) {
                 setScanStatus("QR " + partNumber + " уже получен.", "warning");
-                return false;
+                return;
             }
 
             receivedParts[partNumber] = data;
@@ -1875,8 +1666,6 @@ function toggleQR() {
             if (Object.keys(receivedParts).length === scanTotal) {
                 assembleData();
             }
-
-            return true;
         }
 
         function updateScannerInterface() {
@@ -1941,6 +1730,26 @@ function toggleQR() {
                 return 'audio';
             }
 
+            // Проверка на изображения по магическим числам
+            if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
+                return 'image'; // PNG
+            }
+            if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
+                return 'image'; // JPEG
+            }
+            if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+                return 'image'; // GIF
+            }
+            if (bytes[0] === 0x42 && bytes[1] === 0x4D) {
+                return 'image'; // BMP
+            }
+            if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+                // Может быть WEBP
+                if (bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+                    return 'image'; // WEBP
+                }
+            }
+
             try {
                 const text = new TextDecoder('utf-8').decode(bytes);
                 if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
@@ -1968,6 +1777,29 @@ function toggleQR() {
             }
         }
 
+        function bytesToImageUrl(bytes) {
+            try {
+                const blob = new Blob([bytes]);
+                return URL.createObjectURL(blob);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function getImageType(bytes) {
+            if (!bytes || bytes.length < 4) return 'unknown';
+            if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'PNG';
+            if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'JPEG';
+            if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) return 'GIF';
+            if (bytes[0] === 0x42 && bytes[1] === 0x4D) return 'BMP';
+            if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+                if (bytes.length > 12 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+                    return 'WEBP';
+                }
+            }
+            return 'unknown';
+        }
+
         /* =========================================================
            УПРАВЛЕНИЕ РЕЖИМАМИ ПРОСМОТРА
         ========================================================= */
@@ -1977,6 +1809,7 @@ function toggleQR() {
             document.getElementById('modeAutoBtn').style.background = '#eef2f6';
             document.getElementById('modeTextBtn').style.background = '#eef2f6';
             document.getElementById('modeAudioBtn').style.background = '#eef2f6';
+            document.getElementById('modeImageBtn').style.background = '#eef2f6';
 
             if (mode === 'auto') {
                 document.getElementById('modeAutoBtn').style.background = '#d1fae5';
@@ -1984,6 +1817,8 @@ function toggleQR() {
                 document.getElementById('modeTextBtn').style.background = '#dbeafe';
             } else if (mode === 'audio') {
                 document.getElementById('modeAudioBtn').style.background = '#fce7f3';
+            } else if (mode === 'image') {
+                document.getElementById('modeImageBtn').style.background = '#fef3c7';
             }
 
             if (lastDecodedData) {
@@ -1994,9 +1829,11 @@ function toggleQR() {
         function applyViewMode(mode, bytes) {
             const textContainer = document.getElementById('textPreviewContainer');
             const audioContainer = document.getElementById('audioPreviewContainer');
+            const imageContainer = document.getElementById('imagePreviewContainer');
 
             textContainer.classList.add('hidden');
             audioContainer.classList.add('hidden');
+            imageContainer.classList.add('hidden');
 
             if (!bytes || bytes.length === 0) {
                 return;
@@ -2005,7 +1842,9 @@ function toggleQR() {
             const fileType = detectFileType(bytes);
 
             if (mode === 'auto') {
-                if (fileType === 'audio') {
+                if (fileType === 'image') {
+                    showImage(bytes);
+                } else if (fileType === 'audio') {
                     showAudio(bytes);
                 } else if (fileType === 'text') {
                     showText(bytes);
@@ -2016,6 +1855,13 @@ function toggleQR() {
                 showText(bytes);
             } else if (mode === 'audio') {
                 showAudio(bytes);
+            } else if (mode === 'image') {
+                if (fileType === 'image' || isBase64Image(lastDecodedBase64)) {
+                    showImage(bytes);
+                } else {
+                    showText(bytes);
+                    setScanStatus('⚠️ Это не изображение. Показан текст.', 'warning');
+                }
             }
         }
 
@@ -2028,6 +1874,7 @@ function toggleQR() {
             container.classList.remove('hidden');
 
             document.getElementById('audioPreviewContainer').classList.add('hidden');
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
         }
 
         function showAudio(bytes) {
@@ -2039,6 +1886,7 @@ function toggleQR() {
                 player.src = url;
                 container.classList.remove('hidden');
                 document.getElementById('textPreviewContainer').classList.add('hidden');
+                document.getElementById('imagePreviewContainer').classList.add('hidden');
 
                 if (currentViewMode === 'auto') {
                     setTimeout(() => {
@@ -2046,6 +1894,37 @@ function toggleQR() {
                     }, 300);
                 }
             }
+        }
+
+        function showImage(bytes) {
+            const container = document.getElementById('imagePreviewContainer');
+            const img = document.getElementById('imagePreview');
+            const info = document.getElementById('imageInfo');
+
+            const url = bytesToImageUrl(bytes);
+            if (url) {
+                img.src = url;
+                const imgType = getImageType(bytes);
+                const size = bytes.length;
+                info.textContent = '📐 ' + imgType + ' | ' + formatFileSize(size) + ' (' + size + ' байт)';
+                container.classList.remove('hidden');
+                document.getElementById('textPreviewContainer').classList.add('hidden');
+                document.getElementById('audioPreviewContainer').classList.add('hidden');
+
+                if (currentViewMode === 'auto') {
+                    setScanStatus('🖼️ Изображение восстановлено!', 'ok');
+                    playSuccessBeep();
+                }
+            }
+        }
+
+        function isBase64Image(base64) {
+            if (!base64) return false;
+            const imgTypes = ['/9j/', 'iVBOR', 'R0lGOD', 'Qk1', 'UklGR'];
+            for (const type of imgTypes) {
+                if (base64.startsWith(type)) return true;
+            }
+            return false;
         }
 
         /* =========================================================
@@ -2059,6 +1938,56 @@ function toggleQR() {
             setViewMode('audio');
         }
 
+        function previewAsImage() {
+            if (!lastDecodedData) {
+                setScanStatus('Нет данных для отображения.', 'warning');
+                return;
+            }
+            const fileType = detectFileType(lastDecodedData);
+            if (fileType === 'image' || isBase64Image(lastDecodedBase64)) {
+                setViewMode('image');
+            } else {
+                setScanStatus('⚠️ Это не изображение. Попробуйте другой режим.', 'warning');
+                playErrorBeep();
+            }
+        }
+
+        function downloadImageFromPreview() {
+            const img = document.getElementById('imagePreview');
+            if (!img.src || img.src === '') {
+                setScanStatus('Нет изображения для скачивания.', 'warning');
+                return;
+            }
+            const a = document.createElement('a');
+            a.href = img.src;
+            a.download = 'restored_image.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setScanStatus('✅ Изображение скачано.', 'ok');
+        }
+
+        async function copyImageToClipboard() {
+            const img = document.getElementById('imagePreview');
+            if (!img.src || img.src === '') {
+                setScanStatus('Нет изображения для копирования.', 'warning');
+                return;
+            }
+            try {
+                const response = await fetch(img.src);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        [blob.type]: blob
+                    })
+                ]);
+                setScanStatus('✅ Изображение скопировано в буфер!', 'ok');
+            } catch (e) {
+                setScanStatus('❌ Не удалось скопировать изображение.', 'error');
+                console.error(e);
+            }
+        }
+
         async function assembleData() {
             let fullData = "";
 
@@ -2068,6 +1997,7 @@ function toggleQR() {
             }
 
             document.getElementById("resultText").value = fullData;
+            lastDecodedBase64 = fullData;
 
             const calculatedHash = await sha256(fullData);
             const verification = document.getElementById("verification");
@@ -2088,8 +2018,11 @@ function toggleQR() {
 
                 if (bytes) {
                     const fileType = detectFileType(bytes);
+                    const isImage = (fileType === 'image' || isBase64Image(fullData));
 
-                    if (fileType === 'audio') {
+                    if (isImage) {
+                        setViewMode('image');
+                    } else if (fileType === 'audio') {
                         setViewMode('auto');
                     } else if (fileType === 'text') {
                         setViewMode('auto');
@@ -2101,7 +2034,10 @@ function toggleQR() {
                 let typeInfo = '';
                 if (bytes) {
                     const fileType = detectFileType(bytes);
-                    if (fileType === 'audio') {
+                    const isImage = (fileType === 'image' || isBase64Image(fullData));
+                    if (isImage) {
+                        typeInfo = '🖼️ <b>Изображение</b> - можно просмотреть и скачать';
+                    } else if (fileType === 'audio') {
                         typeInfo = '🎵 <b>Аудиофайл</b> (MP3/WAV) - можно прослушать';
                     } else if (fileType === 'text') {
                         typeInfo = '📄 <b>Текстовый файл</b> - можно прочитать';
@@ -2117,7 +2053,7 @@ function toggleQR() {
                     "<div class='hash'>" + calculatedHash + "</div>" +
                     "<br><p>" + typeInfo + "</p>" +
                     "<p>📁 Нажмите 'Скачать файл' для сохранения</p>" +
-                    "<p style='margin-top: 8px;'><span class='badge'>💡 Используйте кнопки 'Показать как текст' или 'Слушать как аудио' для просмотра</span></p>";
+                    "<p style='margin-top: 8px;'><span class='badge'>💡 Используйте кнопки режимов просмотра для отображения</span></p>";
 
                 document.getElementById("scanStatus").innerHTML = "<span class='ok'>🎉 ГОТОВО! Сканирование завершено.</span>";
 
@@ -2200,6 +2136,10 @@ function toggleQR() {
                     mimeType = 'image/png';
                     fileName = 'recovered_image'; } else if (header.startsWith('R0lGOD')) { ext = '.gif';
                     mimeType = 'image/gif';
+                    fileName = 'recovered_image'; } else if (header.startsWith('Qk1')) { ext = '.bmp';
+                    mimeType = 'image/bmp';
+                    fileName = 'recovered_image'; } else if (header.startsWith('UklGR')) { ext = '.webp';
+                    mimeType = 'image/webp';
                     fileName = 'recovered_image'; } else if (header.startsWith('UEs')) { ext = '.zip';
                     mimeType = 'application/zip';
                     fileName = 'recovered_archive'; } else if (header.startsWith('H4sI')) { ext = '.gz';
@@ -2214,14 +2154,24 @@ function toggleQR() {
                     mimeType = 'audio/flac';
                     fileName = 'recovered_audio'; }
 
-                try {
-                    const text = new TextDecoder('utf-8').decode(bytes);
-                    if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
-                        ext = '.txt';
-                        mimeType = 'text/plain';
-                        fileName = 'recovered_text';
+                // Если не удалось определить тип по заголовку, проверяем байты
+                if (ext === '.bin') {
+                    const fileType = detectFileType(bytes);
+                    if (fileType === 'image') {
+                        ext = '.img';
+                        mimeType = 'image/*';
+                        fileName = 'recovered_image';
+                    } else if (fileType === 'text') {
+                        try {
+                            const text = new TextDecoder('utf-8').decode(bytes);
+                            if (text.length > 0 && /[\p{L}\p{N}\p{P}\s]/u.test(text)) {
+                                ext = '.txt';
+                                mimeType = 'text/plain';
+                                fileName = 'recovered_text';
+                            }
+                        } catch (e) {}
                     }
-                } catch (e) {}
+                }
 
                 const blob = new Blob([bytes], { type: mimeType });
                 const url = URL.createObjectURL(blob);
@@ -2268,6 +2218,7 @@ function toggleQR() {
             lastScanTime = 0;
             isComplete = false;
             lastDecodedData = null;
+            lastDecodedBase64 = null;
             currentViewMode = 'auto';
 
             document.getElementById("receivedCount").textContent = "0";
@@ -2279,12 +2230,15 @@ function toggleQR() {
             document.getElementById("verification").classList.add("hidden");
             document.getElementById("textPreviewContainer").classList.add("hidden");
             document.getElementById("audioPreviewContainer").classList.add("hidden");
+            document.getElementById("imagePreviewContainer").classList.add("hidden");
             document.getElementById('audioPlayer').src = '';
             document.getElementById('textPreview').textContent = '';
+            document.getElementById('imagePreview').src = '';
 
             document.getElementById('modeAutoBtn').style.background = '#d1fae5';
             document.getElementById('modeTextBtn').style.background = '#eef2f6';
             document.getElementById('modeAudioBtn').style.background = '#eef2f6';
+            document.getElementById('modeImageBtn').style.background = '#eef2f6';
 
             setScanStatus("Сборщик очищен.", "");
         }
@@ -2306,10 +2260,8 @@ function toggleQR() {
         document.addEventListener("DOMContentLoaded", function() {
             const speedSlider = document.getElementById("transferSpeed");
             speedSlider.addEventListener("input", function() {
-                const speed = parseFloat(this.value);
-                document.getElementById("speedDisplay").textContent =
-                    (speed < 0.1 ? speed.toFixed(2) : speed.toFixed(1)) + " сек";
-                if (transferRunning && !ackMicEnabled) resetTransferTimer();
+                document.getElementById("speedDisplay").textContent = parseFloat(this.value).toFixed(1) + " сек";
+                if (transferRunning) resetTransferTimer();
             });
             updateTransferUI();
             document.getElementById("transferStopBtn").disabled = true;
