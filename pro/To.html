@@ -673,6 +673,22 @@
         margin-top: 6px;
         font-style: italic;
     }
+
+    /* Индикатор уровня звука */
+    .sound-level {
+        width: 100%;
+        height: 20px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    .sound-level-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #3b4de0, #0f973d);
+        transition: width 0.05s;
+    }
 </style>
 </head>
 
@@ -852,6 +868,10 @@ function toggleQR() {
                     <label style="min-width:auto;">🔊 Подтверждение:</label>
                     <button class="secondary" id="ackMicBtn" onclick="toggleAckMicrophone()" style="width:auto; margin:0; padding:8px 14px;">🎤 Включить микрофон</button>
                     <span class="speed-value" id="ackStatus" style="font-size:13px; min-width:110px;">выкл.</span>
+                </div>
+                <!-- Индикатор уровня звука -->
+                <div class="sound-level" id="soundLevel">
+                    <div class="sound-level-bar" id="soundLevelBar"></div>
                 </div>
                 <div class="small" style="margin-top:8px; text-align:center;">
                     В режиме подтверждения принимающее устройство после успешного QR подаёт короткий тон, а передатчик по микрофону переключается только на следующий QR.
@@ -1481,11 +1501,9 @@ function toggleQR() {
             }, getTransferSpeed());
         }
 
-        // =========================================================
-        // АКУСТИЧЕСКОЕ ПОДТВЕРЖДЕНИЕ
-        // Приёмник издаёт короткий тон после успешного QR.
-        // Передатчик слушает микрофон и по этому тону переключает QR.
-        // =========================================================
+        /* =========================================================
+           АКУСТИЧЕСКОЕ ПОДТВЕРЖДЕНИЕ (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+        ========================================================= */
         async function initAckAudioContext() {
             try {
                 if (!ackAudioContext) {
@@ -1505,17 +1523,21 @@ function toggleQR() {
                 const ctx = ackAudioContext;
                 if (ctx.state === 'suspended') ctx.resume();
 
+                // ИСПРАВЛЕНО: Фиксированная частота 2050 Гц
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.value = 1600 + ((Number(partNumber) || 1) % 8) * 120;
+                osc.frequency.value = 2050; // ФИКСИРОВАННАЯ ЧАСТОТА
                 gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.004);
-                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.045);
+                gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.005);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15); // УВЕЛИЧЕНА ДЛИТЕЛЬНОСТЬ
+                
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start();
-                osc.stop(ctx.currentTime + 0.05);
+                osc.stop(ctx.currentTime + 0.155);
+                
+                console.log('🔊 ACK сигнал отправлен на частоте 2050 Гц');
             } catch (e) {
                 console.warn('ACK beep error', e);
             }
@@ -1622,29 +1644,52 @@ function toggleQR() {
             for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
             const rms = Math.sqrt(sum / data.length);
 
-            // Дополнительно смотрим спектр: ACK кодируется частотой,
-            // зависящей от номера текущего QR. Это защищает от случайных щелчков.
+            // Анализ спектра
             const freqData = new Uint8Array(ackMicAnalyser.frequencyBinCount);
             ackMicAnalyser.getByteFrequencyData(freqData);
-            const currentPart = transferQRs.length ? (transferQRs[transferIndex].part || transferIndex + 1) : 1;
-            const targetFreq = 1600 + (Number(currentPart) % 8) * 120;
+            
+            // Проверяем частоту 2050 Гц
+            const targetFreq = 2050;
             const bin = Math.round(targetFreq * ackMicContext.sampleRate / ackMicAnalyser.fftSize);
-            let targetEnergy = 0;
-            for (let k = Math.max(0, bin - 2); k <= Math.min(freqData.length - 1, bin + 2); k++) {
-                targetEnergy = Math.max(targetEnergy, freqData[k]);
+            let maxEnergy = 0;
+            const startBin = Math.max(0, bin - 5);
+            const endBin = Math.min(freqData.length - 1, bin + 5);
+            for (let k = startBin; k <= endBin; k++) {
+                maxEnergy = Math.max(maxEnergy, freqData[k] || 0);
             }
 
-            // Медленно оцениваем уровень фонового шума.
-            if (rms < ackNoiseFloor * 1.8) {
-                ackNoiseFloor = ackNoiseFloor * 0.98 + rms * 0.02;
+            // Динамический порог
+            let noiseFloor = 30;
+            for (let k = 0; k < 20; k++) {
+                noiseFloor = Math.min(noiseFloor, freqData[k] || 0);
             }
-
-            const threshold = Math.max(0.02, ackNoiseFloor * 3.5);
+            const threshold = Math.max(80, noiseFloor * 1.8);
+            
             const now = performance.now();
+            const timeSinceLast = now - ackLastDetected;
 
-            if (rms > threshold && targetEnergy > 105 && now - ackLastDetected > 140) {
+            // Обновляем индикатор уровня звука
+            const soundLevel = document.getElementById('soundLevelBar');
+            if (soundLevel) {
+                const level = Math.min(100, rms * 8000);
+                soundLevel.style.width = level + '%';
+                if (level > 15) {
+                    soundLevel.style.background = 'linear-gradient(90deg, #f59e0b, #0f973d)';
+                } else {
+                    soundLevel.style.background = 'linear-gradient(90deg, #3b4de0, #0f973d)';
+                }
+            }
+
+            // ИСПРАВЛЕНО: Более чувствительное обнаружение
+            if (rms > 0.005 && maxEnergy > threshold && timeSinceLast > 200) {
                 ackLastDetected = now;
+                console.log(`🎯 ACK обнаружен! RMS: ${rms.toFixed(4)}, Энергия: ${maxEnergy}, Порог: ${threshold}`);
                 handleAckReceived();
+            } else {
+                // Отладка - показываем уровень сигнала при достаточной громкости
+                if (rms > 0.002) {
+                    console.log(`📊 Уровень: RMS=${rms.toFixed(4)}, Энергия=${maxEnergy}, Порог=${threshold}`);
+                }
             }
 
             ackMicFrame = requestAnimationFrame(listenForAck);
@@ -1653,16 +1698,21 @@ function toggleQR() {
         function handleAckReceived() {
             if (!ackMicEnabled || !transferRunning || transferQRs.length === 0) return;
 
-            transferIndex = (transferIndex + 1) % transferQRs.length;
+            // Переключаем на следующий QR
+            const nextIndex = (transferIndex + 1) % transferQRs.length;
+            transferIndex = nextIndex;
             updateTransferUI();
             document.getElementById('transferStatus').textContent = '✓ ACK получен → QR ' + (transferIndex + 1);
+            
+            // Звуковой сигнал обратной связи
+            playBeep(1000, 0.05);
 
-            // Небольшая пауза после звука, чтобы новый QR успел отрисоваться.
+            // Сразу начинаем ждать следующий ACK
             setTimeout(() => {
                 if (transferRunning && ackMicEnabled) {
                     document.getElementById('transferStatus').textContent = '🎤 Жду подтверждение QR ' + (transferIndex + 1);
                 }
-            }, 80);
+            }, 100);
         }
 
         function startTransfer() {
