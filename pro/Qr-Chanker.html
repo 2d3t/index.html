@@ -759,6 +759,19 @@
         padding: 2px 10px;
         border-radius: 20px;
     }
+
+    /* Уведомление о сохранённых настройках */
+    .settings-saved {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        background: #d1fae5;
+        color: #065f46;
+        margin-left: 8px;
+        transition: opacity 0.5s;
+    }
 </style>
 </head>
 
@@ -835,7 +848,8 @@ function toggleQR() {
                 <div class="size-control">
                     <label for="maxChunkSize">Байт на QR:</label>
                     <input type="number" id="maxChunkSize" value="150" min="10" max="1000">
-                    <span class="hint">(по умолчанию 150 байт)</span>
+                    <span class="hint" id="savedSettingsHint">(по умолчанию 150 байт)</span>
+                    <span id="settingsBadge" class="settings-saved hidden">💾 сохранено</span>
                 </div>
 
                 <div class="btn-group">
@@ -1068,6 +1082,141 @@ function toggleQR() {
         let avgScanSpeed = 0; // среднее время на один QR в секундах
 
         /* =========================================================
+           СОХРАНЕНИЕ НАСТРОЕК В localStorage (привязка к устройству)
+        ========================================================= */
+        function getDeviceId() {
+            // Используем User-Agent как идентификатор устройства
+            const ua = navigator.userAgent || '';
+            // Берём первые 100 символов для компактности
+            let deviceId = ua.substring(0, 100).replace(/[^a-zA-Z0-9]/g, '_');
+            // Если слишком коротко, добавляем хеш от экрана
+            if (deviceId.length < 20) {
+                deviceId += '_' + (window.screen.width + 'x' + window.screen.height);
+            }
+            return deviceId;
+        }
+
+        function getStoredChunkSize() {
+            const deviceId = getDeviceId();
+            const key = 'qr_chunk_size_' + deviceId;
+            try {
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    const value = parseInt(stored, 10);
+                    if (!isNaN(value) && value >= 10 && value <= 1000) {
+                        return value;
+                    }
+                }
+            } catch (e) {
+                console.log('Ошибка чтения localStorage:', e);
+            }
+            return null;
+        }
+
+        function saveChunkSize(value) {
+            const deviceId = getDeviceId();
+            const key = 'qr_chunk_size_' + deviceId;
+            try {
+                localStorage.setItem(key, String(value));
+                return true;
+            } catch (e) {
+                console.log('Ошибка сохранения в localStorage:', e);
+                return false;
+            }
+        }
+
+        function getDeviceName() {
+            const ua = navigator.userAgent || '';
+            if (ua.includes('Mi 9T')) return 'Mi 9T';
+            if (ua.includes('POCO F1')) return 'POCO F1';
+            if (ua.includes('Mi 9')) return 'Mi 9';
+            if (ua.includes('Redmi')) return 'Redmi';
+            if (ua.includes('iPhone')) return 'iPhone';
+            if (ua.includes('Android')) {
+                const match = ua.match(/Android\s+([\d.]+)/);
+                if (match) return 'Android ' + match[1];
+            }
+            return 'Устройство';
+        }
+
+        function loadSavedSettings() {
+            const input = document.getElementById('maxChunkSize');
+            const hint = document.getElementById('savedSettingsHint');
+            const badge = document.getElementById('settingsBadge');
+
+            const saved = getStoredChunkSize();
+            if (saved !== null) {
+                input.value = saved;
+                const deviceName = getDeviceName();
+                hint.textContent = '💾 запомнено для ' + deviceName + ' — ' + saved + ' байт';
+                badge.classList.remove('hidden');
+                badge.textContent = '💾 сохранено для ' + deviceName;
+
+                // Показываем уведомление с анимацией
+                badge.style.opacity = '1';
+                setTimeout(() => {
+                    badge.style.opacity = '0.6';
+                }, 3000);
+            } else {
+                hint.textContent = '(по умолчанию 150 байт)';
+                badge.classList.add('hidden');
+            }
+        }
+
+        function saveCurrentSettings() {
+            const input = document.getElementById('maxChunkSize');
+            const value = parseInt(input.value, 10);
+            if (isNaN(value) || value < 10 || value > 1000) return;
+
+            const saved = saveChunkSize(value);
+            const hint = document.getElementById('savedSettingsHint');
+            const badge = document.getElementById('settingsBadge');
+
+            if (saved) {
+                const deviceName = getDeviceName();
+                hint.textContent = '💾 запомнено для ' + deviceName + ' — ' + value + ' байт';
+                badge.classList.remove('hidden');
+                badge.textContent = '💾 сохранено для ' + deviceName;
+                badge.style.opacity = '1';
+
+                // Анимация сохранения
+                setTimeout(() => {
+                    badge.style.opacity = '0.6';
+                }, 2000);
+            }
+        }
+
+        // Сохраняем настройку при изменении поля
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.getElementById('maxChunkSize');
+            if (input) {
+                input.addEventListener('change', saveCurrentSettings);
+                input.addEventListener('input', function() {
+                    // Показываем, что значение изменилось
+                    const badge = document.getElementById('settingsBadge');
+                    badge.textContent = '✏️ изменили...';
+                    badge.style.opacity = '1';
+                    badge.classList.remove('hidden');
+                });
+            }
+            // Загружаем сохранённые настройки
+            loadSavedSettings();
+
+            // Остальная инициализация
+            const speedSlider = document.getElementById('transferSpeed');
+            if (speedSlider) {
+                speedSlider.addEventListener('input', function() {
+                    document.getElementById('speedDisplay').textContent = parseFloat(this.value).toFixed(1) + ' сек';
+                    if (transferRunning) resetTransferTimer();
+                });
+            }
+            updateTransferUI();
+            document.getElementById('transferStopBtn').disabled = true;
+            document.getElementById('modeAutoBtn').style.background = '#d1fae5';
+            setInputMode('file');
+        });
+
+        /* =========================================================
            УПРАВЛЕНИЕ РЕЖИМАМИ ВВОДА
         ========================================================= */
         function setInputMode(mode) {
@@ -1194,6 +1343,7 @@ function toggleQR() {
                 '🔹 Передача — автоматический показ QR-кодов на экране.\n\n' +
                 'Файлы кодируются в Base64 и разбиваются на части.\n' +
                 'Поддерживаются любые типы файлов: текст, аудио, изображения и другие.\n\n' +
+                '💾 Настройка "Байт на QR" запоминается для каждого устройства отдельно!\n' +
                 'Сделано с ❤️ для удобного обмена данными.'
             );
         }
@@ -1372,6 +1522,9 @@ function toggleQR() {
                 maxSizeInput.value = 500;
             }
             maxBytes = Math.max(10, Math.min(1000, maxBytes));
+
+            // Сохраняем использованное значение
+            saveChunkSize(maxBytes);
 
             const info = document.getElementById("generatorInfo");
             const output = document.getElementById("qrOutput");
@@ -2416,21 +2569,6 @@ function toggleQR() {
 
             if (page === 'transfer') updateTransferUI();
         }
-
-        // Инициализация
-        document.addEventListener("DOMContentLoaded", function() {
-            const speedSlider = document.getElementById("transferSpeed");
-            speedSlider.addEventListener("input", function() {
-                document.getElementById("speedDisplay").textContent = parseFloat(this.value).toFixed(1) + " сек";
-                if (transferRunning) resetTransferTimer();
-            });
-            updateTransferUI();
-            document.getElementById("transferStopBtn").disabled = true;
-            document.getElementById('modeAutoBtn').style.background = '#d1fae5';
-
-            // Устанавливаем начальный режим
-            setInputMode('file');
-        });
     </script>
 </body>
 </html>
