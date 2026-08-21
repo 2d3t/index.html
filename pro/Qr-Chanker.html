@@ -715,6 +715,50 @@
         font-size: 12px;
         min-width: auto;
     }
+
+    /* Таймер обратного отсчёта в сборщике */
+    .timer-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin: 10px 0 6px;
+        padding: 8px 14px;
+        background: #f1f5f9;
+        border-radius: 30px;
+        border: 1px solid #e2e8f0;
+        font-weight: 600;
+        font-size: 15px;
+        color: #0f172a;
+        flex-wrap: wrap;
+    }
+    .timer-container .timer-icon {
+        font-size: 18px;
+    }
+    .timer-container .timer-digits {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 20px;
+        background: white;
+        padding: 2px 14px;
+        border-radius: 30px;
+        border: 1px solid #d1d9e6;
+        min-width: 80px;
+        text-align: center;
+        color: #3b4de0;
+    }
+    .timer-container .timer-label {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 400;
+    }
+    .timer-container .timer-estimate {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 400;
+        background: #e5e7eb;
+        padding: 2px 10px;
+        border-radius: 20px;
+    }
 </style>
 </head>
 
@@ -824,6 +868,15 @@ function toggleQR() {
                 <div>Получено: <b id="receivedCount">0</b> / <b id="totalCount">?</b></div>
                 <div class="progress"><div id="scanProgress" class="progress-bar"></div></div>
                 <div id="scanProgressText" class="small" style="margin-top:8px;">Отсканируйте первый QR-код.</div>
+
+                <!-- ОБРАТНЫЙ ТАЙМЕР -->
+                <div id="timerContainer" class="timer-container hidden">
+                    <span class="timer-icon">⏳</span>
+                    <span class="timer-label">Осталось:</span>
+                    <span class="timer-digits" id="timerDisplay">--:--</span>
+                    <span class="timer-estimate" id="timerEstimate">ожидание...</span>
+                </div>
+
                 <div id="partsList" class="parts"></div>
             </div>
 
@@ -1006,6 +1059,13 @@ function toggleQR() {
         let lastDecodedData = null;
         let lastDecodedBase64 = null;
         let currentInputMode = 'file'; // 'file' или 'text'
+
+        // Переменные для таймера обратного отсчёта
+        let scanStartTime = null;
+        let timerInterval = null;
+        let timerRunning = false;
+        let estimatedTotalTime = 0; // в секундах
+        let avgScanSpeed = 0; // среднее время на один QR в секундах
 
         /* =========================================================
            УПРАВЛЕНИЕ РЕЖИМАМИ ВВОДА
@@ -1549,8 +1609,86 @@ function toggleQR() {
         }
 
         /* =========================================================
-           СБОРЩИК
+           СБОРЩИК (с обратным таймером)
         ========================================================= */
+        function startTimerDisplay() {
+            if (timerInterval) return;
+            scanStartTime = Date.now();
+            timerRunning = true;
+            const timerContainer = document.getElementById('timerContainer');
+            timerContainer.classList.remove('hidden');
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                updateTimerDisplay();
+            }, 500);
+        }
+
+        function updateTimerDisplay() {
+            if (!scanStartTime || !scanTotal) return;
+
+            const received = Object.keys(receivedParts).length;
+            const remaining = scanTotal - received;
+
+            if (remaining === 0) {
+                // Все получено
+                document.getElementById('timerDisplay').textContent = '00:00';
+                document.getElementById('timerEstimate').textContent = '✅ Готово!';
+                return;
+            }
+
+            // Рассчитываем среднюю скорость сканирования
+            const elapsed = (Date.now() - scanStartTime) / 1000;
+            if (received >= 2 && elapsed > 1) {
+                avgScanSpeed = elapsed / received;
+                estimatedTotalTime = avgScanSpeed * scanTotal;
+                const remainingTime = estimatedTotalTime - elapsed;
+
+                if (remainingTime > 0) {
+                    const minutes = Math.floor(remainingTime / 60);
+                    const seconds = Math.floor(remainingTime % 60);
+                    const display = document.getElementById('timerDisplay');
+                    display.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+                    // Оценка точности
+                    const accuracy = Math.round((elapsed / estimatedTotalTime) * 100);
+                    let estimateText = 'осталось ~' + Math.round(remainingTime) + 'с';
+                    if (accuracy > 20 && accuracy < 80) {
+                        estimateText = '~' + Math.round(remainingTime) + 'с (на основе скорости)';
+                    } else if (accuracy >= 80) {
+                        estimateText = '~' + Math.round(remainingTime) + 'с (точно)';
+                    }
+                    document.getElementById('timerEstimate').textContent = estimateText;
+                } else {
+                    document.getElementById('timerDisplay').textContent = '00:00';
+                    document.getElementById('timerEstimate').textContent = 'финализация...';
+                }
+            } else {
+                // Недостаточно данных для прогноза
+                document.getElementById('timerDisplay').textContent = '--:--';
+                document.getElementById('timerEstimate').textContent = 'сканируется... (' + received + '/' + scanTotal + ')';
+            }
+        }
+
+        function stopTimerDisplay() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            timerRunning = false;
+        }
+
+        function resetTimerDisplay() {
+            stopTimerDisplay();
+            scanStartTime = null;
+            avgScanSpeed = 0;
+            estimatedTotalTime = 0;
+            const timerContainer = document.getElementById('timerContainer');
+            timerContainer.classList.add('hidden');
+            document.getElementById('timerDisplay').textContent = '--:--';
+            document.getElementById('timerEstimate').textContent = 'ожидание...';
+        }
+
         async function startScanner() {
             if (scannerRunning) return;
 
@@ -1638,6 +1776,8 @@ function toggleQR() {
                 scanDocumentId = documentId;
                 scanTotal = total;
                 scanHash = hash;
+                // Запускаем таймер при получении первого QR
+                startTimerDisplay();
             } else {
                 if (documentId !== scanDocumentId) {
                     setScanStatus("⚠️ Это QR от другого документа.", "warning");
@@ -1664,6 +1804,15 @@ function toggleQR() {
             setScanStatus("✓ Получен QR " + partNumber + " / " + total, "ok");
 
             if (Object.keys(receivedParts).length === scanTotal) {
+                // Останавливаем таймер при завершении сборки
+                stopTimerDisplay();
+                // Показываем финальное время
+                const elapsed = (Date.now() - scanStartTime) / 1000;
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = Math.floor(elapsed % 60);
+                document.getElementById('timerDisplay').textContent =
+                    String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                document.getElementById('timerEstimate').textContent = '✅ Готово!';
                 assembleData();
             }
         }
@@ -2046,12 +2195,21 @@ function toggleQR() {
                     }
                 }
 
+                let timeStr = '';
+                if (scanStartTime) {
+                    const elapsed = (Date.now() - scanStartTime) / 1000;
+                    const minutes = Math.floor(elapsed / 60);
+                    const seconds = Math.floor(elapsed % 60);
+                    timeStr = `⏱️ Время сборки: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} сек`;
+                }
+
                 verificationText.innerHTML =
                     "<p class='ok'>✅ Данные восстановлены полностью!</p>" +
                     "<p>Все " + scanTotal + " частей получены.</p>" +
                     "<p><b>SHA-256 совпадает.</b></p>" +
                     "<div class='hash'>" + calculatedHash + "</div>" +
                     "<br><p>" + typeInfo + "</p>" +
+                    (timeStr ? "<p><b>" + timeStr + "</b></p>" : "") +
                     "<p>📁 Нажмите 'Скачать файл' для сохранения</p>" +
                     "<p style='margin-top: 8px;'><span class='badge'>💡 Используйте кнопки режимов просмотра для отображения</span></p>";
 
@@ -2220,6 +2378,9 @@ function toggleQR() {
             lastDecodedData = null;
             lastDecodedBase64 = null;
             currentViewMode = 'auto';
+
+            // Сброс таймера
+            resetTimerDisplay();
 
             document.getElementById("receivedCount").textContent = "0";
             document.getElementById("totalCount").textContent = "?";
