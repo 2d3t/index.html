@@ -2683,40 +2683,50 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(checkForSharedC
 <!-- ========================================================== -->
 <script>
 // ============================================================
-// ⚡ АВТО-ЗАГРУЗКА ИЗ БУФЕРА + BASE64 (ПРОСТАЯ ВЕРСИЯ)
+// ⚡ УМНАЯ ЗАГРУЗКА: ФАЙЛ → СКРЫТЫЙ БУФЕР → ОТКРЫТЫЙ БУФЕР
 // ============================================================
 
 // Сохраняем оригинальную функцию
 const originalGenerate = window.generateQRs;
 
-// Переопределяем функцию generateQRs
-window.generateQRs = async function() {
-    const sourceText = document.getElementById('sourceText');
-    const textInput = document.getElementById('textInput');
-    const info = document.getElementById('generatorInfo');
-    
-    // 1. Если уже есть данные в sourceText — используем
-    if (sourceText.value && sourceText.value.trim()) {
-        return originalGenerate.call(this);
-    }
-    
-    // 2. Если есть текст в поле ввода — кодируем в Base64
-    if (textInput.value && textInput.value.trim()) {
-        sourceText.value = btoa(unescape(encodeURIComponent(textInput.value)));
-        info.innerHTML = '✅ Текст закодирован в Base64. Генерирую QR...';
-        return originalGenerate.call(this);
-    }
-    
-    // 3. Пытаемся загрузить из буфера (современный способ)
+// === ФУНКЦИЯ: Получение скрытых данных (HTML) из буфера ===
+async function getHiddenClipboardData() {
     try {
-        const text = await navigator.clipboard.readText();
-        if (text && text.trim()) {
-            sourceText.value = btoa(unescape(encodeURIComponent(text)));
-            info.innerHTML = '✅ Данные из буфера закодированы в Base64. Генерирую QR...';
-            return originalGenerate.call(this);
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+            if (item.types.includes('text/html')) {
+                const blob = await item.getType('text/html');
+                const html = await blob.text();
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                const text = div.textContent || div.innerText || '';
+                if (text && text.trim()) {
+                    return { text: text.trim(), source: 'html' };
+                }
+            }
         }
+        return null;
     } catch (e) {
-        // 4. Если clipboard не работает — пробуем старый способ
+        return null;
+    }
+}
+
+// === ФУНКЦИЯ: Получение открытого текста (plain) из буфера ===
+async function getPlainClipboardData() {
+    try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+            if (item.types.includes('text/plain')) {
+                const blob = await item.getType('text/plain');
+                const text = await blob.text();
+                if (text && text.trim()) {
+                    return { text: text.trim(), source: 'plain' };
+                }
+            }
+        }
+        return null;
+    } catch (e) {
+        // Fallback для старых браузеров
         try {
             const textarea = document.createElement('textarea');
             textarea.style.cssText = 'position:fixed;opacity:0;';
@@ -2725,47 +2735,149 @@ window.generateQRs = async function() {
             document.execCommand('paste');
             const text = textarea.value;
             document.body.removeChild(textarea);
-            
             if (text && text.trim()) {
-                sourceText.value = btoa(unescape(encodeURIComponent(text)));
-                info.innerHTML = '✅ Данные из буфера закодированы. Генерирую QR...';
-                return originalGenerate.call(this);
+                return { text: text.trim(), source: 'plain' };
             }
         } catch (e2) {}
+        return null;
+    }
+}
+
+// === ФУНКЦИЯ: Кодирование в Base64 ===
+function encodeToBase64(text) {
+    try {
+        return btoa(unescape(encodeURIComponent(text)));
+    } catch (e) {
+        return null;
+    }
+}
+
+// === ГЛАВНАЯ ФУНКЦИЯ: Приоритетная загрузка ===
+window.generateQRs = async function() {
+    const sourceText = document.getElementById('sourceText');
+    const textInput = document.getElementById('textInput');
+    const info = document.getElementById('generatorInfo');
+    
+    // ---- ПРИОРИТЕТ 1: Загруженный файл ----
+    if (currentFileInfo && currentFileInfo.base64) {
+        info.innerHTML = '📁 Использую загруженный файл: <b>' + currentFileInfo.name + '</b>';
+        return originalGenerate.call(this);
     }
     
-    // 5. Если ничего не нашли
-    info.innerHTML = '⚠️ Скопируйте текст или загрузите файл.';
+    // ---- ПРИОРИТЕТ 2: Скрытые данные из буфера (HTML) ----
+    info.innerHTML = '🔍 Ищу скрытые данные в буфере...';
+    const hiddenData = await getHiddenClipboardData();
+    
+    if (hiddenData) {
+        const base64 = encodeToBase64(hiddenData.text);
+        if (base64) {
+            sourceText.value = base64;
+            info.innerHTML = 
+                `✅ <b>Найдены скрытые данные!</b><br>` +
+                `📊 Размер: <b>${hiddenData.text.length}</b> символов → Base64: <b>${base64.length}</b><br>` +
+                `🔗 Источник: <b>скрытые (HTML)</b><br>` +
+                `<span class="badge">⏳ Генерирую QR-коды...</span>`;
+            if (typeof playSuccessBeep === 'function') playSuccessBeep();
+            return originalGenerate.call(this);
+        }
+    }
+    
+    // ---- ПРИОРИТЕТ 3: Открытый текст из буфера (plain) ----
+    info.innerHTML = '📋 Ищу открытый текст в буфере...';
+    const plainData = await getPlainClipboardData();
+    
+    if (plainData) {
+        const base64 = encodeToBase64(plainData.text);
+        if (base64) {
+            sourceText.value = base64;
+            info.innerHTML = 
+                `✅ <b>Найден открытый текст!</b><br>` +
+                `📊 Размер: <b>${plainData.text.length}</b> символов → Base64: <b>${base64.length}</b><br>` +
+                `🔗 Источник: <b>открытый текст (plain)</b><br>` +
+                `<span class="badge">⏳ Генерирую QR-коды...</span>`;
+            if (typeof playSuccessBeep === 'function') playSuccessBeep();
+            return originalGenerate.call(this);
+        }
+    }
+    
+    // ---- ПРИОРИТЕТ 4: Текст в поле ввода ----
+    if (textInput.value && textInput.value.trim()) {
+        const base64 = encodeToBase64(textInput.value);
+        if (base64) {
+            sourceText.value = base64;
+            info.innerHTML = '✅ Текст из поля ввода закодирован в Base64. Генерирую QR...';
+            return originalGenerate.call(this);
+        }
+    }
+    
+    // ---- НИЧЕГО НЕ НАЙДЕНО ----
+    info.innerHTML = 
+        `⚠️ <b>Нет данных для генерации!</b><br>` +
+        `Загрузите файл, скопируйте текст или введите его в поле.<br><br>` +
+        `<span style="color:#64748b; font-size:13px;">💡 Приоритет: Файл → Скрытые данные → Открытый текст → Поле ввода</span>`;
     if (typeof playErrorBeep === 'function') playErrorBeep();
 };
 
-// Добавляем кнопку "Загрузить из буфера"
+// ============================================================
+// КНОПКИ ДЛЯ РУЧНОЙ ЗАГРУЗКИ
+// ============================================================
+
 document.addEventListener('DOMContentLoaded', function() {
     const btnGroup = document.querySelector('#generator .card .btn-group');
-    if (btnGroup) {
-        const btn = document.createElement('button');
-        btn.className = 'secondary';
-        btn.innerHTML = '📋 Из буфера';
-        btn.onclick = async function() {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text && text.trim()) {
-                    document.getElementById('sourceText').value = btoa(unescape(encodeURIComponent(text)));
-                    document.getElementById('generatorInfo').innerHTML = '✅ Данные из буфера загружены! Нажмите "Создать QR-коды".';
-                    if (typeof playSuccessBeep === 'function') playSuccessBeep();
-                }
-            } catch (e) {
-                document.getElementById('generatorInfo').innerHTML = '⚠️ Не удалось прочитать буфер.';
-            }
-        };
-        btn.style.flex = '1';
-        btn.style.minWidth = '80px';
-        btnGroup.appendChild(btn);
-    }
+    if (!btnGroup) return;
     
-    console.log('✅ Авто-загрузка из буфера включена!');
+    // Кнопка "Скрытые данные"
+    const btnHidden = document.createElement('button');
+    btnHidden.className = 'warning-btn';
+    btnHidden.innerHTML = '🔍 Скрытые';
+    btnHidden.title = 'Загрузить скрытые данные из буфера (HTML)';
+    btnHidden.onclick = async function() {
+        const info = document.getElementById('generatorInfo');
+        info.innerHTML = '🔍 Ищу скрытые данные...';
+        const data = await getHiddenClipboardData();
+        if (data) {
+            const base64 = encodeToBase64(data.text);
+            if (base64) {
+                document.getElementById('sourceText').value = base64;
+                info.innerHTML = `✅ Скрытые данные загружены! (${data.text.length} симв.)<br><span class="badge">Нажмите "Создать QR-коды"</span>`;
+                if (typeof playSuccessBeep === 'function') playSuccessBeep();
+            }
+        } else {
+            info.innerHTML = '⚠️ Скрытые данные не найдены.';
+            if (typeof playErrorBeep === 'function') playErrorBeep();
+        }
+    };
+    btnHidden.style.flex = '1';
+    btnHidden.style.minWidth = '70px';
+    btnGroup.appendChild(btnHidden);
+    
+    // Кнопка "Открытый текст"
+    const btnPlain = document.createElement('button');
+    btnPlain.className = 'secondary';
+    btnPlain.innerHTML = '📋 Текст';
+    btnPlain.title = 'Загрузить открытый текст из буфера (plain)';
+    btnPlain.onclick = async function() {
+        const info = document.getElementById('generatorInfo');
+        info.innerHTML = '📋 Ищу открытый текст...';
+        const data = await getPlainClipboardData();
+        if (data) {
+            const base64 = encodeToBase64(data.text);
+            if (base64) {
+                document.getElementById('sourceText').value = base64;
+                info.innerHTML = `✅ Открытый текст загружен! (${data.text.length} симв.)<br><span class="badge">Нажмите "Создать QR-коды"</span>`;
+                if (typeof playSuccessBeep === 'function') playSuccessBeep();
+            }
+        } else {
+            info.innerHTML = '⚠️ Открытый текст не найден.';
+            if (typeof playErrorBeep === 'function') playErrorBeep();
+        }
+    };
+    btnPlain.style.flex = '1';
+    btnPlain.style.minWidth = '70px';
+    btnGroup.appendChild(btnPlain);
+    
+    console.log('✅ Приоритет: Файл → Скрытый буфер → Открытый буфер → Поле ввода');
 });
-
 </script>
 </body>
 </html>
