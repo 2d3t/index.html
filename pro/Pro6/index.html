@@ -2659,5 +2659,28 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.log('[SW] ❌ Ошибка:', err));
 }
 </script>
+<!-- ============ СВЯЗЬ С PRO5 (автозагрузка кода) ============ -->
+<script>
+function checkForSharedCode() {
+    try {
+        const raw = localStorage.getItem('sharedCode');
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (Date.now() - data.timestamp > 300000) { localStorage.removeItem('sharedCode'); return; }
+        if (data.from === 'Pro5' && data.code) {
+            const sourceText = document.getElementById('sourceText');
+            if (sourceText) {
+                sourceText.value = data.code;
+                const info = document.getElementById('generatorInfo');
+                if (info) info.innerHTML = `<span class="ok">✅ Код получен из редактора!</span><br>Размер: <b>${data.code.length}</b> символов<br><span class="badge">Нажмите «Создать QR-коды»</span>`;
+                localStorage.removeItem('sharedCode');
+            }
+        }
+    } catch(e) { localStorage.removeItem('sharedCode'); }
+}
+document.addEventListener('DOMContentLoaded', () => { setTimeout(checkForSharedCode, 300); });
+</script>
+<!-- ========================================================== -->
+
 </body>
 </html>
