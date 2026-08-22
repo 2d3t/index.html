@@ -1,220 +1,38 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ультразвуковой модем — улучшенный</title>
-    <style>
-        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; text-align: center; }
-        button { background: #00adb5; border: none; color: white; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; margin: 10px; }
-        button:active { background: #007a80; }
-        input { padding: 10px; font-size: 16px; width: 80%; max-width: 300px; border-radius: 5px; border: 1px solid #333; background: #222; color: white; }
-        .box { background: #1e1e1e; padding: 15px; border-radius: 8px; margin: 20px auto; max-width: 400px; border: 1px solid #333; }
-        #log { font-family: monospace; color: #888; font-size: 12px; max-height: 120px; overflow-y: auto; text-align: left; background: #000; padding: 10px; border-radius: 5px; }
-        #output { font-size: 24px; font-weight: bold; color: #00adb5; margin-top: 10px; min-height: 40px; }
-        .status { color: #aaa; font-size: 14px; }
-    </style>
+    <title>Моё офлайн-приложение</title>
 </head>
 <body>
+    <input id="note" placeholder="Введите заметку">
+    <button onclick="saveNote()">Сохранить</button>
+    <div id="notes"></div>
 
-    <h1>Ultrasonic Comm</h1>
-    <button id="initBtn">1. Включить звук / микрофон</button>
-
-    <div class="box">
-        <h3>Передатчик (Tx)</h3>
-        <input type="text" id="textInput" value="HELLO" placeholder="Текст (A-Z, пробел)">
-        <br>
-        <button id="sendBtn" disabled>Отправить импульсы</button>
-        <div class="status">Длительность импульса: 40 мс</div>
-    </div>
-
-    <div class="box">
-        <h3>Приемник (Rx)</h3>
-        <div>Получено:</div>
-        <div id="output">...</div>
-    </div>
-
-    <div class="box">
-        <h3>Технический лог</h3>
-        <div id="log"></div>
-    </div>
-
-<script>
-    // ---------- НАСТРОЙКИ ----------
-    const ALPHABET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const BASE_PAUSE = 0.25;        // минимальная пауза (для пробела) в секундах
-    const STEP = 0.18;              // шаг паузы на каждую букву
-    const FREQUENCY = 18500;        // ультразвук (Гц)
-    const PULSE_DURATION = 0.04;    // 40 мс — короткий чёткий импульс
-
-    // Защитный интервал МЕЖДУ буквами (чтобы не накладывались)
-    const GUARD_INTERVAL = 0.12;    // 120 мс тишины после каждого импульса (кроме паузы)
-
-    // ---------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
-    let audioCtx = null;
-    let analyser = null;
-    let isListening = false;
-
-    function log(msg) {
-        const logDiv = document.getElementById('log');
-        logDiv.innerHTML += msg + '<br>';
-        logDiv.scrollTop = logDiv.scrollHeight;
-    }
-
-    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
-    document.getElementById('initBtn').addEventListener('click', async () => {
-        if (audioCtx) return;
-        try {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('initBtn').innerText = "Звук готов";
-            document.getElementById('initBtn').style.background = "#28a745";
-            await initReceiver();
-        } catch (e) {
-            alert("Не удалось активировать аудио: " + e);
-        }
-    });
-
-    // ---------- ПЕРЕДАТЧИК ----------
-    function sendClick(time) {
-        const osc = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(FREQUENCY, time);
-
-        // Плавный старт/стоп для уменьшения щелчков
-        gainNode.gain.setValueAtTime(0, time);
-        gainNode.gain.linearRampToValueAtTime(0.8, time + 0.005);
-        gainNode.gain.setValueAtTime(0.8, time + PULSE_DURATION - 0.005);
-        gainNode.gain.linearRampToValueAtTime(0, time + PULSE_DURATION);
-
-        osc.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        osc.start(time);
-        osc.stop(time + PULSE_DURATION);
-    }
-
-    document.getElementById('sendBtn').addEventListener('click', () => {
-        const text = document.getElementById('textInput').value.toUpperCase();
-        if (!text) return;
-
-        let currentTime = audioCtx.currentTime + 0.15;
-        log(`📤 Отправка: "${text}"`);
-
-        // СТАРТОВЫЙ ИМПУЛЬС (синхронизация)
-        sendClick(currentTime);
-        log(`[Tx] ⚡ Старт в ${currentTime.toFixed(3)}`);
-        currentTime += PULSE_DURATION + 0.25; // дополнительный интервал перед буквами
-
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
-            const index = ALPHABET.indexOf(char);
-            if (index === -1) continue;
-
-            // Пауза, соответствующая букве
-            const pauseDuration = BASE_PAUSE + (index * STEP);
-
-            // Время следующего импульса = текущее время + пауза + защитный интервал
-            // Защитный интервал добавляется ПОСЛЕ паузы, чтобы разделять буквы
-            currentTime += pauseDuration + GUARD_INTERVAL;
-            sendClick(currentTime);
-
-            log(`[Tx] '${char}' (пауза ${pauseDuration.toFixed(2)}с + защита ${GUARD_INTERVAL.toFixed(2)}с) → импульс в ${currentTime.toFixed(3)}`);
-        }
-
-        log(`✅ Передача завершена`);
-    });
-
-    // ---------- ПРИЕМНИК ----------
-    async function initReceiver() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: false,
-                    noiseSuppression: false,
-                    autoGainControl: false
-                }
-            });
-
-            const source = audioCtx.createMediaStreamSource(stream);
-            analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 2048;
-            source.connect(analyser);
-            isListening = true;
-            log("[Rx] 🎤 Микрофон активен (фильтры выключены)");
-            detectPulse();
-        } catch (err) {
-            log("[Rx] ❌ Ошибка микрофона: " + err);
-        }
-    }
-
-    // ---------- ДЕТЕКТОР И ДЕКОДЕР ----------
-    let lastPulseTime = 0;
-    let blanking = false;
-    const THRESHOLD = 45; // чувствительность (подберите под свой телефон)
-
-    function detectPulse() {
-        if (!isListening) return;
-        requestAnimationFrame(detectPulse);
-
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyser.getByteFrequencyData(dataArray);
-
-        const sampleRate = audioCtx.sampleRate;
-        const binIndex = Math.round((FREQUENCY * analyser.fftSize) / sampleRate);
-        const power = dataArray[binIndex] || 0;
-
-        // Обнаружение импульса
-        if (power > THRESHOLD && !blanking) {
-            const now = audioCtx.currentTime;
-
-            // Блокируем повторные срабатывания на 200 мс (чтобы не ловить эхо)
-            blanking = true;
-            setTimeout(() => { blanking = false; }, 200);
-
-            log(`[Rx] 📡 Пик: ${power} (время ${now.toFixed(3)})`);
-
-            if (lastPulseTime > 0) {
-                // Измеряем паузу МЕЖДУ импульсами (с учётом, что между ними был защитный интервал)
-                const measuredPause = now - lastPulseTime - PULSE_DURATION;
-                // Вычитаем защитный интервал, чтобы получить "чистую" паузу буквы
-                const purePause = measuredPause - GUARD_INTERVAL;
-                decodePause(purePause, measuredPause);
-            } else {
-                log("[Rx] 🟢 Стартовый импульс — начало приёма");
-                document.getElementById('output').innerText = "";
-            }
-
-            lastPulseTime = now;
-        }
-    }
-
-    function decodePause(purePause, rawPause) {
-        log(`[Rx] Пауза (чистая): ${purePause.toFixed(3)}с | (сырая): ${rawPause.toFixed(3)}с`);
-
-        let bestIndex = -1;
-        let minDiff = Infinity;
-
-        for (let i = 0; i < ALPHABET.length; i++) {
-            const expected = BASE_PAUSE + (i * STEP);
-            const diff = Math.abs(purePause - expected);
-            if (diff < minDiff) {
-                minDiff = diff;
-                bestIndex = i;
+    <script>
+        // Загружаем заметки при открытии
+        function loadNotes() {
+            const saved = localStorage.getItem('notes');
+            if (saved) {
+                document.getElementById('notes').innerHTML = saved;
             }
         }
 
-        // Допуск: не более 60% от шага
-        if (minDiff > STEP * 0.6) {
-            log(`[Rx] ❌ Не распознано (ошибка ${minDiff.toFixed(3)})`);
-            return;
+        // Сохраняем заметки
+        function saveNote() {
+            const input = document.getElementById('note');
+            const notesDiv = document.getElementById('notes');
+            notesDiv.innerHTML += `<p>${input.value}</p>`;
+            localStorage.setItem('notes', notesDiv.innerHTML);
+            input.value = '';
         }
 
-        const char = ALPHABET[bestIndex];
-        log(`[Rx] ✅ '${char}' (ошибка ${minDiff.toFixed(3)})`);
-        document.getElementById('output').innerText += char;
-    }
-</script>
+        // Сохраняем при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            const notes = document.getElementById('notes').innerHTML;
+            localStorage.setItem('notes', notes);
+        });
+
+        loadNotes();
+    </script>
 </body>
 </html>
