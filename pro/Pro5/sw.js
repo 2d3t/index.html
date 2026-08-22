@@ -1,13 +1,9 @@
-// Версия кэша
-const CACHE_NAME = 'notes-app-v1';
-
-// Файлы для кэширования (относительные пути)
+const CACHE_NAME = 'klikedit-v1';
 const FILES_TO_CACHE = [
     './',
     './index.html',
-    './manifest.json',
-    './style.css',    // если есть
-    './app.js'        // если есть
+    './manifest.json'
+    // Если есть отдельные файлы — добавьте их сюда
 ];
 
 // Установка — кэшируем файлы
@@ -47,6 +43,7 @@ self.addEventListener('fetch', (event) => {
                     return cachedResponse;
                 }
                 return fetch(event.request).catch(() => {
+                    // Если нет интернета и файла нет в кэше
                     return new Response('Нет интернета', {
                         status: 503,
                         statusText: 'Service Unavailable'
