@@ -2661,31 +2661,14 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.log('[SW] ❌ Ошибка:', err));
 }
 </script>
-<!-- ============ СВЯЗЬ С PRO5 (автозагрузка кода) ============ -->
-<script>
-function checkForSharedCode() {
-    try {
-        const raw = localStorage.getItem('sharedCode');
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (Date.now() - data.timestamp > 300000) { localStorage.removeItem('sharedCode'); return; }
-        if (data.from === 'Pro5' && data.code) {
-            const sourceText = document.getElementById('sourceText');
-            if (sourceText) {
-                sourceText.value = data.code;
-                const info = document.getElementById('generatorInfo');
-                if (info) info.innerHTML = `<span class="ok">✅ Код получен из редактора!</span><br>Размер: <b>${data.code.length}</b> символов<br><span class="badge">Нажмите «Создать QR-коды»</span>`;
-                localStorage.removeItem('sharedCode');
-            }
-        }
-    } catch(e) { localStorage.removeItem('sharedCode'); }
-}
-document.addEventListener('DOMContentLoaded', () => { setTimeout(checkForSharedCode, 300); });
-</script>
 
-<!-- ============ АВТОЗАГРУЗКА КОДА ИЗ PRO5 ============ -->
+
+
+
+
+<!-- ============ СВЯЗЬ С PRO5 (автозагрузка + генерация QR) ============ -->
 <script>
-function checkForSharedCode() {
+async function checkForSharedCode() {
     try {
         const raw = localStorage.getItem('sharedCode');
         if (!raw) return;
@@ -2695,38 +2678,79 @@ function checkForSharedCode() {
             return; 
         }
         if (data.from === 'Pro5' && data.code) {
+            const code = data.code;
+            
+            // === 1. ПРЕОБРАЗУЕМ ТЕКСТ В Base64 ===
+            const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < uint8Array.length; i++) {
+                binary += String.fromCharCode(uint8Array[i]);
+            }
+            const base64 = btoa(binary);
+
+            // === 2. ПОДСТАВЛЯЕМ В ПОЛЕ sourceText ===
             const sourceText = document.getElementById('sourceText');
             if (sourceText) {
-                sourceText.value = data.code;
-                const info = document.getElementById('generatorInfo');
-                if (info) {
-                    info.innerHTML = `
-                        <span class="ok">✅ Код получен из редактора!</span><br>
-                        Размер: <b>${data.code.length}</b> символов<br>
-                        <span class="badge">Нажмите «Создать QR-коды»</span>
-                    `;
-                }
-                localStorage.removeItem('sharedCode');
+                sourceText.value = base64;
             }
+
+            // === 3. ОБНОВЛЯЕМ ИНФОРМАЦИЮ О ФАЙЛЕ ===
+            const filename = 'from_editor.txt';
+            currentFileInfo = {
+                name: filename,
+                size: blob.size,
+                type: 'text/plain',
+                base64: base64
+            };
+
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) {
+                fileInfo.classList.remove('hidden');
+                document.getElementById('fileName').textContent = '📄 ' + filename;
+                document.getElementById('fileSize').textContent = 'Размер: ' + formatFileSize(blob.size);
+                document.getElementById('fileTypeInfo').innerHTML =
+                    '<span class="file-type-badge file-type-txt">Текстовый файл</span> | ' +
+                    'Base64: ' + formatFileSize(base64.length) + ' (' + base64.length + ' симв.)';
+            }
+
+            // === 4. ПОКАЗЫВАЕМ ИНФОРМАЦИЮ ПОЛЬЗОВАТЕЛЮ ===
+            const info = document.getElementById('generatorInfo');
+            if (info) {
+                info.innerHTML = `
+                    <span class="ok">✅ Код получен из редактора Pro5!</span><br>
+                    Размер: <b>${formatFileSize(blob.size)}</b><br>
+                    Base64 длина: <b>${base64.length}</b> символов<br>
+                    <span class="badge">⏳ Автоматическая генерация QR-кодов...</span>
+                `;
+            }
+
+            // === 5. УДАЛЯЕМ ДАННЫЕ ИЗ ХРАНИЛИЩА ===
+            localStorage.removeItem('sharedCode');
+
+            // === 6. АВТОМАТИЧЕСКИ ЗАПУСКАЕМ ГЕНЕРАЦИЮ QR ===
+            await generateQRs();
+
+            // === 7. ПЕРЕКЛЮЧАЕМСЯ НА ВКЛАДКУ ГЕНЕРАТОРА ===
+            showPage('generator');
+
         }
     } catch(e) { 
+        console.error('Ошибка автозагрузки:', e);
         localStorage.removeItem('sharedCode'); 
     }
 }
+
 document.addEventListener('DOMContentLoaded', () => { 
-    setTimeout(checkForSharedCode, 300); 
+    setTimeout(checkForSharedCode, 500); 
 });
 </script>
-
-
-
-
-
-
-
-<!-- =================================================== -->
-
 <!-- ========================================================== -->
+
+
+
+
 
 </body>
 </html>
