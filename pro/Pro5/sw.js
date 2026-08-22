@@ -1,24 +1,22 @@
-const CACHE_NAME = 'klikedit-v1';
+const CACHE_NAME = 'pro5-v1';
 const FILES_TO_CACHE = [
-    './',
+    './',                    // ← ТОЧКА с СЛЕШЕМ (текущая папка)
     './index.html',
     './manifest.json'
-    // Если есть отдельные файлы — добавьте их сюда
+    // если есть другие файлы (style.css, app.js) — добавь их сюда
 ];
 
-// Установка — кэшируем файлы
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('[SW] Кэшируем файлы...');
+                console.log('[SW] Кэшируем Pro5...');
                 return cache.addAll(FILES_TO_CACHE);
             })
             .then(() => self.skipWaiting())
     );
 });
 
-// Активация — удаляем старые кэши
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -34,7 +32,6 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Перехват запросов
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request)
@@ -43,7 +40,6 @@ self.addEventListener('fetch', (event) => {
                     return cachedResponse;
                 }
                 return fetch(event.request).catch(() => {
-                    // Если нет интернета и файла нет в кэше
                     return new Response('Нет интернета', {
                         status: 503,
                         statusText: 'Service Unavailable'
