@@ -2681,6 +2681,91 @@ function checkForSharedCode() {
 document.addEventListener('DOMContentLoaded', () => { setTimeout(checkForSharedCode, 300); });
 </script>
 <!-- ========================================================== -->
+<script>
+// ============================================================
+// ⚡ АВТО-ЗАГРУЗКА ИЗ БУФЕРА + BASE64 (ПРОСТАЯ ВЕРСИЯ)
+// ============================================================
 
+// Сохраняем оригинальную функцию
+const originalGenerate = window.generateQRs;
+
+// Переопределяем функцию generateQRs
+window.generateQRs = async function() {
+    const sourceText = document.getElementById('sourceText');
+    const textInput = document.getElementById('textInput');
+    const info = document.getElementById('generatorInfo');
+    
+    // 1. Если уже есть данные в sourceText — используем
+    if (sourceText.value && sourceText.value.trim()) {
+        return originalGenerate.call(this);
+    }
+    
+    // 2. Если есть текст в поле ввода — кодируем в Base64
+    if (textInput.value && textInput.value.trim()) {
+        sourceText.value = btoa(unescape(encodeURIComponent(textInput.value)));
+        info.innerHTML = '✅ Текст закодирован в Base64. Генерирую QR...';
+        return originalGenerate.call(this);
+    }
+    
+    // 3. Пытаемся загрузить из буфера (современный способ)
+    try {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+            sourceText.value = btoa(unescape(encodeURIComponent(text)));
+            info.innerHTML = '✅ Данные из буфера закодированы в Base64. Генерирую QR...';
+            return originalGenerate.call(this);
+        }
+    } catch (e) {
+        // 4. Если clipboard не работает — пробуем старый способ
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.style.cssText = 'position:fixed;opacity:0;';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            document.execCommand('paste');
+            const text = textarea.value;
+            document.body.removeChild(textarea);
+            
+            if (text && text.trim()) {
+                sourceText.value = btoa(unescape(encodeURIComponent(text)));
+                info.innerHTML = '✅ Данные из буфера закодированы. Генерирую QR...';
+                return originalGenerate.call(this);
+            }
+        } catch (e2) {}
+    }
+    
+    // 5. Если ничего не нашли
+    info.innerHTML = '⚠️ Скопируйте текст или загрузите файл.';
+    if (typeof playErrorBeep === 'function') playErrorBeep();
+};
+
+// Добавляем кнопку "Загрузить из буфера"
+document.addEventListener('DOMContentLoaded', function() {
+    const btnGroup = document.querySelector('#generator .card .btn-group');
+    if (btnGroup) {
+        const btn = document.createElement('button');
+        btn.className = 'secondary';
+        btn.innerHTML = '📋 Из буфера';
+        btn.onclick = async function() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim()) {
+                    document.getElementById('sourceText').value = btoa(unescape(encodeURIComponent(text)));
+                    document.getElementById('generatorInfo').innerHTML = '✅ Данные из буфера загружены! Нажмите "Создать QR-коды".';
+                    if (typeof playSuccessBeep === 'function') playSuccessBeep();
+                }
+            } catch (e) {
+                document.getElementById('generatorInfo').innerHTML = '⚠️ Не удалось прочитать буфер.';
+            }
+        };
+        btn.style.flex = '1';
+        btn.style.minWidth = '80px';
+        btnGroup.appendChild(btn);
+    }
+    
+    console.log('✅ Авто-загрузка из буфера включена!');
+});
+
+</script>
 </body>
 </html>
