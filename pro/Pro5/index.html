@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Моё офлайн-приложение</title>
+    
+    <!-- Манифест -->
+    <link rel="manifest" href="data:application/json,{
+        &quot;name&quot;:&quot;Офлайн-заметки&quot;,
+        &quot;short_name&quot;:&quot;Заметки&quot;,
+        &quot;start_url&quot;:&quot;/&quot;,
+        &quot;display&quot;:&quot;standalone&quot;,
+        &quot;background_color&quot;:&quot;#ffffff&quot;,
+        &quot;theme_color&quot;:&quot;#4CAF50&quot;,
+        &quot;icons&quot;:[
+            {&quot;src&quot;:&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%234CAF50'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E📝%3C/text%3E%3C/svg%3E&quot;,&quot;sizes&quot;:&quot;192x192&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}
+        ]
+    }">
+    
+    <!-- Весь CSS в одной строчке -->
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#f5f5f5;padding:15px;min-height:100vh;display:flex;justify-content:center;align-items:flex-start}.container{max-width:600px;width:100%;background:white;border-radius:20px;padding:25px;box-shadow:0 10px 40px rgba(0,0,0,0.1)}h1{font-size:24px;color:#333;margin-bottom:5px}.subtitle{color:#888;font-size:13px;margin-bottom:15px}.input-group{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}#noteInput{flex:1;padding:10px 14px;border:2px solid #e0e0e0;border-radius:12px;font-size:16px;outline:none;min-width:150px}#noteInput:focus{border-color:#4CAF50}#addBtn{padding:10px 20px;background:#4CAF50;color:white;border:none;border-radius:12px;font-size:16px;cursor:pointer}#addBtn:active{transform:scale(0.95)}#notesList{min-height:80px;margin-bottom:15px}.note-item{background:#f8f9fa;padding:12px 16px;border-radius:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;animation:slideIn 0.3s ease}@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}.note-text{flex:1;color:#333;font-size:15px;word-wrap:break-word}.delete-btn{background:#ff4757;color:white;border:none;border-radius:8px;padding:4px 12px;cursor:pointer;font-size:14px;margin-left:10px}.status{display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:2px solid #f0f0f0;flex-wrap:wrap;gap:8px}#onlineStatus{font-size:14px;color:#4CAF50;font-weight:500}#onlineStatus.offline{color:#ff4757}.danger{background:#ff4757;color:white;border:none;border-radius:12px;padding:8px 16px;cursor:pointer;font-size:14px}.empty{text-align:center;color:#aaa;padding:20px 0}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Заметки</h1>
+        <p class="subtitle">Работает без интернета</p>
+        
+        <div class="input-group">
+            <input type="text" id="noteInput" placeholder="Введите заметку...">
+            <button id="addBtn">➕ Добавить</button>
+        </div>
+        
+        <div id="notesList"></div>
+        
+        <div class="status">
+            <span id="onlineStatus">🟢 Онлайн</span>
+            <button id="clearBtn" class="danger">🗑️ Очистить</button>
+        </div>
+    </div>
+
+    <!-- Весь JS тут же -->
+    <script>
+        // ============ ДАННЫЕ ============
+        let notes = [];
+
+        function load() {
+            try { notes = JSON.parse(localStorage.getItem('n') || '[]'); } catch(e){ notes = []; }
+            render();
+        }
+
+        function save() {
+            localStorage.setItem('n', JSON.stringify(notes));
+            render();
+        }
+
+        function add() {
+            const input = document.getElementById('noteInput');
+            const text = input.value.trim();
+            if (!text) return alert('Введите текст!');
+            notes.push({ id: Date.now(), text });
+            input.value = '';
+            save();
+        }
+
+        function del(id) {
+            notes = notes.filter(n => n.id !== id);
+            save();
+        }
+
+        function clearAll() {
+            if (!notes.length) return;
+            if (confirm('Удалить всё?')) { notes = []; save(); }
+        }
+
+        function render() {
+            const el = document.getElementById('notesList');
+            if (!notes.length) {
+                el.innerHTML = '<div class="empty">📭 Нет заметок</div>';
+                return;
+            }
+            el.innerHTML = notes.map(n => 
+                `<div class="note-item">
+                    <span class="note-text">${n.text.replace(/</g,'&lt;')}</span>
+                    <button class="delete-btn" onclick="del(${n.id})">✕</button>
+                </div>`
+            ).join('');
+        }
+
+        // ============ СТАТУС ============
+        function status() {
+            const el = document.getElementById('onlineStatus');
+            if (navigator.onLine) {
+                el.textContent = '🟢 Онлайн';
+                el.className = '';
+            } else {
+                el.textContent = '🔴 Офлайн';
+                el.className = 'offline';
+            }
+        }
+
+        // ============ SW ============
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+
+        // ============ СОБЫТИЯ ============
+        document.addEventListener('DOMContentLoaded', () => {
+            load();
+            status();
+            window.addEventListener('online', status);
+            window.addEventListener('offline', status);
+            document.getElementById('addBtn').onclick = add;
+            document.getElementById('noteInput').onkeypress = e => { if (e.key === 'Enter') add(); };
+            document.getElementById('clearBtn').onclick = clearAll;
+            window.addEventListener('beforeunload', save);
+        });
+    </script>
+</body>
+</html>
