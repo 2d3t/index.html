@@ -2746,6 +2746,41 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(checkForSharedCode, 500); 
 });
 </script>
+<script>
+
+// ============ АВТОЗАПУСК СКАНЕРА ============
+function checkForScannerCommand() {
+    try {
+        const raw = localStorage.getItem('qrCommand');
+        if (!raw) return;
+        
+        const data = JSON.parse(raw);
+        if (Date.now() - data.timestamp > 10000) {
+            localStorage.removeItem('qrCommand');
+            return;
+        }
+        
+        if (data.action === 'openScanner' && data.from === 'Pro5') {
+            localStorage.removeItem('qrCommand');
+            
+            // Переключаемся на вкладку "Сборщик"
+            showPage('scanner');
+            
+            // Запускаем камеру
+            setTimeout(() => {
+                startScanner();
+            }, 500);
+        }
+    } catch(e) {
+        localStorage.removeItem('qrCommand');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(checkForScannerCommand, 400);
+});
+</script>
+
 <!-- ========================================================== -->
 
 
