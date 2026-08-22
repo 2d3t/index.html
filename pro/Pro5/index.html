@@ -186,7 +186,10 @@ body.theme-graphite .clear-url-btn:hover{background:#555}
 <button onclick="findNext()">Найти ▶️</button>
 <button onclick="findPrev()">Назад ◀️</button>
 <button onclick="clearSearch()" title="Очистить поиск">🗑️</button>
-<button onclick="sendToQR()" title="Отправить код в QR-приложение">📤 QR</button>
+
+<button onclick="sendCodeQR()" title="Скопировать код и открыть QR-Chanker">📱 QR</button>
+
+
 <button id="copyButton" onclick="copyText()">Скопировать 📃</button>
 <button onclick="clearAll()">Очистить ❌</button>
 <button onclick="window.location.href='https://2d3t.github.io/index.html/'">Выход 🚸</button>
@@ -717,18 +720,39 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <!-- ============ ОТПРАВКА КОДА В QR (Pro6) ============ -->
+<!-- ============ ОТПРАВКА КОДА В QR И Pro6 ============ -->
 <script>
-function sendToQR() {
+function sendCodeQR() {
     const code = document.getElementById('codeArea').value;
-    if (!code.trim()) { alert('Код пуст!'); return; }
-    localStorage.setItem('sharedCode', JSON.stringify({ code, timestamp: Date.now(), from: 'Pro5' }));
-    const btn = document.querySelector('[onclick="sendToQR()"]');
-    btn.textContent = '✅ Отправлено!';
-    btn.style.background = '#00b894';
-    setTimeout(() => { btn.textContent = '📤 Отправить в QR'; btn.style.background = '#6c5ce7'; }, 2000);
-    window.open('/index.html/pro/Pro6/', '_blank');
+    if (!code.trim()) {
+        alert('Код пуст!');
+        return;
+    }
+
+    // Копируем в буфер
+    try {
+        navigator.clipboard.writeText(code);
+    } catch (e) {
+        const textarea = document.getElementById('codeArea');
+        textarea.select();
+        document.execCommand('copy');
+        textarea.setSelectionRange(0, 0);
+    }
+
+    // Сохраняем в localStorage для Pro6
+    try {
+        localStorage.setItem('sharedCode', JSON.stringify({
+            code: code,
+            timestamp: Date.now(),
+            from: 'Pro5'
+        }));
+    } catch (e) {}
+
+    // Открываем QR-Chanker
+    window.location.href = 'https://2d3t.github.io/index.html/pro/Qr-Chanker.html';
 }
 </script>
+<!-- =================================================== -->
 <!-- =================================================== -->
 
 </body>
