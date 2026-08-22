@@ -719,41 +719,30 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.log('[SW] ❌ Ошибка:', err));
 }
 </script>
-<!-- ============ ОТПРАВКА КОДА В QR (Pro6) ============ -->
-<!-- ============ ОТПРАВКА КОДА В QR И Pro6 ============ -->
-<script>
-function sendCodeQR() {
-    const code = document.getElementById('codeArea').value;
-    if (!code.trim()) {
-        alert('Код пуст!');
-        return;
+
+
+
+    <!-- ... весь ваш основной код ... -->
+
+    <!-- ============ ОТПРАВКА КОДА В QR (Pro6) ============ -->
+    <script>
+    function sendToQR() {
+        const code = document.getElementById('codeArea').value;
+        if (!code.trim()) { alert('Код пуст!'); return; }
+        localStorage.setItem('sharedCode', JSON.stringify({ code, timestamp: Date.now(), from: 'Pro5' }));
+        const btn = document.querySelector('[onclick="sendToQR()"]');
+        btn.textContent = '✅ Отправлено!';
+        btn.style.background = '#00b894';
+        setTimeout(() => { btn.textContent = '📤 Отправить в QR'; btn.style.background = '#6c5ce7'; }, 2000);
+        window.open('/index.html/pro/Pro6/', '_blank');
     }
+    </script>
+    <!-- =================================================== -->
 
-    // Копируем в буфер
-    try {
-        navigator.clipboard.writeText(code);
-    } catch (e) {
-        const textarea = document.getElementById('codeArea');
-        textarea.select();
-        document.execCommand('copy');
-        textarea.setSelectionRange(0, 0);
-    }
+</body>
+</html>
 
-    // Сохраняем в localStorage для Pro6
-    try {
-        localStorage.setItem('sharedCode', JSON.stringify({
-            code: code,
-            timestamp: Date.now(),
-            from: 'Pro5'
-        }));
-    } catch (e) {}
 
-    // Открываем QR-Chanker
-    window.location.href = 'https://2d3t.github.io/index.html/pro/Qr-Chanker.html';
-}
-</script>
-<!-- =================================================== -->
-<!-- =================================================== -->
 
 </body>
 </html>
