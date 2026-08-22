@@ -126,14 +126,12 @@ body {
   flex:1;
   overflow:hidden;
   position:relative;
-  min-height:0; /* фикс для flex */
 }
 .editor {
   display:flex;
   flex:1;
   overflow:hidden;
   width:100%;
-  min-height:0; /* фикс для flex */
 }
 .line-numbers {
   background:#eee;
@@ -149,41 +147,8 @@ body {
   font-size:14px;
   line-height:1.4;
   transition:background .2s,color .2s;
-  position:relative;
 }
-.line-numbers div {
-  padding:0 10px;
-  box-sizing:border-box;
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:4px;
-  white-space:nowrap;
-  height:1.4em;
-}
-.line-numbers .line-del {
-  background:transparent;
-  border:none;
-  color:#999;
-  cursor:pointer;
-  font-size:12px;
-  padding:0 2px;
-  border-radius:3px;
-  transition:all .15s;
-  line-height:1;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  opacity:0;
-  flex-shrink:0;
-}
-.line-numbers div:hover .line-del {
-  opacity:1;
-}
-.line-numbers .line-del:hover {
-  background:#ff4d4d;
-  color:white;
-}
+.line-numbers div { padding:0 10px; box-sizing:border-box; }
 textarea {
   flex:1;
   outline:none;
@@ -198,7 +163,6 @@ textarea {
   background:#fff;
   color:#000;
   transition:background .2s,color .2s;
-  min-height:0; /* фикс для flex */
 }
 .preview {
   width:100%;
@@ -361,6 +325,7 @@ body.theme-graphite { background:#1c1c1e; }
   <label for="fileUpload" title="Открыть файл">Файлы 📂</label>
   <input type="file" id="fileUpload" class="file-input" accept=".html,.htm,.txt,.py,.js,.css,.json,.xml,.md,.csv,.log,.ini,.cfg,.conf,.sh,.bat,.ps1,.rb,.php,.java,.c,.cpp,.h,.cs,.go,.rs,.swift,.kt,.sql,.yaml,.yml,.toml,.pl,.pm,.r,.lua,.vim,.ts,.jsx,.tsx,.vue,.scss,.less,.sass,.styl" onchange="handleFileUpload(event)">
 
+  <button onclick="pasteFromClipboard()" title="Вставить с форматированием">📋 Вставить</button>
 
   <input type="text" id="searchInput" placeholder="Поиск 🔎" style="width:100px;">
   <button onclick="findNext()">Найти ▶️</button>
@@ -372,7 +337,6 @@ body.theme-graphite { background:#1c1c1e; }
 
 <button onclick="shareCode()">Скачать ⬇️</button>
 
-
   <button onclick="undo()">Отменить ↩️</button>
   <button onclick="redo()">Повторить ↪️</button>
   
@@ -380,8 +344,6 @@ body.theme-graphite { background:#1c1c1e; }
   <button onclick="runCode()">Просмотр 🖥️</button>
   <button id="fullscreenButton" onclick="toggleFullscreen()">Полный экран⛶</button>
 
-  
-  
 </div>
 
 <!-- Вкладки -->
@@ -507,18 +469,17 @@ function loadTabContent(tab) {
   if (!tab) return;
   activeTabId = tab.id;
   textarea.value = tab.content || '';
+  // Сбрасываем прокрутку вверх при загрузке содержимого
+  textarea.scrollTop = 0;
   updateLineNumbers();
   activeLineNumber = null;
   highlightActiveLine();
   lastSearch = '';
   searchResults = [];
   currentResult = -1;
-  // Сброс истории для текущего таба — храним отдельно в tab.history, но пока упростим
   history = [];
   redoStack = [];
-  // Синхронизация
   syncScroll();
-  // Прячем preview если активен
   if (previewFrame.classList.contains('active')) {
     previewFrame.classList.remove('active');
     previewFrame.style.display = 'none';
@@ -529,7 +490,6 @@ function loadTabContent(tab) {
 
 function switchTab(id) {
   if (isRestoring) return;
-  // Сохраняем текущий контент
   const current = tabs.find(t => t.active);
   if (current) {
     current.content = textarea.value;
@@ -543,7 +503,6 @@ function switchTab(id) {
 
 function closeTab(id) {
   if (tabs.length <= 1) {
-    // Не даём закрыть последнюю вкладку
     return;
   }
   const idx = tabs.findIndex(t => t.id === id);
@@ -551,7 +510,6 @@ function closeTab(id) {
   const wasActive = tabs[idx].active;
   tabs.splice(idx, 1);
   if (wasActive) {
-    // Активируем соседнюю
     const newActive = tabs[Math.min(idx, tabs.length - 1)];
     if (newActive) {
       newActive.active = true;
@@ -565,12 +523,10 @@ function closeTab(id) {
 function addNewTab() {
   const tab = createTab(generateTabName(), '');
   tabs.push(tab);
-  // Деактивируем все, активируем новый
   tabs.forEach(t => t.active = (t.id === tab.id));
   loadTabContent(tab);
   renderTabs();
   saveTabs();
-  // Фокус на редактор
   textarea.focus();
 }
 
@@ -586,7 +542,6 @@ function renameTab(id, newName) {
 // ---------- Сохранение / загрузка localStorage ----------
 function saveTabs() {
   try {
-    // Сохраняем текущий контент активного таба
     const active = tabs.find(t => t.active);
     if (active) {
       active.content = textarea.value;
@@ -605,7 +560,6 @@ function loadTabs() {
     isRestoring = true;
     tabs = data.map(t => ({ ...t, active: t.active || false }));
     tabIdCounter = Math.max(0, ...tabs.map(t => t.id)) + 1;
-    // Проверяем, есть ли активный
     if (!tabs.some(t => t.active)) {
       tabs[0].active = true;
     }
@@ -623,52 +577,25 @@ function loadTabs() {
 // ---------- Обработчики редактора ----------
 function onEditorInput() {
   if (isRestoring) return;
-  // Сохраняем контент в активный таб
   const active = tabs.find(t => t.active);
   if (active) {
     active.content = textarea.value;
   }
   updateLineNumbers();
   saveTabs();
-  // История
   saveState();
 }
 
 function updateLineNumbers() {
-  const lines = textarea.value.split('\n');
-  const total = lines.length;
+  const lines = textarea.value.split('\n').length;
+  const total = lines + Math.ceil(lines * .5);
   lineNumbersDiv.innerHTML = '';
-  for (let i = 0; i < total; i++) {
+  for (let i = 1; i <= total; i++) {
     const d = document.createElement('div');
-    d.textContent = i + 1;
-    // Корзиночка
-    const delBtn = document.createElement('button');
-    delBtn.className = 'line-del';
-    delBtn.textContent = '🗑️';
-    delBtn.title = 'Удалить строку';
-    delBtn.dataset.line = i;
-    delBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      deleteLine(i);
-    });
-    d.appendChild(delBtn);
+    d.textContent = i;
     lineNumbersDiv.appendChild(d);
   }
   syncScroll();
-}
-
-function deleteLine(lineIndex) {
-  const lines = textarea.value.split('\n');
-  if (lineIndex < 0 || lineIndex >= lines.length) return;
-  lines.splice(lineIndex, 1);
-  textarea.value = lines.join('\n');
-  onEditorInput();
-  // обновим номера
-  updateLineNumbers();
-  // восстановим позицию скролла
-  const h = parseFloat(getComputedStyle(textarea).lineHeight);
-  textarea.scrollTop = Math.max(0, lineIndex * h - textarea.clientHeight / 2 + h / 2);
-  highlightActiveLine(lineIndex + 1);
 }
 
 function syncScroll() {
@@ -692,7 +619,38 @@ function goToLine() {
   }
 }
 
-// ---------- Остальные функции (копирование, запуск, и т.д.) ----------
+// ---------- Вставка из буфера с форматированием ----------
+async function pasteFromClipboard() {
+  try {
+    // Пробуем получить данные с форматированием (HTML)
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      // Устанавливаем значение с сохранением позиции прокрутки вверх
+      const scrollTop = textarea.scrollTop;
+      textarea.value = text;
+      textarea.scrollTop = 0; // Всегда прокручиваем вверх после вставки
+      const active = tabs.find(t => t.active);
+      if (active) {
+        active.content = text;
+      }
+      updateLineNumbers();
+      highlightActiveLine();
+      saveTabs();
+      saveState();
+    }
+  } catch (e) {
+    // Если не удалось через API, используем старый метод через textarea
+    textarea.focus();
+    document.execCommand('paste');
+    // После вставки через execCommand прокрутка останется там, где был курсор,
+    // поэтому принудительно скроллим вверх
+    setTimeout(() => {
+      textarea.scrollTop = 0;
+    }, 0);
+  }
+}
+
+// ---------- Остальные функции ----------
 function copyText() {
   textarea.select();
   document.execCommand('copy');
@@ -710,6 +668,7 @@ function clearAll() {
   if (active) {
     active.content = '';
     textarea.value = '';
+    textarea.scrollTop = 0;
     updateLineNumbers();
     highlightActiveLine();
     saveTabs();
@@ -873,7 +832,6 @@ function handleFileUpload(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const content = e.target.result;
-    // Создаём новую вкладку с именем файла
     const tab = createTab(file.name, content);
     tabs.push(tab);
     tabs.forEach(t => t.active = (t.id === tab.id));
@@ -922,15 +880,12 @@ function clearUrlInput() {
 
 // ---------- Инициализация ----------
 function init() {
-  // Загружаем тему
   const t = localStorage.getItem('klikedit_theme');
   if (t) applyTheme(t);
   else applyTheme('dark');
   
-  // Загружаем вкладки
   const loaded = loadTabs();
   if (!loaded) {
-    // Создаём вкладку по умолчанию
     const tab = createTab('Новая вкладка', '');
     tabs = [tab];
     tab.active = true;
@@ -939,7 +894,6 @@ function init() {
     saveTabs();
   }
   
-  // События
   document.getElementById('themeSwitcher').addEventListener('change', (e) => applyTheme(e.target.value));
   document.getElementById('lineNumber').addEventListener('keydown', (e) => { if (e.key === 'Enter') goToLine(); });
   document.getElementById('urlInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') fetchWebsiteCode(); });
@@ -948,10 +902,7 @@ function init() {
     if (!e.target.closest('.drag-handle')) forceExitFullscreen();
   });
   
-  // Перетаскивание кнопки выхода из fullscreen
   setupDrag();
-  
-  // Синхронизация
   updateLineNumbers();
   syncScroll();
   highlightActiveLine();
@@ -1012,7 +963,7 @@ function setupDrag() {
 // Запуск
 init();
 
-// Для QR (отправка кода)
+// QR
 async function sendCodeQR() {
   const code = textarea.value;
   try { await navigator.clipboard.writeText(code); } catch(e) { textarea.select(); document.execCommand('copy'); }
