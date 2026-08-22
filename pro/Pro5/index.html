@@ -727,18 +727,58 @@ if ('serviceWorker' in navigator) {
     <!-- ... весь ваш основной код ... -->
 
     <!-- ============ ОТПРАВКА КОДА В QR (Pro6) ============ -->
-    <script>
+    
+
+
+<script>
     function sendToQR() {
         const code = document.getElementById('codeArea').value;
-        if (!code.trim()) { alert('Код пуст!'); return; }
-        localStorage.setItem('sharedCode', JSON.stringify({ code, timestamp: Date.now(), from: 'Pro5' }));
+        if (!code.trim()) {
+            alert('Код пуст!');
+            return;
+        }
+
+        // 1. Копируем код в буфер обмена
+        try {
+            navigator.clipboard.writeText(code);
+        } catch (e) {
+            const textarea = document.getElementById('codeArea');
+            textarea.select();
+            document.execCommand('copy');
+            textarea.setSelectionRange(0, 0);
+        }
+
+        // 2. Сохраняем код в localStorage для Pro6
+        localStorage.setItem('sharedCode', JSON.stringify({
+            code: code,
+            timestamp: Date.now(),
+            from: 'Pro5'
+        }));
+
+        // 3. Меняем вид кнопки (только на время)
         const btn = document.querySelector('[onclick="sendToQR()"]');
+        const originalText = btn.textContent;
         btn.textContent = '✅ Отправлено!';
         btn.style.background = '#00b894';
-        setTimeout(() => { btn.textContent = '📤 Отправить в QR'; btn.style.background = '#6c5ce7'; }, 2000);
+        btn.style.color = 'white';
+        btn.disabled = true;
+
+        // 4. Возвращаем кнопку в исходное состояние через 2 секунды
+        setTimeout(() => {
+            btn.textContent = '📤 QR';
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.disabled = false;
+        }, 2000);
+
+        // 5. Открываем Pro6 в новой вкладке
         window.open('/index.html/pro/Pro6/', '_blank');
     }
-    </script>
+</script>
+
+
+
+
     <!-- =================================================== -->
 <script>
 // ============ ОТКРЫТЬ СКАНЕР В PRO6 ============
