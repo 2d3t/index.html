@@ -1,22 +1,57 @@
-const CACHE = 'v1';
-const FILES = ['/'];
+// Версия кэша
+const CACHE_NAME = 'notes-app-v1';
 
-self.addEventListener('install', e => {
-    e.waitUntil(
-        caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())
+// Файлы для кэширования (относительные пути)
+const FILES_TO_CACHE = [
+    './',
+    './index.html',
+    './manifest.json',
+    './style.css',    // если есть
+    './app.js'        // если есть
+];
+
+// Установка — кэшируем файлы
+self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('[SW] Кэшируем файлы...');
+                return cache.addAll(FILES_TO_CACHE);
+            })
+            .then(() => self.skipWaiting())
     );
 });
 
-self.addEventListener('activate', e => {
-    e.waitUntil(
-        caches.keys().then(keys => Promise.all(
-            keys.filter(k => k !== CACHE).map(k => caches.delete(k))
-        )).then(() => self.clients.claim())
+// Активация — удаляем старые кэши
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((name) => {
+                    if (name !== CACHE_NAME) {
+                        console.log('[SW] Удаляем старый кэш:', name);
+                        return caches.delete(name);
+                    }
+                })
+            );
+        }).then(() => self.clients.claim())
     );
 });
 
-self.addEventListener('fetch', e => {
-    e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request))
+// Перехват запросов
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request)
+            .then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(event.request).catch(() => {
+                    return new Response('Нет интернета', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
+                });
+            })
     );
 });
