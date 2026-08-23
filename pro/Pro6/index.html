@@ -2856,5 +2856,35 @@ function copyAndOpenKlikEdit() {
     };
 })();
 </script>
+
+
+
+
+
+
+<script>
+
+async function keepScreenAwake() {
+    try {
+        // Запрашиваем блокировку сна
+        const wakeLock = await navigator.wakeLock.request('screen');
+        console.log('[WakeLock] Экран не уснёт');
+        
+        // Если вкладка становится неактивной — снова запрашиваем
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                navigator.wakeLock.request('screen').then(wl => {
+                    console.log('[WakeLock] Возобновлён');
+                }).catch(() => {});
+            }
+        });
+    } catch (e) {
+        console.log('[WakeLock] Не поддерживается:', e);
+    }
+}
+
+// Запускаем при загрузке
+document.addEventListener('DOMContentLoaded', keepScreenAwake);
+</script>
 </body>
 </html>
