@@ -1,10 +1,11 @@
-const CACHE_NAME = 'pro6-v1';
+const CACHE_NAME = 'pro6-v2';
 const FILES_TO_CACHE = [
-    './',                    // ← ТОЧКА с СЛЕШЕМ
-    './index.html',
-    './manifest.json',
-    './qrcode.js',           // если есть локальные библиотеки
-    './html5-qrcode.js'      // если есть
+    '/',                    // ← ОБЯЗАТЕЛЬНО СЛЕШ В НАЧАЛЕ
+    '/index.html',
+    '/manifest.json',
+    '/qrcode.js',
+    '/html5-qrcode.js',
+    '/offline.html'        // добавим офлайн-страницу
 ];
 
 self.addEventListener('install', (event) => {
@@ -40,12 +41,21 @@ self.addEventListener('fetch', (event) => {
                 if (cachedResponse) {
                     return cachedResponse;
                 }
-                return fetch(event.request).catch(() => {
-                    return new Response('Нет интернета', {
-                        status: 503,
-                        statusText: 'Service Unavailable'
+                return fetch(event.request)
+                    .then((response) => {
+                        // Кэшируем успешные ответы
+                        if (response && response.status === 200) {
+                            const responseClone = response.clone();
+                            caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(event.request, responseClone);
+                            });
+                        }
+                        return response;
+                    })
+                    .catch(() => {
+                        // Если нет интернета и нет кэша — отдаём главную страницу
+                        return caches.match('/index.html');
                     });
-                });
             })
     );
 });
