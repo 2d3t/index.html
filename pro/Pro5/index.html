@@ -797,6 +797,79 @@ function openQRScanner() {
 
 
 
+
+
+
+<!-- ========================================================== -->
+<!-- ============ ОФЛАЙН-СОХРАНЕНИЕ (МИНИМАЛЬНО) ============= -->
+<!-- ========================================================== -->
+<script>
+    // === СОХРАНЯЕМ СТРАНИЦУ ===
+    window.addEventListener('load', function() {
+        try {
+            localStorage.setItem('offlinePage', document.documentElement.outerHTML);
+        } catch(e) {}
+    });
+
+    // === ЕСЛИ НЕТ ИНТЕРНЕТА — ЗАГРУЖАЕМ ИЗ LOCALSTORAGE ===
+    (function checkOffline() {
+        if (!navigator.onLine) {
+            const saved = localStorage.getItem('offlinePage');
+            if (saved && saved.length > 0) {
+                document.documentElement.innerHTML = saved;
+                // Маленькая метка в углу
+                showOfflineBadge();
+            }
+        }
+    })();
+
+    // === ПРИ ПОТЕРЕ ИНТЕРНЕТА ===
+    window.addEventListener('offline', function() {
+        const saved = localStorage.getItem('offlinePage');
+        if (saved) {
+            document.documentElement.innerHTML = saved;
+            showOfflineBadge();
+        }
+    });
+
+    // === ПРИ ПОЯВЛЕНИИ ИНТЕРНЕТА ===
+    window.addEventListener('online', function() {
+        const badge = document.getElementById('offlineBadge');
+        if (badge) badge.remove();
+        window.location.reload();
+    });
+
+    // === МАЛЕНЬКАЯ МЕТКА В УГЛУ ===
+    function showOfflineBadge() {
+        const old = document.getElementById('offlineBadge');
+        if (old) old.remove();
+
+        const badge = document.createElement('div');
+        badge.id = 'offlineBadge';
+        badge.style.cssText = `
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            padding: 4px 12px;
+            border-radius: 30px;
+            z-index: 99999;
+            font-family: system-ui, -apple-system, sans-serif;
+            letter-spacing: 0.3px;
+            pointer-events: none;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        `;
+        badge.textContent = '📡 офлайн';
+        document.body.appendChild(badge);
+    }
+</script>
+<!-- ========================================================== -->
+
+
 </body>
 </html>
 
