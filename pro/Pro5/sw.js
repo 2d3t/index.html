@@ -1,9 +1,10 @@
-const CACHE_NAME = 'pro5-v1';
+const CACHE_NAME = 'pro5-v2';
 const FILES_TO_CACHE = [
-    './',                    // ← ТОЧКА с СЛЕШЕМ (текущая папка)
-    './index.html',
-    './manifest.json'
-    // если есть другие файлы (style.css, app.js) — добавь их сюда
+    '/',                    // ← СЛЕШ В НАЧАЛЕ (корень сайта)
+    '/index.html',
+    '/manifest.json',
+    '/qrcode.js',
+    '/html5-qrcode.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -39,12 +40,21 @@ self.addEventListener('fetch', (event) => {
                 if (cachedResponse) {
                     return cachedResponse;
                 }
-                return fetch(event.request).catch(() => {
-                    return new Response('Нет интернета', {
-                        status: 503,
-                        statusText: 'Service Unavailable'
+                return fetch(event.request)
+                    .then((response) => {
+                        // Кэшируем новые файлы при загрузке
+                        if (response && response.status === 200) {
+                            const responseClone = response.clone();
+                            caches.open(CACHE_NAME).then((cache) => {
+                                cache.put(event.request, responseClone);
+                            });
+                        }
+                        return response;
+                    })
+                    .catch(() => {
+                        // Если нет интернета — отдаём главную страницу
+                        return caches.match('/index.html');
                     });
-                });
             })
     );
 });
