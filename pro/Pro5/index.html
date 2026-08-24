@@ -186,6 +186,7 @@ body.theme-graphite .clear-url-btn:hover{background:#555}
 <button onclick="findNext()">Найти ▶️</button>
 <button onclick="findPrev()">Назад ◀️</button>
 <button onclick="clearSearch()" title="Очистить поиск">🗑️</button>
+<span id="searchCounter" style="font-size:14px;min-width:40px;display:inline-block;text-align:center;font-weight:bold;color:inherit;"></span>
 
 <button onclick="sendToQR()" title="Отправить код в QR-приложение">📤 QR</button>
 
@@ -251,7 +252,8 @@ editorContainer=document.getElementById('editorContainer'),
 forceExitFullscreenBtn=document.getElementById('forceExitFullscreenBtn'),
 themeSwitcher=document.getElementById('themeSwitcher'),
 clearUrlButton=document.getElementById('clearUrlButton'),
-body=document.body;
+body=document.body,
+searchCounter=document.getElementById('searchCounter');
 
 let history=[],redoStack=[],isFullscreen=false,wasInPreviewBeforeFile=false,fullscreenWasActive=false,lastPreviewUrl=null;
 let searchResults=[],currentResult=-1,lastSearch="";
@@ -341,7 +343,17 @@ searchInput.value='';
 lastSearch='';
 searchResults=[];
 currentResult=-1;
+updateSearchCounter();
 searchInput.focus();
+}
+
+function updateSearchCounter() {
+    if (searchResults.length === 0) {
+        searchCounter.textContent = '';
+    } else {
+        const idx = currentResult === -1 ? 0 : currentResult;
+        searchCounter.textContent = (idx + 1) + '/' + searchResults.length;
+    }
 }
 
 async function sendCodeQR(){
@@ -376,6 +388,7 @@ highlightActiveLine(); // Вызываем без аргумента
 lastSearch='';
 searchResults=[];
 currentResult=-1;
+updateSearchCounter();
 }catch(e){console.error('Ошибка загрузки:',e)}
 finally{
 fetchButton.textContent=old;
@@ -451,6 +464,9 @@ textarea.value='';
 activeLineNumber = null;
 updateLineNumbers();
 highlightActiveLine(); // Убираем подсветку
+searchResults=[];
+currentResult=-1;
+updateSearchCounter();
 }
 
 function runCode(){
@@ -504,6 +520,9 @@ textarea.value=history.pop();
 activeLineNumber = null;
 updateLineNumbers();
 highlightActiveLine(); // Убираем подсветку
+searchResults=[];
+currentResult=-1;
+updateSearchCounter();
 }
 }
 
@@ -514,6 +533,9 @@ textarea.value=redoStack.pop();
 activeLineNumber = null;
 updateLineNumbers();
 highlightActiveLine(); // Убираем подсветку
+searchResults=[];
+currentResult=-1;
+updateSearchCounter();
 }
 }
 
@@ -536,6 +558,9 @@ textarea.value=content;
 activeLineNumber = null; // Сбрасываем подсветку
 updateLineNumbers();
 highlightActiveLine(); // Убираем подсветку
+searchResults=[];
+currentResult=-1;
+updateSearchCounter();
 if(wasInPreviewBeforeFile){
 const code=extractHtmlContent(content)||content;
 const url=URL.createObjectURL(new Blob([code],{type:'text/html'}));
@@ -629,6 +654,7 @@ while(i!==-1){
 searchResults.push(i);
 i=textarea.value.indexOf(term,i+term.length);
 }
+updateSearchCounter();
 }
 
 function highlightMatch(){
@@ -639,6 +665,7 @@ textarea.setSelectionRange(pos,pos+term.length);
 const h=parseFloat(getComputedStyle(textarea).lineHeight);
 const line=textarea.value.substring(0,pos).split('\n').length;
 textarea.scrollTop=Math.max(0,(line-1)*h-textarea.clientHeight/2);
+updateSearchCounter();
 }
 
 function findNext(){
@@ -671,6 +698,7 @@ searchInput.addEventListener('input',()=>{
 lastSearch='';
 searchResults=[];
 currentResult=-1;
+updateSearchCounter();
 });
 
 urlInput.addEventListener('keypress',e=>{
@@ -699,6 +727,9 @@ syncScroll();
 // Не подсвечиваем при загрузке страницы
 activeLineNumber = null;
 highlightActiveLine();
+searchResults=[];
+currentResult=-1;
+updateSearchCounter();
 });
 
 // Инициализация - без подсветки
@@ -707,6 +738,9 @@ textarea.value='';
 activeLineNumber = null;
 highlightActiveLine(); // Убираем подсветку
 updateLineNumbers();
+searchResults=[];
+currentResult=-1;
+updateSearchCounter();
 
 previewFrame.style.display='none';
 previewFrame.style.visibility='hidden';
@@ -822,10 +856,5 @@ document.addEventListener('DOMContentLoaded', keepScreenAwake);
 </script>
 
 
-
-
 </body>
 </html>
-
-
-
